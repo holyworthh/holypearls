@@ -47,6 +47,12 @@ jobs:
       - run: pnpm test
       - name: Load seed data
         run: pnpm seed
+      - name: Check generated token CSS matches tokens.json
+        run: pnpm --filter @holypearls/ui tokens:check
       - run: pnpm check:openapi
       - run: docker compose config --quiet
       - run: pnpm build
+      - name: Install Chromium for browser tests
+        run: pnpm --filter @holypearls/web exec playwright install --with-deps chromium
+      - name: Accessibility, keyboard and viewport tests (375 and 1440 px)
+        run: pnpm --filter @holypearls/web test:e2e

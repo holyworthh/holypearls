@@ -1,0 +1,51 @@
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hp-space-16);
+  max-width: var(--hp-readable-width);
+  padding-block: var(--hp-space-48);
+}
+
+.eyebrow {
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-support);
+  color: var(--hp-graphite);
+}
+
+.title {
+  font-size: var(--hp-text-h2);
+  letter-spacing: var(--hp-tracking-display);
+}
+
+.body {
+  font-size: var(--hp-text-body-lg);
+  color: var(--hp-graphite);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-12);
+}
+
+.skeleton {
+  display: grid;
+  gap: var(--hp-space-12);
+  width: 100%;
+}
+
+.bar {
+  height: var(--hp-space-16);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-bone);
+}
+
+.bar:nth-child(1) {
+  width: 40%;
+  height: var(--hp-space-32);
+}
+
+.bar:nth-child(3) {
+  width: 70%;
+}

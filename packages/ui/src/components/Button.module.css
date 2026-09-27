@@ -1,0 +1,96 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hp-space-8);
+  min-height: var(--hp-touch-target);
+  padding: var(--hp-space-12) var(--hp-space-20);
+  border: var(--hp-border-width) solid transparent;
+  border-radius: var(--hp-r-control);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-body);
+  font-weight: var(--hp-weight-medium);
+  line-height: var(--hp-leading-tight);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--hp-motion-status) var(--hp-ease-enter),
+    border-color var(--hp-motion-status) var(--hp-ease-enter),
+    color var(--hp-motion-status) var(--hp-ease-enter);
+}
+
+.button:disabled,
+.button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+.primary {
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+}
+
+.primary:hover:not(:disabled, [aria-disabled="true"]) {
+  background: var(--hp-accent-hover);
+}
+
+.primary:focus-visible,
+.destructive:focus-visible,
+.ink:focus-visible {
+  outline-color: var(--hp-ink);
+}
+
+.secondary {
+  background: var(--hp-paper);
+  border-color: var(--hp-ink);
+  color: var(--hp-ink);
+}
+
+.secondary:hover:not(:disabled, [aria-disabled="true"]) {
+  background: var(--hp-bone);
+}
+
+.tertiary {
+  padding-inline: var(--hp-space-4);
+  background: transparent;
+  color: var(--hp-accent);
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.tertiary:hover:not(:disabled, [aria-disabled="true"]) {
+  color: var(--hp-accent-hover);
+}
+
+.ink {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.ink:hover:not(:disabled, [aria-disabled="true"]) {
+  background: var(--hp-ink-2);
+}
+
+.destructive {
+  background: var(--hp-error);
+  color: var(--hp-paper);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.spinner {
+  width: var(--hp-space-16);
+  height: var(--hp-space-16);
+  border: var(--hp-focus-ring-width) solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin var(--hp-motion-spinner) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
