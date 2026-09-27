@@ -1,44 +1,31 @@
-# HolyPearls — Claude Code Session Prompt
+# HolyPearls — Coding Session Prompt
 
-Paste this at the start of every session. Replace `<TICKET>` with the ticket ID (for example `T04-03`).
+Use one ticket per session. Replace `<TICKET>` with its ID. Follow the root `AGENTS.md` and `CLAUDE.md`.
 
----
+## Plan (wait for approval)
 
-You are building HolyPearls. This session covers exactly one ticket: **<TICKET>**.
+1. Read the complete row for `<TICKET>` in `docs/tracker/TICKETS.csv`: Build, Not in this ticket, Depends on, PRD refs, Read first and Done when.
+2. Read `docs/plan/ADR-REGISTER.md`, `docs/prd/PRD-00.md`, every ticket PRD, each Read first source, and the prior ticket report in `docs/reports/` if one exists.
+3. Check the repository state and each dependency. A dependency must be DONE. Confirm that `main` is green, the required branch/base is current, and the database migration path works from an empty database. If a required dependency or prerequisite is missing, stop and write BLOCKED in the report.
+4. For each screen in scope, open the mapped Pen frame through the Pen MCP. Use `docs/design/SCREEN-MAP.md` to find its node ID. Read `docs/design/DESIGN-SYSTEM.md` and `packages/ui/tokens/tokens.json`. Record the layout, breakpoints, shown states, tokens and components.
+5. Write a plan and wait for approval before coding. List:
+   - PRD requirement IDs and ticket acceptance criteria.
+   - Pen frame IDs, viewport widths, states, tokens and components.
+   - Files and modules in scope.
+   - Status changes and user flows.
+   - API endpoints, data changes, migrations, permissions and policies.
+   - Jobs, failure states and tests.
+   - Dependencies, risks and items that are out of scope.
 
-## Sources (in this order of authority)
-1. ADR Register (v2) and any written amendment
-2. PRD 00 v2 (glossary, status names, shared rules)
-3. The PRD(s) listed on the ticket
-4. Stage 4 design for the screens listed on the ticket
-5. Stage 3 wireframes and state matrices
-6. TECH 00–08 v2 for how to build it
+Do not start implementation until the user approves the plan.
 
-All v2 documents are in Drive folder `09_REVISED-DOCS-v2`. Ignore v1 documents unless a v2 document points to them.
+## Build and verify
 
-## Before coding
-1. Read the ticket row in `HolyPearls — Ticket Tracker (v2)`: Build, Not in this ticket, Depends on, PRD refs, Read first, Done when.
-2. Read every document in "Read first" and the PRD requirements listed.
-3. Read the previous ticket's report in `docs/reports/`.
-4. Check the repository's real state. Confirm every "Depends on" ticket is actually present and `main` is green. If not, stop and report BLOCKED.
-5. Confirm the database migrates from empty.
-6. Set the ticket to IN PROGRESS in the tracker.
-
-## While coding
-- Branch: `<ticket-id-lowercase>-<short-name>`.
-- Stay inside "Build". Anything else goes in the report as a suggestion.
-- Deliver the whole slice: screens (375 px and 1440 px), contract in `packages/contracts`, service with business rules, migration, permission checks via policy functions, jobs, admin screen if listed, tests.
-- Use status names exactly as PRD 00 section 8 and TECH 01 section 4 define them.
-- Money is minor units + currency. Never trust amounts, IDs or organization IDs from the browser.
-- Private and organization features need negative permission tests (TECH 03 section 17).
-- Run lint, type check, tests and build often.
-- If two documents disagree, follow the order above and write it under "Questions" in the report. If the answer isn't clear, stop and mark BLOCKED.
-- If the ticket clearly won't fit in this session, stop at a clean, working point and mark it PARTIAL with what's left.
-
-## Before stopping
-1. All checks pass. Migrations run from empty and from the previous state. `pnpm seed` works.
-2. Every "Done when" item is checked, and the Definition of Done in TECH 08 section 13 is met.
-3. Write `docs/reports/<TICKET>.md` using the format in TECH 08 section 7.
-4. Update the tracker row: Status, Branch, PR, Completion summary, Blocker.
-5. Open a pull request.
-6. Stop. Do not start the next ticket.
+1. After approval, set the ticket to IN PROGRESS and create a branch named for the ticket, such as `t05-04-quote-builder`.
+2. Build only the ticket's Build scope. Record out-of-scope ideas as suggestions in the report. Do not start another ticket.
+3. Deliver the whole ticket slice: screens at the designed widths, shared contracts, business rules in services, migrations, server-side permission checks, jobs, admin screens listed by the ticket, and tests.
+4. Use status names from PRD-00 §8 and TECH-01 §4. Use ticket status values from TECH-08 §8. Store money in minor units with a currency. The server decides amounts and access. Add negative permission tests for private or organization features as required by TECH-03 §17.
+5. Use only tokens from `packages/ui/tokens/tokens.json` and components from `packages/ui`. Do not add hard-coded colors, fonts or spacing. Build each state shown in Pen. After implementation, compare the rendered page with its frame at matching widths. Use 375 px and 1440 px unless the approved frame requires other widths. Record every visible difference and fix it or explain it as a deviation.
+6. Run the checks in the ticket and TECH-08. Complete the Definition of Done in TECH-08 §13 item by item. Check migrations from an empty database and the previous state when relevant. Confirm seed data works when the ticket needs it.
+7. Write `docs/reports/<TICKET>.md` using TECH-08 §7. Include work, checks and results, visual comparison, questions, deviations, blockers and suggestions. Update the ticket row in `docs/tracker/TICKETS.csv`.
+8. Open a pull request for this ticket and stop. Do not merge it or start another ticket.

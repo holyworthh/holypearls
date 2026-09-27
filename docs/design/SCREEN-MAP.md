@@ -8,7 +8,7 @@ The source is the open Pen file `untitled.pen`: Stage 4.1 Signal root `mRfIk` an
 
 ## Screen and frame table
 
-The PRD references below copy the mapped tracker rows' PRD refs. A dash means the tracker gives no PRD ref. The table does not infer browser paths from API endpoints. The only browser path found is `/start` in the T05-01 tracker Build field; PRD/TECH do not define a web route table.
+The PRD references below copy the mapped tracker rows' PRD refs. A dash means the tracker gives no PRD ref. PRD/TECH do not define a complete browser route table. TECH-00 names `/admin`; the T05-01 tracker Build field names `/start`. Other browser paths remain unspecified. API endpoints in TECH-02 are not browser routes.
 
 | Screen name | Pen.dev frame/node ID or link | Breakpoint | Route (from PRD/TECH) | State shown | PRD requirement IDs | Ticket(s) that build it |
 | --- | --- | --- | --- | --- | --- | --- |
