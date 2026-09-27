@@ -9,6 +9,6 @@ describe("newId", () => {
   it("creates unique, time-ordered values", () => {
     const ids = Array.from({ length: 1000 }, newId);
     expect(new Set(ids).size).toBe(ids.length);
-    expect([...ids].sort()).toEqual(ids);
+    expect([...ids].sort((a, b) => a.localeCompare(b))).toEqual(ids);
   });
 });
