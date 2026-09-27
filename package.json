@@ -8,9 +8,9 @@
   "scripts": {
     "dev": "dotenv -e .env -- turbo dev --filter=@holypearls/web --filter=@holypearls/api --filter=@holypearls/worker",
     "lint": "eslint apps packages --ext .ts,.tsx",
-    "typecheck": "turbo typecheck",
-    "test": "turbo test",
-    "build": "turbo build",
+    "typecheck": "dotenv -e .env -- turbo typecheck",
+    "test": "dotenv -e .env -- turbo test",
+    "build": "dotenv -e .env -- turbo build",
     "check:migrations": "node scripts/check-foundation-artifacts.mjs migrations",
     "check:openapi": "node scripts/check-foundation-artifacts.mjs openapi"
   },
