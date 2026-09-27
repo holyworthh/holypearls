@@ -34,7 +34,7 @@ The design does not change product behavior. Follow the PRD when design and PRD 
 
 ## Git conventions (required)
 
-These rules apply to every agent and tool (Claude Code, Codex, Cursor or any other). They override the branch example in TECH-08 §6 step 5.
+These rules apply to every agent and tool (Claude Code, Codex, Cursor or any other). They restate ADR-016 in `docs/plan/ADR-REGISTER.md`, which TECH-08 §6 and §9 follow.
 
 **Branches**
 

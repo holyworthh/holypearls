@@ -36,7 +36,7 @@ Follow the order in PRD 00 section 14\. Don't pick silently. Stop, write the con
 3. Confirm `main` is green and the database migrates from empty.  
 4. Set the ticket to IN PROGRESS.
 
-**While coding:** 5\. Work in a branch named after the ticket (`t05-04-quote-builder`). 6\. Follow the ticket's scope. Anything out of scope goes in the report as a suggestion. 7\. Run lint, type check, tests and build often. 8\. Check every screen you touch at 375 px and 1440 px wide. 9\. Add the negative permission tests for anything private.
+**While coding:** 5\. Work in a branch named after the ticket (`feature/t05-04-quote-builder`; naming, commit and pull request rules in ADR-016). 6\. Follow the ticket's scope. Anything out of scope goes in the report as a suggestion. 7\. Run lint, type check, tests and build often. 8\. Check every screen you touch at 375 px and 1440 px wide. 9\. Add the negative permission tests for anything private.
 
 **Before stopping:** 10\. All checks pass. Migrations run from empty and from the previous state. Seed data still loads. 11\. Write `docs/reports/TXX-YY.md` (format below). 12\. Update the tracker row: status, branch, PR, completion summary, any blocker. 13\. Open a pull request. Stop. Don't start the next ticket unless told to.
 
@@ -74,7 +74,7 @@ A ticket is DONE only when the Definition of Done (section 13\) is met and the p
 
 ## 9\. Branches and pull requests
 
-One branch and one pull request per ticket. Squash-merge to main after checks pass and you've reviewed it. Main deploys to staging automatically.
+One branch and one pull request per ticket, named and titled per ADR-016. Squash-merge to main after checks pass and you've reviewed it. Main deploys to staging automatically.
 
 ## 10\. Migrations
 
