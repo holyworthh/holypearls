@@ -157,6 +157,28 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 | 99 Archetype · review queue with decisions (payment reviews) | cfVRu (queue f1lV3; states gMqry; mobile T8Zbf) | Desktop + Mobile 375 | /admin (sub-path not specified) | Queue + detail + resolution (REVIEW_REQUIRED → SUCCEEDED or OPEN), note required, resolved, empty, view-only (PAYMENT_VIEW) | OPS-FR-041, 044–047 | T04-06 (archetype for review queues) |
 | 100 Archetype · settings with high-risk step-up (payment settings) | f2p7r (settings S2ppAi; states + step-up didZV; Paystack checklist QfnbF) | Desktop | /admin (sub-path not specified) | Channel toggles, unavailable method, international/USD, default schedule, MFA step-up, payments paused, saved, 403 (PAYMENT_MANAGE), Paystack setup checklist | OPS-FR-041, 044–047 | T04-06 (archetype for settings) |
 | 101 Archetype · audit / history viewer | weTNu (viewer nmsXn; states + history panel l4tuGM) | Desktop | /admin (sub-path not specified) | Filters, pagination, entry detail (before/after, MFA, request ID), embedded history panel, empty, loading, error, 403 (AUDIT_VIEW) | OPS-FR-120 | T01-01 |
+| 102 Notification log and resend | pfJJO (log xOEwE; states Gls4L) | Desktop | /admin (sub-path not specified) | QUEUED, SENT, DELIVERED, FAILED; resend creates a new record; loading, empty, error, 403, success | PRD 00 §17 | T01-02 |
+| 103 Help inbox | JAuft (inbox JGHtd; states reoIE; mobile AwFu3) | Desktop + Mobile 375 | /admin (sub-path not specified) | OPEN, ANSWERED, CLOSED; attached context; reply; loading, empty, error, 403, success | PRD 00 §18; PUB-FR-015; PROJ-FR-008 | T01-07 |
+| 104 Categories and product media | Ku9S1 (list + editor eFFQR; states aBkm0) | Desktop | /admin (sub-path not specified) | DRAFT, PUBLISHED, ARCHIVED; media READY, PROCESSING, REJECTED; archive confirm; loading, empty, error, 403, success | OPS-FR-001–004, OPS-FR-110 | T02-02 |
+| 105 Category hub section editor | sauft (editor k4obTd; states kTtKZ) | Desktop | /admin (sub-path not specified) | Section order and visibility (keyboard reorder), FAQ editing, unpublished changes, validation, published | PUB-FR-009 | T02-05 |
+| 106 Content editor | X3mMi (editor RZTtl; states pJPKT) | Desktop | /admin (sub-path not specified) | Rich text, media, SEO; DRAFT; sanitized-on-save warning; private page indexing locked; published | PUB-FR-011–013, PUB-FR-015 | T02-06 |
+| 107 Product rules, price rules, price states and VAT | GUSNm (price rules JElIg; product rules pGEKn; price-state + VAT MWJuf; states XlKyc) | Desktop | /admin (sub-path not specified) | Scheduled price version with effective date; MOQ, lead time, rush, artwork, sample and proof rules; compatibility; PRICE_READY, ESTIMATE_READY, QUOTE_REQUIRED, CONSULTATION_REQUIRED rules; VAT; MFA step-up; overlapping tiers | OPS-FR-010–019 | T03-01 |
+| 108 Nigeria delivery zones and rates | MCTSk (zones x8jIrT; states JfykZ) | Desktop | /admin (sub-path not specified) | Fixed rate or Quote required per zone; international freight by quote; overlap validation | COM-FR-083–084; OPS-FR-100–101 | T04-02 |
+| 109 Payments list | iPVvj (list HipdO; states eUKwI) | Desktop | /admin (sub-path not specified) | Attempt SUCCEEDED, PENDING, FAILED, ABANDONED; customer status PAID, PAYMENT_PENDING, PAYMENT_FAILED, PARTIALLY_REFUNDED, PAYMENT_RESOLUTION_REQUIRED; payments paused | OPS-FR-041, 044–047 | T04-06 (with 97, 99, 100) |
+| 110 Recommendation rules | khFI5 (rules LQ1pJ; states ac0rA) | Desktop | /admin (sub-path not specified) | Rules per project type with group, condition, quantity and reason; permission to be decided | PROJ-FR-003–006 | T05-02 |
+| 111 Quote builder and version editor | p8eBI (V2 draft MaLb0; states nDS2r) | Desktop | /admin (sub-path not specified) | Version DRAFT, SENT (read-only), SUPERSEDED; REVISION_REQUESTED to READY; payment schedule editor; NGN/USD; validation; send confirm | OPS-FR-031–034, 040 | T05-04 |
+| 112 Artwork review queue and proof preparation | ebdTq (queue VwOBV; proof prep dfTCG; states ElNrb; mobile rZ4Jv) | Desktop + Mobile 375 | /admin (sub-path not specified) | File NEEDS_REVIEW, PROCESSING, READY, REJECTED; proof REVISION_IN_PROGRESS to AWAITING_APPROVAL; version DRAFT, CHANGES_REQUESTED; NOT_REQUIRED path | FUL-FR-001; OPS-FR-050–051 | T06-01 |
+| 113 Production board, item updates and quality check | VdIhv (board mXxtP; item + QC Laq7f; states k0PwR; mobile LTv4G) | Desktop + Mobile 375 | /admin (sub-path not specified) | All item statuses incl. ON_HOLD; QC pass or rework; illegal move rejected; item history | FUL-FR-012, 014–016; OPS-FR-060–061, 063 | T07-01 |
+| 114 Holds and release | HpQ9q (place hold n3E98F; balance block Uv3At; states Uoc0G) | Desktop | /admin (sub-path not specified) | Hold form + customer preview (ON_HOLD); BALANCE_REQUIRED with READY_AWAITING_RELEASE items; automatic release on payment | FUL-FR-013, 020–021; OPS-FR-062, 064 | T07-02 |
+| 115 Shipments | ItlTv (create luIrF; status + history j5hl6h; states lyDQK) | Desktop | /admin (sub-path not specified) | PREPARING, LABEL_CREATED, IN_TRANSIT, OUT_FOR_DELIVERY, ATTEMPTED_DELIVERY, EXCEPTION, DELIVERED; over-quantity error; history kept | FUL-FR-030–032; OPS-FR-070–073 | T08-01 |
+| 116 Brand asset production review, retire and archive | XLhMz (review PAbdN; states FUtNJ; mobile w1fr1) | Desktop + Mobile 375 | /admin (sub-path not specified) | Asset version NEEDS_REVIEW, PRODUCTION_READY, SUPERSEDED, RETIRED, ARCHIVED; linked-template warning; permission to be decided | B2B-FR-020–023; OPS-FR-083 | T11-01 |
+| 117 Template authoring and HolyPearls approval | cpQIJ (approval Tb81V; create TbBTL; states ldl0q) | Desktop | /admin (sub-path not specified) | DRAFT, AWAITING_APPROVAL, APPROVED, NEEDS_REVIEW (Blocked — asset review required); locked vs editable fields with reasons | B2B-FR-024, 030–033; OPS-FR-082 | T11-02 |
+| 118 Garment and production data, effective dates, Price updated | rWF0Z (garment data DGylb; scheduled change + notice RW4ec; states aqFUO) | Desktop | /admin (sub-path not specified) | Fabrics, colours and sizes with staff-only supplier fields; effective-date preview; customer Price updated notice | OPS-FR-020–022, 130 | T13-01 |
+| 119 Installation and international freight rules | UOy8G (rules z3aOhp; states MjHLT) | Desktop | /admin (sub-path not specified) | Installation areas, capabilities, rules; freight Calculated rate or Staff will quote | OPS-FR-101–102 | T13-02 |
+| 120 Exports | Qtzod (request + list z19cb6; states v7KOKv) | Desktop | /admin (sub-path not specified) | Personal-data warning, MFA step-up, generating/ready/expired/failed (plain words), 24-hour expiry | PRD 06 §19 | T13-04 |
+| 121 Refunds and resolution | fG7S6 (issue mRG8q; list NJoG3; states W5Vo5g; mobile z4Abd) | Desktop + Mobile 375 | /admin (sub-path not specified) | Refund PENDING, PROCESSED, FAILED; PARTIALLY_REFUNDED, REFUNDED, PAYMENT_RESOLUTION_REQUIRED; DUPLICATE_PAYMENT and PAID_PARTICIPANT_REMOVED resolution; MFA step-up; over-limit error | OPS-FR-043 | T13-05 |
+| 122 Staff user administration | M4aCyb (list rbymz; member pplkz; states vFTNv) | Desktop | /admin (sub-path not specified) | ACTIVE, DEACTIVATED; invitation PENDING; grant/revoke with MFA; MFA reset with phone check; last-two STAFF_ADMIN block | PRD 06 §2, §18 | T13-06 |
+| 123 Incident switches | S1fH7 (switches JqxuW; states bCk9j) | Desktop | /admin (sub-path not specified) | Read-only mode, pause uploads, pause payments, revoke sessions, revoke guest links; MFA step-up; active switch; no alert dashboard | — (TECH-06 §14; TECH-07 §12, §14) | T15-05 |
 
 ## Ticket gaps
 
@@ -164,41 +186,19 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 
 | GAP ticket | Missing UI surface from the tracker Build scope | Evidence |
 | --- | --- | --- |
-| **GAP — T01-02** | Admin notification log and resend controls | No notification screen is present. |
-| **GAP — T01-07** | Admin help inbox (OPEN/ANSWERED/CLOSED) | Contact is mapped; the staff inbox is not shown. |
-| **GAP — T02-02** | Admin product and category list/edit/publish screens | Public catalogue frames do not show the admin editor. |
-| **GAP — T02-05** | Category hub admin editing controls | The public category hub is mapped; its editing surface is absent. |
-| **GAP — T02-06** | Admin content editor | Public content pages are mapped; the editor is absent. |
-| **GAP — T03-01** | Admin product, price, tax and rule editors | No rules-admin screen is present. |
-| **GAP — T04-02** | Admin Nigeria delivery zones and rates | Checkout is mapped; the rate administration surface is absent. |
-| **GAP — T04-06** | Payments list, intent detail, review queue and settings | No payments-admin screen is present. |
-| **GAP — T05-02** | Admin recommendation-rule editor | The customer recommendation view is mapped; rule management is absent. |
 | **GAP — T05-03** | Customer project review/submission/confirmation and staff project queue | The builder and recommendation steps are mapped; review and queue screens are absent. |
-| **GAP — T05-04** | Staff quote builder and version editor | Customer quote frames do not show the staff editor. |
-| **GAP — T06-01** | Staff proof preparation and artwork review queue | Customer proof frames are mapped; preparation is absent. |
 | **GAP — T06-03** | Proof comment and pin interaction states | The viewer is mapped; comment/pin states are not explicit in a frame. |
 | **GAP — T06-04** | After-approval change request and staff decision screens | No matching change-review frame is present. |
-| **GAP — T07-01** | Admin production board and item update controls | Customer order status frames do not show the staff board. |
-| **GAP — T07-02** | Admin hold/release actions and recovery states | Customer order states do not show staff hold/release controls. |
 | **GAP — T07-04** | Customer cancellation/scope-change forms and staff review | No matching request flow is present. |
-| **GAP — T08-01** | Admin shipment creation and status management | Customer tracking is mapped; shipment administration is absent. |
 | **GAP — T08-03** | Reorder eligibility, changed-order draft and completion flow | Order frames do not identify these reorder states. |
 | **GAP — T08-04** | Customer problem report and admin triage queue | No matching report/triage frame is present. |
 | **GAP — T10-04** | Workspace billing and workspace search | Workspace overview and lists are mapped; billing/search are not shown. |
-| **GAP — T11-01** | Staff production review, retire and archive controls for brand assets | Workspace asset screens are mapped; staff review controls are absent. |
-| **GAP — T11-02** | Staff template creation and approval screens | Workspace template screens are mapped; the staff authoring/approval surface is absent. |
 | **GAP — T11-03** | Order-from-template checkout and quote transition | Template detail is mapped; the order flow is not explicit. |
 | **GAP — T12-01** | Group collection creation and setup controls | Organizer is mapped; the setup/configuration flow is not explicit. |
 | **GAP — T12-04** | Close/reopen and Order Draft review states | Organizer dashboard is mapped; these outcomes are not explicit in the frame title. |
 | **GAP — T12-05** | Paid participant removal and payment-resolution review | No matching state frame is present. |
 | **GAP — T12-07** | Allowance policy editor, ledger and over-limit approval | No allowance screen is present. |
-| **GAP — T13-01** | Business-rule administration | No matching admin screen is present. |
-| **GAP — T13-02** | Installation area/capability and freight-rule administration | No matching admin screen is present. |
-| **GAP — T13-04** | Export request/status and personal-data MFA flow | No export screen is present. |
-| **GAP — T13-06** | Staff list, invite, permission grant/revoke, deactivate and MFA reset | No staff-user administration screen is present. |
-| **GAP — T13-05** | Staff refund review and resolution states | No refund screen is present; the tracker Build includes refund and review work. |
 | **GAP — T15-04** | Privacy notice, consent, processor list, and staff data export/erase tools | No privacy or data-subject-request screen is present. |
-| **GAP — T15-05** | Monitoring/incident dashboard and incident switches | No staff operations control screen is present. |
 
 ## Mapping notes
 
