@@ -112,7 +112,7 @@ export function WorkspaceShell(props: AppShellProps) {
   return <AppShell {...props} navLabel="Workspace" />;
 }
 
-/** Staff admin. Access control is added in T00-07; this is layout only. */
+/** Staff admin. Access control is added in T00-06; this is layout only. */
 export function AdminShell(props: AppShellProps) {
   return <AppShell {...props} navLabel="Admin" />;
 }
