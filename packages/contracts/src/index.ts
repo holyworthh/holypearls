@@ -1,2 +1,1 @@
-// Shared API contracts start in T00-03.
-export {};
+export * from "./money.js";

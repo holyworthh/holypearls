@@ -18,6 +18,15 @@ const workerSchema = z.object({
   DATABASE_URL: databaseUrl,
 });
 
+const databaseSchema = z.object({
+  DATABASE_URL: databaseUrl,
+});
+
+// Tests create and drop their own databases through this server connection.
+const testDatabaseSchema = z.object({
+  TEST_DATABASE_URL: databaseUrl,
+});
+
 function parseEnv<T extends z.ZodType>(schema: T, source: Record<string, string | undefined>): z.output<T> {
   const result = schema.safeParse(source);
   if (!result.success) {
@@ -35,3 +44,10 @@ export const loadApiEnv = (source: Record<string, string | undefined> = process.
 
 export const loadWorkerEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(workerSchema, source);
+
+export const loadDatabaseEnv = (source: Record<string, string | undefined> = process.env) =>
+  parseEnv(databaseSchema, source);
+
+/** Uses TEST_DATABASE_URL, or DATABASE_URL when no separate test server is set. */
+export const loadTestDatabaseEnv = (source: Record<string, string | undefined> = process.env) =>
+  parseEnv(testDatabaseSchema, { TEST_DATABASE_URL: source.TEST_DATABASE_URL ?? source.DATABASE_URL });

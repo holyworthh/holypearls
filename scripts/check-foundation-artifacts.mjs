@@ -1,12 +1,11 @@
 import { existsSync } from "node:fs";
 
 const checks = {
-  migrations: ["packages/db/drizzle"],
   openapi: ["apps/api/openapi.json"],
 };
 const kind = process.argv[2];
 if (!(kind in checks)) {
-  throw new Error("Expected migrations or openapi");
+  throw new Error("Expected openapi");
 }
 for (const path of checks[kind]) {
   if (existsSync(path)) {
