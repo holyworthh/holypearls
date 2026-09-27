@@ -1,0 +1,14 @@
+.card {
+  padding: var(--hp-space-24);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-paper);
+}
+
+.bone {
+  background: var(--hp-bone);
+}
+
+.panel {
+  border-radius: var(--hp-r-panel);
+}
