@@ -1,0 +1,56 @@
+{
+  "A1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"oYpqg\",\"name\":\"Printing & Branding Company in Shomolu, Lagos | Bayo Media & Prints\"}\n"
+  },
+  "A2": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\nnull\n"
+  },
+  "A3": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"f5sdy\",\"name\":\"Custom Products—Design Your Own or Sell Online | Printful\"}\n"
+  },
+  "B1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"utcwO\",\"name\":\"The Factory Nigeria — Garment Production & Printing in Lagos\"}\n"
+  },
+  "C1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"ZfuCo\",\"name\":\"Syndew Atelier | Premium Embroidery & Monogram Services in Lagos\"}\n"
+  },
+  "D1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"yBhge\",\"name\":\"How To Navigate The Custom Ink T-Shirt Design Lab\"}\n"
+  },
+  "D2": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"i77wX\",\"name\":\"How does the Design Maker work? – Printful Help Center\"}\n"
+  },
+  "E1": {
+    "success": false,
+    "error": "The page did not finish loading in time."
+  },
+  "F1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"ngNRv\",\"name\":\"Custom sticker packs | Free shipping | Sticker Mule\"}\n"
+  },
+  "G1": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\nnull\n"
+  },
+  "G2": {
+    "success": false,
+    "error": "Could not parse asset url: Added a screenshot of the full page to the canvas.",
+    "checkOutput": "OK\n\n## Print output\n{\"id\":\"pMxwW\",\"name\":\"Swag.com - Promotional Products & Branded Merchandise\"}\n"
+  }
+}
