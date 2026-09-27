@@ -21,7 +21,7 @@ Do not start implementation until the user approves the plan.
 
 ## Build and verify
 
-1. After approval, set the ticket to IN PROGRESS and create a branch named for the ticket, such as `t05-04-quote-builder`.
+1. After approval, set the ticket to IN PROGRESS and create a branch named for the ticket, such as `feature/t05-04-quote-builder` (ADR-016).
 2. Build only the ticket's Build scope. Record out-of-scope ideas as suggestions in the report. Do not start another ticket.
 3. Deliver the whole ticket slice: screens at the designed widths, shared contracts, business rules in services, migrations, server-side permission checks, jobs, admin screens listed by the ticket, and tests.
 4. Use status names from PRD-00 §8 and TECH-01 §4. Use ticket status values from TECH-08 §8. Store money in minor units with a currency. The server decides amounts and access. Add negative permission tests for private or organization features as required by TECH-03 §17.

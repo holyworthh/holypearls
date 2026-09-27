@@ -74,7 +74,11 @@ Every change made in the v2 rewrite, and why. v1 documents are untouched in fold
 - The Implementation Strategy (.md) and P00 Execution Brief (.md) are replaced by the Engineering Plan, TECH 08 working rules, the tracker and the session prompt.  
 - One ADR Register replaces both the ADR document and the tracker's Decisions tab. ADR-011 to ADR-015 added. ADR-009 could not be found.
 
-## 9\. Not rewritten
+## 9\. Git conventions (ADR-016)
+
+- Branch names change from `t05-04-quote-builder` to `feature/t05-04-quote-builder`. Commits and PR titles use Conventional Commits, authored as the owner with no AI attribution. TECH-08 §6 and §9, the session prompt, AGENTS.md and CLAUDE.md point to ADR-016.
+
+## 10\. Not rewritten
 
 - Stage 3.1B to 3.1F research documents and wireframe execution briefs: these are completed instructions for the design work, kept as history. Their decisions are carried into the v2 PRDs, and where they conflict (state names above) v2 wins.  
 - Stage 3 Sitemap & SEO Map workbook and the Stage 4.3 content pack (deferred to launch readiness): unchanged.

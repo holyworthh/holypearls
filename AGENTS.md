@@ -32,12 +32,30 @@ After building, compare the rendered screen with its Pen frame at the same viewp
 
 The design does not change product behavior. Follow the PRD when design and PRD behavior differ, then record the conflict.
 
+## Git conventions (required)
+
+These rules apply to every agent and tool (Claude Code, Codex, Cursor or any other). They restate ADR-016 in `docs/plan/ADR-REGISTER.md`, which TECH-08 §6 and §9 follow.
+
+**Branches**
+
+- Name every branch `<type>/<ticket-id>-<short-description>` in lower case with hyphens, for example `feature/t05-04-quote-builder` or `fix/t00-01-env-loading`. Omit the ticket ID only for work with no ticket, for example `chore/agent-git-conventions`.
+- Types: `feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`.
+- Never put a tool, agent or platform name in a branch: no `claude/`, `codex/`, `cloud/`, `cursor/`, `ai/` or similar prefixes or words.
+- When the user names a branch or an existing PR branch, push there. Do not create an extra branch for the same work.
+
+**Commits and pull requests**
+
+- Commit as the repository owner using the git identity already configured on the machine. Do not change `user.name` or `user.email`.
+- Use Conventional Commits: `<type>(<optional scope>): <summary>`, with the same types as branches (`feat` for features).
+- Never add AI attribution: no `Co-Authored-By` trailers for an agent, no session links, no "Generated with" lines, and no tool or model names (Claude, Codex, GPT and so on) in commit messages, PR titles, PR bodies or code comments.
+- PR titles follow the commit format, for example `feat(t05-04): quote builder`.
+
 ## Session workflow
 
 1. Read the ticket row, its PRDs, each Read first source, and the previous ticket report.
 2. Check dependencies and repository state. Stop and report BLOCKED when a required dependency is not DONE.
 3. Write a plan and wait for approval before implementation. Include PRD IDs, Pen frames, tokens/components, status changes, endpoints, migrations, policies and tests.
 4. Build only after approval. Follow TECH-08 §6 and complete TECH-08 §13 item by item.
-5. Write `docs/reports/<TICKET>.md`, update that ticket row in TICKETS.csv, open a pull request, and stop. Do not start another ticket.
+5. Write `docs/reports/<TICKET>.md`, update that ticket row in TICKETS.csv, open a pull request that follows the Git conventions above, and stop. Do not start another ticket.
 
 Do not edit `docs/prd/`, `docs/tech/` or `docs/plan/` unless the ticket or the user explicitly asks. Propose other document changes in the ticket report.

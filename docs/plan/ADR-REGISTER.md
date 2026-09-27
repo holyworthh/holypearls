@@ -64,6 +64,10 @@ Not found in the documents available on 27 Sep 2026\. If the v1 tracker's Decisi
 
 **Status:** To be decided in T00-08. **Decision:** The API, worker and database share one region, the closest to Nigeria that all three platforms offer. Record the chosen region and host here.
 
+## ADR-016 — Git branch, commit and pull request conventions
+
+**Status:** Accepted, 27 September 2026\. **Decision:** Branches are named `<type>/<ticket-id>-<short-description>` in lower case with hyphens, for example `feature/t05-04-quote-builder`; the ticket ID is omitted only for work with no ticket. Types: `feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`. Branch names never carry a tool, agent or platform name. Commits and pull request titles use Conventional Commits (`feat(t05-04): quote builder`). Commits are authored as the repository owner, with no AI attribution (no agent `Co-Authored-By` trailers, session links, "Generated with" lines or model names). These rules take precedence over any default attribution a coding tool adds. The full rule text lives in the "Git conventions" section of `AGENTS.md` and `CLAUDE.md`. **Why:** Several agents (Claude Code, Codex and others) work in this repository; without one rule, branches and history mixed tool prefixes (`claude/`, `codex/`) with ticket names. **Revisit if:** another contributor joins and commit authorship needs to show who did the work.
+
 ## Recording a new decision
 
 Copy the format above. Link the ADR from the TECH document it affects. If it changes product behavior, amend the PRD too.
