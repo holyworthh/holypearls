@@ -1,0 +1,94 @@
+.checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hp-space-12);
+  min-height: var(--hp-touch-target);
+  padding-block: var(--hp-space-8);
+  font-size: var(--hp-text-body);
+  cursor: pointer;
+}
+
+.box {
+  flex: none;
+  width: var(--hp-space-24);
+  height: var(--hp-space-24);
+  margin: 0;
+  accent-color: var(--hp-ink);
+  cursor: pointer;
+}
+
+.checkboxHint {
+  display: block;
+  font-size: var(--hp-text-support);
+  color: var(--hp-graphite);
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  margin-bottom: var(--hp-space-12);
+  padding: 0;
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-medium);
+}
+
+.cards {
+  display: grid;
+  gap: var(--hp-space-12);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  gap: var(--hp-space-12);
+  min-height: var(--hp-touch-target);
+  padding: var(--hp-space-16);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-paper);
+  cursor: pointer;
+  transition: border-color var(--hp-motion-status) var(--hp-ease-enter);
+}
+
+.card:has(input:checked) {
+  border-color: var(--hp-ink);
+  box-shadow: inset 0 0 0 var(--hp-border-width) var(--hp-ink);
+}
+
+.card:has(input:focus-visible) {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-focus-ring-width);
+}
+
+.card:has(input:disabled) {
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  cursor: not-allowed;
+}
+
+.card input:focus-visible {
+  outline: none;
+}
+
+.cardTitle {
+  display: block;
+  font-weight: var(--hp-weight-medium);
+}
+
+.cardDescription {
+  display: block;
+  font-size: var(--hp-text-support);
+  color: var(--hp-graphite);
+}
+
+.error {
+  margin-bottom: var(--hp-space-12);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-medium);
+  color: var(--hp-error);
+}

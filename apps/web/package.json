@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@holypearls/config": "workspace:*",
@@ -14,10 +15,13 @@
     "@holypearls/ui": "workspace:*",
     "next": "16.3.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "geist": "1.7.2"
   },
   "devDependencies": {
     "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0"
+    "@types/react-dom": "19.3.0",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0"
   }
 }
