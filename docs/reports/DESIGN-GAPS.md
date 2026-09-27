@@ -22,17 +22,31 @@ Design-coverage task, not a build ticket. It closes the "Ticket gaps" in `docs/d
 | T09-01 | 87, 88 Sign-up and verification (Nv9iJ), 89 Password reset (KSASd), 90, 91 Profile (Wulll) |
 | T09-02 | 92 Account history and guest linking (iVk2h) |
 
+### Batch B — Admin system
+
+The admin shell is `HP/Admin/Sidebar` + `HP/Admin/TopBar` (frame 94). Archetype frames 96–101 are drawn with real content, so each one also delivers part of a Batch C ticket.
+
+| Ticket / archetype | Frames |
+| --- | --- |
+| T13-03 Operations home | 95 (NSHTn) |
+| List archetype | 96 (pTVal): products list, also T02-02 |
+| Record detail + history archetype | 97 (zbIzN): payment intent detail, also T04-06 |
+| Edit form draft/publish archetype | 98 (j4exc): product editor, also T02-02 |
+| Review queue archetype | 99 (cfVRu): payment review queue, also T04-06 |
+| Settings archetype | 100 (f2p7r): payment settings and Paystack checklist, also T04-06 |
+| Audit/history archetype · T01-01 | 101 (weTNu) |
+
 ## New components and tokens
 
 21 components were added (see DESIGN-SYSTEM.md "Stage 4.4 additions"). No new variables were added, so `tokens.json` is unchanged.
 
 ## PRD/TECH conflicts found
 
-- None so far in Batch A.
+- **Payment review reason names.** TECH-05 names only `DUPLICATE_PAYMENT` and `PAID_PARTICIPANT_REMOVED` as review reasons. The other two cases (unclear after all checks, amount/currency mismatch) have no code names, so frame 99 labels them in plain words. Proposed TECH-05 addition: name all review reasons.
 
 ## Open questions
 
-- None so far in Batch A.
+- **Queue and permission mapping (T13-03):** frame 95 shows an illustrative permission-filtered view. Which permission shows each queue is still to be decided (owner decision 4).
 
 ## Deviations and gaps left open
 

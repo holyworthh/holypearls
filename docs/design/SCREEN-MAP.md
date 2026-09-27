@@ -150,6 +150,13 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 | 92 Account history and guest linking | iVk2h (desktop TPpY8; mobile c3Xw8; states xvAva) | Desktop + Mobile 375 | Not specified in PRD/TECH | Just linked; unverified (nothing linked); verified, nothing to link; empty; loading; error. Shows DRAFT, ESTIMATE_READY, IN_PRODUCTION, BALANCE_DUE, DELIVERED, PAID, READY, UNDER_REVIEW, EXPIRED | PRD 00 §5 | T09-02 |
 | 93 Staff sign-in and MFA | iFub2 (sign-in bCmDE; enrolment R6Aur; challenge m3fyf; states h4719o) | Desktop | /admin | Staff sign-in, MFA enrolment, MFA challenge, wrong code, no MFA → enrolment, 15-minute recency step-up, MFA reset by another STAFF_ADMIN, 12-hour session expired | PRD 06 §2 | T00-07 |
 | 94 Protected admin shell | s3rfoi (shell Qxx3q; 403 zsnmb; non-staff 404 GQVJa; mobile nJkTH) | Desktop + Mobile 375 | /admin | Signed in with MFA, permission guard 403, non-staff 404, mobile menu open | PRD 06 §2 | T00-07 |
+| 95 Operations home | NSHTn (all queues VVwIa; permission-filtered d4aKW9; all clear/loading/error p6UJT; mobile f874u) | Desktop + Mobile 375 | /admin | 10 work queues from PRD-06 §17 with counts and links; permission-filtered view (illustrative; mapping to be decided); all clear; loading; error | PRD 06 §17 | T13-03 |
+| 96 Archetype · list (products) | pTVal (list XQetq; states H0PrF; mobile NpndZ) | Desktop + Mobile 375 | /admin (sub-path not specified) | Filters, search, pagination, bulk select, loading, empty, error, 403 (CATALOGUE_MANAGE), bulk success; DRAFT, PUBLISHED, TEMPORARILY_UNAVAILABLE, ARCHIVED | OPS-FR-001–004, OPS-FR-110 | T02-02 (archetype for all admin lists) |
+| 97 Archetype · record detail + history (payment intent) | zbIzN (detail g6Ivx; states fktuR) | Desktop | /admin (sub-path not specified) | Intent OPEN, PROCESSING, SUCCEEDED, REVIEW_REQUIRED (DUPLICATE_PAYMENT), CANCELLED; attempts SUCCEEDED/FAILED; history panel; loading; error; 403 (PAYMENT_VIEW) | OPS-FR-041, 044–047 | T04-06 (archetype for record detail) |
+| 98 Archetype · edit form with draft/publish (product) | j4exc (editor CL3n2; states LL1Z5) | Desktop | /admin (sub-path not specified) | Draft editor, unsaved changes, validation summary, publish confirm, published, temporarily unavailable confirm, 403 | OPS-FR-001–004, OPS-FR-110 | T02-02 (archetype for editors) |
+| 99 Archetype · review queue with decisions (payment reviews) | cfVRu (queue f1lV3; states gMqry; mobile T8Zbf) | Desktop + Mobile 375 | /admin (sub-path not specified) | Queue + detail + resolution (REVIEW_REQUIRED → SUCCEEDED or OPEN), note required, resolved, empty, view-only (PAYMENT_VIEW) | OPS-FR-041, 044–047 | T04-06 (archetype for review queues) |
+| 100 Archetype · settings with high-risk step-up (payment settings) | f2p7r (settings S2ppAi; states + step-up didZV; Paystack checklist QfnbF) | Desktop | /admin (sub-path not specified) | Channel toggles, unavailable method, international/USD, default schedule, MFA step-up, payments paused, saved, 403 (PAYMENT_MANAGE), Paystack setup checklist | OPS-FR-041, 044–047 | T04-06 (archetype for settings) |
+| 101 Archetype · audit / history viewer | weTNu (viewer nmsXn; states + history panel l4tuGM) | Desktop | /admin (sub-path not specified) | Filters, pagination, entry detail (before/after, MFA, request ID), embedded history panel, empty, loading, error, 403 (AUDIT_VIEW) | OPS-FR-120 | T01-01 |
 
 ## Ticket gaps
 
@@ -157,7 +164,6 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 
 | GAP ticket | Missing UI surface from the tracker Build scope | Evidence |
 | --- | --- | --- |
-| **GAP — T01-01** | Admin audit viewer and filters | No audit screen is present. |
 | **GAP — T01-02** | Admin notification log and resend controls | No notification screen is present. |
 | **GAP — T01-07** | Admin help inbox (OPEN/ANSWERED/CLOSED) | Contact is mapped; the staff inbox is not shown. |
 | **GAP — T02-02** | Admin product and category list/edit/publish screens | Public catalogue frames do not show the admin editor. |
@@ -188,7 +194,6 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 | **GAP — T12-07** | Allowance policy editor, ledger and over-limit approval | No allowance screen is present. |
 | **GAP — T13-01** | Business-rule administration | No matching admin screen is present. |
 | **GAP — T13-02** | Installation area/capability and freight-rule administration | No matching admin screen is present. |
-| **GAP — T13-03** | Operations home and permission-filtered queues | No operations-home frame is present. |
 | **GAP — T13-04** | Export request/status and personal-data MFA flow | No export screen is present. |
 | **GAP — T13-06** | Staff list, invite, permission grant/revoke, deactivate and MFA reset | No staff-user administration screen is present. |
 | **GAP — T13-05** | Staff refund review and resolution states | No refund screen is present; the tracker Build includes refund and review work. |
