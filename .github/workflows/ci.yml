@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: holypearls_ci
+          POSTGRES_USER: holypearls_ci
+          POSTGRES_PASSWORD: ${{ github.run_id }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U holypearls_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      API_URL: http://localhost:3001
+      API_PORT: 3001
+      DATABASE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 11.15.1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - name: Migrate from an empty database
+        run: pnpm db:migrate
+      - name: Re-run migrations on the migrated database
+        run: pnpm db:migrate
+      - name: Check committed migrations match the schema
+        run: pnpm --filter @holypearls/db db:check
+      - run: pnpm test
+      - name: Load seed data
+        run: pnpm seed
+      - name: Check generated token CSS matches tokens.json
+        run: pnpm --filter @holypearls/ui tokens:check
+      - run: pnpm check:openapi
+      - run: docker compose config --quiet
+      - run: pnpm build
+      - name: Install Chromium for browser tests
+        run: pnpm --filter @holypearls/web exec playwright install --with-deps chromium
+      - name: Accessibility, keyboard and viewport tests (375 and 1440 px)
+        run: pnpm --filter @holypearls/web test:e2e

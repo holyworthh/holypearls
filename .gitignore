@@ -13,3 +13,14 @@ __pycache__/
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# JavaScript build output
+dist/
+.next/
+.turbo/
+*.tsbuildinfo
+apps/web/next-env.d.ts
+
+# Playwright output
+apps/web/test-results/
+apps/web/playwright-report/

@@ -1,0 +1,23 @@
+/*
+ * INFERRED tokens. The Pen export does not specify these values
+ * (DESIGN-SYSTEM.md: line heights, shadows and breakpoints are unprovided).
+ * Each one needs review against the Pen frames; see docs/reports/T00-05.md.
+ */
+:root {
+  --hp-leading-body: 1.5;
+  --hp-leading-tight: 1.2;
+  --hp-leading-display: 1.05;
+  --hp-weight-regular: 400;
+  --hp-weight-medium: 500;
+  --hp-weight-semibold: 600;
+  --hp-dialog-width: 560px;
+  --hp-toast-width: 400px;
+  --hp-sidebar-width: 256px;
+  --hp-readable-width: 720px;
+  --hp-overlay: var(--hp-ink-70);
+  --hp-z-dialog: 100;
+  --hp-z-toast: 200;
+  --hp-opacity-disabled: 0.5;
+  --hp-motion-spinner: 800ms;
+  --hp-toast-duration: 6000ms;
+}

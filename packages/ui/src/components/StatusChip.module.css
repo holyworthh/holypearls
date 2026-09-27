@@ -1,0 +1,48 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-4) var(--hp-space-12);
+  border-radius: var(--hp-r-control);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-medium);
+  line-height: var(--hp-leading-tight);
+  white-space: nowrap;
+}
+
+.dot {
+  width: var(--hp-space-8);
+  height: var(--hp-space-8);
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.neutral {
+  background: var(--hp-bone);
+  color: var(--hp-ink);
+}
+
+.success {
+  background: var(--hp-success-tint);
+  color: var(--hp-success);
+}
+
+.warning {
+  background: var(--hp-warning-tint);
+  color: var(--hp-warning);
+}
+
+.error {
+  background: var(--hp-error-tint);
+  color: var(--hp-error);
+}
+
+.info {
+  background: var(--hp-info-tint);
+  color: var(--hp-info);
+}
+
+.action {
+  background: var(--hp-accent-tint);
+  color: var(--hp-accent-hover);
+}
