@@ -2,7 +2,7 @@
 
 ## Scope
 
-This map includes all 36 named frames from the Stage 4.1 Signal board and all 87 named anchors from the Stage 4.2 board: 123 mapped Pen frames. It includes 93 product-screen or screen-state anchors and 30 design-system, coverage or audit references. The 30 `img/*` entries on the Stage 4.1 board are image assets, not UI frames, so they are not screen rows. Stage 4.2 states that its archetypes cover 314 pages; it does not provide 314 unique screen designs.
+This map includes all 36 named frames from the Stage 4.1 Signal board and all 87 named anchors from the Stage 4.2 board: 123 mapped Pen frames. The Stage 4.4 gap-coverage board adds 51 numbered sections (87–136, plus 124B) covering the former GAP tickets; see "Stage 4.4 gap coverage frames". It includes 93 product-screen or screen-state anchors and 30 design-system, coverage or audit references. The 30 `img/*` entries on the Stage 4.1 board are image assets, not UI frames, so they are not screen rows. Stage 4.2 states that its archetypes cover 314 pages; it does not provide 314 unique screen designs.
 
 The source is the open Pen file `untitled.pen`: Stage 4.1 Signal root `mRfIk` and Stage 4.2 root `B1jjw`. Stage 4.2 frame 02 locks the Signal direction. The older warm Stage 4.1 board is provisional/superseded and is not used as the active visual source.
 
@@ -179,30 +179,32 @@ Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, S
 | 121 Refunds and resolution | fG7S6 (issue mRG8q; list NJoG3; states W5Vo5g; mobile z4Abd) | Desktop + Mobile 375 | /admin (sub-path not specified) | Refund PENDING, PROCESSED, FAILED; PARTIALLY_REFUNDED, REFUNDED, PAYMENT_RESOLUTION_REQUIRED; DUPLICATE_PAYMENT and PAID_PARTICIPANT_REMOVED resolution; MFA step-up; over-limit error | OPS-FR-043 | T13-05 |
 | 122 Staff user administration | M4aCyb (list rbymz; member pplkz; states vFTNv) | Desktop | /admin (sub-path not specified) | ACTIVE, DEACTIVATED; invitation PENDING; grant/revoke with MFA; MFA reset with phone check; last-two STAFF_ADMIN block | PRD 06 §2, §18 | T13-06 |
 | 123 Incident switches | S1fH7 (switches JqxuW; states bCk9j) | Desktop | /admin (sub-path not specified) | Read-only mode, pause uploads, pause payments, revoke sessions, revoke guest links; MFA step-up; active switch; no alert dashboard | — (TECH-06 §14; TECH-07 §12, §14) | T15-05 |
+| 124 Project review, submission and confirmation | r0Ui0 (review r4skt / KcfZ2; confirmation aV0NQ / Lr27c; states GoIGz) | Desktop + Mobile 375 | Not specified in PRD/TECH; tracker Build says /start | Review step, idempotent submit, HP-P reference, quote PENDING_REVIEW, ESTIMATE_RANGE, validation, submit failed, configuration quote request | PROJ-FR-008, 010–012 | T05-03 |
+| 124B Staff project queue | YN3WS (queue zK6SY; mobile R9Dmw; states fomqX) | Desktop + Mobile 375 | /admin (sub-path not specified) | Project SUBMITTED → UNDER_REVIEW; quote PENDING_REVIEW; all details and files; empty, loading, error, 403 (QUOTE_MANAGE) | OPS-FR-030 | T05-03 |
+| 125 Proof comments and pins | bscgl (desktop UTE31; mobile pHK5w; states kBYUE) | Desktop + Mobile 375 | Not specified in PRD/TECH | Numbered pins + text list, keyboard pin placement, whole-proof comment, staff reply, V1 read-only comments, post failed; AWAITING_APPROVAL | FUL-FR-005; OPS-FR-052 | T06-03 |
+| 126 Changes after approval · staff decision | Cl1PU (before production X0BQL; after production start MKodb; staff decision CLFn0; states E0wS8) | Desktop + Mobile 375 | Not specified in PRD/TECH; staff /admin | Change request and feasibility review; OPEN, UNDER_REVIEW, ACCEPTED, DECLINED; cost and timing impact; approved version kept | FUL-FR-007; OPS-FR-054 | T06-04 |
+| 127 Cancellation and scope change | aKwB5 (cancel allowed AnFEQ; blocked C6TAE; scope change BKgfl / A1Q8xy; states B8zjd) | Desktop + Mobile 375 | Not specified in PRD/TECH | Cancel before production with refund; blocked after start (contact support); scope change → change request; CANCELLED; staff cancel with MFA; cancel failed | FUL-FR-050–052 | T07-04 |
+| 128 Reorder | yeNYa (exact FqGmL / ErX5p; with changes soHXc / B90QK; states ecICs) | Desktop + Mobile 375 | Not specified in PRD/TECH | Exact reorder with proof skipped or required, not eligible, artwork change → Reorder With Changes, new draft linked to original | FUL-FR-061–062; OPS-FR-018 | T08-03 |
+| 129 Report a problem · staff triage | dSnio (form K8asLI / xV8w0; states nmyKP; triage Nqk5y; mobile triage pCzqV) | Desktop + Mobile 375 | Not specified in PRD/TECH; staff /admin | Five issue types (owner decision 1), photos, reference; NEW, TRIAGED, CLOSED; guest 404 on other orders; validation; upload failed | FUL-FR-070 | T08-04 |
+| 130 Workspace billing and search | s0fg0 (billing juM56 / tDzhI; search pjuPc / g8oai; states U5Koq) | Desktop + Mobile 375 | Not specified in PRD/TECH | Balances, receipts, payment history (BALANCE_DUE, PAID, REFUNDED, PAYMENT_RESOLUTION_REQUIRED); 403 for non Owner/Admin; location-scoped search; no results | B2B-FR-012–013 | T10-04 |
+| 131 Order from a template | ARNyh (PRICE_READY Bw1SD; QUOTE_REQUIRED mobile laExA; states giRIE) | Desktop + Mobile 375 | Not specified in PRD/TECH | Locked vs editable fields, PRICE_READY → checkout, QUOTE_REQUIRED → quote, allowed locations, blocked template, locked-field rejection, approval needed | B2B-FR-033; Journey 8 | T11-03 |
+| 132 Group collection setup | JOA3t (setup a0VCfj / BHzbM; states rGGwn) | Desktop + Mobile 375 | Not specified in PRD/TECH | Source template, organizer field controls, deadline, payment and delivery modes; DRAFT, OPEN (share link), PAUSED; validation | B2B-FR-050–052 | T12-01 |
+| 133 Close, reopen and Order Draft review | k1eCi (Order Draft g6AgmQ / fwDAU; states mv1Zd; staff origin view u3BRd) | Desktop + Mobile 375 | Not specified in PRD/TECH; staff /admin | Close confirm, NEEDS_REVIEW, READY_TO_ORDER, Order Draft CURRENT/STALE/SUBMITTED, all five B2B-FR-055 reopen cases, staff origin view | B2B-FR-053–055; OPS-FR-090 | T12-04 |
+| 134 Removing a paid participant | zEa7A (organizer Px4nj / s3HGvL; participant jSXFD / D70V3) | Desktop + Mobile 375 | Not specified in PRD/TECH | Remove confirm, REMOVED, PAYMENT_RESOLUTION_REQUIRED, participant's own view | B2B-FR-065 | T12-05 |
+| 135 Allowances | A4e0p (policy + ledger RMxC5 / nAgnE; employee over limit ukgLN / wOecv; states gJFyx) | Desktop + Mobile 375 | Not specified in PRD/TECH | No limit / per order / per period, ledger, remaining amount, over-limit approval request (PENDING_APPROVAL), period reset; period and approver marked to be decided | B2B-FR-084 | T12-07 |
+| 136 Privacy notice, consent, processors, data-subject requests | JXhNK (notice TLRc6 / nDtGs; processors TDnMA / HBwdg; consent EM7rw; staff DSR O7Qcg; states jUCsW) | Desktop + Mobile 375 | Not specified in PRD/TECH; staff /admin | Placeholder legal copy, marketing consent off by default, processor list, access export, erasure/anonymization keeping payment and tax records, MFA step-up, 403 (EXPORT_PERSONAL_DATA) | — (TECH-06 §12) | T15-04 |
 
 ## Ticket gaps
 
 **GAP** means the tracker Build scope names a screen or UI surface, but no matching Stage 4 frame shows that surface. A related parent screen does not close a gap for a missing admin or interaction flow. Component-only and cross-cutting test tickets do not need a stand-alone page frame.
 
-| GAP ticket | Missing UI surface from the tracker Build scope | Evidence |
-| --- | --- | --- |
-| **GAP — T05-03** | Customer project review/submission/confirmation and staff project queue | The builder and recommendation steps are mapped; review and queue screens are absent. |
-| **GAP — T06-03** | Proof comment and pin interaction states | The viewer is mapped; comment/pin states are not explicit in a frame. |
-| **GAP — T06-04** | After-approval change request and staff decision screens | No matching change-review frame is present. |
-| **GAP — T07-04** | Customer cancellation/scope-change forms and staff review | No matching request flow is present. |
-| **GAP — T08-03** | Reorder eligibility, changed-order draft and completion flow | Order frames do not identify these reorder states. |
-| **GAP — T08-04** | Customer problem report and admin triage queue | No matching report/triage frame is present. |
-| **GAP — T10-04** | Workspace billing and workspace search | Workspace overview and lists are mapped; billing/search are not shown. |
-| **GAP — T11-03** | Order-from-template checkout and quote transition | Template detail is mapped; the order flow is not explicit. |
-| **GAP — T12-01** | Group collection creation and setup controls | Organizer is mapped; the setup/configuration flow is not explicit. |
-| **GAP — T12-04** | Close/reopen and Order Draft review states | Organizer dashboard is mapped; these outcomes are not explicit in the frame title. |
-| **GAP — T12-05** | Paid participant removal and payment-resolution review | No matching state frame is present. |
-| **GAP — T12-07** | Allowance policy editor, ledger and over-limit approval | No allowance screen is present. |
-| **GAP — T15-04** | Privacy notice, consent, processor list, and staff data export/erase tools | No privacy or data-subject-request screen is present. |
+All 41 gaps listed in the Stage 4.2 mapping are now closed by the Stage 4.4 frames above (root `C9q8v3`, frames 87–136). No GAP ticket is open. Where the PRD or TECH docs leave a rule undefined, the frame shows it as "to be decided" and the question is listed in `docs/reports/DESIGN-GAPS.md`; those questions affect content, not frame coverage.
+
 
 ## Mapping notes
 
-- No product-screen row is left without a ticket mapping. The GAPs above are tracker surfaces without matching design frames.
+- No product-screen row is left without a ticket mapping. Every former GAP ticket now maps to Stage 4.4 frames.
+- Stage 4.4 section IDs are the section frames on root `C9q8v3`. The IDs in brackets are the individual screen frames (desktop 1440 / mobile 375 / state boards). Admin sub-paths under `/admin` are not specified in PRD/TECH.
 - Breakpoints explicitly stated in a frame title are recorded as mobile or desktop. “Desktop (INFERRED)” means the title does not name a breakpoint; it is not a measured CSS breakpoint.
 - Where a frame title names a state, the table records that state. For other screens, it says the state is not named instead of guessing.
 - `Not specified in PRD/TECH` means no browser route was found in those source docs. API routes in TECH-02 are not browser routes.
