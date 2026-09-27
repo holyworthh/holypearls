@@ -396,6 +396,34 @@ The variant column preserves the definition path below its namespace. The state 
 | HP | HP/State/EmptyState | Ggpgx | State/EmptyState | No separate state node reported | hp-bone, hp-font-ui, hp-graphite, hp-ink, hp-line | — | $hp-font-ui | 14, 17 |
 | HP | HP/State/RecoveryBanner | u8RMkZ | State/RecoveryBanner | No separate state node reported | hp-font-ui, hp-ink, hp-warning, hp-warning-tint | — | $hp-font-ui | 14 |
 
+## Stage 4.4 additions
+
+Added in the Stage 4.4 gap-coverage board (root `C9q8v3`, component sheet `XrBfy`). Every value is an existing `hp-*` variable or a value already used by an `HP/*` component (sizes 44/52 px controls, radii 4/6/10/18, type 12–40 px). No new variables were added, so `packages/ui/tokens/tokens.json` is unchanged.
+
+| Library | Definition | Node ID | Purpose | States / variants | Pen variable tokens |
+| --- | --- | --- | --- | --- | --- |
+| HP | HP/Status/Chip/Neutral | NxrQc | Neutral status (DRAFT, EXPIRED, CLOSED…) | Label override | hp-bone, hp-ink, hp-font-ui |
+| HP | HP/Status/Chip/Info | IrO7J | In-progress status (PENDING_REVIEW, IN_PRODUCTION…) | Label override | hp-info-tint, hp-info |
+| HP | HP/Status/Chip/Warning | EKnmW | Needs attention (NEEDS_REVIEW, BALANCE_DUE, ON_HOLD…) | Label override | hp-warning-tint, hp-warning |
+| HP | HP/Status/Chip/Error | fzrGk | Failure (FAILED, PAYMENT_FAILED, EXCEPTION…) | Label override | hp-error-tint, hp-error |
+| HP | HP/Status/Chip/Accent | JPV3G | Customer action needed (READY quote, AWAITING_APPROVAL…) | Label override | hp-accent-tint, hp-accent-hover |
+| HP | HP/Admin/NavItem | NRjCi | Admin sidebar item, 44 px | Default; selected (hp-ink-2 fill, 600 weight) | hp-ink-2, hp-bone, hp-mid, hp-paper |
+| HP | HP/Admin/Sidebar | UrZdO | Admin navigation, grouped by work area | Items hidden per staff permission | hp-ink, hp-mid, hp-accent |
+| HP | HP/Admin/TopBar | TM3g5 | Breadcrumb, global search, MFA recency badge, staff identity | Breadcrumb override | hp-paper, hp-line, hp-bone, hp-success-tint |
+| HP | HP/Admin/FilterBar | m8A4M1 | List search, 3 filters, result count, clear | Filter labels override | hp-line-strong, hp-graphite, hp-accent |
+| HP | HP/Admin/Pagination | dHGPq | Range text + page buttons, 44 px | Current page ink | hp-ink, hp-line |
+| HP | HP/Admin/RecordHeader | XyKrP | Reference, title, status chip, meta, actions | — | hp-graphite, hp-ink |
+| HP | HP/Admin/AuditEntry | AwwuQ | Audit/history row: action, detail, actor · permission · time · request ID | — | hp-bone, hp-graphite |
+| HP | HP/Admin/QueueCard | y3m1IT | Operations home queue with count, aging and link | — | hp-paper, hp-line, hp-accent |
+| HP | HP/Admin/DecisionBar | zldcj | Required decision note + negative/positive decision | — | hp-line, hp-line-strong |
+| HP | HP/Admin/StepUpMFA | UomN9 | High-risk confirmation with 15-minute MFA check (TECH-03 §9) | Action summary override | hp-ink, hp-bone, hp-line-strong |
+| HP | HP/Form/OTPInput | VA4qq | 6-digit code for email code and MFA | Help text override (error) | hp-line-strong, hp-paper |
+| HP | HP/Form/Toggle | v65MY | Setting switch with On/Off text (not colour alone) | On (hp-success), off (hp-line-strong) | hp-success, hp-line-strong, hp-graphite |
+| HP | HP/Form/PasswordInput | rwjJo | Password field with 44 px Show control | — | hp-line-strong, hp-paper |
+| HP | HP/State/PermissionDenied | f9NZj | 403 inside admin or workspace | Body names the missing permission | hp-bone, hp-graphite |
+| HP | HP/State/ErrorState | VZVCx | Load failure with retry and request ID | — | hp-error-tint, hp-error |
+| HP | HP/State/Skeleton | ZgD4w | Loading placeholder with text label for screen readers | — | hp-sand, hp-bone |
+
 ## Extraction limits
 
 The `get_style` tool returned generic style archetypes, not named styles attached to this design file. The component inventory uses node data from Pen MCP. No CSS breakpoint thresholds, complete line-height scale, complete letter-spacing scale, dark-mode set, or current Signal shadow scale was exposed. Do not fill those gaps with guessed values.

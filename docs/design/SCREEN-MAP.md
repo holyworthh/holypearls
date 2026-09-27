@@ -136,14 +136,27 @@ The PRD references below copy the mapped tracker rows' PRD refs. A dash means th
 | 85 Accessibility, performance and indexing notes | z93oA | N/A — design/reference frame | N/A — not a product screen | Design-system, coverage or audit reference; not a product screen | N/A — reference frame | T14-01, T14-03, T14-04, T14-05, T14-06 |
 | 86 Stage 4.2 changelog and deviations | yg4z4 | N/A — design/reference frame | N/A — not a product screen | Design-system, coverage or audit reference; not a product screen | N/A — reference frame | T00-05, T14-06 |
 
+## Stage 4.4 gap coverage frames
+
+Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, Signal direction. Each numbered section holds its screens; the node ID listed first is the section frame, followed by its screen frames. "States" frames are state boards; unless a caption says otherwise the same card layout applies at 375. `/admin` is from TECH-00; other browser routes are not specified in PRD/TECH. Components added for these frames are listed in DESIGN-SYSTEM.md under "Stage 4.4 additions".
+
+| Screen name | Pen.dev frame/node ID or link | Breakpoint | Route (from PRD/TECH) | State shown | PRD requirement IDs | Ticket(s) that build it |
+| --- | --- | --- | --- | --- | --- | --- |
+| 87 Customer sign-in | PJmAF (desktop hbNfP; mobile NN0Ko; magic-link tab eP8mP; states P345s) | Desktop + Mobile 375 | Not specified in PRD/TECH | Password tab, magic-link tab, error summary + field errors, rate limited, link sent, link expired/used, signing in | PRD 00 §5 | T00-06, T09-01 |
+| 88 Customer sign-up and email verification | Nv9iJ (desktop gxYdT; mobile fybRd; states cBzxc) | Desktop + Mobile 375 | Not specified in PRD/TECH | Form with marketing consent off; verify pending, verified, already registered, verify link expired | PRD 00 §5 | T09-01 |
+| 89 Password reset | KSASd (states YXtvJ) | Card state board (same card at 375) | Not specified in PRD/TECH | Request, sent (same message for any email), set new password, token expired, success (other sessions ended) | PRD 00 §5 | T09-01 |
+| 90 Signed-in account · security | KReiI (desktop sEBQQ; mobile tneO8; states EQyq6) | Desktop + Mobile 375 | Not specified in PRD/TECH | Signed-in server page, sessions list, sign out everywhere confirm, success, loading, error | PRD 00 §5 | T00-06, T09-01 |
+| 91 Profile | Wulll (desktop z7H5i; mobile SKaLX; states rSztv) | Desktop + Mobile 375 | Not specified in PRD/TECH | Edit, field error, saved, email change pending verification, save failed | PRD 00 §5 | T09-01 |
+| 92 Account history and guest linking | iVk2h (desktop TPpY8; mobile c3Xw8; states xvAva) | Desktop + Mobile 375 | Not specified in PRD/TECH | Just linked; unverified (nothing linked); verified, nothing to link; empty; loading; error. Shows DRAFT, ESTIMATE_READY, IN_PRODUCTION, BALANCE_DUE, DELIVERED, PAID, READY, UNDER_REVIEW, EXPIRED | PRD 00 §5 | T09-02 |
+| 93 Staff sign-in and MFA | iFub2 (sign-in bCmDE; enrolment R6Aur; challenge m3fyf; states h4719o) | Desktop | /admin | Staff sign-in, MFA enrolment, MFA challenge, wrong code, no MFA → enrolment, 15-minute recency step-up, MFA reset by another STAFF_ADMIN, 12-hour session expired | PRD 06 §2 | T00-07 |
+| 94 Protected admin shell | s3rfoi (shell Qxx3q; 403 zsnmb; non-staff 404 GQVJa; mobile nJkTH) | Desktop + Mobile 375 | /admin | Signed in with MFA, permission guard 403, non-staff 404, mobile menu open | PRD 06 §2 | T00-07 |
+
 ## Ticket gaps
 
 **GAP** means the tracker Build scope names a screen or UI surface, but no matching Stage 4 frame shows that surface. A related parent screen does not close a gap for a missing admin or interaction flow. Component-only and cross-cutting test tickets do not need a stand-alone page frame.
 
 | GAP ticket | Missing UI surface from the tracker Build scope | Evidence |
 | --- | --- | --- |
-| **GAP — T00-06** | Sign-in, magic-link/password, signed-in page, and revoke-session user screens | No matching identity frame is present. |
-| **GAP — T00-07** | Staff account, MFA enrollment/challenge, and protected admin shell | The library has navigation primitives; no staff identity/admin screen is shown. |
 | **GAP — T01-01** | Admin audit viewer and filters | No audit screen is present. |
 | **GAP — T01-02** | Admin notification log and resend controls | No notification screen is present. |
 | **GAP — T01-07** | Admin help inbox (OPEN/ANSWERED/CLOSED) | Contact is mapped; the staff inbox is not shown. |
@@ -165,8 +178,6 @@ The PRD references below copy the mapped tracker rows' PRD refs. A dash means th
 | **GAP — T08-01** | Admin shipment creation and status management | Customer tracking is mapped; shipment administration is absent. |
 | **GAP — T08-03** | Reorder eligibility, changed-order draft and completion flow | Order frames do not identify these reorder states. |
 | **GAP — T08-04** | Customer problem report and admin triage queue | No matching report/triage frame is present. |
-| **GAP — T09-01** | Customer sign-up, sign-in, profile and security pages | No customer account identity screens are present. |
-| **GAP — T09-02** | Account history dashboard and guest-record linking | Workspace screens are organization views; no personal account history screen is shown. |
 | **GAP — T10-04** | Workspace billing and workspace search | Workspace overview and lists are mapped; billing/search are not shown. |
 | **GAP — T11-01** | Staff production review, retire and archive controls for brand assets | Workspace asset screens are mapped; staff review controls are absent. |
 | **GAP — T11-02** | Staff template creation and approval screens | Workspace template screens are mapped; the staff authoring/approval surface is absent. |
