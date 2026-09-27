@@ -1,0 +1,27 @@
+{
+  "name": "holypearls",
+  "private": true,
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=22.15.0 <23"
+  },
+  "scripts": {
+    "dev": "dotenv -e .env -- turbo dev --filter=@holypearls/web --filter=@holypearls/api --filter=@holypearls/worker",
+    "lint": "eslint apps packages --ext .ts,.tsx",
+    "typecheck": "dotenv -e .env -- turbo typecheck",
+    "test": "dotenv -e .env -- turbo test",
+    "build": "dotenv -e .env -- turbo build",
+    "check:migrations": "node scripts/check-foundation-artifacts.mjs migrations",
+    "check:openapi": "node scripts/check-foundation-artifacts.mjs openapi"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.19.15",
+    "dotenv-cli": "11.0.0",
+    "eslint": "9.39.5",
+    "turbo": "2.11.4",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.1",
+    "vitest": "5.0.2"
+  }
+}
