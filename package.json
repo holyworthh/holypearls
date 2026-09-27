@@ -11,8 +11,9 @@
     "typecheck": "dotenv -e .env -- turbo typecheck",
     "test": "dotenv -e .env -- turbo test",
     "build": "dotenv -e .env -- turbo build",
-    "check:migrations": "node scripts/check-foundation-artifacts.mjs migrations",
-    "check:openapi": "node scripts/check-foundation-artifacts.mjs openapi"
+    "check:openapi": "node scripts/check-foundation-artifacts.mjs openapi",
+    "db:migrate": "dotenv -e .env -- turbo run db:migrate --filter=@holypearls/db",
+    "seed": "dotenv -e .env -- turbo run seed --filter=@holypearls/testkit"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

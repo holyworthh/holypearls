@@ -1,0 +1,42 @@
+import { loadTestDatabaseEnv } from "@holypearls/config";
+import { sql } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { createTestDatabase, type TestDatabase } from "../database.js";
+import { runSeed, TEST_DATA_LABEL, type SeedStep } from "./index.js";
+
+describe("runSeed", () => {
+  let database: TestDatabase;
+
+  beforeAll(async () => {
+    database = await createTestDatabase(loadTestDatabaseEnv().TEST_DATABASE_URL);
+    await database.db.execute(sql`create table seed_probe (label text not null)`);
+  });
+
+  afterAll(async () => {
+    await database?.drop();
+  });
+
+  const insertStep: SeedStep = {
+    name: "probe",
+    run: async (tx) => {
+      await tx.execute(sql`insert into seed_probe (label) values (${TEST_DATA_LABEL})`);
+    },
+  };
+
+  it("loads steps in order and reports them", async () => {
+    await expect(runSeed(database.db, [insertStep])).resolves.toEqual(["probe"]);
+    const result = await database.db.execute<{ label: string }>(sql`select label from seed_probe`);
+    expect(result.rows).toEqual([{ label: "TEST DATA" }]);
+  });
+
+  it("leaves nothing behind when a step fails", async () => {
+    const failing: SeedStep = { name: "broken", run: async () => Promise.reject(new Error("bad seed")) };
+    await expect(runSeed(database.db, [insertStep, failing])).rejects.toThrow("bad seed");
+    const result = await database.db.execute<{ n: number }>(sql`select count(*)::int as n from seed_probe`);
+    expect(result.rows[0]?.n).toBe(1);
+  });
+
+  it("runs with no registered steps", async () => {
+    await expect(runSeed(database.db)).resolves.toEqual([]);
+  });
+});

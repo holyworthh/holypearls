@@ -1,26 +1,56 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalEnv": ["API_URL", "DATABASE_URL", "API_PORT"],
+  "globalEnv": [
+    "API_URL",
+    "DATABASE_URL",
+    "API_PORT",
+    "TEST_DATABASE_URL",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**"
+      ]
     },
     "lint": {
       "outputs": []
     },
     "typecheck": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": []
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": []
     },
     "dev": {
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "cache": false,
       "persistent": true
+    },
+    "db:migrate": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
+    },
+    "seed": {
+      "dependsOn": [
+        "^db:migrate",
+        "build"
+      ],
+      "cache": false
     }
   }
 }

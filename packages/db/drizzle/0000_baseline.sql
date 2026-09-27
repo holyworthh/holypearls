@@ -1,0 +1,2 @@
+-- Baseline for T00-02. It proves the migration path from an empty database.
+-- Business tables are added by the tickets that own them (TECH-01 §2).
