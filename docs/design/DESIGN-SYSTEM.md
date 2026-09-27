@@ -2,7 +2,7 @@
 
 ## Authority and scope
 
-The active direction is **Signal**. The Stage 4.2 board (Pen frame `B1jjw`) selects `hp-direction: signal`; its frame `lyo0w` records the Stage 4.1 visual lock. Use the `hp-*` values resolved for Signal as the current design direction.
+The active direction is **Signal**. The Application map board (Pen frame `C9q8v3`, which now holds all Stage 4 frames) selects `hp-direction: signal`; Stage 4.2 frame `lyo0w` records the Stage 4.1 visual lock. Use the `hp-*` values resolved for Signal as the current design direction.
 
 The Pen file also retains `current`, `workshop`, and `cobalt` theme values, plus the older `hf-*` palette and earlier `HF/*` and `WF/*` libraries. Those values remain in the inventory for traceability. They are not current Signal tokens. The 4.2 board records the earlier warm direction as superseded after owner approval of Signal on 26 September 2026.
 

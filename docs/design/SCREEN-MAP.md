@@ -4,7 +4,7 @@
 
 This map includes all 36 named frames from the Stage 4.1 Signal board and all 87 named anchors from the Stage 4.2 board: 123 mapped Pen frames. The Stage 4.4 gap-coverage board adds 51 numbered sections (87–136, plus 124B) covering the former GAP tickets; see "Stage 4.4 gap coverage frames". It includes 93 product-screen or screen-state anchors and 30 design-system, coverage or audit references. The 30 `img/*` entries on the Stage 4.1 board are image assets, not UI frames, so they are not screen rows. Stage 4.2 states that its archetypes cover 314 pages; it does not provide 314 unique screen designs.
 
-The source is the open Pen file `untitled.pen`: Stage 4.1 Signal root `mRfIk` and Stage 4.2 root `B1jjw`. Stage 4.2 frame 02 locks the Signal direction. The older warm Stage 4.1 board is provisional/superseded and is not used as the active visual source.
+The source is the open Pen file `untitled.pen`. All Stage 4.1, 4.2 and 4.4 frames now sit on one board, "HolyPearls — Application map" (node `C9q8v3`), grouped into flows in the order people use the product. Customer flows are 01–07, organization admin flows 08–09, HolyPearls staff flows 10–15, and design reference sets 16–19. A "Start here" cover at the top-left of the canvas maps each journey to its flow. Frames kept their node IDs and names, so the IDs below are unchanged. Frames 01–36 in the first group of rows come from the Stage 4.1 Signal run and frames 01–86 from Stage 4.2, so look a frame up by its name and node ID, not its number alone. Stage 4.2 frame 02 (`lyo0w`) locks the Signal direction. The older warm Stage 4.1 board is provisional/superseded and is not used as the active visual source. Stage 3 research, wireframes and image libraries are archived to the right of the board.
 
 ## Screen and frame table
 
@@ -138,7 +138,7 @@ The PRD references below copy the mapped tracker rows' PRD refs. A dash means th
 
 ## Stage 4.4 gap coverage frames
 
-Source: root `C9q8v3` ("STAGE 4.4 — DESIGN GAP COVERAGE") in `untitled.pen`, Signal direction. Each numbered section holds its screens; the node ID listed first is the section frame, followed by its screen frames. "States" frames are state boards; unless a caption says otherwise the same card layout applies at 375. `/admin` is from TECH-00; other browser routes are not specified in PRD/TECH. Components added for these frames are listed in DESIGN-SYSTEM.md under "Stage 4.4 additions".
+Source: the Application map board (`C9q8v3`) in `untitled.pen`, Signal direction. The sections sit in the customer, organization admin and staff flows. Each numbered section holds its screens; the node ID listed first is the section frame, followed by its screen frames. "States" frames are state boards; unless a caption says otherwise the same card layout applies at 375. `/admin` is from TECH-00; other browser routes are not specified in PRD/TECH. Components added for these frames are listed in DESIGN-SYSTEM.md under "Stage 4.4 additions".
 
 | Screen name | Pen.dev frame/node ID or link | Breakpoint | Route (from PRD/TECH) | State shown | PRD requirement IDs | Ticket(s) that build it |
 | --- | --- | --- | --- | --- | --- | --- |
