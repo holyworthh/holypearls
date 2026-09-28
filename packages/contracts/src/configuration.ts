@@ -1,7 +1,35 @@
 import { z } from "zod";
 import { priceResultSchema } from "./pricing.js";
 
-/* Configuration drafts (T03-03, COM-FR-010–014). */
+/* Configuration drafts (T03-03, COM-FR-010–014) and garments (T03-05, COM-FR-020–029, 050–054). */
+
+export const GARMENT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"] as const;
+export const sourcingSchema = z.enum(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED", "HELP_ME_CHOOSE"]);
+export const decorationSchema = z.enum(["EMBROIDERY", "PRINT", "BOTH", "RECOMMEND"]);
+export const positionSchema = z.enum(["LEFT_CHEST", "RIGHT_CHEST", "CENTRE_CHEST", "FULL_FRONT", "UPPER_BACK", "FULL_BACK", "LEFT_SLEEVE", "RIGHT_SLEEVE", "CUSTOM"]);
+export const placementSchema = z.object({
+  position: positionSchema,
+  size: z.enum(["SMALL", "STANDARD", "LARGE"]),
+  method: decorationSchema.nullable(),
+  note: z.string().trim().max(120).nullable(),
+});
+export type PlacementInput = z.infer<typeof placementSchema>;
+export const artworkChoiceSchema = z.enum(["UPLOAD", "LOGO", "REFERENCE", "DESIGN_HELP", "LATER"]);
+
+/** Sourcing details (COM-FR-021–023): plain answers, kept with the draft. */
+export const garmentDetailsSchema = z
+  .object({
+    garmentType: z.string().trim().max(60),
+    fit: z.string().trim().max(60),
+    fabric: z.string().trim().max(60),
+    colour: z.string().trim().max(60),
+    reference: z.string().trim().max(500),
+    labels: z.string().trim().max(200),
+    sampleFirst: z.boolean(),
+    suppliedItems: z.string().trim().max(500),
+    receiveMethod: z.enum(["DROP_OFF", "PICKUP", "COURIER"]),
+  })
+  .partial();
 
 const key = z.string().max(60);
 
@@ -13,12 +41,44 @@ export const configurationSchema = z.object({
   choices: z.record(z.string(), z.string()),
   quantity: z.number().int().nullable(),
   rush: z.enum(["STANDARD", "RUSH", "PRIORITY"]),
-  artwork: z.enum(["UPLOAD", "DESIGN_HELP", "LATER"]).nullable(),
+  artwork: artworkChoiceSchema.nullable(),
   step: z.string(),
   version: z.number().int(),
   price: priceResultSchema.nullable(),
   /** A draft link was emailed to this address (masked). */
   emailedTo: z.string().nullable(),
+  /** Garment answers; null for other products. */
+  garment: z
+    .object({
+      sourcing: sourcingSchema.nullable(),
+      decoration: decorationSchema.nullable(),
+      details: garmentDetailsSchema,
+      sizesUnknown: z.boolean(),
+      sizes: z.array(z.object({ size: z.string(), quantity: z.number().int() })),
+      placements: z.array(placementSchema),
+      conflicts: z.array(
+        z.object({
+          positions: z.array(positionSchema),
+          message: z.string(),
+          fixes: z.array(z.object({ label: z.string(), position: positionSchema, change: z.record(z.string(), z.unknown()) })),
+        }),
+      ),
+      personalization: z.object({ count: z.number().int(), preview: z.array(z.object({ row: z.number().int(), name: z.string().nullable(), number: z.string().nullable(), department: z.string().nullable(), size: z.string().nullable() })) }),
+    })
+    .nullable(),
+  files: z.array(
+    z.object({
+      id: z.string(),
+      fileId: z.string(),
+      role: z.enum(["ARTWORK", "LOGO", "REFERENCE", "GARMENT_PHOTO"]),
+      name: z.string(),
+      status: z.string(),
+      lowResolution: z.object({ neededPixels: z.number().int(), actualPixels: z.number().int().nullable(), message: z.string() }).nullable(),
+      lowResolutionAction: z.enum(["REPLACE", "CLEANUP", "REVIEW"]).nullable(),
+    }),
+  ),
+  /** Send-later is allowed for this product (COM-FR-050). */
+  artworkLaterAllowed: z.boolean(),
   updatedAt: z.iso.datetime(),
 });
 export type Configuration = z.infer<typeof configurationSchema>;
@@ -35,8 +95,14 @@ export const updateConfigurationSchema = z.object({
   choices: z.record(key, key.nullable()).optional(),
   quantity: z.number().int().min(1).max(10_000_000).nullable().optional(),
   rush: z.enum(["STANDARD", "RUSH", "PRIORITY"]).optional(),
-  artwork: z.enum(["UPLOAD", "DESIGN_HELP", "LATER"]).nullable().optional(),
-  step: z.enum(["options", "quantity", "artwork", "delivery", "review"]).optional(),
+  artwork: artworkChoiceSchema.nullable().optional(),
+  step: z.enum(["product", "options", "customize", "quantity", "artwork", "delivery", "review"]).optional(),
+  sourcing: sourcingSchema.nullable().optional(),
+  decoration: decorationSchema.nullable().optional(),
+  details: garmentDetailsSchema.optional(),
+  sizesUnknown: z.boolean().optional(),
+  sizes: z.array(z.object({ size: z.enum(GARMENT_SIZES), quantity: z.number().int().min(0).max(100_000) })).max(GARMENT_SIZES.length).optional(),
+  placements: z.array(placementSchema).max(9).optional(),
   /** After the customer has seen which later answers a change removes (COM-FR-011). */
   confirmRemovals: z.boolean().default(false),
 });
@@ -68,3 +134,12 @@ export const configuratorSchema = z.object({
   fromPerUnitMinor: z.string().nullable(),
 });
 export type Configurator = z.infer<typeof configuratorSchema>;
+
+export const attachConfigurationFileSchema = z.object({ fileId: z.uuid(), role: z.enum(["ARTWORK", "LOGO", "REFERENCE", "GARMENT_PHOTO"]) });
+export const lowResolutionActionSchema = z.object({ action: z.enum(["REPLACE", "CLEANUP", "REVIEW"]) });
+export const personalizationImportSchema = z.object({ fileId: z.uuid() });
+export const personalizationResultSchema = z.object({
+  accepted: z.boolean(),
+  count: z.number().int(),
+  errors: z.array(z.object({ row: z.number().int(), field: z.string(), message: z.string() })),
+});
