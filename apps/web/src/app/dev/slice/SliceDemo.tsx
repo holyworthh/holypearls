@@ -3,9 +3,11 @@
 import { type DemoSlice, type FileView, demoSliceCreateSchema, demoSliceSchema, toFieldErrors } from "@holypearls/contracts";
 import { Button, Card, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { useEffect, useState, type FormEvent } from "react";
+import { z } from "zod";
+import { useEmailCode } from "../../../components/EmailCode";
 import { FileUpload } from "../../../components/FileUpload";
 import { NeedHelp } from "../../../components/NeedHelp";
-import { api } from "../../../lib/api";
+import { api, errorCode } from "../../../lib/api";
 
 const TONE = { PENDING: "info", DONE: "success", FAILED: "error" } as const;
 
@@ -15,6 +17,19 @@ export function SliceDemo() {
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState<DemoSlice | null>(null);
   const [file, setFile] = useState<FileView | null>(null);
+  const emailCode = useEmailCode("VERIFY_ACTION");
+  const [important, setImportant] = useState<"done" | "signed-out" | null>(null);
+
+  const tryImportant = async () => {
+    setImportant(null);
+    try {
+      const result = await emailCode.run(() => api("/v1/demo/slice/important-action", { method: "POST", body: {}, response: z.object({ done: z.literal(true) }) }).then(() => setImportant("done")));
+      return result;
+    } catch (failure) {
+      if (errorCode(failure) === "NOT_SIGNED_IN") setImportant("signed-out");
+      else throw failure;
+    }
+  };
 
   useEffect(() => {
     if (!demo || demo.status !== "PENDING") return;
@@ -63,6 +78,22 @@ export function SliceDemo() {
           ) : null}
         </div>
       ) : null}
+      <h2>Important action</h2>
+      <p>Accepting a quote or approving a proof asks for a code from your email, at most once a day on each device.</p>
+      <Button variant="secondary" onClick={() => void tryImportant()}>
+        Try an important action
+      </Button>
+      {important === "done" ? (
+        <Notice tone="success" title="Done" live>
+          <p>The important action went through.</p>
+        </Notice>
+      ) : null}
+      {important === "signed-out" ? (
+        <Notice tone="info" title="Sign in first" live>
+          <p>Important actions need you to be signed in, or to have opened a link we emailed you.</p>
+        </Notice>
+      ) : null}
+      {emailCode.dialog}
       <h2>Attach a file</h2>
       <p>Uploads go straight to storage; the worker checks the real type and makes a preview.</p>
       <FileUpload purpose="ARTWORK" onChange={setFile} />

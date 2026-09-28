@@ -36,7 +36,7 @@ test("explains a file type that isn't allowed, before anything is uploaded", asy
   await page.goto("/dev/slice");
   await page
     .locator('input[type="file"]')
-    .setInputFiles({ name: "logo.svg", mimeType: "image/svg+xml", buffer: Buffer.from("<svg xmlns='http://www.w3.org/2000/svg'/>") });
-  await expect(page.getByText("Upload JPEG, PNG or PDF.")).toBeVisible();
+    .setInputFiles({ name: "logo.eps", mimeType: "application/postscript", buffer: Buffer.from("%!PS-Adobe-3.0 EPSF-3.0") });
+  await expect(page.getByText("Upload PDF, AI, SVG, PNG or JPEG.")).toBeVisible();
   await expect(page.getByText("Browse files").first()).toBeVisible();
 });

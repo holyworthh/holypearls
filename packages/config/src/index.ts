@@ -104,6 +104,9 @@ export const loadWorkerEnv = (source: Record<string, string | undefined> = proce
 export const loadDatabaseEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(databaseSchema, source);
 
+/** Storage settings alone, for tools such as the seed that write sample files. */
+export const loadStorageEnv = (source: Record<string, string | undefined> = process.env) => parseEnv(z.object(storage), source);
+
 /** Uses TEST_DATABASE_URL, or DATABASE_URL when no separate test server is set. */
 export const loadTestDatabaseEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(testDatabaseSchema, { TEST_DATABASE_URL: source.TEST_DATABASE_URL ?? source.DATABASE_URL });

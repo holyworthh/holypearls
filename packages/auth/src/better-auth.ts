@@ -68,6 +68,7 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
       cookieCache: { enabled: false },
       additionalFields: {
         mfaVerifiedAt: { type: "date", required: false, input: false },
+        emailCodeVerifiedAt: { type: "date", required: false, input: false },
       },
     },
     emailAndPassword: {

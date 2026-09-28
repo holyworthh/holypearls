@@ -2,6 +2,17 @@ import {
   adminMeSchema,
   apiErrorSchema,
   adminHelpRequestSchema,
+  addProductMediaSchema,
+  adminCategoryListSchema,
+  adminCategorySchema,
+  bulkProductStatusResultSchema,
+  bulkProductStatusSchema,
+  changeCategoryStatusSchema,
+  createCategorySchema,
+  reorderProductMediaSchema,
+  setRelatedProductsSchema,
+  updateCategorySchema,
+  updateProductMediaSchema,
   adminProductPageSchema,
   adminProductSchema,
   changeProductStatusSchema,
@@ -365,13 +376,87 @@ export function buildOpenApiDocument() {
       },
       "/v1/admin/catalogue/products/{id}/status": {
         post: {
-          summary: "Publish, unpublish, mark temporarily unavailable or archive (CATALOGUE_MANAGE, audited)",
+          summary: "Publish, mark temporarily unavailable or archive (CATALOGUE_MANAGE, audited)",
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(changeProductStatusSchema) },
           responses: {
             200: { description: "Changed", content: json(adminProductSchema) },
             409: error("Transition not allowed or VERSION_CONFLICT"),
             422: error("Not ready to publish (RULE_FAILED with fieldErrors)"),
+            ...staffOnly,
+          },
+        },
+      },
+      "/v1/admin/catalogue/products/bulk-status": {
+        post: {
+          summary: "Change the status of several products; each is checked and audited on its own (CATALOGUE_MANAGE)",
+          requestBody: { required: true, content: json(bulkProductStatusSchema) },
+          responses: { 200: { description: "Changed and skipped products", content: json(bulkProductStatusResultSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/media": {
+        post: {
+          summary: "Add a product-media image with alt text (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(addProductMediaSchema) },
+          responses: { 201: { description: "Added", content: json(adminProductSchema) }, 422: error("File rejected or too many images (RULE_FAILED)"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/media/{mediaId}": {
+        patch: {
+          summary: "Change an image's alt text (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id"), uuidParam("mediaId")],
+          requestBody: { required: true, content: json(updateProductMediaSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductSchema) }, ...staffOnly },
+        },
+        delete: {
+          summary: "Remove an image; a published product keeps at least one (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id"), uuidParam("mediaId")],
+          responses: { 200: { description: "Removed", content: json(adminProductSchema) }, 422: error("Last image of a published product (RULE_FAILED)"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/media-order": {
+        put: {
+          summary: "Save the image order; the first is the main image (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(reorderProductMediaSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/related": {
+        put: {
+          summary: "Set related products, in order, up to 12 (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(setRelatedProductsSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/categories": {
+        get: { summary: "Every category with its parent and product count (CATALOGUE_MANAGE)", responses: { 200: { description: "Categories", content: json(adminCategoryListSchema) }, ...staffOnly } },
+        post: {
+          summary: "Create a DRAFT category (CATALOGUE_MANAGE, audited)",
+          requestBody: { required: true, content: json(createCategorySchema) },
+          responses: { 201: { description: "Created", content: json(adminCategorySchema) }, 400: error("Bad input, slug taken or parent not top-level"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/categories/{id}": {
+        get: { summary: "One category (CATALOGUE_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "The category", content: json(adminCategorySchema) }, ...staffOnly } },
+        patch: {
+          summary: "Edit a category with the version it started from (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(updateCategorySchema) },
+          responses: { 200: { description: "Saved", content: json(adminCategorySchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/categories/{id}/status": {
+        post: {
+          summary: "Publish or archive a category (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(changeCategoryStatusSchema) },
+          responses: {
+            200: { description: "Changed", content: json(adminCategorySchema) },
+            409: error("Transition not allowed or VERSION_CONFLICT"),
+            422: error("Has products or subcategories, or parent not published (RULE_FAILED)"),
             ...staffOnly,
           },
         },

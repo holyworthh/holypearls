@@ -51,3 +51,21 @@ Secrets are generated per environment and never shared between staging and produ
 1. Buy the domain; add it to Vercel (web) and Resend (email DNS, see `EMAIL-DNS.md`), and point `api.` at Render.
 2. Create R2 API keys and set `STORAGE_DRIVER=s3` and the `S3_*` values.
 3. Upgrade Render to a paid plan, split the worker into its own service and use a pre-deploy step.
+
+## Addresses (set up 2026-09-28)
+
+| | Staging | Production |
+| :---- | :---- | :---- |
+| Web | https://holypearls-git-dev-holyworths-projects.vercel.app (Vercel login required) | https://holypearls.vercel.app |
+| API | https://holypearls-api-staging.onrender.com | https://holypearls-api.onrender.com |
+| Render service | `holypearls-api-staging` (branch `dev`) | `holypearls-api` (branch `main`) |
+| Neon branch | `staging` (database `neondb`) | `production` (database `holypearls`, empty) |
+
+Local development uses the Neon branch `development`.
+
+Notes:
+
+- Staging's data started as a copy of development's TEST DATA, so staging shares development's `BETTER_AUTH_SECRET` (the seeded authenticator secrets are encrypted with it). Production has its own secrets.
+- All three Neon branches use the same database role. Give production its own role before real customers arrive.
+- Production has no staff yet. A first STAFF_ADMIN needs a one-off bootstrap command (not built yet; suggested for T13-05).
+- Page refresh (`WEB_REVALIDATE_URL`) is set for production only; Vercel's login in front of staging would refuse the worker's calls.

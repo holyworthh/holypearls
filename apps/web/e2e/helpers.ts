@@ -19,14 +19,16 @@ export async function signInStaff(page: Page, person: { email: string; password:
   await page.locator("#staff-password").fill(person.password);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page.getByRole("heading", { name: "Enter your code" })).toBeVisible();
+  const code = page.getByLabel("6-digit code");
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await page.getByLabel("6-digit code").fill(await totpCode(person.totpSecret));
+    await code.fill(await totpCode(person.totpSecret));
     await page.getByRole("button", { name: "Verify" }).click();
+    // Either the admin home opens (it can take a while against a hosted database) or the code is refused.
     const done = await page
-      .waitForURL(/\/admin$/, { timeout: 5000 })
+      .waitForURL(/\/admin$/, { timeout: 20_000, waitUntil: "commit" })
       .then(() => true)
       .catch(() => false);
-    if (done) return;
+    if (done || !(await code.isVisible())) return;
     await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 500);
   }
   await expect(page).toHaveURL(/\/admin$/);

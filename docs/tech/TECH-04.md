@@ -29,14 +29,14 @@ Never trust the type or size the browser claims.
 
 | Purpose | Types | Max size |
 | :---- | :---- | :---- |
-| Artwork and logos | JPEG, PNG, PDF | 50 MB |
-| Project and quote attachments | JPEG, PNG, PDF | 25 MB |
-| Proof files (staff) | JPEG, PNG, PDF | 100 MB |
+| Artwork and logos | PDF, AI, SVG, PNG, JPEG | 50 MB |
+| Project and quote attachments | PDF, AI, SVG, PNG, JPEG | 25 MB |
+| Proof files (staff) | PDF, AI, SVG, PNG, JPEG | 100 MB |
 | Problem-report photos | JPEG, PNG | 15 MB |
 | CSV imports | CSV | 5 MB, 5,000 rows |
 | Product media (staff) | JPEG, PNG, WebP | 20 MB |
 
-AI, EPS, SVG, PSD and other design files are not accepted by the website at launch. Customers use "design help" or support; staff handle those files outside the app and upload a PDF or image. SVG is excluded because it can contain scripts.
+Amended 2026-09-28 by the owner (see `docs/research/UPLOAD-FORMATS.md`): AI and SVG are accepted. AI files are previewed through the PDF renderer when saved "PDF compatible"; others go to NEEDS_REVIEW. SVG is drawn to a raster preview on the server and the original is only ever downloaded, never displayed, because it can contain scripts. EPS, PSD and other design files are still not accepted; customers use "design help" or support.
 
 ## 5\. Previews
 

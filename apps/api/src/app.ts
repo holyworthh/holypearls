@@ -17,9 +17,9 @@ import { MeController } from "./identity/me.controller.js";
 import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
-import { CatalogueAdminController } from "./catalogue/catalogue.controller.js";
+import { CatalogueAdminController, CategoryAdminController } from "./catalogue/catalogue.controller.js";
 import { FilesController } from "./files/files.controller.js";
-import { localStorageRoute } from "./files/local-storage-route.js";
+import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
 import { StaffAccessController } from "./identity/staff-access.controller.js";
 import { AdminHelpController, HelpController } from "./platform/help.controller.js";
@@ -73,6 +73,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       NotificationsController,
       FilesController,
       CatalogueAdminController,
+      CategoryAdminController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
@@ -124,9 +125,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   app.use(
     authRoutes({ identity: options.identity, webOrigin: options.webOrigin, logger: options.logger, db: options.db, limiter }),
   );
-  for (const store of new Set([options.storage, options.publicStorage])) {
-    if (store instanceof LocalDiskStorage) app.use(localStorageRoute(store));
-  }
+  const localStores = [...new Set([options.storage, options.publicStorage])].filter((store) => store instanceof LocalDiskStorage);
+  for (const store of localStores) app.use(localStorageRoute(store));
+  if (localStores.length) app.use(localStorageRefused);
   app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {

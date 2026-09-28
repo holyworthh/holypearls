@@ -19,10 +19,32 @@ const STATUS_TO_CODE: Record<number, ErrorCode> = {
   429: "RATE_LIMITED",
 };
 
+/**
+ * The sign-in library's routes HolyPearls uses. Everything else it offers
+ * (email change, account deletion, backup codes, removing the authenticator,
+ * account linking) returns 404, so a library upgrade can't quietly add a route.
+ * MFA reset goes through a STAFF_ADMIN (TECH-03 §10), never self-service.
+ */
+const ALLOWED = new Set([
+  "/sign-in/email",
+  "/sign-in/magic-link",
+  "/magic-link/verify",
+  "/sign-out",
+  "/get-session",
+  "/two-factor/enable",
+  "/two-factor/verify-totp",
+  "/change-password",
+  "/request-password-reset",
+  "/reset-password",
+  // Closed by configuration until customer sign-up exists (T09-01).
+  "/sign-up/email",
+]);
+export const isAllowedAuthPath = (path: string) => ALLOWED.has(path) || /^\/reset-password\/[^/]+$/.test(path);
+
 /** Sign-in, sign-up and reset routes share the AUTH limit (TECH-02 §14). */
 const AUTH_LIMITED = ["/sign-in/email", "/sign-in/magic-link", "/two-factor/verify-totp", "/sign-up/email", "/request-password-reset"];
 /** Routes whose security events are audited need the state before the change. */
-const AUDITED = ["/two-factor/verify-totp", "/two-factor/disable", "/change-password"];
+const AUDITED = ["/two-factor/verify-totp", "/change-password"];
 const MAX_BODY_BYTES = 64 * 1024;
 
 async function readBody(request: Request): Promise<Buffer> {
@@ -86,6 +108,7 @@ export function authRoutes({ identity, webOrigin, logger, db, limiter }: AuthRou
     if (!request.path.startsWith(AUTH_ROUTE_PREFIX)) return next();
     const requestId = request.requestId ?? "unknown";
     const path = request.path.slice(AUTH_ROUTE_PREFIX.length - 1);
+    if (!isAllowedAuthPath(path)) return sendError(response, "NOT_FOUND", requestId);
     try {
       const hasBody = !["GET", "HEAD"].includes(request.method);
       const body = hasBody ? await readBody(request) : undefined;
@@ -183,8 +206,6 @@ async function auditSecurityEvent(event: {
   const record = { recordType: "USER", recordId: before.session.userId, recordLabel: before.session.name };
   if (path === "/two-factor/verify-totp" && !before.session.mfaEnabled) {
     await recordAudit(db, before, { ...record, action: "security.mfa_enabled", summary: "Authenticator set up", after: { mfaEnabled: true } });
-  } else if (path === "/two-factor/disable") {
-    await recordAudit(db, before, { ...record, action: "security.mfa_disabled", summary: "Authenticator removed", after: { mfaEnabled: false } });
   } else if (path === "/change-password") {
     await recordAudit(db, before, { ...record, action: "security.password_changed", summary: "Password changed; other sessions ended" });
   }

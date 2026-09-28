@@ -23,7 +23,7 @@ export const productFamily = pgEnum("product_family", PRODUCT_FAMILIES);
 /** The three ways customers buy (PRD-00 §2, PRD-02 §3). */
 export const buyingMode = pgEnum("buying_mode", ["SIMPLE_CONFIGURABLE", "CONFIGURABLE_QUOTE", "CONSULTATIVE_PROJECT"]);
 
-/** TECH-01 §4 plus "unpublish" back to DRAFT (Pen frame 96/98; see T02-01 report). */
+/** TECH-01 §4. A product leaves the site by being archived; there is no way back to DRAFT. */
 export const productStatus = pgEnum("product_status", ["DRAFT", "PUBLISHED", "TEMPORARILY_UNAVAILABLE", "ARCHIVED"]);
 export const categoryStatus = pgEnum("category_status", ["DRAFT", "PUBLISHED", "ARCHIVED"]);
 

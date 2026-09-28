@@ -14,7 +14,7 @@ type Phase =
   | { kind: "failed"; message: string };
 
 export interface FileUploadProps {
-  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROBLEM_PHOTO";
+  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROBLEM_PHOTO" | "PRODUCT_MEDIA";
   label?: string;
   /** Allowed types in words, matching the purpose's rule (TECH-04 §4). */
   hint?: string;
@@ -52,8 +52,8 @@ function describe(file: FileView) {
 export function FileUpload({
   purpose,
   label = "Drop your logo or browse files",
-  hint = "JPEG, PNG or PDF, up to 50 MB",
-  accept = "image/jpeg,image/png,application/pdf",
+  hint = "PDF, AI, SVG, PNG or JPEG, up to 50 MB",
+  accept = "application/pdf,.ai,image/svg+xml,.svg,image/png,image/jpeg",
   owner,
   onChange,
 }: FileUploadProps) {

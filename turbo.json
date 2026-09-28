@@ -28,7 +28,9 @@
     "S3_PUBLIC_BUCKET",
     "S3_ACCESS_KEY_ID",
     "S3_SECRET_ACCESS_KEY",
-    "S3_FORCE_PATH_STYLE"
+    "S3_FORCE_PATH_STYLE",
+    "WEB_REVALIDATE_URL",
+    "WEB_REVALIDATE_SECRET"
   ],
   "tasks": {
     "build": {
