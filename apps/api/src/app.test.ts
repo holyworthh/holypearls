@@ -158,7 +158,15 @@ describe("readiness without a database", () => {
   it("returns 503 when the database cannot be reached", async () => {
     const brokenDb = { execute: async () => Promise.reject(new Error("ECONNREFUSED")) } as unknown as Database;
     const identity = { getSession: async () => null } as unknown as IdentityAdapter;
-    const app = await createApp({ db: brokenDb, logger: captureLogs().logger, identity, webOrigin: TEST_WEB_ORIGIN });
+    const app = await createApp({
+      db: brokenDb,
+      logger: captureLogs().logger,
+      identity,
+      webOrigin: TEST_WEB_ORIGIN,
+      jobs: {} as never,
+      sealKey: "unused-in-this-test-0123456789-0123456789",
+      helpInboxEmail: "help@holypearls.test",
+    });
     await app.init();
     try {
       const response = await request(app.getHttpServer()).get("/health/ready");

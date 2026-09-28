@@ -50,3 +50,36 @@ export type StaffAccess = z.infer<typeof staffAccessSchema>;
 
 /** Header for safe retries (TECH-02 §4). */
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
+
+export const notificationStatusSchema = z.enum(["QUEUED", "SENT", "DELIVERED", "FAILED"]);
+
+export const notificationEntrySchema = z.object({
+  id: z.string(),
+  template: z.string(),
+  templateLabel: z.string(),
+  recipient: z.string(),
+  recordType: z.string().nullable(),
+  recordId: z.string().nullable(),
+  recordLabel: z.string().nullable(),
+  linkLabel: z.string().nullable(),
+  status: notificationStatusSchema,
+  attempts: z.number().int(),
+  maxAttempts: z.number().int(),
+  providerMessageId: z.string().nullable(),
+  lastError: z.string().nullable(),
+  resendable: z.boolean(),
+  resendOfId: z.string().nullable(),
+  lastAttemptAt: isoDate.nullable(),
+  createdAt: isoDate,
+});
+export type NotificationEntry = z.infer<typeof notificationEntrySchema>;
+
+export const notificationPageSchema = z.object({ entries: z.array(notificationEntrySchema), nextCursor: z.string().nullable() });
+export type NotificationPage = z.infer<typeof notificationPageSchema>;
+
+export const notificationQuerySchema = z.object({
+  status: notificationStatusSchema.optional(),
+  q: z.string().trim().max(100).optional(),
+  cursor: z.string().max(200).optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(25),
+});

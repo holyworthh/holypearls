@@ -1,3 +1,5 @@
+import type { HelpDeps } from "./platform/help-requests.js";
+
 /** Injection tokens. Explicit tokens, because tests run without decorator metadata. */
 export const LOGGER = Symbol("LOGGER");
 export const DATABASE = Symbol("DATABASE");
@@ -13,3 +15,7 @@ declare global {
 
 export const IDENTITY = Symbol("IDENTITY");
 export const JOBS = Symbol("JOBS");
+
+/** Database, jobs, sealing key, web origin and help inbox address, for notification-sending modules. */
+export const HELP_DEPS = Symbol("HELP_DEPS");
+export type HelpDepsToken = HelpDeps;

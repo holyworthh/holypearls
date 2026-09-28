@@ -12,10 +12,12 @@ import { createLogger } from "../logger.js";
 
 export const TEST_WEB_ORIGIN = "http://localhost:3000";
 export const TEST_AUTH_SECRET = "test-secret-for-api-tests-only-0123456789";
+export const TEST_SEAL_KEY = "test-seal-key-for-api-tests-only-0123456789";
+export const TEST_HELP_INBOX = "help@holypearls.test";
 
 export interface Harness {
   app: NestExpressApplication;
-  jobs: Jobs | null;
+  jobs: Jobs;
   database: TestDatabase;
   outbox: MemoryOutbox;
   logs: string[];
@@ -34,6 +36,7 @@ export async function createHarness(
     controllers?: Type[];
     rateLimit?: boolean;
     seed?: boolean;
+    /** Serve the demo slice routes. */
     jobs?: boolean;
     /** Share another harness's database, for example to run two API instances. */
     database?: TestDatabase;
@@ -64,20 +67,23 @@ export async function createHarness(
     log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
   });
-  const jobs = options.jobs
-    ? new Jobs({
-        connectionString: database.url,
-        role: "sender",
-        settings: { "demo.slice": { retryLimit: 1, retryDelay: 1, retryBackoff: false } },
-      })
-    : null;
-  await jobs?.start();
+  const jobs = new Jobs({
+    connectionString: database.url,
+    role: "sender",
+    settings: {
+      "demo.slice": { retryLimit: 1, retryDelay: 1, retryBackoff: false },
+      "email.send": { retryLimit: 2, retryDelay: 1, retryBackoff: false },
+    },
+  });
+  await jobs.start();
   const app = await createApp({
     db: database.db,
     logger,
     identity,
-    jobs: jobs ?? undefined,
-    demoSlice: Boolean(jobs),
+    jobs,
+    sealKey: TEST_SEAL_KEY,
+    helpInboxEmail: TEST_HELP_INBOX,
+    demoSlice: Boolean(options.jobs),
     rateLimit: options.rateLimit ?? false,
     now: () => now.value ?? new Date(),
     webOrigin: TEST_WEB_ORIGIN,
@@ -99,7 +105,7 @@ export async function createHarness(
     signInAs: async (key) => (await signInAs(key, { authUrl, origin: TEST_WEB_ORIGIN })).cookie,
     close: async () => {
       await app.close();
-      await jobs?.stop(1000);
+      await jobs.stop(1000);
       if (ownDatabase) await database.drop();
     },
   };

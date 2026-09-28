@@ -51,7 +51,12 @@ export class IdempotencyInterceptor implements NestInterceptor {
       });
     }
     const actor = await request.getActor!();
-    const actorKey = actor.type === "user" ? `user:${actor.session.userId}` : `ip:${clientIp(request)}`;
+    const actorKey =
+      actor.type === "user"
+        ? `user:${actor.session.userId}`
+        : actor.type === "guest"
+          ? `guest:${actor.guest.guestSessionId}`
+          : `ip:${clientIp(request)}`;
     const fingerprint = fingerprintOf(request);
     const where = and(eq(schema.idempotencyKeys.actorKey, actorKey), eq(schema.idempotencyKeys.key, key));
 

@@ -15,6 +15,18 @@ const monitoring = {
   HP_ENV: z.enum(["local", "preview", "staging", "production"]).default("local"),
 };
 
+/** Encrypts stored email data that carries a secret (TECH-03 §5). 32+ random characters. */
+const encryption = { DATA_ENCRYPTION_KEY: z.string().min(32) };
+
+/** How the worker sends email: Resend in staging and production, Mailpit (smtp) or files locally. */
+const email = {
+  EMAIL_TRANSPORT: z.enum(["resend", "smtp", "file"]).default("file"),
+  EMAIL_FROM: z.string().default("HolyPearls <hello@holypearls.test>"),
+  RESEND_API_KEY: z.string().optional(),
+  SMTP_URL: z.string().optional(),
+  EMAIL_FILE_DIR: z.string().default(".outbox/emails"),
+};
+
 const webSchema = z.object({
   API_URL: z.url(),
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
@@ -28,20 +40,23 @@ const apiSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   /** The web app's origin; the browser only ever talks to this domain (TECH-03 §4). */
   BETTER_AUTH_URL: z.url(),
-  /** Local file for sign-in emails until real email arrives (T01-02). */
-  AUTH_OUTBOX_PATH: z.string().default(".outbox/auth-emails.jsonl"),
   /** Browser tests sign in many times from one address; they turn sign-in limits off. */
   AUTH_RATE_LIMIT: z.enum(["on", "off"]).default("on"),
   ...directUrl,
   /** The T00-04 end-to-end demo routes; on locally and in staging, never in production. */
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
   ...monitoring,
+  ...encryption,
+  /** Where new help requests are announced to staff (PRD-00 §18). */
+  HELP_INBOX_EMAIL: z.email().default("help@holypearls.test"),
 });
 
 const workerSchema = z.object({
   DATABASE_URL: databaseUrl,
   ...directUrl,
   ...monitoring,
+  ...encryption,
+  ...email,
 });
 
 const databaseSchema = z.object({

@@ -3,6 +3,7 @@ import { MFA_RECENCY_MINUTES, type StaffPermission } from "@holypearls/contracts
 import { type Database, eq, schema } from "@holypearls/db";
 import type { Request } from "express";
 import { AppError } from "../errors.js";
+import { findGuestSession, GUEST_SESSION_COOKIE } from "./customers.js";
 
 export interface StaffContext {
   staffProfileId: string;
@@ -15,8 +16,19 @@ export interface StaffContext {
  * permission; policies and guards decide that. Organization memberships,
  * customers and guests join this in later tickets.
  */
+export interface GuestContext {
+  guestSessionId: string;
+  customerId: string;
+  /** The one record the link opened; its children are allowed by each module's policies. */
+  targetType: string;
+  targetId: string;
+  /** Last email code in this guest session (TECH-03 §5). */
+  emailVerifiedAt: Date | null;
+}
+
 export type ActorContext =
   | { type: "anonymous"; requestId: string; now: Date }
+  | { type: "guest"; requestId: string; now: Date; guest: GuestContext }
   | {
       type: "user";
       requestId: string;
@@ -57,13 +69,38 @@ export function toHeaders(request: Request): Headers {
 }
 
 /** Builds the actor once per request, on first use. */
+const guestToken = (request: Request) => {
+  for (const part of (request.header("cookie") ?? "").split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === GUEST_SESSION_COOKIE || name === `__Secure-${GUEST_SESSION_COOKIE}`) return decodeURIComponent(rest.join("="));
+  }
+  return null;
+};
+
 export function actorResolver(identity: IdentityAdapter, db: Database, clock: () => Date = () => new Date()) {
   return (request: Request): Promise<ActorContext> => {
     request.actor ??= (async () => {
       const requestId = request.requestId ?? "unknown";
       const now = clock();
       const session = await identity.getSession(toHeaders(request));
-      if (!session) return { type: "anonymous", requestId, now } as const;
+      if (!session) {
+        // A signed-in session always wins; otherwise a guest link session may apply.
+        const token = guestToken(request);
+        const guest = token ? await findGuestSession(db, token, now) : null;
+        if (!guest) return { type: "anonymous", requestId, now } as const;
+        return {
+          type: "guest",
+          requestId,
+          now,
+          guest: {
+            guestSessionId: guest.id,
+            customerId: guest.customerId,
+            targetType: guest.targetType,
+            targetId: guest.targetId,
+            emailVerifiedAt: guest.emailVerifiedAt,
+          },
+        } as const;
+      }
       return { type: "user", requestId, now, session, staff: await findActiveStaff(db, session.userId) } as const;
     })();
     return request.actor;

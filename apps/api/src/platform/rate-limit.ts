@@ -104,7 +104,12 @@ export class RateLimitGuard implements CanActivate {
     if (!name) return true;
     const request = context.switchToHttp().getRequest<Request>();
     const actor = await request.getActor!();
-    const subject = actor.type === "user" ? (actor.staff?.staffProfileId ?? actor.session.userId) : undefined;
+    const subject =
+      actor.type === "user"
+        ? (actor.staff?.staffProfileId ?? actor.session.userId)
+        : actor.type === "guest"
+          ? actor.guest.guestSessionId
+          : undefined;
     const result = await this.limiter.hit(name, { ip: clientIp(request), subject });
     if (!result.allowed) {
       context.switchToHttp().getResponse<Response>().setHeader("retry-after", String(result.retryAfterSeconds));

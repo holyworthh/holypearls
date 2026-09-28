@@ -2,7 +2,8 @@ import { type AuditEntry, auditEntrySchema, auditPageSchema } from "@holypearls/
 import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied } from "@holypearls/ui";
 import { serverApi } from "../../../../lib/server-api";
 import { requireAdmin } from "../admin-session";
-import styles from "./audit.module.css";
+import { formatTime } from "../format";
+import styles from "../admin-list.module.css";
 
 const ACTIONS: readonly [string, string][] = [
   ["", "All actions"],
@@ -24,20 +25,6 @@ const PERIODS: readonly [string, string][] = [
   ["30", "Last 30 days"],
   ["90", "Last 90 days"],
 ];
-
-// Pen shows "27 SEP 14:10" in Lagos time.
-const time = new Intl.DateTimeFormat("en-US", {
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-  timeZone: "Africa/Lagos",
-});
-const formatTime = (iso: string) => {
-  const part = Object.fromEntries(time.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]));
-  return `${part.day} ${String(part.month).toUpperCase()} ${part.hour}:${part.minute}`;
-};
 
 /** A short reference for an entry, shown to staff (the ID itself is a UUID). */
 const entryRef = (id: string) => `AL-${id.replaceAll("-", "").slice(-6).toUpperCase()}`;

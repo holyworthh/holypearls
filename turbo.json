@@ -8,12 +8,18 @@
     "NODE_ENV",
     "BETTER_AUTH_SECRET",
     "BETTER_AUTH_URL",
-    "AUTH_OUTBOX_PATH",
     "AUTH_RATE_LIMIT",
     "DATABASE_DIRECT_URL",
     "HP_DEMO_SLICE",
     "SENTRY_DSN",
-    "HP_ENV"
+    "HP_ENV",
+    "DATA_ENCRYPTION_KEY",
+    "EMAIL_TRANSPORT",
+    "EMAIL_FROM",
+    "RESEND_API_KEY",
+    "SMTP_URL",
+    "EMAIL_FILE_DIR",
+    "HELP_INBOX_EMAIL"
   ],
   "tasks": {
     "build": {

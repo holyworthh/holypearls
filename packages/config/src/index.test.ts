@@ -22,6 +22,7 @@ describe("environment configuration", () => {
         API_PORT: "3002",
         BETTER_AUTH_SECRET: "x".repeat(32),
         BETTER_AUTH_URL: "http://localhost:3000",
+        DATA_ENCRYPTION_KEY: "k".repeat(32),
       }).API_PORT,
     ).toBe(3002);
     expect(loadWebEnv({ API_URL: "http://localhost:3001" }).API_URL).toBe("http://localhost:3001");

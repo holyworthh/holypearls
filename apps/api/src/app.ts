@@ -17,12 +17,15 @@ import { MeController } from "./identity/me.controller.js";
 import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
+import { CustomerAccessController } from "./identity/customer-access.controller.js";
 import { StaffAccessController } from "./identity/staff-access.controller.js";
+import { AdminHelpController, HelpController } from "./platform/help.controller.js";
+import { NotificationsController } from "./platform/notifications.controller.js";
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
-import { DATABASE, IDENTITY, JOBS, LOGGER } from "./tokens.js";
+import { DATABASE, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
 
 export interface CreateAppOptions {
   db: Database;
@@ -31,7 +34,11 @@ export interface CreateAppOptions {
   /** The web app's origin; state-changing requests must come from it (TECH-03 §13). */
   webOrigin: string;
   /** Queues background jobs (a sender; the worker runs them). */
-  jobs?: Jobs;
+  jobs: Jobs;
+  /** DATA_ENCRYPTION_KEY: seals email data that carries a link secret or code. */
+  sealKey: string;
+  /** Where new help requests are announced to staff. */
+  helpInboxEmail: string;
   /** Serves the T00-04 demo routes. Never on in production. */
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
@@ -53,11 +60,25 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       MonitoringController,
       StaffAccessController,
       AuditController,
-      ...(options.demoSlice && options.jobs ? [DemoSliceController] : []),
+      CustomerAccessController,
+      HelpController,
+      AdminHelpController,
+      NotificationsController,
+      ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
     providers: [
-      { provide: JOBS, useValue: options.jobs ?? null },
+      { provide: JOBS, useValue: options.jobs },
+      {
+        provide: HELP_DEPS,
+        useValue: {
+          db: options.db,
+          jobs: options.jobs,
+          sealKey: options.sealKey,
+          webOrigin: options.webOrigin,
+          helpInboxEmail: options.helpInboxEmail,
+        },
+      },
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },

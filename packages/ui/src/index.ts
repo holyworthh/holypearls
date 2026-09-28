@@ -11,6 +11,7 @@ export * from "./components/RadioCardGroup";
 export * from "./components/Select";
 export * from "./components/StateCard";
 export * from "./components/StatusChip";
+export * from "./components/TextArea";
 export * from "./components/TextField";
 export * from "./components/Toast";
 export * from "./shells/shells";

@@ -29,6 +29,8 @@ const payload = <T extends z.ZodRawShape>(shape: T) =>
 export const QUEUES = {
   /** T00-04 end-to-end slice: web → API → database → job → result. */
   "demo.slice": { payload: payload({ demoId: z.string().uuid() }), settings: {} },
+  /** Sends one notification through EmailSender (TECH-02 §8: 8 retries). */
+  "email.send": { payload: payload({ notificationId: z.string().uuid() }), settings: { retryLimit: 8 } },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;
 
 export type QueueName = keyof typeof QUEUES;
