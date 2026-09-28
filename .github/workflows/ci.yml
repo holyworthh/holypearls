@@ -49,7 +49,8 @@ jobs:
         run: pnpm seed
       - name: Check generated token CSS matches tokens.json
         run: pnpm --filter @holypearls/ui tokens:check
-      - run: pnpm check:openapi
+      - name: OpenAPI file matches the contracts
+        run: pnpm check:openapi
       - run: docker compose config --quiet
       - run: pnpm build
       - name: Install Chromium for browser tests
