@@ -14,7 +14,8 @@
     "@holypearls/config": "workspace:*",
     "@holypearls/db": "workspace:*",
     "@holypearls/email": "workspace:*",
-    "@holypearls/jobs": "workspace:*"
+    "@holypearls/jobs": "workspace:*",
+    "@holypearls/storage": "workspace:*"
   },
   "devDependencies": {
     "tsx": "4.23.15"

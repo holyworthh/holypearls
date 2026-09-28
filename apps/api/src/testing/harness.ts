@@ -6,6 +6,10 @@ import { buildSeedSteps, createTestDatabase, runSeed, type TestDatabase } from "
 import type { AddressInfo } from "node:net";
 import { Writable } from "node:stream";
 import { Jobs } from "@holypearls/jobs";
+import { LocalDiskStorage } from "@holypearls/storage";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createApp } from "../app.js";
 import { findActiveStaff } from "../identity/actor.js";
 import { createLogger } from "../logger.js";
@@ -17,6 +21,8 @@ export const TEST_HELP_INBOX = "help@holypearls.test";
 
 export interface Harness {
   app: NestExpressApplication;
+  storage: LocalDiskStorage;
+  publicStorage: LocalDiskStorage;
   jobs: Jobs;
   database: TestDatabase;
   outbox: MemoryOutbox;
@@ -76,7 +82,12 @@ export async function createHarness(
     },
   });
   await jobs.start();
+  const storageDir = await mkdtemp(join(tmpdir(), "hp-files-"));
+  const storage = new LocalDiskStorage(join(storageDir, "private"), `${TEST_WEB_ORIGIN}/api`, TEST_SEAL_KEY);
+  const publicStorage = new LocalDiskStorage(join(storageDir, "public-media"), `${TEST_WEB_ORIGIN}/api`, TEST_SEAL_KEY);
   const app = await createApp({
+    storage,
+    publicStorage,
     db: database.db,
     logger,
     identity,
@@ -95,6 +106,8 @@ export async function createHarness(
   const authUrl = `${url}/v1/auth`;
   return {
     app,
+    storage,
+    publicStorage,
     jobs,
     database,
     outbox,

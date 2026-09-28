@@ -166,6 +166,8 @@ describe("readiness without a database", () => {
       jobs: {} as never,
       sealKey: "unused-in-this-test-0123456789-0123456789",
       helpInboxEmail: "help@holypearls.test",
+      storage: {} as never,
+      publicStorage: {} as never,
     });
     await app.init();
     try {

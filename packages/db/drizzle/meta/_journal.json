@@ -50,6 +50,13 @@
       "when": 1790562468509,
       "tag": "0006_help_reference_sequence",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790565341556,
+      "tag": "0007_files",
+      "breakpoints": true
     }
   ]
 }

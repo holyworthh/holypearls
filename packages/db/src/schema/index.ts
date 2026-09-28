@@ -2,3 +2,4 @@
 export * from "./identity.js";
 export * from "./platform.js";
 export * from "./customers.js";
+export * from "./files.js";

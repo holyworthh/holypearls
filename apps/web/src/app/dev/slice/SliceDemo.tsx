@@ -1,8 +1,9 @@
 "use client";
 
-import { type DemoSlice, demoSliceCreateSchema, demoSliceSchema, toFieldErrors } from "@holypearls/contracts";
+import { type DemoSlice, type FileView, demoSliceCreateSchema, demoSliceSchema, toFieldErrors } from "@holypearls/contracts";
 import { Button, Card, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { useEffect, useState, type FormEvent } from "react";
+import { FileUpload } from "../../../components/FileUpload";
 import { NeedHelp } from "../../../components/NeedHelp";
 import { api } from "../../../lib/api";
 
@@ -13,6 +14,7 @@ export function SliceDemo() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [demo, setDemo] = useState<DemoSlice | null>(null);
+  const [file, setFile] = useState<FileView | null>(null);
 
   useEffect(() => {
     if (!demo || demo.status !== "PENDING") return;
@@ -61,8 +63,12 @@ export function SliceDemo() {
           ) : null}
         </div>
       ) : null}
+      <h2>Attach a file</h2>
+      <p>Uploads go straight to storage; the worker checks the real type and makes a preview.</p>
+      <FileUpload purpose="ARTWORK" onChange={setFile} />
       <NeedHelp
         context={{
+          ...(file ? { files: [{ id: file.id, label: file.name, status: file.status }] } : {}),
           page: { path: "/dev/slice", title: "End-to-end slice (demo)" },
           step: "Send a message",
           ...(demo ? { project: { id: demo.id, label: `Demo request ${demo.status}` } } : {}),
