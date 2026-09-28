@@ -17323,6 +17323,8 @@
                           "type": "string",
                           "enum": [
                             "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
                             "DESIGN_HELP",
                             "LATER"
                           ]
@@ -17579,6 +17581,421 @@
                         "null"
                       ]
                     },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time",
@@ -17598,6 +18015,9 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
                     "updatedAt"
                   ],
                   "additionalProperties": false
@@ -17703,6 +18123,8 @@
                           "type": "string",
                           "enum": [
                             "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
                             "DESIGN_HELP",
                             "LATER"
                           ]
@@ -17959,6 +18381,421 @@
                         "null"
                       ]
                     },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time",
@@ -17978,6 +18815,9 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
                     "updatedAt"
                   ],
                   "additionalProperties": false
@@ -18066,6 +18906,8 @@
                         "type": "string",
                         "enum": [
                           "UPLOAD",
+                          "LOGO",
+                          "REFERENCE",
                           "DESIGN_HELP",
                           "LATER"
                         ]
@@ -18078,12 +18920,191 @@
                   "step": {
                     "type": "string",
                     "enum": [
+                      "product",
                       "options",
+                      "customize",
                       "quantity",
                       "artwork",
                       "delivery",
                       "review"
                     ]
+                  },
+                  "sourcing": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED",
+                          "HELP_ME_CHOOSE"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "decoration": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "PRINT",
+                          "BOTH",
+                          "RECOMMEND"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "garmentType": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "fit": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "fabric": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "colour": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "reference": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "labels": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "sampleFirst": {
+                        "type": "boolean"
+                      },
+                      "suppliedItems": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "receiveMethod": {
+                        "type": "string",
+                        "enum": [
+                          "DROP_OFF",
+                          "PICKUP",
+                          "COURIER"
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "sizesUnknown": {
+                    "type": "boolean"
+                  },
+                  "sizes": {
+                    "maxItems": 8,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "size": {
+                          "type": "string",
+                          "enum": [
+                            "XS",
+                            "S",
+                            "M",
+                            "L",
+                            "XL",
+                            "2XL",
+                            "3XL",
+                            "4XL"
+                          ]
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "size",
+                        "quantity"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "placements": {
+                    "maxItems": 9,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "position": {
+                          "type": "string",
+                          "enum": [
+                            "LEFT_CHEST",
+                            "RIGHT_CHEST",
+                            "CENTRE_CHEST",
+                            "FULL_FRONT",
+                            "UPPER_BACK",
+                            "FULL_BACK",
+                            "LEFT_SLEEVE",
+                            "RIGHT_SLEEVE",
+                            "CUSTOM"
+                          ]
+                        },
+                        "size": {
+                          "type": "string",
+                          "enum": [
+                            "SMALL",
+                            "STANDARD",
+                            "LARGE"
+                          ]
+                        },
+                        "method": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "EMBROIDERY",
+                                "PRINT",
+                                "BOTH",
+                                "RECOMMEND"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "note": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "position",
+                        "size",
+                        "method",
+                        "note"
+                      ],
+                      "additionalProperties": false
+                    }
                   },
                   "confirmRemovals": {
                     "default": false,
@@ -18233,6 +19254,8 @@
                           "type": "string",
                           "enum": [
                             "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
                             "DESIGN_HELP",
                             "LATER"
                           ]
@@ -18489,6 +19512,421 @@
                         "null"
                       ]
                     },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
                     "updatedAt": {
                       "type": "string",
                       "format": "date-time",
@@ -18508,6 +19946,9 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
                     "updatedAt"
                   ],
                   "additionalProperties": false
@@ -18517,6 +19958,2569 @@
           },
           "404": {
             "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/files": {
+      "post": {
+        "summary": "Attach the customer's uploaded artwork, logo, reference or garment photo to a draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "ARTWORK",
+                      "LOGO",
+                      "REFERENCE",
+                      "GARMENT_PHOTO"
+                    ]
+                  }
+                },
+                "required": [
+                  "fileId",
+                  "role"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "File rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/files/{linkId}": {
+      "delete": {
+        "summary": "Remove a file from a draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/files/{linkId}/low-resolution": {
+      "post": {
+        "summary": "What to do about a low-resolution file: replace, clean up or review. Never blocks the order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "REPLACE",
+                      "CLEANUP",
+                      "REVIEW"
+                    ]
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "LOGO",
+                            "REFERENCE",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "garment": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sourcing": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "SOURCE_CUSTOMIZE",
+                                    "MAKE_FROM_SCRATCH",
+                                    "CUSTOMER_SUPPLIED",
+                                    "HELP_ME_CHOOSE"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "decoration": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "EMBROIDERY",
+                                    "PRINT",
+                                    "BOTH",
+                                    "RECOMMEND"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "details": {
+                              "type": "object",
+                              "properties": {
+                                "garmentType": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fit": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "fabric": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "colour": {
+                                  "type": "string",
+                                  "maxLength": 60
+                                },
+                                "reference": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "labels": {
+                                  "type": "string",
+                                  "maxLength": 200
+                                },
+                                "sampleFirst": {
+                                  "type": "boolean"
+                                },
+                                "suppliedItems": {
+                                  "type": "string",
+                                  "maxLength": 500
+                                },
+                                "receiveMethod": {
+                                  "type": "string",
+                                  "enum": [
+                                    "DROP_OFF",
+                                    "PICKUP",
+                                    "COURIER"
+                                  ]
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "sizesUnknown": {
+                              "type": "boolean"
+                            },
+                            "sizes": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "size": {
+                                    "type": "string"
+                                  },
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "size",
+                                  "quantity"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "placements": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "LEFT_CHEST",
+                                      "RIGHT_CHEST",
+                                      "CENTRE_CHEST",
+                                      "FULL_FRONT",
+                                      "UPPER_BACK",
+                                      "FULL_BACK",
+                                      "LEFT_SLEEVE",
+                                      "RIGHT_SLEEVE",
+                                      "CUSTOM"
+                                    ]
+                                  },
+                                  "size": {
+                                    "type": "string",
+                                    "enum": [
+                                      "SMALL",
+                                      "STANDARD",
+                                      "LARGE"
+                                    ]
+                                  },
+                                  "method": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "enum": [
+                                          "EMBROIDERY",
+                                          "PRINT",
+                                          "BOTH",
+                                          "RECOMMEND"
+                                        ]
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "note": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "maxLength": 120
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "position",
+                                  "size",
+                                  "method",
+                                  "note"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "conflicts": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "positions": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "LEFT_CHEST",
+                                        "RIGHT_CHEST",
+                                        "CENTRE_CHEST",
+                                        "FULL_FRONT",
+                                        "UPPER_BACK",
+                                        "FULL_BACK",
+                                        "LEFT_SLEEVE",
+                                        "RIGHT_SLEEVE",
+                                        "CUSTOM"
+                                      ]
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "fixes": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "position": {
+                                          "type": "string",
+                                          "enum": [
+                                            "LEFT_CHEST",
+                                            "RIGHT_CHEST",
+                                            "CENTRE_CHEST",
+                                            "FULL_FRONT",
+                                            "UPPER_BACK",
+                                            "FULL_BACK",
+                                            "LEFT_SLEEVE",
+                                            "RIGHT_SLEEVE",
+                                            "CUSTOM"
+                                          ]
+                                        },
+                                        "change": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {}
+                                        }
+                                      },
+                                      "required": [
+                                        "label",
+                                        "position",
+                                        "change"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "positions",
+                                  "message",
+                                  "fixes"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "personalization": {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "preview": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "row": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "name": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "number": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "department": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      },
+                                      "size": {
+                                        "type": [
+                                          "string",
+                                          "null"
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "row",
+                                      "name",
+                                      "number",
+                                      "department",
+                                      "size"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "preview"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "sourcing",
+                            "decoration",
+                            "details",
+                            "sizesUnknown",
+                            "sizes",
+                            "placements",
+                            "conflicts",
+                            "personalization"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "ARTWORK",
+                              "LOGO",
+                              "REFERENCE",
+                              "GARMENT_PHOTO"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "lowResolution": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "neededPixels": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "actualPixels": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "neededPixels",
+                                  "actualPixels",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lowResolutionAction": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "REPLACE",
+                                  "CLEANUP",
+                                  "REVIEW"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileId",
+                          "role",
+                          "name",
+                          "status",
+                          "lowResolution",
+                          "lowResolutionAction"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "artworkLaterAllowed": {
+                      "type": "boolean"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "garment",
+                    "files",
+                    "artworkLaterAllowed",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/personalization": {
+      "post": {
+        "summary": "Import per-item names, numbers, departments and sizes from a CSV upload, checked row by row",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "fileId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "row": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "field": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "field",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "accepted",
+                    "count",
+                    "errors"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "File still being checked",
             "content": {
               "application/json": {
                 "schema": {
