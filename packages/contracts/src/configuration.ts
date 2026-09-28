@@ -31,12 +31,56 @@ export const garmentDetailsSchema = z
   })
   .partial();
 
+/** Answers for other product families and delivery (T03-08, COM-FR-045–047, 060, 070–072). */
+export const detailsSchema = garmentDetailsSchema.extend({
+  sizeMode: z.enum(["STANDARD", "CUSTOM"]),
+  widthCm: z.number().positive().max(10_000),
+  heightCm: z.number().positive().max(10_000),
+  /** The unit the customer typed in; sizes are stored in centimetres. */
+  sizeUnit: z.enum(["CM", "M", "IN"]),
+  service: z.enum(["PRINT_ONLY", "DELIVERED", "INSTALLATION"]),
+  installSite: z.string().trim().max(200),
+  installSurface: z.string().trim().max(100),
+  installHeightM: z.number().min(0).max(200),
+  installAccess: z.string().trim().max(200),
+  installDate: z.iso.date(),
+  packagingType: z.enum(["STANDARD", "CUSTOM"]),
+  /** Custom structure (COM-FR-046): dimensions, use, material, closure, handles, insert, sample. */
+  packagingSpec: z.string().trim().max(500),
+  packagingUse: z.string().trim().max(200),
+  packagingMaterial: z.string().trim().max(120),
+  packagingClosure: z.string().trim().max(120),
+  packagingHandles: z.string().trim().max(120),
+  packagingInsert: z.string().trim().max(120),
+  packagingSample: z.boolean(),
+  promoSource: z.enum(["CATALOGUE", "SOURCE_SIMILAR"]),
+  similarItem: z.string().trim().max(500),
+  garmentOwner: z.enum(["OURS", "CUSTOMER"]),
+  destination: z.enum(["LAGOS", "NIGERIA", "INTERNATIONAL"]),
+  city: z.string().trim().max(80),
+  country: z.string().trim().max(80),
+  deadline: z.iso.date(),
+}).partial();
+export type ConfigurationDetails = z.infer<typeof detailsSchema>;
+
+const days = z.object({ min: z.number().int(), max: z.number().int() });
+export const timingSchema = z.object({
+  production: days.nullable(),
+  transit: days.nullable(),
+  transitQuoted: z.boolean(),
+  expectedBy: z.string().nullable(),
+  verdict: z.enum(["NO_DEADLINE", "ON_TIME", "RUSH_NEEDED", "REVIEW"]),
+  suggestedRush: z.enum(["STANDARD", "RUSH", "PRIORITY"]).nullable(),
+  message: z.string().nullable(),
+});
+
 const key = z.string().max(60);
 
 export const configurationSchema = z.object({
   id: z.string(),
   productSlug: z.string(),
   productName: z.string(),
+  family: z.string(),
   status: z.enum(["DRAFT", "IN_CART", "QUOTE_REQUESTED", "ABANDONED"]),
   choices: z.record(z.string(), z.string()),
   quantity: z.number().int().nullable(),
@@ -77,6 +121,11 @@ export const configurationSchema = z.object({
       lowResolutionAction: z.enum(["REPLACE", "CLEANUP", "REVIEW"]).nullable(),
     }),
   ),
+  /** Family and delivery answers (all products). */
+  details: detailsSchema,
+  timing: timingSchema,
+  /** The quote request made from this design, once requested (COM-FR-061). */
+  quote: z.object({ reference: z.string(), status: z.string() }).nullable(),
   /** Send-later is allowed for this product (COM-FR-050). */
   artworkLaterAllowed: z.boolean(),
   updatedAt: z.iso.datetime(),
@@ -99,7 +148,7 @@ export const updateConfigurationSchema = z.object({
   step: z.enum(["product", "options", "customize", "quantity", "artwork", "delivery", "review"]).optional(),
   sourcing: sourcingSchema.nullable().optional(),
   decoration: decorationSchema.nullable().optional(),
-  details: garmentDetailsSchema.optional(),
+  details: detailsSchema.optional(),
   sizesUnknown: z.boolean().optional(),
   sizes: z.array(z.object({ size: z.enum(GARMENT_SIZES), quantity: z.number().int().min(0).max(100_000) })).max(GARMENT_SIZES.length).optional(),
   placements: z.array(placementSchema).max(9).optional(),
@@ -143,3 +192,12 @@ export const personalizationResultSchema = z.object({
   count: z.number().int(),
   errors: z.array(z.object({ row: z.number().int(), field: z.string(), message: z.string() })),
 });
+
+/** Request Final Quote (COM-FR-061): every choice is kept; contact details go with it. */
+export const quoteRequestSchema = z.object({
+  email: z.email("Enter a valid email address").max(254),
+  name: z.string().trim().min(1, "Enter your name").max(120),
+  phone: z.string().trim().max(40).optional(),
+  note: z.string().trim().max(2_000).optional(),
+});
+export const quoteRequestResultSchema = z.object({ reference: z.string(), status: z.literal("PENDING_REVIEW") });

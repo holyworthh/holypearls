@@ -124,7 +124,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               </p>
             ) : null}
             {product.configurator && product.available ? (
-              <Configurator productSlug={product.slug} productName={product.name} data={product.configurator} initialDraft={initialDraft} />
+              <Configurator productSlug={product.slug} productName={product.name} family={product.family} data={product.configurator} initialDraft={initialDraft} />
             ) : (
               <div className={styles.actions}>
                 <a className={styles.primary} href={`/contact?topic=${product.configurator ? "product" : "project"}&product=${product.slug}`}>

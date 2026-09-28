@@ -17279,6 +17279,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -17993,6 +17996,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -18006,6 +18313,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -18017,6 +18325,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],
@@ -18079,6 +18390,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -18793,6 +19107,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -18806,6 +19424,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -18817,6 +19436,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],
@@ -19002,6 +19624,134 @@
                           "PICKUP",
                           "COURIER"
                         ]
+                      },
+                      "sizeMode": {
+                        "type": "string",
+                        "enum": [
+                          "STANDARD",
+                          "CUSTOM"
+                        ]
+                      },
+                      "widthCm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 10000
+                      },
+                      "heightCm": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 10000
+                      },
+                      "sizeUnit": {
+                        "type": "string",
+                        "enum": [
+                          "CM",
+                          "M",
+                          "IN"
+                        ]
+                      },
+                      "service": {
+                        "type": "string",
+                        "enum": [
+                          "PRINT_ONLY",
+                          "DELIVERED",
+                          "INSTALLATION"
+                        ]
+                      },
+                      "installSite": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "installSurface": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "installHeightM": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 200
+                      },
+                      "installAccess": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "installDate": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                      },
+                      "packagingType": {
+                        "type": "string",
+                        "enum": [
+                          "STANDARD",
+                          "CUSTOM"
+                        ]
+                      },
+                      "packagingSpec": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "packagingUse": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "packagingMaterial": {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      "packagingClosure": {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      "packagingHandles": {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      "packagingInsert": {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      "packagingSample": {
+                        "type": "boolean"
+                      },
+                      "promoSource": {
+                        "type": "string",
+                        "enum": [
+                          "CATALOGUE",
+                          "SOURCE_SIMILAR"
+                        ]
+                      },
+                      "similarItem": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "garmentOwner": {
+                        "type": "string",
+                        "enum": [
+                          "OURS",
+                          "CUSTOMER"
+                        ]
+                      },
+                      "destination": {
+                        "type": "string",
+                        "enum": [
+                          "LAGOS",
+                          "NIGERIA",
+                          "INTERNATIONAL"
+                        ]
+                      },
+                      "city": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "country": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "deadline": {
+                        "type": "string",
+                        "format": "date",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
                       }
                     },
                     "additionalProperties": false
@@ -19210,6 +19960,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -19924,6 +20677,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -19937,6 +20994,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -19948,6 +21006,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],
@@ -19958,6 +21019,124 @@
           },
           "404": {
             "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/quote-request": {
+      "post": {
+        "summary": "Request Final Quote: keeps every answer, creates a PENDING_REVIEW quote and emails a link (CONTACT limit)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "email",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quote reference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "const": "PENDING_REVIEW"
+                    }
+                  },
+                  "required": [
+                    "reference",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No quantity yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not a draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A blocking answer must change first",
             "content": {
               "application/json": {
                 "schema": {
@@ -20031,6 +21210,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -20745,6 +21927,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -20758,6 +22244,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -20769,6 +22256,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],
@@ -20840,6 +22330,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -21554,6 +23047,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -21567,6 +23364,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -21578,6 +23376,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],
@@ -21663,6 +23464,9 @@
                     "productName": {
                       "type": "string"
                     },
+                    "family": {
+                      "type": "string"
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -22377,6 +24181,310 @@
                         "additionalProperties": false
                       }
                     },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "garmentType": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fit": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "fabric": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "colour": {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        "reference": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "labels": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sampleFirst": {
+                          "type": "boolean"
+                        },
+                        "suppliedItems": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "receiveMethod": {
+                          "type": "string",
+                          "enum": [
+                            "DROP_OFF",
+                            "PICKUP",
+                            "COURIER"
+                          ]
+                        },
+                        "sizeMode": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "widthCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "heightCm": {
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 10000
+                        },
+                        "sizeUnit": {
+                          "type": "string",
+                          "enum": [
+                            "CM",
+                            "M",
+                            "IN"
+                          ]
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "PRINT_ONLY",
+                            "DELIVERED",
+                            "INSTALLATION"
+                          ]
+                        },
+                        "installSite": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installSurface": {
+                          "type": "string",
+                          "maxLength": 100
+                        },
+                        "installHeightM": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 200
+                        },
+                        "installAccess": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "installDate": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        },
+                        "packagingType": {
+                          "type": "string",
+                          "enum": [
+                            "STANDARD",
+                            "CUSTOM"
+                          ]
+                        },
+                        "packagingSpec": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "packagingUse": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "packagingMaterial": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingClosure": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingHandles": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingInsert": {
+                          "type": "string",
+                          "maxLength": 120
+                        },
+                        "packagingSample": {
+                          "type": "boolean"
+                        },
+                        "promoSource": {
+                          "type": "string",
+                          "enum": [
+                            "CATALOGUE",
+                            "SOURCE_SIMILAR"
+                          ]
+                        },
+                        "similarItem": {
+                          "type": "string",
+                          "maxLength": 500
+                        },
+                        "garmentOwner": {
+                          "type": "string",
+                          "enum": [
+                            "OURS",
+                            "CUSTOMER"
+                          ]
+                        },
+                        "destination": {
+                          "type": "string",
+                          "enum": [
+                            "LAGOS",
+                            "NIGERIA",
+                            "INTERNATIONAL"
+                          ]
+                        },
+                        "city": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "country": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "deadline": {
+                          "type": "string",
+                          "format": "date",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "timing": {
+                      "type": "object",
+                      "properties": {
+                        "production": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transit": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "min": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "max": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "min",
+                                "max"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "transitQuoted": {
+                          "type": "boolean"
+                        },
+                        "expectedBy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "verdict": {
+                          "type": "string",
+                          "enum": [
+                            "NO_DEADLINE",
+                            "ON_TIME",
+                            "RUSH_NEEDED",
+                            "REVIEW"
+                          ]
+                        },
+                        "suggestedRush": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "STANDARD",
+                                "RUSH",
+                                "PRIORITY"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "message": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "production",
+                        "transit",
+                        "transitQuoted",
+                        "expectedBy",
+                        "verdict",
+                        "suggestedRush",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quote": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "reference": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "reference",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "artworkLaterAllowed": {
                       "type": "boolean"
                     },
@@ -22390,6 +24498,7 @@
                     "id",
                     "productSlug",
                     "productName",
+                    "family",
                     "status",
                     "choices",
                     "quantity",
@@ -22401,6 +24510,9 @@
                     "emailedTo",
                     "garment",
                     "files",
+                    "details",
+                    "timing",
+                    "quote",
                     "artworkLaterAllowed",
                     "updatedAt"
                   ],

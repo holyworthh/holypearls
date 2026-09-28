@@ -72,3 +72,7 @@ Each report's "Questions / conflicts found" section has the detail. Unresolved o
 
 - **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header (planned for T15-01 unless you want it sooner).
 - **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?
+- **T03-08, custom sizes:** Pen says custom large-format sizes are priced by area and only very large ones need a quote. Without per-m² prices, every custom size is a quote for now (PRD COM-FR-060). **Needed:** per-m² prices per material and a "very large" threshold.
+- **T03-08, transit days:** working values of Lagos 1–2 and the rest of Nigeria 2–5 working days until delivery zones arrive in T04-01. Please confirm.
+- **T03-08, impossible deadlines:** a date we can't meet even with priority rush keeps the price an estimate with "we'll review it with you". Should it instead block checkout until staff confirm?
+- **Process:** from T04-01 on, every ticket starts with failing tests written from the PRD and plan (your rule of 2026-09-28).

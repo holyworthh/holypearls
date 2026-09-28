@@ -1,5 +1,5 @@
 import type { AnswerConflict, Configuration } from "@holypearls/contracts";
-import { and, asc, type Database, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -8,6 +8,7 @@ import { type NotificationDeps, queueEmail } from "../platform/notifications.js"
 import { findFileForActor } from "../files/files.js";
 import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
+import { type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
 import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
 import { priceProduct, pricingInputs, productOptions } from "./pricing.js";
 
@@ -89,10 +90,16 @@ async function filesOf(db: Database, id: string, placements: Placement[]) {
   });
 }
 
-async function view(db: Database, row: Row): Promise<Configuration> {
+async function view(db: Database, row: Row, now: Date): Promise<Configuration> {
   const [product] = await db.select({ slug: schema.products.slug, name: schema.products.name, family: schema.products.family }).from(schema.products).where(eq(schema.products.id, row.productId));
-  const [rules] = await db.select({ artworkLater: schema.productRules.artworkLater }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
+  const [rules] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
   const placements = await placementsOf(db, row.id);
+  const [quote] = await db
+    .select({ reference: schema.quotes.reference, status: schema.quotes.status })
+    .from(schema.quotes)
+    .where(eq(schema.quotes.configurationId, row.id))
+    .orderBy(desc(schema.quotes.createdAt))
+    .limit(1);
   const personalization = await db
     .select()
     .from(schema.configurationPersonalizationRows)
@@ -105,6 +112,7 @@ async function view(db: Database, row: Row): Promise<Configuration> {
     id: row.id,
     productSlug: product!.slug,
     productName: product!.name,
+    family: product!.family,
     status: row.status,
     choices: Object.fromEntries(chosen.map((item) => [item.optionKey, item.valueKey])),
     quantity: row.quantity,
@@ -130,14 +138,20 @@ async function view(db: Database, row: Row): Promise<Configuration> {
         }
       : null,
     files: await filesOf(db, row.id, placements),
+    details: row.details as Configuration["details"],
+    timing: timingFor(rules ?? null, row.rush, row.details as FamilyDetails, now),
+    quote: quote ?? null,
     artworkLaterAllowed: rules?.artworkLater ?? true,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-/** Price-state changes from garment answers (COM-FR-022, 023, 024). */
-async function adjustments(db: Database, row: Row): Promise<NonNullable<CalculationInput["adjustments"]>> {
-  const list: NonNullable<CalculationInput["adjustments"]> = [];
+/** Price-state changes from garment, family and delivery answers (COM-FR-022–024, 045–047, 060, 072). */
+async function adjustments(db: Database, row: Row, now: Date): Promise<NonNullable<CalculationInput["adjustments"]>> {
+  const [product] = await db.select({ family: schema.products.family }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const [rules] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
+  const details = row.details as FamilyDetails;
+  const list: NonNullable<CalculationInput["adjustments"]> = [...familyAdjustments(product!.family, details), ...timingAdjustments(timingFor(rules ?? null, row.rush, details, now))];
   if (row.sourcing === "CUSTOMER_SUPPLIED") list.push({ state: "ESTIMATE_READY", code: "FINAL_AFTER_INSPECTION", message: "Your garments: the price is final after we inspect them." });
   if (row.sourcing === "MAKE_FROM_SCRATCH") list.push({ state: "QUOTE_REQUIRED", code: "MADE_TO_ORDER", message: "Made from scratch: we confirm the pattern, fabric and a sample first, then send a quote." });
   if (row.sourcing === "HELP_ME_CHOOSE") list.push({ state: "QUOTE_REQUIRED", code: "RECOMMENDATION", message: "We'll recommend the right garment and send a quote." });
@@ -245,7 +259,7 @@ export async function createDraft(
     return row!.id;
   });
   const priced = await reprice(db, id, actor.now);
-  return { draft: await view(db, priced), newDeviceKey };
+  return { draft: await view(db, priced, access.actor.now), newDeviceKey };
 }
 
 /** Prices the draft's current answers and remembers the saved result (TECH-01 price_results). */
@@ -256,13 +270,13 @@ async function reprice(db: Database, id: string, at: Date): Promise<Row> {
   const sized = sizes.reduce((sum, item) => sum + item.quantity, 0);
   const quantity = !row!.sizesUnknown && sized > 0 ? sized : row!.quantity;
   if (!quantity) return row!;
-  const result = await priceProduct(db, row!.productId, { choices: chosen, quantity, rush: row!.rush, sample: false, adjustments: await adjustments(db, row!) }, at);
+  const result = await priceProduct(db, row!.productId, { choices: chosen, quantity, rush: row!.rush, sample: false, adjustments: await adjustments(db, row!, at) }, at);
   const [updated] = await db.update(schema.configurations).set({ lastPriceResultId: result.id }).where(eq(schema.configurations.id, id)).returning();
   return updated!;
 }
 
 export async function getDraft(db: Database, access: DraftAccess, id: string) {
-  return view(db, await load(db, access, id));
+  return view(db, await load(db, access, id), access.actor.now);
 }
 
 /**
@@ -292,7 +306,7 @@ export async function updateDraft(
 ) {
   const row = await load(db, access, id);
   if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
-  if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, row) } });
+  if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, row, access.actor.now) } });
 
   if (patch.artwork === "LATER") {
     const [rules] = await db.select({ artworkLater: schema.productRules.artworkLater }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
@@ -342,8 +356,8 @@ export async function updateDraft(
     }
     return true;
   });
-  if (!saved) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, await load(db, access, id)) } });
-  return { draft: await view(db, await reprice(db, id, access.actor.now)), removed: conflicts };
+  if (!saved) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, await load(db, access, id), access.actor.now) } });
+  return { draft: await view(db, await reprice(db, id, access.actor.now), access.actor.now), removed: conflicts };
 }
 
 /**
@@ -373,7 +387,7 @@ export async function emailDraftLink(deps: NotificationDeps & { webOrigin: strin
       requestId: access.actor.requestId,
     });
   });
-  return { draft: await view(deps.db, await load(deps.db, access, id)), session: opened.session };
+  return { draft: await view(deps.db, await load(deps.db, access, id), access.actor.now), session: opened.session };
 }
 
 const ROLE_PURPOSES: Record<string, string[]> = {
@@ -396,7 +410,7 @@ export async function attachDraftFile(db: Database, access: DraftAccess, id: str
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
     await tx.update(schema.configurations).set({ version: sql`${schema.configurations.version} + 1` }).where(eq(schema.configurations.id, row.id));
   });
-  return view(db, await load(db, access, id));
+  return view(db, await load(db, access, id), access.actor.now);
 }
 
 /** Low resolution never blocks (COM-FR-051): the customer replaces, asks for clean-up, or asks for review. */
@@ -408,7 +422,7 @@ export async function setLowResolutionAction(db: Database, access: DraftAccess, 
     .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
     .returning({ id: schema.configurationFiles.id });
   if (!rows.length) throw new AppError("NOT_FOUND");
-  return view(db, await load(db, access, id));
+  return view(db, await load(db, access, id), access.actor.now);
 }
 
 export async function removeDraftFile(db: Database, access: DraftAccess, id: string, linkId: string) {
@@ -420,7 +434,7 @@ export async function removeDraftFile(db: Database, access: DraftAccess, id: str
   if (!rows.length) throw new AppError("NOT_FOUND");
   // The file is unattached again, so the daily clean-up can remove it after 7 days.
   await db.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
-  return view(db, await load(db, access, id));
+  return view(db, await load(db, access, id), access.actor.now);
 }
 
 /**
@@ -444,4 +458,64 @@ export async function importPersonalization(deps: { db: Database; storage: Stora
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
   });
   return { accepted: true, count: result.rows.length, errors: [] };
+}
+
+async function nextQuoteReference(db: Pick<Database, "execute">, now: Date) {
+  const result = await db.execute<{ n: string }>(sql`select nextval('quote_number_seq')::text as n`);
+  return `HP-Q-${now.getUTCFullYear()}-${String(result.rows[0]!.n).padStart(4, "0")}`;
+}
+
+/**
+ * Request Final Quote (COM-FR-061). Creates a quote in PENDING_REVIEW with a
+ * copy of every answer and the price shown, and marks the design
+ * QUOTE_REQUESTED so it can't change under the staff who price it. Nothing is
+ * cleared: the saved copy is what staff see (TECH-01 §5). The customer gets a
+ * link back to the design. Asking twice returns the same quote.
+ */
+export async function requestQuote(
+  deps: NotificationDeps & { webOrigin: string },
+  access: DraftAccess,
+  id: string,
+  input: { email: string; name: string; phone?: string; note?: string },
+) {
+  const row = await load(deps.db, access, id);
+  const current = await view(deps.db, row, access.actor.now);
+  if (row.status === "QUOTE_REQUESTED" && current.quote) return { reference: current.quote.reference, status: "PENDING_REVIEW" as const };
+  if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  if (!current.price) throw new AppError("VALIDATION_FAILED", { fieldErrors: { quantity: "Choose a quantity before asking for a quote." } });
+  const blocking = current.price.reasons.find((reason) => reason.blocking);
+  if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });
+
+  const now = access.actor.now;
+  const reference = await deps.db.transaction(async (tx) => {
+    const customer = await ensureCustomer(tx, { email: input.email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
+    const moved = await tx
+      .update(schema.configurations)
+      .set({ status: "QUOTE_REQUESTED", customerId: customer.id, version: sql`${schema.configurations.version} + 1` })
+      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.status, "DRAFT")))
+      .returning({ id: schema.configurations.id });
+    if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+    const ref = await nextQuoteReference(tx, now);
+    const { emailedTo: _emailed, ...snapshot } = current;
+    void _emailed;
+    await tx.insert(schema.quotes).values({
+      reference: ref,
+      customerId: customer.id,
+      configurationId: id,
+      requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
+      contact: { name: input.name, phone: input.phone ?? null, note: input.note ?? null },
+    });
+    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now });
+    await queueEmail(deps, tx, {
+      template: "guest_link",
+      to: input.email,
+      customerId: customer.id,
+      data: { url: link.url, what: "quote request", reference: ref },
+      record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
+      linkLabel: "Opens the design the quote is for",
+      requestId: access.actor.requestId,
+    });
+    return ref;
+  });
+  return { reference, status: "PENDING_REVIEW" as const };
 }

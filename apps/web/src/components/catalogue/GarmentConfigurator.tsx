@@ -2,6 +2,7 @@
 
 import {
   type Configuration,
+  type ConfigurationDetails,
   configurationSchema,
   type Configurator as ConfiguratorData,
   GARMENT_SIZES,
@@ -14,6 +15,7 @@ import { useState } from "react";
 import { api } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
 import styles from "./configurator.module.css";
+import { DeliveryFields, QuoteRequest } from "./FamilyDelivery";
 import { GarmentPreview, POSITION_LABEL, type Position } from "./GarmentPreview";
 import { useDraft } from "./useDraft";
 
@@ -69,13 +71,15 @@ interface Props {
  */
 export function GarmentConfigurator({ productSlug, productName, data, initialDraft, signedIn }: Props) {
   const defaults = Object.fromEntries(data.options.map((option) => [option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])?.key ?? ""]));
-  const { draft, apply, saveState, notice, setNotice, conflicts, resolveConflicts, queue, flush, ensure } = useDraft(productSlug, initialDraft, defaults);
+  const { draft, apply, saveState, notice, setNotice, conflicts, resolveConflicts, queue, flush, ensure, draftRef } = useDraft(productSlug, initialDraft, defaults);
   const garment = draft?.garment ?? null;
 
   const [choices, setChoices] = useState<Record<string, string>>(initialDraft?.choices ?? defaults);
   const [sourcing, setSourcing] = useState<Sourcing | null>(garment?.sourcing ?? null);
   const [decoration, setDecoration] = useState<Decoration | null>(garment?.decoration ?? null);
   const [details, setDetails] = useState<Record<string, string | boolean>>((garment?.details as Record<string, string | boolean>) ?? {});
+  const [delivery, setDelivery] = useState<ConfigurationDetails>(initialDraft?.details ?? {});
+  const [rush, setRush] = useState(initialDraft?.rush ?? "STANDARD");
   const [placements, setPlacements] = useState<PlacementInput[]>(garment?.placements ?? []);
   const [sizes, setSizes] = useState<Record<string, number>>(Object.fromEntries((garment?.sizes ?? []).map((item) => [item.size, item.quantity])));
   const [sizesUnknown, setSizesUnknown] = useState(garment?.sizesUnknown ?? false);
@@ -532,9 +536,20 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
             <h2 id="garment-delivery" className={styles.stepTitle}>
               <span className={styles.stepNumber}>{number(4)}</span> {STEPS[4]}
             </h2>
-            <p className={styles.placeholder}>
-              You choose delivery or pickup at checkout, to one address or split across branches. Costs and dates are confirmed for your address.
-            </p>
+            <DeliveryFields
+              draft={draft}
+              details={delivery}
+              rush={rush}
+              onChange={(change) => {
+                setDelivery((current) => ({ ...current, ...change }));
+                queue({ details: change, step: "delivery" }, 700);
+              }}
+              onRush={(value) => {
+                setRush(value);
+                queue({ rush: value, step: "delivery" });
+              }}
+            />
+            <p className={styles.stepExtra}>Delivery cost and pickup, to one address or split across branches, are confirmed at checkout.</p>
           </section>
 
           {/* 06 Review */}
@@ -591,9 +606,7 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
                 <p>{notice}</p>
               </Notice>
             ) : null}
-            <Button fullWidth disabled title="Online ordering opens soon">
-              Request a quote
-            </Button>
+            <QuoteRequest draft={draft} ensure={ensure} onRequested={() => void (draftRef.current ? api(`/v1/configurations/${draftRef.current.id}`, { response: configurationSchema }).then(apply) : null)} />
             <p className={styles.perUnit}>Online ordering opens soon. Your design is saved as you go.</p>
             <div className={styles.saveState}>
               {saveState === "saving" ? <span>Saving…</span> : null}

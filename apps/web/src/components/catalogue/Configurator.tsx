@@ -1,11 +1,12 @@
 "use client";
 
-import { type AnswerConflict, ApiError, type Configuration, configurationSchema, type Configurator as ConfiguratorData, type PriceResult } from "@holypearls/contracts";
+import { type AnswerConflict, ApiError, type Configuration, type ConfigurationDetails, configurationSchema, type Configurator as ConfiguratorData, type PriceResult } from "@holypearls/contracts";
 import { Button, Dialog, FormField, Notice, TextField } from "@holypearls/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { api, errorCode, errorReason } from "../../lib/api";
 import styles from "./configurator.module.css";
+import { DeliveryFields, FamilyFields, QuoteRequest } from "./FamilyDelivery";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
 
@@ -16,6 +17,8 @@ interface Pending {
   quantity?: number | null;
   artwork?: Artwork | null;
   step?: "options" | "quantity" | "artwork" | "delivery" | "review";
+  details?: ConfigurationDetails;
+  rush?: "STANDARD" | "RUSH" | "PRIORITY";
 }
 
 const naira = (minor: string | null | undefined, currency: string | null) => {
@@ -43,6 +46,7 @@ const STATE_LABEL: Record<PriceResult["state"], { label: string; className: stri
 interface Props {
   productSlug: string;
   productName: string;
+  family: string;
   data: ConfiguratorData;
   initialDraft: Configuration | null;
 }
@@ -54,13 +58,15 @@ interface Props {
  * are blocked before Review; a change that would remove later answers is
  * shown for confirmation first.
  */
-export function Configurator({ productSlug, productName, data, initialDraft }: Props) {
+export function Configurator({ productSlug, productName, family, data, initialDraft }: Props) {
   const defaults = Object.fromEntries(data.options.map((option) => [option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])?.key ?? ""]));
   const [draft, setDraft] = useState<Configuration | null>(initialDraft);
   const [choices, setChoices] = useState<Record<string, string>>(initialDraft?.choices ?? defaults);
   const [quantity, setQuantity] = useState<number | null>(initialDraft?.quantity ?? null);
   const [custom, setCustom] = useState(initialDraft?.quantity && !data.quantityPresets.some((preset) => preset.quantity === initialDraft.quantity) ? String(initialDraft.quantity) : "");
   const [artwork, setArtwork] = useState<Artwork | null>(initialDraft?.artwork ?? null);
+  const [details, setDetails] = useState<ConfigurationDetails>(initialDraft?.details ?? {});
+  const [rush, setRush] = useState<NonNullable<Pending["rush"]>>(initialDraft?.rush ?? "STANDARD");
   const [saveState, setSaveState] = useState<SaveState>(initialDraft ? "saved" : "idle");
   const [conflicts, setConflicts] = useState<{ list: AnswerConflict[]; pending: Pending; previous: Record<string, string> } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -105,7 +111,9 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
         draftRef.current = created;
         // Remember the draft in the address, so a reload or a shared link returns to it.
         window.history.replaceState(null, "", `?draft=${created.id}`);
-        const rest: Pending = { ...(change.artwork !== undefined && { artwork: change.artwork }), ...(change.step && { step: change.step }) };
+        const { choices: _choices, quantity: _quantity, ...rest } = change;
+        void _choices;
+        void _quantity;
         if (Object.keys(rest).length) {
           pending.current = { ...rest, ...pending.current };
           await save();
@@ -154,6 +162,7 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
       ...pending.current,
       ...change,
       ...(change.choices || pending.current.choices ? { choices: { ...pending.current.choices, ...change.choices } } : {}),
+      ...(change.details || pending.current.details ? { details: { ...pending.current.details, ...change.details } } : {}),
     };
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void flush(), 500);
@@ -197,6 +206,23 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
   const chooseArtwork = (value: Artwork) => {
     setArtwork(value);
     queue({ artwork: value, step: "artwork" });
+  };
+
+  const changeDetails = (change: ConfigurationDetails, step: Pending["step"] = "options") => {
+    setDetails((current) => ({ ...current, ...change }));
+    queue({ details: change, step });
+  };
+
+  const chooseRush = (value: NonNullable<Pending["rush"]>) => {
+    setRush(value);
+    queue({ rush: value, step: "delivery" });
+  };
+
+  /** Saves anything waiting and returns the draft (for the quote request). */
+  const ensure = async () => {
+    if (timer.current) clearTimeout(timer.current);
+    await flush();
+    return draftRef.current;
   };
 
   const resolveConflicts = async (remove: boolean) => {
@@ -278,6 +304,7 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
             ) : null}
           </fieldset>
         ))}
+        <FamilyFields family={family} details={details} onChange={(change) => changeDetails(change)} />
       </fieldset>
 
       <fieldset className={styles.step} id="step-quantity">
@@ -340,10 +367,8 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
         <h2 id="delivery-title" className={styles.stepTitle}>
           <span className={styles.stepNumber}>{number("delivery")}</span> Delivery
         </h2>
-        <p className={styles.placeholder}>
-          You choose delivery or pickup at checkout, where the cost and date are confirmed for your address. We deliver across Nigeria and can arrange international
-          shipping.
-        </p>
+        <DeliveryFields draft={draft} details={details} rush={rush} onChange={(change) => changeDetails(change, "delivery")} onRush={chooseRush} />
+        <p className={styles.stepExtra}>Delivery cost and pickup are confirmed at checkout for your address.</p>
       </section>
 
       <section className={styles.step} id="step-review" aria-labelledby="review-title">
@@ -398,9 +423,13 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
             <p>{notice}</p>
           </Notice>
         ) : null}
-        <Button fullWidth disabled title="Online checkout opens soon">
-          {price?.state === "PRICE_READY" && !blockingReasons.length ? "Continue to checkout" : "Request a quote"}
-        </Button>
+        {price?.state === "PRICE_READY" && !blockingReasons.length && !draft?.quote ? (
+          <Button fullWidth disabled title="Online checkout opens soon">
+            Continue to checkout
+          </Button>
+        ) : (
+          <QuoteRequest draft={draft} ensure={ensure} onRequested={(reference) => void api(`/v1/configurations/${draftRef.current!.id}`, { response: configurationSchema }).then(setDraft).catch(() => setNotice(`Quote requested: ${reference}.`))} />
+        )}
         <p className={styles.perUnit}>Online checkout opens soon. Save this design now and we&apos;ll email you a link to come back to it.</p>
         <div className={styles.saveState}>
           {saveState === "saving" ? <span>Saving…</span> : null}
@@ -419,7 +448,7 @@ export function Configurator({ productSlug, productName, data, initialDraft }: P
             {draft?.emailedTo ? `Link sent to ${draft.emailedTo} · send again` : "Email me a link to this design"}
           </button>
         </div>
-        {data.leadDays ? (
+        {data.leadDays && !draft?.timing.production ? (
           <p className={styles.perUnit}>
             Typical production {data.leadDays.min}–{data.leadDays.max} working days after artwork and proof approval.
           </p>
