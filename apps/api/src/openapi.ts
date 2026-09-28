@@ -33,6 +33,10 @@ import {
   saveCompatibilitySchema,
   saveProductRulesSchema,
   taxSettingInputSchema,
+  configurationSchema,
+  createConfigurationSchema,
+  emailDraftSchema,
+  updateConfigurationSchema,
   adminProductPageSchema,
   adminProductSchema,
   changeProductStatusSchema,
@@ -590,6 +594,35 @@ export function buildOpenApiDocument() {
           summary: "Schedule a VAT rate from now or a later date (PRICING_MANAGE, audited)",
           requestBody: { required: true, content: json(taxSettingInputSchema) },
           responses: { 201: { description: "Saved", content: json(adminTaxSettingListSchema) }, 400: error("Past date"), ...staffOnly },
+        },
+      },
+      "/v1/configurations": {
+        post: {
+          summary: "Start a configuration draft for a published product. Owned by the account, or by this browser (sets the HttpOnly hp.device cookie).",
+          requestBody: { required: true, content: json(createConfigurationSchema) },
+          responses: { 201: { description: "Draft", content: json(configurationSchema) }, 404: error("Not published"), 422: error("Consultative product (RULE_FAILED)") },
+        },
+      },
+      "/v1/configurations/{id}": {
+        get: { summary: "A draft (owner, owning browser or guest link only; anyone else 404)", parameters: [uuidParam("id")], responses: { 200: { description: "Draft", content: json(configurationSchema) }, 404: error("Not yours or missing") } },
+        patch: {
+          summary: "Autosave with the version you started from. Returns the draft and any answers removed after confirmation.",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(updateConfigurationSchema) },
+          responses: {
+            200: { description: "Saved (draft, removed)" },
+            400: error("A choice that isn't available with earlier answers"),
+            409: error("VERSION_CONFLICT with the latest draft"),
+            422: error("ANSWERS_CONFLICT: later answers this change would remove"),
+          },
+        },
+      },
+      "/v1/configurations/{id}/email": {
+        post: {
+          summary: "Email a link that opens this draft on any device (guest link, CONTACT limit)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(emailDraftSchema) },
+          responses: { 200: { description: "Sent", content: json(configurationSchema) }, 404: error("Not yours") },
         },
       },
       "/v1/admin/me": {

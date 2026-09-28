@@ -79,8 +79,10 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     subcategory: ["business-stationery", "Business Stationery"],
     summary: "Premium business cards printed on quality card, delivered fast.",
     options: [
-      ["paper", "Paper", ["350gsm matte", "350gsm gloss", "400gsm soft-touch"]],
+      // How the paper feels first, weight second (COM-FR-041); keys stay the same.
+      ["paper", "Paper", ["350gsm-matte|Smooth matte · 350gsm", "350gsm-gloss|Glossy · 350gsm", "400gsm-soft-touch|Soft-touch, thicker · 400gsm"]],
       ["sides", "Printed sides", ["One side", "Both sides"]],
+      ["finish", "Finish", ["None", "Foil", "Spot UV"]],
     ],
   },
   {
@@ -192,9 +194,13 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
       })
       .returning({ id: schema.products.id });
     for (const [position, [key, label, values]] of product.options.entries()) {
-      const [option] = await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position }).returning({ id: schema.productOptions.id });
+      const [option] = await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position, required: key !== "finish" }).returning({ id: schema.productOptions.id });
       await tx.insert(schema.productOptionValues).values(
-        values.map((value, index) => ({ optionId: option!.id, key: value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label: value, position: index, isDefault: index === 0 })),
+        values.map((value, index) => {
+          // "key|Label" keeps a stable key when the label reads better than the key.
+          const [key, label] = value.includes("|") ? (value.split("|") as [string, string]) : [value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), value];
+          return { optionId: option!.id, key, label, position: index, isDefault: index === 0 };
+        }),
       );
     }
   }

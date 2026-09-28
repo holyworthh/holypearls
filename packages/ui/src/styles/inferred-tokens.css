@@ -72,5 +72,7 @@
   --hp-footer-brand-width: 420px;
   --hp-card-min-width: 240px;
   --hp-filter-rail-width: 260px;
+  /* Configurator choice cards (Pen 21 · paper, sides, finish options). */
+  --hp-choice-min-width: 140px;
   --hp-shadow-menu: 0 18px 48px rgb(27 26 23 / 14%);
 }

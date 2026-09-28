@@ -19,6 +19,7 @@ import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
 import { CatalogueAdminController, CategoryAdminController } from "./catalogue/catalogue.controller.js";
 import { MerchandisingAdminController, PublicMediaController, StorefrontController } from "./catalogue/storefront.controller.js";
+import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
@@ -81,6 +82,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       MerchandisingAdminController,
       PricingAdminController,
       PublicPricingController,
+      ConfigurationsController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],

@@ -146,3 +146,62 @@ export async function removeOldPriceResults(db: Database, now: Date) {
   const removed = await db.delete(schema.priceResults).where(lt(schema.priceResults.createdAt, before)).returning({ id: schema.priceResults.id });
   return removed.length;
 }
+
+/** Options with labels and each option's default value, in display order. */
+export async function productOptions(db: Database, productId: string) {
+  const rows = await db
+    .select({
+      key: schema.productOptions.key,
+      label: schema.productOptions.label,
+      required: schema.productOptions.required,
+      valueKey: schema.productOptionValues.key,
+      valueLabel: schema.productOptionValues.label,
+      isDefault: schema.productOptionValues.isDefault,
+    })
+    .from(schema.productOptions)
+    .innerJoin(schema.productOptionValues, eq(schema.productOptionValues.optionId, schema.productOptions.id))
+    .where(eq(schema.productOptions.productId, productId))
+    .orderBy(asc(schema.productOptions.position), asc(schema.productOptionValues.position));
+  const options: { key: string; label: string; required: boolean; values: { key: string; label: string; isDefault: boolean }[] }[] = [];
+  for (const row of rows) {
+    let option = options.find((item) => item.key === row.key);
+    if (!option) {
+      option = { key: row.key, label: row.label, required: row.required, values: [] };
+      options.push(option);
+    }
+    option.values.push({ key: row.valueKey, label: row.valueLabel, isDefault: row.isDefault });
+  }
+  return options;
+}
+
+export const defaultChoices = (options: Awaited<ReturnType<typeof productOptions>>) =>
+  Object.fromEntries(options.flatMap((option) => (option.values.find((value) => value.isDefault) ?? option.values[0] ? [[option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])!.key]] : [])));
+
+/**
+ * The product page's configurator data (T03-03): options, MOQ, lead time,
+ * standard quantities priced at the default choices (COM-FR-043), and the
+ * combinations that can't be made, so the page blocks them early (COM-FR-042).
+ */
+export async function configuratorFor(db: Database, productId: string, at: Date) {
+  const options = await productOptions(db, productId);
+  const choices = defaultChoices(options);
+  const base = await pricingInputs(db, productId, { choices, quantity: 1, rush: "STANDARD", sample: false }, at);
+  const moq = base.rules?.moq ?? 1;
+  const tiers = base.price?.tiers.map((tier) => tier.minQuantity) ?? [];
+  const quantities = [...new Set([moq, ...tiers].filter((quantity) => quantity >= moq))].sort((a, b) => a - b).slice(0, 3);
+  const presets = quantities.map((quantity) => {
+    const result = calculatePrice({ ...base, quantity });
+    return { quantity, perUnitMinor: result.perUnitMinor === null ? null : result.perUnitMinor.toString() };
+  });
+  const perUnits = presets.flatMap((preset) => (preset.perUnitMinor ? [BigInt(preset.perUnitMinor)] : []));
+  return {
+    options,
+    moq,
+    maxAutoQuantity: base.rules?.maxAutoQuantity ?? null,
+    leadDays: base.rules ? { min: base.rules.leadMinDays, max: base.rules.leadMaxDays } : null,
+    quantityPresets: presets,
+    blocked: base.compatibility.filter((rule) => rule.effect === "NOT_ALLOWED").map(({ ifOption, ifValue, thenOption, thenValues, message }) => ({ ifOption, ifValue, thenOption, thenValues, message })),
+    currency: base.price?.currency ?? null,
+    fromPerUnitMinor: perUnits.length ? perUnits.reduce((low, value) => (value < low ? value : low)).toString() : null,
+  };
+}

@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-28 (after T03-01).
+Last updated: 2026-09-28 (after T03-03).
 
 ## Decisions and actions needed
 
@@ -57,6 +57,9 @@ The seed uses the Stage 1.4 starting prices plus **illustrative** tiers and add-
 
 ### 14. VAT on delivery (T03-01)
 The seed charges VAT on delivery as well as goods. **Please confirm with your accountant**; it's one setting to change.
+
+### 15. Show prices with or without VAT (T03-03)
+Pen shows business-card prices before VAT (₦150 per card). The product page shows prices **including** 7.5% VAT (₦161.25 per card), so the per-card price, the total and what's charged agree. **Decide:** keep VAT-inclusive display, or show before-VAT prices with "+ VAT".
 
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.

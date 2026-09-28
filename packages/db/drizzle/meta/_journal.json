@@ -92,6 +92,13 @@
       "when": 1790608337733,
       "tag": "0012_price_history_insert_only",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790614719505,
+      "tag": "0013_configurations",
+      "breakpoints": true
     }
   ]
 }

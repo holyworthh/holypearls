@@ -10,6 +10,7 @@ import type {
 import { hubSchema } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
 import { AppError } from "../errors.js";
+import { configuratorFor } from "../configuration/pricing.js";
 
 /*
  * Public catalogue reads (T02-03). Only PUBLISHED and TEMPORARILY_UNAVAILABLE
@@ -374,6 +375,7 @@ export async function publicProduct(db: Database, slug: string) {
     faqs: row.faqs as { question: string; answer: string }[],
     categoryParent: parent ?? null,
     related: await cardsByIds(db, relatedIds.map((item) => item.id)),
+    configurator: row.buyingMode === "CONSULTATIVE_PROJECT" ? null : await configuratorFor(db, row.id, new Date()),
     seoTitle: row.seoTitle ?? `${row.name} | HolyPearls`,
     seoDescription: row.seoDescription ?? row.summary,
   };
