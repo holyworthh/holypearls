@@ -3,11 +3,14 @@ import {
   flushMonitoring,
   initMonitoring,
   markDemoSliceFailed,
+  markNotificationFailed,
   processDemoSlice,
+  sendNotification,
   reportError,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient } from "@holypearls/db";
+import { createEmailSender } from "@holypearls/email";
 import { deadLetterName, Jobs, QUEUES, type QueueName } from "@holypearls/jobs";
 
 const env = loadWorkerEnv();
@@ -37,14 +40,24 @@ const track =
     }
   };
 
+const sender = createEmailSender(env);
+
 await jobs.start();
+await jobs.work(
+  "email.send",
+  track("email.send", (payload) => sendNotification(database.db, sender, env.DATA_ENCRYPTION_KEY, payload.notificationId)),
+);
+await jobs.workDeadLetters("email.send", async (payload) => {
+  logger.error({ queue: deadLetterName("email.send"), requestId: payload.requestId }, "email moved to dead-letter queue");
+  await markNotificationFailed(database.db, payload.notificationId);
+});
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");
   reportError(new Error("Job moved to the dead-letter queue"), { queue: "demo.slice", requestId: payload.requestId });
   await markDemoSliceFailed(database.db, payload.demoId);
 });
-logger.info({ queues: Object.keys(QUEUES) }, "worker started");
+logger.info({ queues: Object.keys(QUEUES), emailTransport: sender.name }, "worker started");
 
 // TECH-07 §8: queue sizes and last successful job time per queue.
 const report = setInterval(async () => {

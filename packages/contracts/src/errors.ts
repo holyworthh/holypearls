@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   FORBIDDEN: { status: 403, message: "You don't have permission to do this." },
   MFA_REQUIRED: { status: 403, message: "Set up or confirm your authenticator to continue." },
   RECENT_MFA_REQUIRED: { status: 403, message: "Confirm with your authenticator to continue." },
+  RECENT_EMAIL_CODE_REQUIRED: { status: 403, message: "Enter the code we email you to continue." },
   NOT_FOUND: { status: 404, message: "We couldn't find what you were looking for." },
   CONFLICT: { status: 409, message: "This changed while you were working. Refresh and try again." },
   RULE_FAILED: { status: 422, message: "This can't be done right now." },

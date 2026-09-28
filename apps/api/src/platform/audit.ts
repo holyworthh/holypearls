@@ -15,6 +15,9 @@ export interface AuditInput {
 
 /** Who did it, for the entry: staff, a signed-in user, or the system. */
 export function auditActor(actor: ActorContext | null) {
+  if (actor?.type === "guest") {
+    return { actorType: "GUEST" as const, actorUserId: null, actorLabel: "Guest", mfaVerifiedAt: null, requestId: actor.requestId };
+  }
   if (!actor || actor.type === "anonymous") {
     return { actorType: "SYSTEM" as const, actorUserId: null, actorLabel: "System", mfaVerifiedAt: null, requestId: actor?.requestId ?? null };
   }

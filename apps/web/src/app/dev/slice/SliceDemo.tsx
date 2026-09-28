@@ -3,6 +3,7 @@
 import { type DemoSlice, demoSliceCreateSchema, demoSliceSchema, toFieldErrors } from "@holypearls/contracts";
 import { Button, Card, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { useEffect, useState, type FormEvent } from "react";
+import { NeedHelp } from "../../../components/NeedHelp";
 import { api } from "../../../lib/api";
 
 const TONE = { PENDING: "info", DONE: "success", FAILED: "error" } as const;
@@ -60,6 +61,13 @@ export function SliceDemo() {
           ) : null}
         </div>
       ) : null}
+      <NeedHelp
+        context={{
+          page: { path: "/dev/slice", title: "End-to-end slice (demo)" },
+          step: "Send a message",
+          ...(demo ? { project: { id: demo.id, label: `Demo request ${demo.status}` } } : {}),
+        }}
+      />
     </Card>
   );
 }

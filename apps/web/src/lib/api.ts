@@ -12,3 +12,6 @@ export const errorReason = (error: unknown) =>
 export function safeNext(next: string | null | undefined, fallback: string): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
 }
+
+/** One key per button press, reused if the same press is retried (TECH-02 §4). */
+export const newIdempotencyKey = () => `web_${crypto.randomUUID().replaceAll("-", "")}`;

@@ -1,0 +1,33 @@
+import AxeBuilder from "@axe-core/playwright";
+import { totpCode } from "@holypearls/auth";
+import { expect, type Page } from "@playwright/test";
+
+export async function expectNoAxeViolations(page: Page) {
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+}
+
+export async function expectNoHorizontalScroll(page: Page) {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+}
+
+/** Staff sign-in with the authenticator step. Codes can't be reused, so a rejected code waits for the next one. */
+export async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {
+  await page.goto("/admin/sign-in");
+  await page.locator("#staff-email").fill(person.email);
+  await page.locator("#staff-password").fill(person.password);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("heading", { name: "Enter your code" })).toBeVisible();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.getByLabel("6-digit code").fill(await totpCode(person.totpSecret));
+    await page.getByRole("button", { name: "Verify" }).click();
+    const done = await page
+      .waitForURL(/\/admin$/, { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (done) return;
+    await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 500);
+  }
+  await expect(page).toHaveURL(/\/admin$/);
+}

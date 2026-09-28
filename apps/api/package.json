@@ -17,6 +17,7 @@
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
     "@holypearls/db": "workspace:*",
+    "@holypearls/email": "workspace:*",
     "@holypearls/jobs": "workspace:*",
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",

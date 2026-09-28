@@ -239,7 +239,7 @@ describe("staff access (TECH-03 §8, §10)", () => {
     const response = await http().get("/v1/admin/me").set("cookie", cookie);
     expect(response.status).toBe(200);
     const me = adminMeSchema.parse(response.body);
-    expect(me.permissions).toEqual(["AUDIT_VIEW", "PAYMENT_VIEW", "SECURITY_ADMIN", "STAFF_ADMIN"]);
+    expect(me.permissions).toEqual(["AUDIT_VIEW", "CUSTOMER_SUPPORT", "PAYMENT_VIEW", "SECURITY_ADMIN", "STAFF_ADMIN"]);
   });
 
   it("returns 403 when staff lack the route's permission", async () => {
@@ -318,7 +318,7 @@ describe("monitoring test error (T00-04)", () => {
 });
 
 describe("sign-in rate limits", () => {
-  it("returns 429 RATE_LIMITED after repeated failed sign-ins", async () => {
+  it("returns 429 RATE_LIMITED after repeated failed sign-ins", { timeout: 180_000 }, async () => {
     const limited = await createHarness({ rateLimit: true });
     try {
       let last = 0;

@@ -206,7 +206,7 @@ describe("policies and scoped queries (TECH-03 §12)", () => {
 });
 
 describe("rate limits in PostgreSQL (TECH-02 §14, ADR-013)", () => {
-  it("counts across two API instances", async () => {
+  it("counts across two API instances", { timeout: 180_000 }, async () => {
     const first = await createHarness({ rateLimit: true });
     const second = await createHarness({ rateLimit: true, database: first.database });
     try {

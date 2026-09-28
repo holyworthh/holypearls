@@ -18,6 +18,7 @@
   "dependencies": {
     "@holypearls/auth": "workspace:*",
     "@holypearls/config": "workspace:*",
+    "@holypearls/contracts": "workspace:*",
     "@holypearls/db": "workspace:*",
     "pg": "8.23.0"
   },

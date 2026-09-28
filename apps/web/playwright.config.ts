@@ -13,6 +13,8 @@ export default defineConfig({
   // Sign-in tests share seeded people; one worker keeps their sessions independent.
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
+  // Local runs talk to a hosted database; CI uses a local one.
+  expect: { timeout: 15_000 },
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: origin,
@@ -33,14 +35,15 @@ export default defineConfig({
         API_PORT: String(apiPort),
         BETTER_AUTH_URL: origin,
         AUTH_RATE_LIMIT: "off",
-        AUTH_OUTBOX_PATH: "../../.outbox/e2e-auth-emails.jsonl",
+        HP_DEMO_SLICE: "on",
+        EMAIL_FILE_DIR: "../../.outbox/e2e-emails",
       },
     },
     {
       command: `next start --port ${port}`,
       port,
       reuseExistingServer: !process.env.CI,
-      env: { ...(process.env as Record<string, string>), HP_DESIGN_SYSTEM_DEMO: "on" },
+      env: { ...(process.env as Record<string, string>), HP_DESIGN_SYSTEM_DEMO: "on", HP_DEMO_SLICE: "on" },
     },
   ],
 });

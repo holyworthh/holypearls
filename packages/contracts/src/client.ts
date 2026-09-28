@@ -23,6 +23,8 @@ export interface ApiRequest<T extends z.ZodType> {
   body?: unknown;
   response: T;
   signal?: AbortSignal;
+  /** Extra headers, for example Idempotency-Key (TECH-02 §4). */
+  headers?: Record<string, string>;
 }
 
 export interface ApiClientOptions {
@@ -40,7 +42,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
   const doFetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
   return async function request<T extends z.ZodType>(path: string, init: ApiRequest<T>): Promise<z.output<T>> {
-    const headers: Record<string, string> = { accept: "application/json" };
+    const headers: Record<string, string> = { accept: "application/json", ...init.headers };
     if (init.body !== undefined) headers["content-type"] = "application/json";
 
     const response = await doFetch(`${baseUrl}${path}`, {

@@ -13,6 +13,7 @@
     "@holypearls/api": "workspace:*",
     "@holypearls/config": "workspace:*",
     "@holypearls/db": "workspace:*",
+    "@holypearls/email": "workspace:*",
     "@holypearls/jobs": "workspace:*"
   },
   "devDependencies": {
