@@ -75,6 +75,8 @@ await jobs.work(
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
+// Free hosts sleep through 03:00, so also clean up on each start; clean-up is safe to repeat.
+await jobs.send("cleanup.daily", { v: 1, requestId: "startup" });
 // Public pages refresh through the web app's revalidation route once it exists (T02-03).
 await jobs.work(
   "cache.revalidate",
