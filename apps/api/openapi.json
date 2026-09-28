@@ -14673,6 +14673,2362 @@
         }
       }
     },
+    "/v1/catalogue/products/{slug}/price": {
+      "post": {
+        "summary": "Price a configuration of a published product: total, per unit, VAT, price state and reasons. The result is saved with the rule versions used; checkout recalculates on the server.",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "choices": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  },
+                  "rush": {
+                    "default": "STANDARD",
+                    "type": "string",
+                    "enum": [
+                      "STANDARD",
+                      "RUSH",
+                      "PRIORITY"
+                    ]
+                  },
+                  "sample": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "choices",
+                  "quantity",
+                  "rush",
+                  "sample"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "PRICE_READY",
+                        "ESTIMATE_READY",
+                        "QUOTE_REQUIRED",
+                        "CONSULTATION_REQUIRED"
+                      ]
+                    },
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "currency": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NGN",
+                            "USD"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amountMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "goodsMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "deliveryMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "perUnitMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatRateBps": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "leadDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "proof": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NOT_REQUIRED",
+                            "OPTIONAL",
+                            "REQUIRED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "artworkLater": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "blocking": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message",
+                          "blocking"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ruleVersions": {
+                      "type": "object",
+                      "properties": {
+                        "priceRuleId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "productRulesVersion": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "taxSettingId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "priceRuleId",
+                        "productRulesVersion",
+                        "taxSettingId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state",
+                    "valid",
+                    "currency",
+                    "quantity",
+                    "lines",
+                    "goodsMinor",
+                    "deliveryMinor",
+                    "vatMinor",
+                    "totalMinor",
+                    "perUnitMinor",
+                    "vatRateBps",
+                    "leadDays",
+                    "proof",
+                    "artworkLater",
+                    "reasons",
+                    "ruleVersions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "SEARCH limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/pricing/products/{id}/rules": {
+      "get": {
+        "summary": "Product rules and compatibility (PRICING_MANAGE)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "type": "string"
+                    },
+                    "rules": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "moq": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1000000
+                            },
+                            "belowMoq": {
+                              "type": "string",
+                              "enum": [
+                                "BLOCK",
+                                "MANUAL_REVIEW",
+                                "SURCHARGE"
+                              ]
+                            },
+                            "belowMoqSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "maxAutoQuantity": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10000000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadMinDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "leadMaxDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "rush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "rushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "priorityRush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "priorityRushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "artworkLater": {
+                              "type": "boolean"
+                            },
+                            "sample": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_OFFERED",
+                                "OPTIONAL",
+                                "RECOMMENDED",
+                                "REQUIRED"
+                              ]
+                            },
+                            "sampleMultiplierBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "sampleMinimumMinor": {
+                              "type": "string",
+                              "pattern": "^\\d{1,15}$"
+                            },
+                            "proof": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_REQUIRED",
+                                "OPTIONAL",
+                                "REQUIRED"
+                              ]
+                            },
+                            "proofSkippableOnReorder": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "moq",
+                            "belowMoq",
+                            "belowMoqSurchargeBps",
+                            "maxAutoQuantity",
+                            "leadMinDays",
+                            "leadMaxDays",
+                            "rush",
+                            "rushSurchargeBps",
+                            "priorityRush",
+                            "priorityRushSurchargeBps",
+                            "artworkLater",
+                            "sample",
+                            "sampleMultiplierBps",
+                            "sampleMinimumMinor",
+                            "proof",
+                            "proofSkippableOnReorder"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "compatibility": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ifOption": {
+                            "type": "string"
+                          },
+                          "ifValue": {
+                            "type": "string"
+                          },
+                          "thenOption": {
+                            "type": "string"
+                          },
+                          "thenValues": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "NOT_ALLOWED",
+                              "NEEDS_REVIEW"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "ifOption",
+                          "ifValue",
+                          "thenOption",
+                          "thenValues",
+                          "effect",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "rules",
+                    "version",
+                    "compatibility"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Create (version 0) or edit product rules (PRICING_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "type": "object",
+                    "properties": {
+                      "moq": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000000
+                      },
+                      "belowMoq": {
+                        "type": "string",
+                        "enum": [
+                          "BLOCK",
+                          "MANUAL_REVIEW",
+                          "SURCHARGE"
+                        ]
+                      },
+                      "belowMoqSurchargeBps": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "maxAutoQuantity": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10000000
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "leadMinDays": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 365
+                      },
+                      "leadMaxDays": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 365
+                      },
+                      "rush": {
+                        "type": "string",
+                        "enum": [
+                          "NONE",
+                          "AVAILABLE",
+                          "MANUAL_REVIEW"
+                        ]
+                      },
+                      "rushSurchargeBps": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "priorityRush": {
+                        "type": "string",
+                        "enum": [
+                          "NONE",
+                          "AVAILABLE",
+                          "MANUAL_REVIEW"
+                        ]
+                      },
+                      "priorityRushSurchargeBps": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "artworkLater": {
+                        "type": "boolean"
+                      },
+                      "sample": {
+                        "type": "string",
+                        "enum": [
+                          "NOT_OFFERED",
+                          "OPTIONAL",
+                          "RECOMMENDED",
+                          "REQUIRED"
+                        ]
+                      },
+                      "sampleMultiplierBps": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100000
+                      },
+                      "sampleMinimumMinor": {
+                        "type": "string",
+                        "pattern": "^\\d{1,15}$"
+                      },
+                      "proof": {
+                        "type": "string",
+                        "enum": [
+                          "NOT_REQUIRED",
+                          "OPTIONAL",
+                          "REQUIRED"
+                        ]
+                      },
+                      "proofSkippableOnReorder": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "moq",
+                      "belowMoq",
+                      "belowMoqSurchargeBps",
+                      "maxAutoQuantity",
+                      "leadMinDays",
+                      "leadMaxDays",
+                      "rush",
+                      "rushSurchargeBps",
+                      "priorityRush",
+                      "priorityRushSurchargeBps",
+                      "artworkLater",
+                      "sample",
+                      "sampleMultiplierBps",
+                      "sampleMinimumMinor",
+                      "proof",
+                      "proofSkippableOnReorder"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "rules",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "type": "string"
+                    },
+                    "rules": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "moq": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1000000
+                            },
+                            "belowMoq": {
+                              "type": "string",
+                              "enum": [
+                                "BLOCK",
+                                "MANUAL_REVIEW",
+                                "SURCHARGE"
+                              ]
+                            },
+                            "belowMoqSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "maxAutoQuantity": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10000000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadMinDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "leadMaxDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "rush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "rushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "priorityRush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "priorityRushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "artworkLater": {
+                              "type": "boolean"
+                            },
+                            "sample": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_OFFERED",
+                                "OPTIONAL",
+                                "RECOMMENDED",
+                                "REQUIRED"
+                              ]
+                            },
+                            "sampleMultiplierBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "sampleMinimumMinor": {
+                              "type": "string",
+                              "pattern": "^\\d{1,15}$"
+                            },
+                            "proof": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_REQUIRED",
+                                "OPTIONAL",
+                                "REQUIRED"
+                              ]
+                            },
+                            "proofSkippableOnReorder": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "moq",
+                            "belowMoq",
+                            "belowMoqSurchargeBps",
+                            "maxAutoQuantity",
+                            "leadMinDays",
+                            "leadMaxDays",
+                            "rush",
+                            "rushSurchargeBps",
+                            "priorityRush",
+                            "priorityRushSurchargeBps",
+                            "artworkLater",
+                            "sample",
+                            "sampleMultiplierBps",
+                            "sampleMinimumMinor",
+                            "proof",
+                            "proofSkippableOnReorder"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "compatibility": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ifOption": {
+                            "type": "string"
+                          },
+                          "ifValue": {
+                            "type": "string"
+                          },
+                          "thenOption": {
+                            "type": "string"
+                          },
+                          "thenValues": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "NOT_ALLOWED",
+                              "NEEDS_REVIEW"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "ifOption",
+                          "ifValue",
+                          "thenOption",
+                          "thenValues",
+                          "effect",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "rules",
+                    "version",
+                    "compatibility"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/pricing/products/{id}/compatibility": {
+      "put": {
+        "summary": "Replace the compatibility rules; bumps the rules' version (PRICING_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ifOption": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "ifValue": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "thenOption": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "thenValues": {
+                          "minItems": 1,
+                          "maxItems": 20,
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 60
+                          }
+                        },
+                        "effect": {
+                          "type": "string",
+                          "enum": [
+                            "NOT_ALLOWED",
+                            "NEEDS_REVIEW"
+                          ]
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "ifOption",
+                        "ifValue",
+                        "thenOption",
+                        "thenValues",
+                        "effect",
+                        "message"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "rules",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "productId": {
+                      "type": "string"
+                    },
+                    "rules": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "moq": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 1000000
+                            },
+                            "belowMoq": {
+                              "type": "string",
+                              "enum": [
+                                "BLOCK",
+                                "MANUAL_REVIEW",
+                                "SURCHARGE"
+                              ]
+                            },
+                            "belowMoqSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "maxAutoQuantity": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 10000000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadMinDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "leadMaxDays": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 365
+                            },
+                            "rush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "rushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "priorityRush": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "AVAILABLE",
+                                "MANUAL_REVIEW"
+                              ]
+                            },
+                            "priorityRushSurchargeBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "artworkLater": {
+                              "type": "boolean"
+                            },
+                            "sample": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_OFFERED",
+                                "OPTIONAL",
+                                "RECOMMENDED",
+                                "REQUIRED"
+                              ]
+                            },
+                            "sampleMultiplierBps": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "sampleMinimumMinor": {
+                              "type": "string",
+                              "pattern": "^\\d{1,15}$"
+                            },
+                            "proof": {
+                              "type": "string",
+                              "enum": [
+                                "NOT_REQUIRED",
+                                "OPTIONAL",
+                                "REQUIRED"
+                              ]
+                            },
+                            "proofSkippableOnReorder": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "moq",
+                            "belowMoq",
+                            "belowMoqSurchargeBps",
+                            "maxAutoQuantity",
+                            "leadMinDays",
+                            "leadMaxDays",
+                            "rush",
+                            "rushSurchargeBps",
+                            "priorityRush",
+                            "priorityRushSurchargeBps",
+                            "artworkLater",
+                            "sample",
+                            "sampleMultiplierBps",
+                            "sampleMinimumMinor",
+                            "proof",
+                            "proofSkippableOnReorder"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "compatibility": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "ifOption": {
+                            "type": "string"
+                          },
+                          "ifValue": {
+                            "type": "string"
+                          },
+                          "thenOption": {
+                            "type": "string"
+                          },
+                          "thenValues": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "NOT_ALLOWED",
+                              "NEEDS_REVIEW"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "ifOption",
+                          "ifValue",
+                          "thenOption",
+                          "thenValues",
+                          "effect",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "productId",
+                    "rules",
+                    "version",
+                    "compatibility"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown option or value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/pricing/products/{id}/prices": {
+      "get": {
+        "summary": "Price history, the price in force and scheduled prices (PRICING_MANAGE)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "productId": {
+                            "type": "string"
+                          },
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "NGN",
+                              "USD"
+                            ]
+                          },
+                          "basis": {
+                            "type": "string",
+                            "enum": [
+                              "PER_UNIT",
+                              "PER_PACK",
+                              "FIXED"
+                            ]
+                          },
+                          "packSize": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "baseMinor": {
+                            "type": "string"
+                          },
+                          "tiers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "minQuantity": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "amountMinor": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "minQuantity",
+                                "amountMinor"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "addOns": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "option": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                },
+                                "per": {
+                                  "type": "string",
+                                  "enum": [
+                                    "UNIT",
+                                    "ORDER"
+                                  ]
+                                },
+                                "amountMinor": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "option",
+                                "value",
+                                "per",
+                                "amountMinor"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "PRICE_READY",
+                              "ESTIMATE_READY"
+                            ]
+                          },
+                          "includesVat": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "productId",
+                          "effectiveFrom",
+                          "currency",
+                          "basis",
+                          "packSize",
+                          "baseMinor",
+                          "tiers",
+                          "addOns",
+                          "state",
+                          "includesVat",
+                          "note",
+                          "current",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a price from now or a later date; history is never edited (PRICING_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "effectiveFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": [
+                      "NGN",
+                      "USD"
+                    ]
+                  },
+                  "basis": {
+                    "type": "string",
+                    "enum": [
+                      "PER_UNIT",
+                      "PER_PACK",
+                      "FIXED"
+                    ]
+                  },
+                  "packSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  },
+                  "baseMinor": {
+                    "type": "string",
+                    "pattern": "^\\d{1,15}$"
+                  },
+                  "tiers": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "minQuantity": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "maximum": 10000000
+                        },
+                        "amountMinor": {
+                          "type": "string",
+                          "pattern": "^\\d{1,15}$"
+                        }
+                      },
+                      "required": [
+                        "minQuantity",
+                        "amountMinor"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "addOns": {
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "option": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "value": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 60
+                        },
+                        "per": {
+                          "type": "string",
+                          "enum": [
+                            "UNIT",
+                            "ORDER"
+                          ]
+                        },
+                        "amountMinor": {
+                          "type": "string",
+                          "pattern": "^\\d{1,15}$"
+                        }
+                      },
+                      "required": [
+                        "option",
+                        "value",
+                        "per",
+                        "amountMinor"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "PRICE_READY",
+                      "ESTIMATE_READY"
+                    ]
+                  },
+                  "includesVat": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "effectiveFrom",
+                  "currency",
+                  "basis",
+                  "packSize",
+                  "baseMinor",
+                  "tiers",
+                  "addOns",
+                  "state",
+                  "includesVat",
+                  "note"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productId": {
+                      "type": "string"
+                    },
+                    "effectiveFrom": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "NGN",
+                        "USD"
+                      ]
+                    },
+                    "basis": {
+                      "type": "string",
+                      "enum": [
+                        "PER_UNIT",
+                        "PER_PACK",
+                        "FIXED"
+                      ]
+                    },
+                    "packSize": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "baseMinor": {
+                      "type": "string"
+                    },
+                    "tiers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "minQuantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "minQuantity",
+                          "amountMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "addOns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "option": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "per": {
+                            "type": "string",
+                            "enum": [
+                              "UNIT",
+                              "ORDER"
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "option",
+                          "value",
+                          "per",
+                          "amountMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "PRICE_READY",
+                        "ESTIMATE_READY"
+                      ]
+                    },
+                    "includesVat": {
+                      "type": "boolean"
+                    },
+                    "note": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "current": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productId",
+                    "effectiveFrom",
+                    "currency",
+                    "basis",
+                    "packSize",
+                    "baseMinor",
+                    "tiers",
+                    "addOns",
+                    "state",
+                    "includesVat",
+                    "note",
+                    "current",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Past date, unknown add-on value or duplicate start",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/pricing/products/{id}/calculate": {
+      "post": {
+        "summary": "Try a configuration against the rules, including unpublished products (PRICING_MANAGE)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "choices": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  },
+                  "rush": {
+                    "default": "STANDARD",
+                    "type": "string",
+                    "enum": [
+                      "STANDARD",
+                      "RUSH",
+                      "PRIORITY"
+                    ]
+                  },
+                  "sample": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "choices",
+                  "quantity",
+                  "rush",
+                  "sample"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "PRICE_READY",
+                        "ESTIMATE_READY",
+                        "QUOTE_REQUIRED",
+                        "CONSULTATION_REQUIRED"
+                      ]
+                    },
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "currency": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NGN",
+                            "USD"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amountMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "goodsMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "deliveryMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "perUnitMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatRateBps": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "leadDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "proof": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NOT_REQUIRED",
+                            "OPTIONAL",
+                            "REQUIRED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "artworkLater": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "blocking": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message",
+                          "blocking"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ruleVersions": {
+                      "type": "object",
+                      "properties": {
+                        "priceRuleId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "productRulesVersion": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "taxSettingId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "priceRuleId",
+                        "productRulesVersion",
+                        "taxSettingId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state",
+                    "valid",
+                    "currency",
+                    "quantity",
+                    "lines",
+                    "goodsMinor",
+                    "deliveryMinor",
+                    "vatMinor",
+                    "totalMinor",
+                    "perUnitMinor",
+                    "vatRateBps",
+                    "leadDays",
+                    "proof",
+                    "artworkLater",
+                    "reasons",
+                    "ruleVersions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/pricing/vat": {
+      "get": {
+        "summary": "VAT history and the rate in force (PRICING_MANAGE)",
+        "responses": {
+          "200": {
+            "description": "VAT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "vatRateBps": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "vatOnDelivery": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 300
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "effectiveFrom",
+                          "vatRateBps",
+                          "vatOnDelivery",
+                          "note",
+                          "id",
+                          "current",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Schedule a VAT rate from now or a later date (PRICING_MANAGE, audited)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "effectiveFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  "vatRateBps": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10000
+                  },
+                  "vatOnDelivery": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "effectiveFrom",
+                  "vatRateBps",
+                  "vatOnDelivery",
+                  "note"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "effectiveFrom": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "vatRateBps": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 10000
+                          },
+                          "vatOnDelivery": {
+                            "type": "boolean"
+                          },
+                          "note": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 300
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "current": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "effectiveFrom",
+                          "vatRateBps",
+                          "vatOnDelivery",
+                          "note",
+                          "id",
+                          "current",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "entries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Past date",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/me": {
       "get": {
         "summary": "The signed-in staff member, for the admin shell",

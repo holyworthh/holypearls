@@ -4,3 +4,4 @@ export * from "./platform.js";
 export * from "./customers.js";
 export * from "./files.js";
 export * from "./catalogue.js";
+export * from "./pricing.js";
