@@ -199,3 +199,16 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
     }
   }
 }
+
+/** Starting lists for the mega-menu and the homepage (PUB-FR-004); staff change them in admin. Kept if they exist. */
+export async function seedMerchandising(tx: Transaction): Promise<void> {
+  const products = await tx.select({ id: schema.products.id, slug: schema.products.slug }).from(schema.products);
+  const ids = (slugs: string[]) => slugs.flatMap((slug) => products.filter((product) => product.slug === slug).map((product) => product.id));
+  await tx
+    .insert(schema.merchandisingLists)
+    .values([
+      { key: "menu.popular", productIds: ids(["polo-shirt", "business-cards", "roll-up-banner", "small-paper-bag", "label-sticker", "standard-mug"]) },
+      { key: "home.most-ordered", productIds: ids(["polo-shirt", "business-cards", "roll-up-banner", "standard-mug"]) },
+    ])
+    .onConflictDoNothing();
+}

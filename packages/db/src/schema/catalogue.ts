@@ -41,6 +41,11 @@ export const categories = pgTable(
     seoTitle: text("seo_title"),
     seoDescription: text("seo_description"),
     heroFileId: uuid("hero_file_id").references(() => files.id, { onDelete: "set null" }),
+    /** Category hub sections as published (PUB-FR-009, Pen 105). Null until staff publish a hub. */
+    hub: jsonb("hub"),
+    /** Unpublished hub edits; publishing copies them to `hub`. */
+    hubDraft: jsonb("hub_draft"),
+    hubPublishedAt: at("hub_published_at"),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -162,3 +167,15 @@ export const productRelations = pgTable(
     check("product_relations_not_self", sql`${table.productId} <> ${table.relatedProductId}`),
   ],
 );
+
+/**
+ * Admin-managed product lists (PUB-FR-004): the mega-menu's popular products
+ * and the homepage's "Most ordered". Ordered product IDs; unpublished ones are
+ * skipped when shown.
+ */
+export const merchandisingLists = pgTable("merchandising_lists", {
+  key: text("key").primaryKey(),
+  productIds: uuid("product_ids").array().notNull().default(sql`'{}'::uuid[]`),
+  version: versionColumn(),
+  updatedAt: updatedAt(),
+});

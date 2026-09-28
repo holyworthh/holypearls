@@ -1,5 +1,5 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
-import { seedCatalogue } from "./catalogue.js";
+import { seedCatalogue, seedMerchandising } from "./catalogue.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
@@ -50,7 +50,13 @@ export const identitySeedStep = (options: SeedOptions): SeedStep => ({
  * arrive (for example the ACME organization or the Business Cards purchase).
  */
 /** The nine categories and one product per family (T02-01). */
-export const catalogueSeedStep: SeedStep = { name: "catalogue: categories and one product per family", run: seedCatalogue };
+export const catalogueSeedStep: SeedStep = {
+  name: "catalogue: categories, one product per family and the menu and homepage lists",
+  async run(tx) {
+    await seedCatalogue(tx);
+    await seedMerchandising(tx);
+  },
+};
 
 export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
   name: "catalogue: one sample image per product",

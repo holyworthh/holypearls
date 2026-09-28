@@ -58,4 +58,19 @@
   /* T01-01 audit viewer (Pen frame 101). */
   --hp-space-14: 14px;
   --hp-audit-detail-width: 400px;
+
+  /* Public site chrome and catalogue pages (T02-03), exact values from Pen frames 15–18, HP/Nav/* and HP/Commerce/ProductCard. */
+  --hp-text-wordmark: 27px;
+  --hp-pearl-header: 14px;
+  --hp-text-menu: 22px;
+  --hp-text-section: 38px;
+  --hp-text-hero: 70px;
+  --hp-strip-height: 36px;
+  --hp-header-height: 76px;
+  --hp-header-search-width: 220px;
+  --hp-megamenu-feature-width: 400px;
+  --hp-footer-brand-width: 420px;
+  --hp-card-min-width: 240px;
+  --hp-filter-rail-width: 260px;
+  --hp-shadow-menu: 0 18px 48px rgb(27 26 23 / 14%);
 }
