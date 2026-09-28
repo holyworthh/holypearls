@@ -1,20 +1,25 @@
+import { configurationSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import styles from "../../../components/catalogue/catalogue.module.css";
+import { Configurator } from "../../../components/catalogue/Configurator";
+import cfg from "../../../components/catalogue/configurator.module.css";
+import { Gallery } from "../../../components/catalogue/Gallery";
 import { ProductCard } from "../../../components/catalogue/ProductCard";
 import { categoryHref } from "../../../components/site/nav";
-import { SiteShell } from "../../../components/site/SiteShell";
+import { DELIVERY_COVERAGE, SiteShell } from "../../../components/site/SiteShell";
+import { serverApi } from "../../../lib/server-api";
 import { getProduct } from "../../../lib/storefront";
 
-type Params = { params: Promise<{ slug: string }> };
+type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string }> };
 const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 
-const NEXT_STEP: Record<string, { line: string; action: string; href: (slug: string) => string }> = {
-  PRICE_ON_CONFIGURATION: { line: "Choose your options and see the price as you go.", action: "Ask about this product", href: (slug) => `/contact?topic=product&product=${slug}` },
-  QUOTE_REQUIRED: { line: "Tell us what you need and we'll send a quote after reviewing it.", action: "Ask for a quote", href: (slug) => `/contact?topic=quote&product=${slug}` },
-  CONSULTATION_REQUIRED: { line: "We plan this with you: tell us about your team, dates and budget.", action: "Start a project", href: (slug) => `/contact?topic=project&product=${slug}` },
-  UNAVAILABLE: { line: "This product can't be ordered right now.", action: "Ask when it's back", href: (slug) => `/contact?topic=product&product=${slug}` },
-};
+const PROCESS = [
+  ["Configure", "Choose options and quantity; the price updates as you go."],
+  ["Artwork", "Upload your design, send it later, or ask for design help."],
+  ["Proof", "We check your file and send a proof. Nothing is printed until you approve it."],
+  ["Make and deliver", "We produce, check every item and deliver to your address."],
+] as const;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -29,16 +34,21 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 /**
- * The product page's first version (T02-03): what the product is, its images,
- * specifications and questions, and how to order it. The configurator,
- * prices and structured data arrive with T03-03.
+ * The shared product page (T03-03, COM-FR-001–005; Pen 21 · VSjt2, 20 · XX8rq):
+ * gallery, title and price state, the inline configurator with the price next
+ * to the choices, MOQ and lead time, how it works, specifications, FAQ and
+ * related products. A `?draft=` address reopens a saved design (owners only).
  */
-export default async function ProductPage({ params }: Params) {
+export default async function ProductPage({ params, searchParams }: Params) {
   const { slug } = await params;
   if (!validSlug(slug)) notFound();
   const product = await getProduct(slug);
   if (!product) notFound();
-  const next = NEXT_STEP[product.priceState]!;
+  const { draft: draftId } = await searchParams;
+  const draft =
+    draftId && /^[0-9a-f-]{36}$/.test(draftId) && product.configurator ? await serverApi(`/v1/configurations/${draftId}`, configurationSchema) : null;
+  const initialDraft = draft?.ok && draft.data.productSlug === product.slug ? draft.data : null;
+
   return (
     <SiteShell>
       <div className={styles.container}>
@@ -46,7 +56,7 @@ export default async function ProductPage({ params }: Params) {
           <nav className={styles.breadcrumb} aria-label="Breadcrumb">
             <ol>
               <li>
-                <a href="/">Home</a>
+                <a href="/products">Products</a>
               </li>
               {product.categoryParent ? (
                 <li>
@@ -60,22 +70,74 @@ export default async function ProductPage({ params }: Params) {
             </ol>
           </nav>
         </header>
-        <div className={styles.hero}>
-          <div className={styles.heroMedia}>
-            {product.images[0] ? <img src={product.images[0].url} alt={product.images[0].alt} width={product.images[0].width ?? 2000} height={product.images[0].height ?? 1500} /> : null}
-          </div>
-          <div className={styles.heroText}>
-            <h1 className={styles.h1}>{product.name}</h1>
-            {product.summary ? <p className={styles.lead}>{product.summary}</p> : null}
-            <p className={styles.priceRow}>{next.line}</p>
-            <div className={styles.actions}>
-              <a className={styles.primary} href={next.href(product.slug)}>
-                {next.action}
-              </a>
+
+        <div className={cfg.top}>
+          <Gallery images={product.images} name={product.name} />
+          <div className={cfg.configurator}>
+            <div className={cfg.titleBlock}>
+              <h1 className={cfg.title}>{product.name}</h1>
+              {product.summary ? <p className={styles.lead}>{product.summary}</p> : null}
+              {product.configurator ? (
+                <dl className={cfg.facts}>
+                  <div>
+                    <dt>Minimum</dt>
+                    <dd>{product.configurator.moq.toLocaleString("en-NG")}</dd>
+                  </div>
+                  {product.configurator.leadDays ? (
+                    <div>
+                      <dt>Lead time</dt>
+                      <dd>
+                        {product.configurator.leadDays.min}–{product.configurator.leadDays.max} working days
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
             </div>
-            {product.description ? <p className={styles.muted}>{product.description}</p> : null}
+            {!product.available ? (
+              <p className={cfg.placeholder} role="status">
+                This product can&apos;t be ordered right now. Ask us when it&apos;s back or for an alternative.
+              </p>
+            ) : null}
+            {product.configurator && product.available ? (
+              <Configurator productSlug={product.slug} productName={product.name} data={product.configurator} initialDraft={initialDraft} />
+            ) : (
+              <div className={styles.actions}>
+                <a className={styles.primary} href={`/contact?topic=${product.configurator ? "product" : "project"}&product=${product.slug}`}>
+                  {product.configurator ? "Ask about this product" : "Start a project"}
+                </a>
+              </div>
+            )}
           </div>
         </div>
+
+        {product.description ? (
+          <section className={styles.section} aria-labelledby="about-title">
+            <h2 id="about-title" className={styles.sectionTitle}>
+              About {product.name.toLowerCase()}
+            </h2>
+            <p className={`${styles.lead} ${styles.muted}`}>{product.description}</p>
+          </section>
+        ) : null}
+
+        <section className={styles.section} aria-labelledby="process-title">
+          <div className={styles.sectionHead}>
+            <h2 id="process-title" className={styles.sectionTitle}>
+              How it works
+            </h2>
+          </div>
+          <ol className={styles.numbered}>
+            {PROCESS.map(([title, body], index) => (
+              <li key={title} className={styles.tile}>
+                <span className={styles.tileNumber}>{String(index + 1).padStart(2, "0")}</span>
+                <h3 className={styles.tileTitle}>{title}</h3>
+                <p className={styles.tileBody}>{body}</p>
+              </li>
+            ))}
+          </ol>
+          <p className={styles.note}>{DELIVERY_COVERAGE}</p>
+        </section>
+
         {product.specifications.length ? (
           <section className={styles.section} aria-labelledby="specs-title">
             <h2 id="specs-title" className={styles.sectionTitle}>
@@ -95,6 +157,7 @@ export default async function ProductPage({ params }: Params) {
             </div>
           </section>
         ) : null}
+
         {product.faqs.length ? (
           <section className={styles.section} aria-labelledby="faq-title">
             <h2 id="faq-title" className={styles.sectionTitle}>
@@ -110,6 +173,7 @@ export default async function ProductPage({ params }: Params) {
             </div>
           </section>
         ) : null}
+
         {product.related.length ? (
           <section className={styles.section} aria-labelledby="related-title">
             <div className={styles.sectionHead}>

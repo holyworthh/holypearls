@@ -10795,6 +10795,198 @@
                         "additionalProperties": false
                       }
                     },
+                    "configurator": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "options": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "required": {
+                                    "type": "boolean"
+                                  },
+                                  "values": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string"
+                                        },
+                                        "label": {
+                                          "type": "string"
+                                        },
+                                        "isDefault": {
+                                          "type": "boolean"
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "label",
+                                        "isDefault"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "label",
+                                  "required",
+                                  "values"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "moq": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "maxAutoQuantity": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantityPresets": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "quantity": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "perUnitMinor": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "quantity",
+                                  "perUnitMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "blocked": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "ifOption": {
+                                    "type": "string"
+                                  },
+                                  "ifValue": {
+                                    "type": "string"
+                                  },
+                                  "thenOption": {
+                                    "type": "string"
+                                  },
+                                  "thenValues": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "ifOption",
+                                  "ifValue",
+                                  "thenOption",
+                                  "thenValues",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "fromPerUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "options",
+                            "moq",
+                            "maxAutoQuantity",
+                            "leadDays",
+                            "quantityPresets",
+                            "blocked",
+                            "currency",
+                            "fromPerUnitMinor"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "seoTitle": {
                       "type": "string"
                     },
@@ -10821,6 +11013,7 @@
                     "faqs",
                     "categoryParent",
                     "related",
+                    "configurator",
                     "seoTitle",
                     "seoDescription"
                   ],
@@ -17018,6 +17211,1312 @@
           },
           "404": {
             "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations": {
+      "post": {
+        "summary": "Start a configuration draft for a published product. Owned by the account, or by this browser (sets the HttpOnly hp.device cookie).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productSlug": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "choices": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000000
+                  }
+                },
+                "required": [
+                  "productSlug"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Consultative product (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}": {
+      "get": {
+        "summary": "A draft (owner, owning browser or guest link only; anyone else 404)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours or missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Autosave with the version you started from. Returns the draft and any answers removed after confirmation.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "choices": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 60
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "quantity": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10000000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rush": {
+                    "type": "string",
+                    "enum": [
+                      "STANDARD",
+                      "RUSH",
+                      "PRIORITY"
+                    ]
+                  },
+                  "artwork": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "UPLOAD",
+                          "DESIGN_HELP",
+                          "LATER"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "step": {
+                    "type": "string",
+                    "enum": [
+                      "options",
+                      "quantity",
+                      "artwork",
+                      "delivery",
+                      "review"
+                    ]
+                  },
+                  "confirmRemovals": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "version",
+                  "confirmRemovals"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved (draft, removed)"
+          },
+          "400": {
+            "description": "A choice that isn't available with earlier answers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT with the latest draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "ANSWERS_CONFLICT: later answers this change would remove",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/configurations/{id}/email": {
+      "post": {
+        "summary": "Email a link that opens this draft on any device (guest link, CONTACT limit)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "productSlug": {
+                      "type": "string"
+                    },
+                    "productName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "IN_CART",
+                        "QUOTE_REQUESTED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "choices": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "quantity": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rush": {
+                      "type": "string",
+                      "enum": [
+                        "STANDARD",
+                        "RUSH",
+                        "PRIORITY"
+                      ]
+                    },
+                    "artwork": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "UPLOAD",
+                            "DESIGN_HELP",
+                            "LATER"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "step": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY",
+                                "QUOTE_REQUIRED",
+                                "CONSULTATION_REQUIRED"
+                              ]
+                            },
+                            "valid": {
+                              "type": "boolean"
+                            },
+                            "currency": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NGN",
+                                    "USD"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lines": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "amountMinor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "goodsMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "deliveryMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "totalMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "perUnitMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "vatRateBps": {
+                              "anyOf": [
+                                {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "leadDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "proof": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "NOT_REQUIRED",
+                                    "OPTIONAL",
+                                    "REQUIRED"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "artworkLater": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "blocking": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "message",
+                                  "blocking"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "ruleVersions": {
+                              "type": "object",
+                              "properties": {
+                                "priceRuleId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "productRulesVersion": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "taxSettingId": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "priceRuleId",
+                                "productRulesVersion",
+                                "taxSettingId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "state",
+                            "valid",
+                            "currency",
+                            "quantity",
+                            "lines",
+                            "goodsMinor",
+                            "deliveryMinor",
+                            "vatMinor",
+                            "totalMinor",
+                            "perUnitMinor",
+                            "vatRateBps",
+                            "leadDays",
+                            "proof",
+                            "artworkLater",
+                            "reasons",
+                            "ruleVersions"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "emailedTo": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "productSlug",
+                    "productName",
+                    "status",
+                    "choices",
+                    "quantity",
+                    "rush",
+                    "artwork",
+                    "step",
+                    "version",
+                    "price",
+                    "emailedTo",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
             "content": {
               "application/json": {
                 "schema": {

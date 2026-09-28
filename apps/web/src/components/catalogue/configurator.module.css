@@ -1,0 +1,436 @@
+/* Product page and inline configurator (Pen 21 · VSjt2 Business Cards PDP, 20 · XX8rq mobile). */
+
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--hp-space-32);
+  padding-bottom: var(--hp-space-64);
+}
+
+@media (min-width: 1024px) {
+  .top {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--hp-space-48);
+  }
+}
+
+/* Gallery */
+
+.gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+}
+
+@media (min-width: 1024px) {
+  .gallery {
+    position: sticky;
+    top: var(--hp-space-24);
+    align-self: start;
+  }
+}
+
+.mainImage {
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: var(--hp-r-control);
+  background: var(--hp-sand);
+}
+
+.mainImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.caption {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+}
+
+.thumbs {
+  display: flex;
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  width: calc(var(--hp-space-64) + var(--hp-space-16));
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-sand);
+  cursor: pointer;
+}
+
+.thumb[aria-pressed="true"] {
+  border: var(--hp-space-2) solid var(--hp-ink);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Configurator */
+
+.configurator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-24);
+  min-width: 0;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--hp-text-h3);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.stateChip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-radius: var(--hp-r-chip);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+.stateReady {
+  background: var(--hp-success-tint);
+  color: var(--hp-success);
+}
+
+.stateEstimate {
+  background: var(--hp-info-tint);
+  color: var(--hp-info);
+}
+
+.stateQuote {
+  background: var(--hp-warning-tint);
+  color: var(--hp-ink);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8) var(--hp-space-24);
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.facts dt {
+  font-weight: var(--hp-weight-semibold);
+  color: var(--hp-ink);
+}
+
+.facts div {
+  display: flex;
+  gap: var(--hp-space-6);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  scroll-margin-top: var(--hp-space-24);
+}
+
+.stepHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--hp-space-10);
+  width: 100%;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--hp-space-10);
+  margin: 0;
+  font-size: var(--hp-text-emphasis);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.stepNumber {
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  font-weight: var(--hp-weight-medium);
+}
+
+.stepExtra {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hp-choice-min-width)), 1fr));
+  gap: var(--hp-space-10);
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--hp-space-2);
+  min-height: var(--hp-space-64);
+  padding: var(--hp-space-10) var(--hp-space-14);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border: var(--hp-space-2) solid var(--hp-ink);
+  padding: calc(var(--hp-space-10) - var(--hp-border-width)) calc(var(--hp-space-14) - var(--hp-border-width));
+}
+
+.choice:has(input:focus-visible) {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.choice:has(input:disabled) {
+  border-style: dashed;
+  color: var(--hp-graphite);
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+/* The real radio covers the whole card, invisible, so clicks, taps and assistive tech all reach it. */
+.choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.choiceTitle {
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.choiceMeta {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+}
+
+.blockedNote {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.quantityNumber {
+  font-size: var(--hp-text-menu);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.customQuantity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hp-space-10);
+}
+
+.customQuantity input {
+  width: calc(var(--hp-space-128) + var(--hp-space-32));
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-control);
+  font: inherit;
+}
+
+.placeholder {
+  margin: 0;
+  padding: var(--hp-space-14);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+  line-height: var(--hp-leading-body);
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-top: var(--hp-border-width) solid var(--hp-line);
+}
+
+.review div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-10) 0;
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+  font-size: var(--hp-text-label);
+}
+
+.review dt {
+  color: var(--hp-graphite);
+}
+
+.review dd {
+  display: flex;
+  gap: var(--hp-space-12);
+  margin: 0;
+  font-weight: var(--hp-weight-semibold);
+}
+
+.review a {
+  color: var(--hp-accent);
+  font-weight: var(--hp-weight-semibold);
+}
+
+/* Total bar */
+
+.totalBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+  padding: var(--hp-space-20);
+  border: var(--hp-space-2) solid var(--hp-ink);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-paper);
+}
+
+.totalRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+}
+
+.summary {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  letter-spacing: var(--hp-tracking-mono);
+  text-transform: uppercase;
+}
+
+.perUnit {
+  margin: 0;
+  font-size: var(--hp-text-support);
+}
+
+.total {
+  margin: 0;
+  font-size: var(--hp-text-h3);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--hp-text-support);
+}
+
+.blocking {
+  color: var(--hp-error);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.saveState {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-10);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+}
+
+.saveFailed {
+  color: var(--hp-error);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.linkButton {
+  min-height: var(--hp-touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hp-accent);
+  font: inherit;
+  font-weight: var(--hp-weight-semibold);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Mobile sticky bar (COM-FR-002): never covers the field being filled in. */
+
+.sticky {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-10) var(--hp-layout-gutter-mobile);
+  border-top: var(--hp-border-width) solid var(--hp-line);
+  background: var(--hp-paper);
+  box-shadow: var(--hp-shadow-menu);
+}
+
+@media (min-width: 1024px) {
+  .sticky {
+    display: none;
+  }
+}
+
+.stickyPrice {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--hp-text-caption);
+}
+
+.stickyPrice strong {
+  font-size: var(--hp-text-emphasis);
+}
