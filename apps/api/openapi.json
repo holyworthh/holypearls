@@ -350,6 +350,929 @@
         }
       }
     },
+    "/v1/me/sessions/{sessionId}": {
+      "delete": {
+        "summary": "End one of your own sessions",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "revoked": {
+                      "type": "boolean",
+                      "const": true
+                    }
+                  },
+                  "required": [
+                    "revoked"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not your session, or no such session (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/audit": {
+      "get": {
+        "summary": "Audit entries, newest first, with cursor paging (AUDIT_VIEW)",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "recordType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "actorType": {
+                            "type": "string",
+                            "enum": [
+                              "STAFF",
+                              "USER",
+                              "GUEST",
+                              "SYSTEM"
+                            ]
+                          },
+                          "actorLabel": {
+                            "type": "string"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "recordType": {
+                            "type": "string"
+                          },
+                          "recordId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "recordLabel": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "before": {
+                            "anyOf": [
+                              {},
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "after": {
+                            "anyOf": [
+                              {},
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "permission": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "mfaVerifiedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "requestId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "occurredAt",
+                          "actorType",
+                          "actorLabel",
+                          "action",
+                          "summary",
+                          "recordType",
+                          "recordId",
+                          "recordLabel",
+                          "before",
+                          "after",
+                          "permission",
+                          "mfaVerifiedAt",
+                          "requestId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "entries",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/audit/{id}": {
+      "get": {
+        "summary": "One audit entry (AUDIT_VIEW)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The entry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "occurredAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "actorType": {
+                      "type": "string",
+                      "enum": [
+                        "STAFF",
+                        "USER",
+                        "GUEST",
+                        "SYSTEM"
+                      ]
+                    },
+                    "actorLabel": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "recordType": {
+                      "type": "string"
+                    },
+                    "recordId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "recordLabel": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "before": {
+                      "anyOf": [
+                        {},
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "after": {
+                      "anyOf": [
+                        {},
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "permission": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "mfaVerifiedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "requestId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "occurredAt",
+                    "actorType",
+                    "actorLabel",
+                    "action",
+                    "summary",
+                    "recordType",
+                    "recordId",
+                    "recordLabel",
+                    "before",
+                    "after",
+                    "permission",
+                    "mfaVerifiedAt",
+                    "requestId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/staff/{staffProfileId}/access": {
+      "get": {
+        "summary": "A staff member's permissions and MFA state (STAFF_ADMIN)",
+        "parameters": [
+          {
+            "name": "staffProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "staffProfileId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "CATALOGUE_MANAGE",
+                          "PRICING_MANAGE",
+                          "CONTENT_MANAGE",
+                          "QUOTE_MANAGE",
+                          "PROOF_MANAGE",
+                          "PRODUCTION_MANAGE",
+                          "FULFILMENT_MANAGE",
+                          "PAYMENT_VIEW",
+                          "PAYMENT_MANAGE",
+                          "REFUND_ISSUE",
+                          "CUSTOMER_SUPPORT",
+                          "ORGANIZATION_SUPPORT",
+                          "EXPORT_PERSONAL_DATA",
+                          "STAFF_ADMIN",
+                          "SECURITY_ADMIN",
+                          "AUDIT_VIEW"
+                        ]
+                      }
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "staffProfileId",
+                    "displayName",
+                    "permissions",
+                    "mfaEnabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/staff/{staffProfileId}/permissions": {
+      "post": {
+        "summary": "Grant a staff permission (STAFF_ADMIN, recent MFA, audited)",
+        "parameters": [
+          {
+            "name": "staffProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "permission": {
+                    "type": "string",
+                    "enum": [
+                      "CATALOGUE_MANAGE",
+                      "PRICING_MANAGE",
+                      "CONTENT_MANAGE",
+                      "QUOTE_MANAGE",
+                      "PROOF_MANAGE",
+                      "PRODUCTION_MANAGE",
+                      "FULFILMENT_MANAGE",
+                      "PAYMENT_VIEW",
+                      "PAYMENT_MANAGE",
+                      "REFUND_ISSUE",
+                      "CUSTOMER_SUPPORT",
+                      "ORGANIZATION_SUPPORT",
+                      "EXPORT_PERSONAL_DATA",
+                      "STAFF_ADMIN",
+                      "SECURITY_ADMIN",
+                      "AUDIT_VIEW"
+                    ]
+                  }
+                },
+                "required": [
+                  "permission"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "staffProfileId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "CATALOGUE_MANAGE",
+                          "PRICING_MANAGE",
+                          "CONTENT_MANAGE",
+                          "QUOTE_MANAGE",
+                          "PROOF_MANAGE",
+                          "PRODUCTION_MANAGE",
+                          "FULFILMENT_MANAGE",
+                          "PAYMENT_VIEW",
+                          "PAYMENT_MANAGE",
+                          "REFUND_ISSUE",
+                          "CUSTOMER_SUPPORT",
+                          "ORGANIZATION_SUPPORT",
+                          "EXPORT_PERSONAL_DATA",
+                          "STAFF_ADMIN",
+                          "SECURITY_ADMIN",
+                          "AUDIT_VIEW"
+                        ]
+                      }
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "staffProfileId",
+                    "displayName",
+                    "permissions",
+                    "mfaEnabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not STAFF_ADMIN (FORBIDDEN), no recent authenticator check (RECENT_MFA_REQUIRED) or a rule such as keeping two STAFF_ADMINs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff, or no such staff member (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key reused with a different request (CONFLICT)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "ADMIN_WRITE limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/staff/{staffProfileId}/permissions/{permission}": {
+      "delete": {
+        "summary": "Remove a staff permission (STAFF_ADMIN, recent MFA, audited)",
+        "parameters": [
+          {
+            "name": "staffProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access after the change",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "staffProfileId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "CATALOGUE_MANAGE",
+                          "PRICING_MANAGE",
+                          "CONTENT_MANAGE",
+                          "QUOTE_MANAGE",
+                          "PROOF_MANAGE",
+                          "PRODUCTION_MANAGE",
+                          "FULFILMENT_MANAGE",
+                          "PAYMENT_VIEW",
+                          "PAYMENT_MANAGE",
+                          "REFUND_ISSUE",
+                          "CUSTOMER_SUPPORT",
+                          "ORGANIZATION_SUPPORT",
+                          "EXPORT_PERSONAL_DATA",
+                          "STAFF_ADMIN",
+                          "SECURITY_ADMIN",
+                          "AUDIT_VIEW"
+                        ]
+                      }
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "staffProfileId",
+                    "displayName",
+                    "permissions",
+                    "mfaEnabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not STAFF_ADMIN (FORBIDDEN), no recent authenticator check (RECENT_MFA_REQUIRED) or a rule such as keeping two STAFF_ADMINs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff, or no such staff member (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "ADMIN_WRITE limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/staff/{staffProfileId}/mfa-reset": {
+      "post": {
+        "summary": "Reset another staff member's MFA and end their sessions (STAFF_ADMIN, recent MFA, audited)",
+        "parameters": [
+          {
+            "name": "staffProfileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access after the reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "staffProfileId": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "CATALOGUE_MANAGE",
+                          "PRICING_MANAGE",
+                          "CONTENT_MANAGE",
+                          "QUOTE_MANAGE",
+                          "PROOF_MANAGE",
+                          "PRODUCTION_MANAGE",
+                          "FULFILMENT_MANAGE",
+                          "PAYMENT_VIEW",
+                          "PAYMENT_MANAGE",
+                          "REFUND_ISSUE",
+                          "CUSTOMER_SUPPORT",
+                          "ORGANIZATION_SUPPORT",
+                          "EXPORT_PERSONAL_DATA",
+                          "STAFF_ADMIN",
+                          "SECURITY_ADMIN",
+                          "AUDIT_VIEW"
+                        ]
+                      }
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "staffProfileId",
+                    "displayName",
+                    "permissions",
+                    "mfaEnabled"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not STAFF_ADMIN (FORBIDDEN), no recent authenticator check (RECENT_MFA_REQUIRED) or a rule such as keeping two STAFF_ADMINs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff, or no such staff member (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "ADMIN_WRITE limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/monitoring/test-error": {
+      "post": {
+        "summary": "Send a deliberate error to monitoring (SECURITY_ADMIN)",
+        "responses": {
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The deliberate error (INTERNAL)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/me": {
       "get": {
         "summary": "The signed-in staff member, for the admin shell",

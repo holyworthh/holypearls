@@ -27,7 +27,7 @@ class ProbeController {
   @HttpCode(200)
   @UseGuards(StaffGuard("STAFF_ADMIN"))
   async highRisk(@Req() req: Request) {
-    requireRecentMfa(await req.getActor!(), new Date());
+    requireRecentMfa(await req.getActor!());
     return { ok: true };
   }
 }

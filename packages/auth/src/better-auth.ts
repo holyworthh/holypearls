@@ -27,8 +27,6 @@ export interface BetterAuthIdentityOptions {
   secureCookies: boolean;
   /** Staff sessions last 12 hours from sign-in and are never extended. */
   isStaff(userId: string): Promise<boolean>;
-  /** Better Auth's sign-in rate limits. Tests turn them off except where they test them. */
-  rateLimit?: boolean;
   /** Clock, for tests. */
   now?: () => Date;
   /** Receives the library's warnings and errors (message only; details can hold personal data). */
@@ -79,16 +77,9 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
       minPasswordLength: MIN_PASSWORD_LENGTH,
       revokeSessionsOnPasswordReset: true,
     },
-    rateLimit: {
-      enabled: options.rateLimit ?? true,
-      window: 60,
-      max: 100,
-      customRules: {
-        "/sign-in/email": { window: 60, max: 5 },
-        "/sign-in/magic-link": { window: 60, max: 3 },
-        "/two-factor/verify-totp": { window: 60, max: 5 },
-      },
-    },
+    // The API applies the AUTH limit in PostgreSQL, shared by every instance (TECH-02 §14,
+    // ADR-013); the library's in-memory limiter would count each instance separately.
+    rateLimit: { enabled: false },
     advanced: {
       cookiePrefix: "hp",
       useSecureCookies: options.secureCookies,

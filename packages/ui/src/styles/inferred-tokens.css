@@ -55,4 +55,7 @@
   --hp-avatar: 36px;
   --hp-qr-size: 160px;
   --hp-pearl: 11px;
+  /* T01-01 audit viewer (Pen frame 101). */
+  --hp-space-14: 14px;
+  --hp-audit-detail-width: 400px;
 }

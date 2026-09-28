@@ -1,8 +1,12 @@
-import { Controller, Get, HttpCode, Inject, Post, Req } from "@nestjs/common";
+import { Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
 import type { IdentityAdapter } from "@holypearls/auth";
 import type { Me, SessionList } from "@holypearls/contracts";
 import type { Request } from "express";
-import { IDENTITY } from "../tokens.js";
+import type { Database } from "@holypearls/db";
+import { recordAudit } from "../platform/audit.js";
+import { enforce, findOrHide } from "../platform/policy.js";
+import { DATABASE, IDENTITY } from "../tokens.js";
+import { canRevokeSession, findSessionForActor } from "./policies.js";
 import { requireUser, toHeaders } from "./actor.js";
 
 /** Describes a session by browser and system, never by raw user agent. */
@@ -34,7 +38,10 @@ export function describeDevice(userAgent: string | null): string {
 /** The signed-in person's own sign-in details (TECH-03 §3). */
 @Controller("me")
 export class MeController {
-  constructor(@Inject(IDENTITY) private readonly identity: IdentityAdapter) {}
+  constructor(
+    @Inject(IDENTITY) private readonly identity: IdentityAdapter,
+    @Inject(DATABASE) private readonly db: Database,
+  ) {}
 
   @Get()
   async me(@Req() request: Request): Promise<Me> {
@@ -72,8 +79,32 @@ export class MeController {
   @Post("sessions/revoke-all")
   @HttpCode(200)
   async revokeAll(@Req() request: Request) {
-    requireUser(await request.getActor!());
+    const actor = requireUser(await request.getActor!());
     await this.identity.revokeAllSessions(toHeaders(request));
+    await recordAudit(this.db, actor, {
+      action: "security.sessions_revoked",
+      summary: "Signed out everywhere",
+      recordType: "USER",
+      recordId: actor.session.userId,
+      recordLabel: actor.session.name,
+    });
+    return { revoked: true as const };
+  }
+
+  /** Ends one of the person's own sessions. Anyone else's session is 404 (TECH-03 §12). */
+  @Delete("sessions/:sessionId")
+  async revokeOne(@Req() request: Request, @Param("sessionId", new ParseUUIDPipe()) sessionId: string) {
+    const actor = requireUser(await request.getActor!());
+    const session = await findOrHide(() => findSessionForActor(this.db, sessionId, actor));
+    enforce(canRevokeSession(actor, session));
+    await this.identity.revokeSession(session.id);
+    await recordAudit(this.db, actor, {
+      action: "security.session_revoked",
+      summary: "Signed out one device",
+      recordType: "USER",
+      recordId: actor.session.userId,
+      recordLabel: actor.session.name,
+    });
     return { revoked: true as const };
   }
 }
