@@ -3,6 +3,8 @@
 #   worker:   node apps/worker/dist/main.js
 #   release:  node packages/db/dist/migrate-cli.js   (once, before new code starts; TECH-07 §6)
 FROM node:22.15.0-slim AS build
+# pnpm asks before removing modules unless it knows it runs in CI.
+ENV CI=true
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
 WORKDIR /repo
 COPY . .
