@@ -33,6 +33,10 @@ import {
   saveCompatibilitySchema,
   saveProductRulesSchema,
   taxSettingInputSchema,
+  attachConfigurationFileSchema,
+  lowResolutionActionSchema,
+  personalizationImportSchema,
+  personalizationResultSchema,
   configurationSchema,
   createConfigurationSchema,
   emailDraftSchema,
@@ -623,6 +627,33 @@ export function buildOpenApiDocument() {
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(emailDraftSchema) },
           responses: { 200: { description: "Sent", content: json(configurationSchema) }, 404: error("Not yours") },
+        },
+      },
+      "/v1/configurations/{id}/files": {
+        post: {
+          summary: "Attach the customer's uploaded artwork, logo, reference or garment photo to a draft",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(attachConfigurationFileSchema) },
+          responses: { 201: { description: "Draft", content: json(configurationSchema) }, 404: error("Not yours"), 422: error("File rejected") },
+        },
+      },
+      "/v1/configurations/{id}/files/{linkId}": {
+        delete: { summary: "Remove a file from a draft", parameters: [uuidParam("id"), uuidParam("linkId")], responses: { 200: { description: "Draft", content: json(configurationSchema) }, 404: error("Not yours") } },
+      },
+      "/v1/configurations/{id}/files/{linkId}/low-resolution": {
+        post: {
+          summary: "What to do about a low-resolution file: replace, clean up or review. Never blocks the order.",
+          parameters: [uuidParam("id"), uuidParam("linkId")],
+          requestBody: { required: true, content: json(lowResolutionActionSchema) },
+          responses: { 200: { description: "Draft", content: json(configurationSchema) }, 404: error("Not yours") },
+        },
+      },
+      "/v1/configurations/{id}/personalization": {
+        post: {
+          summary: "Import per-item names, numbers, departments and sizes from a CSV upload, checked row by row",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(personalizationImportSchema) },
+          responses: { 200: { description: "Result", content: json(personalizationResultSchema) }, 404: error("Not yours"), 422: error("File still being checked") },
         },
       },
       "/v1/admin/me": {

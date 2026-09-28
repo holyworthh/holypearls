@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-28 (after T03-03).
+Last updated: 2026-09-28 (after T03-05).
 
 ## Decisions and actions needed
 
@@ -60,6 +60,12 @@ The seed charges VAT on delivery as well as goods. **Please confirm with your ac
 
 ### 15. Show prices with or without VAT (T03-03)
 Pen shows business-card prices before VAT (₦150 per card). The product page shows prices **including** 7.5% VAT (₦161.25 per card), so the per-card price, the total and what's charged agree. **Decide:** keep VAT-inclusive display, or show before-VAT prices with "+ VAT".
+
+### 16. PRD-02 COM-FR-054 file types (T03-05)
+COM-FR-054 still says JPEG, PNG and PDF only. You approved AI and SVG (TECH-04 was amended). **Needed:** permission to update COM-FR-054 in PRD-02, or tell me to leave it.
+
+### 17. Garment decoration prices and sizes (T03-05)
+Extra placements currently keep the price an estimate. **Needed:** per-placement embroidery and print prices. Also **confirm the design widths** used for the resolution check: small 7 cm, standard 10 cm, large 28 cm.
 
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.

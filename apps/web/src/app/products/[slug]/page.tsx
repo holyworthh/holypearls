@@ -5,10 +5,11 @@ import styles from "../../../components/catalogue/catalogue.module.css";
 import { Configurator } from "../../../components/catalogue/Configurator";
 import cfg from "../../../components/catalogue/configurator.module.css";
 import { Gallery } from "../../../components/catalogue/Gallery";
+import { GarmentConfigurator } from "../../../components/catalogue/GarmentConfigurator";
 import { ProductCard } from "../../../components/catalogue/ProductCard";
 import { categoryHref } from "../../../components/site/nav";
 import { DELIVERY_COVERAGE, SiteShell } from "../../../components/site/SiteShell";
-import { serverApi } from "../../../lib/server-api";
+import { hasSessionCookie, serverApi } from "../../../lib/server-api";
 import { getProduct } from "../../../lib/storefront";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string }> };
@@ -71,6 +72,29 @@ export default async function ProductPage({ params, searchParams }: Params) {
           </nav>
         </header>
 
+        {product.family === "GARMENT" && product.configurator && product.available ? (
+          <>
+            <div className={cfg.titleBlock}>
+              <h1 className={cfg.title}>{product.name}</h1>
+              {product.summary ? <p className={styles.lead}>{product.summary}</p> : null}
+              <dl className={cfg.facts}>
+                <div>
+                  <dt>Minimum</dt>
+                  <dd>{product.configurator.moq}</dd>
+                </div>
+                {product.configurator.leadDays ? (
+                  <div>
+                    <dt>Lead time</dt>
+                    <dd>
+                      {product.configurator.leadDays.min}–{product.configurator.leadDays.max} working days
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+            <GarmentConfigurator productSlug={product.slug} productName={product.name} data={product.configurator} initialDraft={initialDraft} signedIn={await hasSessionCookie()} />
+          </>
+        ) : (
         <div className={cfg.top}>
           <Gallery images={product.images} name={product.name} />
           <div className={cfg.configurator}>
@@ -110,6 +134,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
             )}
           </div>
         </div>
+        )}
 
         {product.description ? (
           <section className={styles.section} aria-labelledby="about-title">

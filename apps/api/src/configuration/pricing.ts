@@ -17,6 +17,7 @@ export interface PriceRequest {
   rush: Rush;
   sample: boolean;
   delivery?: { amountMinor: bigint; currency: "NGN" | "USD" } | null;
+  adjustments?: CalculationInput["adjustments"];
 }
 
 /** Everything the calculator needs, as it stood at `at`. */
@@ -82,6 +83,7 @@ export async function pricingInputs(db: Database, productId: string, request: Pr
     rush: request.rush,
     sample: request.sample,
     delivery: request.delivery ?? null,
+    adjustments: request.adjustments ?? [],
   };
 }
 

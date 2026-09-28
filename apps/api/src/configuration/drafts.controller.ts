@@ -1,11 +1,20 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Req, Res } from "@nestjs/common";
-import { createConfigurationSchema, emailDraftSchema, updateConfigurationSchema } from "@holypearls/contracts";
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Req, Res } from "@nestjs/common";
+import {
+  attachConfigurationFileSchema,
+  createConfigurationSchema,
+  emailDraftSchema,
+  lowResolutionActionSchema,
+  personalizationImportSchema,
+  updateConfigurationSchema,
+} from "@holypearls/contracts";
+import { setGuestCookie } from "../identity/customer-access.controller.js";
 import type { Request, Response } from "express";
 import type { z } from "zod";
 import { RateLimit } from "../platform/rate-limit.js";
-import { HELP_DEPS, type HelpDepsToken } from "../tokens.js";
+import { FILE_DEPS, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
+import type { FileDeps } from "../files/files.js";
 import { ZodValidationPipe } from "../validation.js";
-import { createDraft, type DraftAccess, emailDraftLink, getDraft, updateDraft } from "./drafts.js";
+import { attachDraftFile, createDraft, type DraftAccess, emailDraftLink, getDraft, importPersonalization, removeDraftFile, setLowResolutionAction, updateDraft } from "./drafts.js";
 
 /** The browser's device key for drafts started without signing in (HttpOnly; never readable by scripts). */
 export const DEVICE_COOKIE = "hp.device";
@@ -25,7 +34,10 @@ function deviceKey(request: Request): string | null {
 /** Configuration drafts (COM-FR-010–014). Owners only; anyone else gets 404. */
 @Controller("configurations")
 export class ConfigurationsController {
-  constructor(@Inject(HELP_DEPS) private readonly deps: HelpDepsToken) {}
+  constructor(
+    @Inject(HELP_DEPS) private readonly deps: HelpDepsToken,
+    @Inject(FILE_DEPS) private readonly files: FileDeps,
+  ) {}
 
   private async access(request: Request): Promise<DraftAccess> {
     return { actor: await request.getActor!(), deviceKey: deviceKey(request) };
@@ -71,7 +83,47 @@ export class ConfigurationsController {
   @Post(":id/email")
   @HttpCode(200)
   @RateLimit("CONTACT")
-  async email(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Body(new ZodValidationPipe(emailDraftSchema)) body: z.infer<typeof emailDraftSchema>) {
-    return emailDraftLink(this.deps, await this.access(request), id, body.email);
+  async email(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Body(new ZodValidationPipe(emailDraftSchema)) body: z.infer<typeof emailDraftSchema>,
+  ) {
+    const { draft, session } = await emailDraftLink(this.deps, await this.access(request), id, body.email);
+    if (session) setGuestCookie(response, this.deps.webOrigin, session.token, session.expiresAt);
+    return draft;
+  }
+
+  /** Attaches the customer's uploaded artwork, logo, reference or garment photo. */
+  @Post(":id/files")
+  @RateLimit("COMMERCIAL_WRITE")
+  async attach(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Body(new ZodValidationPipe(attachConfigurationFileSchema)) body: z.infer<typeof attachConfigurationFileSchema>) {
+    return attachDraftFile(this.deps.db, await this.access(request), id, body);
+  }
+
+  @Post(":id/files/:linkId/low-resolution")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async lowResolution(
+    @Req() request: Request,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @Param("linkId", new ParseUUIDPipe()) linkId: string,
+    @Body(new ZodValidationPipe(lowResolutionActionSchema)) body: z.infer<typeof lowResolutionActionSchema>,
+  ) {
+    return setLowResolutionAction(this.deps.db, await this.access(request), id, linkId, body.action);
+  }
+
+  @Delete(":id/files/:linkId")
+  @RateLimit("COMMERCIAL_WRITE")
+  async removeFile(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Param("linkId", new ParseUUIDPipe()) linkId: string) {
+    return removeDraftFile(this.deps.db, await this.access(request), id, linkId);
+  }
+
+  /** Per-item personalization from a CSV upload, checked row by row. */
+  @Post(":id/personalization")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async personalization(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Body(new ZodValidationPipe(personalizationImportSchema)) body: z.infer<typeof personalizationImportSchema>) {
+    return importPersonalization(this.files, await this.access(request), id, body.fileId);
   }
 }

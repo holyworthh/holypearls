@@ -3,8 +3,12 @@ import { and, asc, type Database, eq, inArray, schema, sql } from "@holypearls/d
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureCustomer, maskEmail } from "../identity/customers.js";
+import { createGuestLink, ensureCustomer, maskEmail, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
+import { findFileForActor } from "../files/files.js";
+import type { StorageAdapter } from "@holypearls/storage";
+import { type CalculationInput } from "./calculate.js";
+import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
 import { priceProduct, pricingInputs, productOptions } from "./pricing.js";
 
 /*
@@ -47,8 +51,53 @@ async function selections(db: Database, id: string) {
   return rows;
 }
 
+const GARMENT_FAMILIES = new Set(["GARMENT"]);
+
+async function placementsOf(db: Database, id: string): Promise<Placement[]> {
+  const rows = await db.select().from(schema.configurationPlacements).where(eq(schema.configurationPlacements.configurationId, id));
+  const order = ["LEFT_CHEST", "RIGHT_CHEST", "CENTRE_CHEST", "FULL_FRONT", "UPPER_BACK", "FULL_BACK", "LEFT_SLEEVE", "RIGHT_SLEEVE", "CUSTOM"];
+  return rows
+    .map(({ position, size, method, note }) => ({ position, size, method, note }))
+    .sort((a, b) => order.indexOf(a.position) - order.indexOf(b.position));
+}
+
+async function sizesOf(db: Database, id: string) {
+  const rows = await db.select().from(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, id));
+  const order = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+  return rows.map(({ size, quantity }) => ({ size, quantity })).sort((a, b) => order.indexOf(a.size) - order.indexOf(b.size));
+}
+
+async function filesOf(db: Database, id: string, placements: Placement[]) {
+  const rows = await db
+    .select({ link: schema.configurationFiles, file: schema.files })
+    .from(schema.configurationFiles)
+    .innerJoin(schema.files, eq(schema.files.id, schema.configurationFiles.fileId))
+    .where(eq(schema.configurationFiles.configurationId, id))
+    .orderBy(asc(schema.configurationFiles.createdAt));
+  return rows.map(({ link, file }) => {
+    const meta = (file.metadata ?? {}) as { width?: number };
+    const check = file.status === "READY" && (link.role === "ARTWORK" || link.role === "LOGO") ? resolutionCheck({ type: file.detectedType ?? file.declaredType, width: meta.width ?? null }, placements) : { ok: true as const };
+    return {
+      id: link.id,
+      fileId: file.id,
+      role: link.role,
+      name: file.safeName,
+      status: file.status,
+      lowResolution: check.ok ? null : { neededPixels: check.neededPixels, actualPixels: check.actualPixels, message: check.message },
+      lowResolutionAction: link.lowResolutionAction,
+    };
+  });
+}
+
 async function view(db: Database, row: Row): Promise<Configuration> {
-  const [product] = await db.select({ slug: schema.products.slug, name: schema.products.name }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const [product] = await db.select({ slug: schema.products.slug, name: schema.products.name, family: schema.products.family }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const [rules] = await db.select({ artworkLater: schema.productRules.artworkLater }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
+  const placements = await placementsOf(db, row.id);
+  const personalization = await db
+    .select()
+    .from(schema.configurationPersonalizationRows)
+    .where(eq(schema.configurationPersonalizationRows.configurationId, row.id))
+    .orderBy(asc(schema.configurationPersonalizationRows.row));
   const chosen = await selections(db, row.id);
   const [price] = row.lastPriceResultId ? await db.select().from(schema.priceResults).where(eq(schema.priceResults.id, row.lastPriceResultId)) : [];
   const [customer] = row.customerId ? await db.select({ email: schema.customers.email }).from(schema.customers).where(eq(schema.customers.id, row.customerId)) : [];
@@ -65,8 +114,38 @@ async function view(db: Database, row: Row): Promise<Configuration> {
     version: row.version,
     price: price ? { ...(price.result as Configuration["price"] & object), id: price.id } : null,
     emailedTo: customer ? maskEmail(customer.email) : null,
+    garment: GARMENT_FAMILIES.has(product!.family)
+      ? {
+          sourcing: row.sourcing,
+          decoration: row.decoration,
+          details: row.details as NonNullable<Configuration["garment"]>["details"],
+          sizesUnknown: row.sizesUnknown,
+          sizes: await sizesOf(db, row.id),
+          placements,
+          conflicts: placementConflicts(placements, row.decoration),
+          personalization: {
+            count: personalization.length,
+            preview: personalization.slice(0, 5).map(({ row: number, name, number: shirt, department, size }) => ({ row: number, name, number: shirt, department, size })),
+          },
+        }
+      : null,
+    files: await filesOf(db, row.id, placements),
+    artworkLaterAllowed: rules?.artworkLater ?? true,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/** Price-state changes from garment answers (COM-FR-022, 023, 024). */
+async function adjustments(db: Database, row: Row): Promise<NonNullable<CalculationInput["adjustments"]>> {
+  const list: NonNullable<CalculationInput["adjustments"]> = [];
+  if (row.sourcing === "CUSTOMER_SUPPLIED") list.push({ state: "ESTIMATE_READY", code: "FINAL_AFTER_INSPECTION", message: "Your garments: the price is final after we inspect them." });
+  if (row.sourcing === "MAKE_FROM_SCRATCH") list.push({ state: "QUOTE_REQUIRED", code: "MADE_TO_ORDER", message: "Made from scratch: we confirm the pattern, fabric and a sample first, then send a quote." });
+  if (row.sourcing === "HELP_ME_CHOOSE") list.push({ state: "QUOTE_REQUIRED", code: "RECOMMENDATION", message: "We'll recommend the right garment and send a quote." });
+  if (row.decoration === "RECOMMEND") list.push({ state: "ESTIMATE_READY", code: "RECOMMENDATION", message: "We'll recommend embroidery or print when we review your artwork." });
+  const placements = await placementsOf(db, row.id);
+  if (placements.length > 1) list.push({ state: "ESTIMATE_READY", code: "EXTRA_PLACEMENTS", message: `${placements.length} placements: extra positions are confirmed in the final price.` });
+  if (row.sizesUnknown) list.push({ state: "ESTIMATE_READY", code: "SIZES_UNKNOWN", message: "Sizes can be added later; the estimate uses your total quantity." });
+  return list;
 }
 
 /**
@@ -173,8 +252,11 @@ export async function createDraft(
 async function reprice(db: Database, id: string, at: Date): Promise<Row> {
   const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
   const chosen = Object.fromEntries((await selections(db, id)).map((item) => [item.optionKey, item.valueKey]));
-  if (!row!.quantity) return row!;
-  const result = await priceProduct(db, row!.productId, { choices: chosen, quantity: row!.quantity, rush: row!.rush, sample: false }, at);
+  const sizes = await sizesOf(db, id);
+  const sized = sizes.reduce((sum, item) => sum + item.quantity, 0);
+  const quantity = !row!.sizesUnknown && sized > 0 ? sized : row!.quantity;
+  if (!quantity) return row!;
+  const result = await priceProduct(db, row!.productId, { choices: chosen, quantity, rush: row!.rush, sample: false, adjustments: await adjustments(db, row!) }, at);
   const [updated] = await db.update(schema.configurations).set({ lastPriceResultId: result.id }).where(eq(schema.configurations.id, id)).returning();
   return updated!;
 }
@@ -197,8 +279,14 @@ export async function updateDraft(
     choices?: Record<string, string | null>;
     quantity?: number | null;
     rush?: "STANDARD" | "RUSH" | "PRIORITY";
-    artwork?: "UPLOAD" | "DESIGN_HELP" | "LATER" | null;
+    artwork?: "UPLOAD" | "LOGO" | "REFERENCE" | "DESIGN_HELP" | "LATER" | null;
     step?: string;
+    sourcing?: Row["sourcing"];
+    decoration?: Row["decoration"];
+    details?: Record<string, unknown>;
+    sizesUnknown?: boolean;
+    sizes?: { size: string; quantity: number }[];
+    placements?: Placement[];
     confirmRemovals: boolean;
   },
 ) {
@@ -206,6 +294,12 @@ export async function updateDraft(
   if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, row) } });
 
+  if (patch.artwork === "LATER") {
+    const [rules] = await db.select({ artworkLater: schema.productRules.artworkLater }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
+    if (rules && !rules.artworkLater) {
+      throw new AppError("VALIDATION_FAILED", { fieldErrors: { artwork: "Artwork is needed before we can make this product; sending it later isn't available." } });
+    }
+  }
   const options = await productOptions(db, row.productId);
   const rules = (await pricingInputs(db, row.productId, { choices: {}, quantity: 1, rush: "STANDARD", sample: false }, access.actor.now)).compatibility;
   const before = Object.fromEntries((await selections(db, id)).map((item) => [item.optionKey, item.valueKey]));
@@ -226,12 +320,26 @@ export async function updateDraft(
         ...(patch.rush && { rush: patch.rush }),
         ...(patch.artwork !== undefined && { artwork: patch.artwork }),
         ...(patch.step && { step: patch.step }),
+        ...(patch.sourcing !== undefined && { sourcing: patch.sourcing }),
+        ...(patch.decoration !== undefined && { decoration: patch.decoration }),
+        ...(patch.details && { details: { ...(row.details as object), ...patch.details } }),
+        ...(patch.sizesUnknown !== undefined && { sizesUnknown: patch.sizesUnknown }),
         version: sql`${schema.configurations.version} + 1`,
       })
       .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, patch.version)))
       .returning({ id: schema.configurations.id });
     if (!rows.length) return false;
     await writeSelections(tx, id, before, next, options.map((option) => option.key));
+    if (patch.sizes) {
+      await tx.delete(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, id));
+      const kept = patch.sizes.filter((item) => item.quantity > 0);
+      if (kept.length) await tx.insert(schema.configurationSizes).values(kept.map((item) => ({ configurationId: id, ...item })));
+    }
+    if (patch.placements) {
+      // Conflicts are shown with fixes, never refused, so the customer can fix one without losing others (COM-FR-026).
+      await tx.delete(schema.configurationPlacements).where(eq(schema.configurationPlacements.configurationId, id));
+      if (patch.placements.length) await tx.insert(schema.configurationPlacements).values(patch.placements.map((placement) => ({ configurationId: id, ...placement })));
+    }
     return true;
   });
   if (!saved) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, await load(db, access, id)) } });
@@ -245,10 +353,16 @@ export async function updateDraft(
 export async function emailDraftLink(deps: NotificationDeps & { webOrigin: string }, access: DraftAccess, id: string, email: string) {
   const row = await load(deps.db, access, id);
   const [product] = await deps.db.select({ name: schema.products.name }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const opened: { session: { token: string; expiresAt: Date } | null } = { session: null };
   await deps.db.transaction(async (tx) => {
     const customer = await ensureCustomer(tx, { email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
     await tx.update(schema.configurations).set({ customerId: customer.id }).where(eq(schema.configurations.id, id));
     const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now: access.actor.now });
+    // A visitor without an account gets a guest session for this one draft, so they can upload artwork here (TECH-04 uploads need a session).
+    if (access.actor.type === "anonymous") {
+      const [linkRow] = await tx.select().from(schema.guestLinks).where(eq(schema.guestLinks.id, link.id));
+      opened.session = await startGuestSession(tx, linkRow!, access.actor.now);
+    }
     await queueEmail(deps, tx, {
       template: "guest_link",
       to: email,
@@ -259,5 +373,75 @@ export async function emailDraftLink(deps: NotificationDeps & { webOrigin: strin
       requestId: access.actor.requestId,
     });
   });
-  return view(deps.db, await load(deps.db, access, id));
+  return { draft: await view(deps.db, await load(deps.db, access, id)), session: opened.session };
+}
+
+const ROLE_PURPOSES: Record<string, string[]> = {
+  ARTWORK: ["ARTWORK"],
+  LOGO: ["ARTWORK"],
+  REFERENCE: ["ARTWORK", "PROJECT_ATTACHMENT"],
+  GARMENT_PHOTO: ["ARTWORK", "PROJECT_ATTACHMENT"],
+};
+
+/** Attaches an uploaded file (the customer's own) to the draft (COM-FR-050, 023 garment photos). */
+export async function attachDraftFile(db: Database, access: DraftAccess, id: string, input: { fileId: string; role: "ARTWORK" | "LOGO" | "REFERENCE" | "GARMENT_PHOTO" }) {
+  const row = await load(db, access, id);
+  const file = await findFileForActor(db, access.actor, input.fileId).catch(() => null);
+  // Browser-owned drafts: the file must come from the same upload flow; the files module already scopes by uploader.
+  if (!file) throw new AppError("NOT_FOUND");
+  if (!ROLE_PURPOSES[input.role]!.includes(file.purpose)) throw new AppError("VALIDATION_FAILED", { fieldErrors: { fileId: "Upload this file as artwork." } });
+  if (file.status === "REJECTED") throw new AppError("RULE_FAILED", { message: file.reason ?? "We can't use this file.", context: { reason: "FILE_REJECTED" } });
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.configurationFiles).values({ configurationId: id, fileId: file.id, role: input.role }).onConflictDoNothing();
+    await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
+    await tx.update(schema.configurations).set({ version: sql`${schema.configurations.version} + 1` }).where(eq(schema.configurations.id, row.id));
+  });
+  return view(db, await load(db, access, id));
+}
+
+/** Low resolution never blocks (COM-FR-051): the customer replaces, asks for clean-up, or asks for review. */
+export async function setLowResolutionAction(db: Database, access: DraftAccess, id: string, linkId: string, action: "REPLACE" | "CLEANUP" | "REVIEW") {
+  await load(db, access, id);
+  const rows = await db
+    .update(schema.configurationFiles)
+    .set({ lowResolutionAction: action })
+    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+    .returning({ id: schema.configurationFiles.id });
+  if (!rows.length) throw new AppError("NOT_FOUND");
+  return view(db, await load(db, access, id));
+}
+
+export async function removeDraftFile(db: Database, access: DraftAccess, id: string, linkId: string) {
+  await load(db, access, id);
+  const rows = await db
+    .delete(schema.configurationFiles)
+    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+    .returning({ fileId: schema.configurationFiles.fileId });
+  if (!rows.length) throw new AppError("NOT_FOUND");
+  // The file is unattached again, so the daily clean-up can remove it after 7 days.
+  await db.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
+  return view(db, await load(db, access, id));
+}
+
+/**
+ * Imports per-item names, numbers, departments and sizes from a CSV upload
+ * (COM-FR-029). Every row is checked; nothing is saved until the whole file is
+ * clean, and each problem comes back with its line number.
+ */
+export async function importPersonalization(deps: { db: Database; storage: StorageAdapter }, access: DraftAccess, id: string, fileId: string) {
+  await load(deps.db, access, id);
+  const file = await findFileForActor(deps.db, access.actor, fileId).catch(() => null);
+  if (!file || file.purpose !== "CSV_IMPORT") throw new AppError("NOT_FOUND");
+  if (file.status !== "READY") throw new AppError("RULE_FAILED", { message: "This file is still being checked. Try again in a moment.", context: { reason: file.status } });
+  const text = (await deps.storage.read(file.storageKey)).toString("utf8");
+  const result = checkPersonalizationCsv(text);
+  if (result.errors.length) return { accepted: false, count: result.rows.length, errors: result.errors };
+  await deps.db.transaction(async (tx) => {
+    await tx.delete(schema.configurationPersonalizationRows).where(eq(schema.configurationPersonalizationRows.configurationId, id));
+    for (let start = 0; start < result.rows.length; start += 500) {
+      await tx.insert(schema.configurationPersonalizationRows).values(result.rows.slice(start, start + 500).map((row) => ({ configurationId: id, ...row })));
+    }
+    await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
+  });
+  return { accepted: true, count: result.rows.length, errors: [] };
 }

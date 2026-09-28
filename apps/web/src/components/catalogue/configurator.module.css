@@ -434,3 +434,203 @@
 .stickyPrice strong {
   font-size: var(--hp-text-emphasis);
 }
+
+/* Garment configurator (Pen 22 · O2tORo polo configurator, 19/20 polo PDP). */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-20);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-bone);
+}
+
+@media (min-width: 1024px) {
+  .preview {
+    position: sticky;
+    top: var(--hp-space-24);
+    align-self: start;
+  }
+}
+
+.previewTag {
+  align-self: flex-start;
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-radius: var(--hp-r-chip);
+  background: var(--hp-paper);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+.garment {
+  width: 100%;
+  height: auto;
+  max-height: calc(var(--hp-space-128) * 4);
+}
+
+.garmentBody {
+  fill: var(--hp-paper);
+  stroke: var(--hp-line-strong);
+  stroke-width: 2;
+}
+
+.zone {
+  fill: transparent;
+  stroke: var(--hp-mid);
+  stroke-dasharray: 4 4;
+  cursor: pointer;
+}
+
+.zone:hover,
+.zone:focus-visible {
+  fill: var(--hp-accent-tint);
+  outline: none;
+}
+
+.zoneOn {
+  fill: var(--hp-accent);
+  fill-opacity: 0.25;
+  stroke: var(--hp-accent);
+  stroke-dasharray: none;
+  stroke-width: 2;
+}
+
+.zoneConflict {
+  stroke: var(--hp-error);
+  stroke-width: 3;
+}
+
+.views {
+  display: flex;
+  gap: var(--hp-space-8);
+}
+
+.previewNote {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.placementRow {
+  display: grid;
+  gap: var(--hp-space-10);
+  padding: var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+}
+
+.placementHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-8);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+}
+
+.segmented label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-14);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-semibold);
+  cursor: pointer;
+}
+
+.segmented label:has(input:checked) {
+  border-color: var(--hp-ink);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.segmented label:has(input:focus-visible) {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.segmented input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.conflict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-12) var(--hp-space-14);
+  border-left: var(--hp-space-4) solid var(--hp-error);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-error-tint);
+  font-size: var(--hp-text-support);
+}
+
+.sizeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--hp-space-64) + var(--hp-space-20)), 1fr));
+  gap: var(--hp-space-10);
+}
+
+.sizeGrid label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.sizeGrid input {
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-10);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-control);
+  font: inherit;
+  text-align: center;
+}
+
+.errorList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  max-height: calc(var(--hp-space-128) * 2);
+  margin: 0;
+  padding: var(--hp-space-12) var(--hp-space-14);
+  overflow-y: auto;
+  border-radius: var(--hp-r-control);
+  background: var(--hp-error-tint);
+  font-size: var(--hp-text-support);
+  list-style: none;
+}
+
+.fileRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  font-size: var(--hp-text-support);
+}
+
+.lowRes {
+  padding: var(--hp-space-10) var(--hp-space-12);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-warning-tint);
+}

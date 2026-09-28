@@ -99,6 +99,13 @@
       "when": 1790614719505,
       "tag": "0013_configurations",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790617395339,
+      "tag": "0014_garment_configuration",
+      "breakpoints": true
     }
   ]
 }

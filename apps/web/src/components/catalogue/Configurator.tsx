@@ -9,7 +9,7 @@ import styles from "./configurator.module.css";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
 
-type Artwork = "UPLOAD" | "DESIGN_HELP" | "LATER";
+type Artwork = "UPLOAD" | "LOGO" | "REFERENCE" | "DESIGN_HELP" | "LATER";
 type SaveState = "idle" | "saving" | "saved" | "failed";
 interface Pending {
   choices?: Record<string, string | null>;

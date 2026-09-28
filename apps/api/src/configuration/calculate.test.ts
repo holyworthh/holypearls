@@ -415,3 +415,15 @@ describe("rounding helpers", () => {
     expect(() => mulDivRound(1n, 1n, 0n)).toThrow(RangeError);
   });
 });
+
+describe("adjustments from answers outside the options (T03-05)", () => {
+  it("raises the state and explains why, keeping the amount", () => {
+    const result = calculatePrice({ ...base(), adjustments: [{ state: "ESTIMATE_READY", code: "FINAL_AFTER_INSPECTION", message: "Final after inspection." }] });
+    expect(result).toMatchObject({ state: "ESTIMATE_READY", totalMinor: 1_612_500n, reasons: [expect.objectContaining({ code: "FINAL_AFTER_INSPECTION" })] });
+  });
+
+  it("never lowers a worse state", () => {
+    const result = calculatePrice({ ...base(), quantity: 10_001, adjustments: [{ state: "ESTIMATE_READY", code: "EXTRA_PLACEMENTS", message: "x" }] });
+    expect(result.state).toBe("QUOTE_REQUIRED");
+  });
+});

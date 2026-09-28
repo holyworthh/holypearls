@@ -78,9 +78,16 @@ export interface CalculationInput {
   sample: boolean;
   /** Delivery charge from the delivery module (T04-01); null when not chosen yet. */
   delivery: { amountMinor: bigint; currency: "NGN" | "USD" } | null;
+  /** Answers outside the option list that change the price state (garment sourcing, extra placements…). */
+  adjustments?: { state: PriceState; code: ReasonCode; message: string }[];
 }
 
 export type ReasonCode =
+  | "FINAL_AFTER_INSPECTION"
+  | "MADE_TO_ORDER"
+  | "RECOMMENDATION"
+  | "EXTRA_PLACEMENTS"
+  | "SIZES_UNKNOWN"
   | "CONSULTATION_PRODUCT"
   | "NO_RULES"
   | "NO_PRICE"
@@ -220,6 +227,10 @@ export function calculatePrice(input: CalculationInput): CalculationResult {
   }
 
   let state: PriceState = "PRICE_READY";
+  for (const adjustment of input.adjustments ?? []) {
+    reason(adjustment.code, adjustment.message);
+    state = worse(state, adjustment.state);
+  }
 
   // Choices that don't work together (OPS-FR-013).
   for (const rule of input.compatibility) {
