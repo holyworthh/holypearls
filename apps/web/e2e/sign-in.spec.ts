@@ -66,7 +66,7 @@ test("a signed-in customer gets the server-rendered page and signed-in browser r
   await signInCustomer(page, TEST_PEOPLE.customerChidi);
   // Server-rendered with the signed-in person.
   await expect(page.getByText(`Signed in as ${TEST_PEOPLE.customerChidi.email}`)).toBeVisible();
-  await expect(page.getByText("This device")).toBeVisible();
+  await expect(page.getByText("This device", { exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
