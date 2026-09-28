@@ -41,6 +41,8 @@ export async function createHarness(
   options: {
     controllers?: Type[];
     rateLimit?: boolean;
+    /** Mounts the demo routes (on by default when a Jobs sender is passed). */
+    demoSlice?: boolean;
     seed?: boolean;
     /** Serve the demo slice routes. */
     jobs?: boolean;
@@ -94,7 +96,7 @@ export async function createHarness(
     jobs,
     sealKey: TEST_SEAL_KEY,
     helpInboxEmail: TEST_HELP_INBOX,
-    demoSlice: Boolean(options.jobs),
+    demoSlice: options.demoSlice ?? Boolean(options.jobs),
     rateLimit: options.rateLimit ?? false,
     now: () => now.value ?? new Date(),
     webOrigin: TEST_WEB_ORIGIN,

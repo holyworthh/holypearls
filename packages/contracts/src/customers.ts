@@ -33,6 +33,7 @@ export const emailCodePurposeSchema = z.enum([
   "PARTICIPANT_PAYMENT",
   "FIND_ORDER",
 ]);
+export type EmailCodePurpose = z.infer<typeof emailCodePurposeSchema>;
 export const requestEmailCodeSchema = z.object({ purpose: emailCodePurposeSchema });
 export const verifyEmailCodeSchema = z.object({
   purpose: emailCodePurposeSchema,

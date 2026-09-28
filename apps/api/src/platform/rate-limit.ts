@@ -15,6 +15,8 @@ export const RATE_LIMITS = {
   SEARCH: { ip: { limit: 60, windowSeconds: 60 } },
   AUTH: { ip: { limit: 10, windowSeconds: 60 }, subject: { limit: 5, windowSeconds: 15 * 60 } },
   GUEST_LINK_VERIFY: { ip: { limit: 10, windowSeconds: 60 } },
+  /** Public "contact us" writes such as help requests: a person rarely sends more than a few an hour. */
+  CONTACT: { ip: { limit: 5, windowSeconds: 10 * 60 }, subject: { limit: 10, windowSeconds: 60 * 60 } },
   UPLOAD_INTENT: { subject: { limit: 30, windowSeconds: 60 * 60 } },
   COMMERCIAL_WRITE: { subject: { limit: 20, windowSeconds: 60 } },
   ADMIN_WRITE: { subject: { limit: 120, windowSeconds: 60 } },

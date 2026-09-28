@@ -30,7 +30,7 @@ export class HelpController {
   constructor(@Inject(HELP_DEPS) private readonly deps: HelpDepsToken) {}
 
   @Post()
-  @RateLimit("GUEST_LINK_VERIFY")
+  @RateLimit("CONTACT")
   async create(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,

@@ -267,8 +267,11 @@ export async function verifyEmailCode(db: Database, key: string, actor: ActorCon
   }
   await db.transaction(async (tx) => {
     await tx.update(schema.emailCodes).set({ consumedAt: now }).where(eq(schema.emailCodes.id, row.id));
+    // The 24-hour window belongs to this session (guest or signed in), not to the person.
     if (actor.type === "guest") {
       await tx.update(schema.guestSessions).set({ emailVerifiedAt: now }).where(eq(schema.guestSessions.id, actor.guest.guestSessionId));
+    } else if (actor.type === "user") {
+      await tx.update(schema.sessions).set({ emailCodeVerifiedAt: now }).where(eq(schema.sessions.id, actor.session.sessionId));
     }
     await tx.update(schema.customers).set({ emailVerifiedAt: now }).where(eq(schema.customers.id, customer.id));
   });
@@ -285,11 +288,9 @@ export async function requireRecentEmailCode(db: Database, actor: ActorContext):
   if (actor.type === "guest") verifiedAt = actor.guest.emailVerifiedAt;
   else if (actor.type === "user") {
     const [row] = await db
-      .select({ at: schema.customers.emailVerifiedAt })
-      .from(schema.customers)
-      .where(eq(schema.customers.userId, actor.session.userId))
-      .orderBy(desc(schema.customers.emailVerifiedAt))
-      .limit(1);
+      .select({ at: schema.sessions.emailCodeVerifiedAt })
+      .from(schema.sessions)
+      .where(eq(schema.sessions.id, actor.session.sessionId));
     verifiedAt = row?.at ?? null;
   } else throw new AppError("NOT_SIGNED_IN");
   if (!verifiedAt || actor.now.getTime() - verifiedAt.getTime() > EMAIL_CODE_VALID_HOURS * 3_600_000) {

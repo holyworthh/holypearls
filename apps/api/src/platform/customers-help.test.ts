@@ -46,7 +46,7 @@ const cookieFrom = (response: request.Response, name: string) =>
   ((response.headers["set-cookie"] as unknown as string[] | undefined) ?? []).find((line) => line.startsWith(`${name}=`));
 
 beforeAll(async () => {
-  harness = await createHarness();
+  harness = await createHarness({ demoSlice: true });
   actors = await signInActors(harness, ["adminAda", "adminTunde", "customerChidi"]);
   // The worker, in-process: the same services apps/worker runs.
   worker = new Jobs({
@@ -285,6 +285,27 @@ describe("email codes (TECH-03 §5)", () => {
     });
     await expect(requireRecentEmailCode(harness.database.db, guest(new Date(now.getTime() - 60_000)))).resolves.toBeUndefined();
   });
+});
+
+describe("email-code window per session (T01-02 follow-up)", () => {
+  it("counts a code only for the session that entered it", async () => {
+    const first = await harness.signInAs("customerChidi");
+    const second = await harness.signInAs("customerChidi");
+    const email = TEST_PEOPLE.customerChidi.email;
+    const codeFor = async () => {
+      await until(async () => Boolean(sender.latestTo(email)?.subject.match(/^\d{6}/)));
+      return sender.latestTo(email)!.subject.slice(0, 6);
+    };
+    sender.sent.length = 0;
+    expect((await as(harness, first).post("/v1/email-codes", { purpose: "VERIFY_ACTION" })).status).toBe(201);
+    const verified = await as(harness, first).post("/v1/email-codes/verify", { purpose: "VERIFY_ACTION", code: await codeFor() });
+    expect(verified.status).toBe(200);
+
+    expect((await as(harness, first).post("/v1/demo/slice/important-action", {})).status).toBe(200);
+    const other = await as(harness, second).post("/v1/demo/slice/important-action", {});
+    expect(other.status).toBe(403);
+    expect(other.body.code).toBe("RECENT_EMAIL_CODE_REQUIRED");
+  }, 180_000);
 });
 
 describe("linking guest history to an account (TECH-03 §6)", () => {

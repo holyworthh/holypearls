@@ -64,6 +64,13 @@
       "when": 1790566803511,
       "tag": "0008_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790597498221,
+      "tag": "0009_session_email_code",
+      "breakpoints": true
     }
   ]
 }
