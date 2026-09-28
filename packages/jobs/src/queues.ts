@@ -35,6 +35,8 @@ export const QUEUES = {
   "file.inspect": { payload: payload({ fileId: z.string().uuid() }), settings: { expireInSeconds: 120 } },
   /** Makes previews and thumbnails (2 retries, 2-minute timeout). */
   "file.preview": { payload: payload({ fileId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 120 } },
+  /** Tells the web app to refresh cached public pages for these cache tags (TECH-02 §6). */
+  "cache.revalidate": { payload: payload({ tags: z.array(z.string().max(120)).min(1).max(50) }), settings: { retryLimit: 3 } },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;

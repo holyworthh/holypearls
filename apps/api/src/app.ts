@@ -17,6 +17,7 @@ import { MeController } from "./identity/me.controller.js";
 import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
+import { CatalogueAdminController } from "./catalogue/catalogue.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -71,6 +72,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       AdminHelpController,
       NotificationsController,
       FilesController,
+      CatalogueAdminController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],

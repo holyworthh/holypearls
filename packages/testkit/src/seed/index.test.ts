@@ -51,5 +51,9 @@ describe("runSeed", () => {
     await runSeed(database.db, buildSeedSteps({ authSecret: "t".repeat(32) }));
     const again = await database.db.execute<{ users: number }>(sql`select count(*)::int as users from users`);
     expect(again.rows[0]?.users).toBe(5);
+    const catalogue = await database.db.execute<{ families: number; top: number }>(sql`
+      select (select count(distinct family)::int from products) as families,
+             (select count(*)::int from categories where parent_id is null) as top`);
+    expect(catalogue.rows[0]).toEqual({ families: 10, top: 9 });
   });
 });

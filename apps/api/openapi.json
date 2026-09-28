@@ -5313,6 +5313,1438 @@
         }
       }
     },
+    "/v1/admin/catalogue/products": {
+      "get": {
+        "summary": "Products with search and filters (CATALOGUE_MANAGE)",
+        "responses": {
+          "200": {
+            "description": "A page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "sku": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "family": {
+                            "type": "string",
+                            "enum": [
+                              "GARMENT",
+                              "APPAREL_PRINT",
+                              "EMBROIDERY",
+                              "PAPER_PRINT",
+                              "LARGE_FORMAT",
+                              "PACKAGING",
+                              "STICKER_LABEL",
+                              "PROMOTIONAL_ITEM",
+                              "WALL_ART",
+                              "CUSTOM_PROJECT"
+                            ]
+                          },
+                          "buyingMode": {
+                            "type": "string",
+                            "enum": [
+                              "SIMPLE_CONFIGURABLE",
+                              "CONFIGURABLE_QUOTE",
+                              "CONSULTATIVE_PROJECT"
+                            ]
+                          },
+                          "categoryId": {
+                            "type": "string"
+                          },
+                          "categoryName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "PUBLISHED",
+                              "TEMPORARILY_UNAVAILABLE",
+                              "ARCHIVED"
+                            ]
+                          },
+                          "listed": {
+                            "type": "boolean"
+                          },
+                          "summary": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "description": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "searchPhrases": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "specifications": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "label": {
+                                  "type": "string"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "label",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "faqs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "question": {
+                                  "type": "string"
+                                },
+                                "answer": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "question",
+                                "answer"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "seoTitle": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "seoDescription": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "mediaCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "sku",
+                          "slug",
+                          "name",
+                          "family",
+                          "buyingMode",
+                          "categoryId",
+                          "categoryName",
+                          "status",
+                          "listed",
+                          "summary",
+                          "description",
+                          "searchPhrases",
+                          "specifications",
+                          "faqs",
+                          "seoTitle",
+                          "seoDescription",
+                          "mediaCount",
+                          "version",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "entries",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a DRAFT product (CATALOGUE_MANAGE, audited)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "slug": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "family": {
+                    "type": "string",
+                    "enum": [
+                      "GARMENT",
+                      "APPAREL_PRINT",
+                      "EMBROIDERY",
+                      "PAPER_PRINT",
+                      "LARGE_FORMAT",
+                      "PACKAGING",
+                      "STICKER_LABEL",
+                      "PROMOTIONAL_ITEM",
+                      "WALL_ART",
+                      "CUSTOM_PROJECT"
+                    ]
+                  },
+                  "buyingMode": {
+                    "type": "string",
+                    "enum": [
+                      "SIMPLE_CONFIGURABLE",
+                      "CONFIGURABLE_QUOTE",
+                      "CONSULTATIVE_PROJECT"
+                    ]
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "summary": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 10000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "listed": {
+                    "type": "boolean"
+                  },
+                  "searchPhrases": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "specifications": {
+                    "maxItems": 40,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "value": {
+                          "type": "string",
+                          "maxLength": 300
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "faqs": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "question": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "answer": {
+                          "type": "string",
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "question",
+                        "answer"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "seoTitle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 70
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seoDescription": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 170
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sku": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "name",
+                  "slug",
+                  "family",
+                  "buyingMode",
+                  "categoryId",
+                  "sku"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string",
+                      "enum": [
+                        "GARMENT",
+                        "APPAREL_PRINT",
+                        "EMBROIDERY",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT",
+                        "PACKAGING",
+                        "STICKER_LABEL",
+                        "PROMOTIONAL_ITEM",
+                        "WALL_ART",
+                        "CUSTOM_PROJECT"
+                      ]
+                    },
+                    "buyingMode": {
+                      "type": "string",
+                      "enum": [
+                        "SIMPLE_CONFIGURABLE",
+                        "CONFIGURABLE_QUOTE",
+                        "CONSULTATIVE_PROJECT"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": "string"
+                    },
+                    "categoryName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "listed": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "searchPhrases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "specifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "faqs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "question": {
+                            "type": "string"
+                          },
+                          "answer": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "question",
+                          "answer"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seoTitle": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "seoDescription": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "mediaCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sku",
+                    "slug",
+                    "name",
+                    "family",
+                    "buyingMode",
+                    "categoryId",
+                    "categoryName",
+                    "status",
+                    "listed",
+                    "summary",
+                    "description",
+                    "searchPhrases",
+                    "specifications",
+                    "faqs",
+                    "seoTitle",
+                    "seoDescription",
+                    "mediaCount",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input or slug taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/catalogue/products/{id}": {
+      "get": {
+        "summary": "One product (CATALOGUE_MANAGE)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string",
+                      "enum": [
+                        "GARMENT",
+                        "APPAREL_PRINT",
+                        "EMBROIDERY",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT",
+                        "PACKAGING",
+                        "STICKER_LABEL",
+                        "PROMOTIONAL_ITEM",
+                        "WALL_ART",
+                        "CUSTOM_PROJECT"
+                      ]
+                    },
+                    "buyingMode": {
+                      "type": "string",
+                      "enum": [
+                        "SIMPLE_CONFIGURABLE",
+                        "CONFIGURABLE_QUOTE",
+                        "CONSULTATIVE_PROJECT"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": "string"
+                    },
+                    "categoryName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "listed": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "searchPhrases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "specifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "faqs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "question": {
+                            "type": "string"
+                          },
+                          "answer": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "question",
+                          "answer"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seoTitle": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "seoDescription": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "mediaCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sku",
+                    "slug",
+                    "name",
+                    "family",
+                    "buyingMode",
+                    "categoryId",
+                    "categoryName",
+                    "status",
+                    "listed",
+                    "summary",
+                    "description",
+                    "searchPhrases",
+                    "specifications",
+                    "faqs",
+                    "seoTitle",
+                    "seoDescription",
+                    "mediaCount",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit a product with the version it started from (CATALOGUE_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "slug": {
+                    "type": "string",
+                    "maxLength": 80,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "family": {
+                    "type": "string",
+                    "enum": [
+                      "GARMENT",
+                      "APPAREL_PRINT",
+                      "EMBROIDERY",
+                      "PAPER_PRINT",
+                      "LARGE_FORMAT",
+                      "PACKAGING",
+                      "STICKER_LABEL",
+                      "PROMOTIONAL_ITEM",
+                      "WALL_ART",
+                      "CUSTOM_PROJECT"
+                    ]
+                  },
+                  "buyingMode": {
+                    "type": "string",
+                    "enum": [
+                      "SIMPLE_CONFIGURABLE",
+                      "CONFIGURABLE_QUOTE",
+                      "CONSULTATIVE_PROJECT"
+                    ]
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "summary": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 10000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "listed": {
+                    "type": "boolean"
+                  },
+                  "searchPhrases": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    }
+                  },
+                  "specifications": {
+                    "maxItems": 40,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "maxLength": 80
+                        },
+                        "value": {
+                          "type": "string",
+                          "maxLength": 300
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "faqs": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "question": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "answer": {
+                          "type": "string",
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "question",
+                        "answer"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "seoTitle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 70
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "seoDescription": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 170
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string",
+                      "enum": [
+                        "GARMENT",
+                        "APPAREL_PRINT",
+                        "EMBROIDERY",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT",
+                        "PACKAGING",
+                        "STICKER_LABEL",
+                        "PROMOTIONAL_ITEM",
+                        "WALL_ART",
+                        "CUSTOM_PROJECT"
+                      ]
+                    },
+                    "buyingMode": {
+                      "type": "string",
+                      "enum": [
+                        "SIMPLE_CONFIGURABLE",
+                        "CONFIGURABLE_QUOTE",
+                        "CONSULTATIVE_PROJECT"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": "string"
+                    },
+                    "categoryName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "listed": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "searchPhrases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "specifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "faqs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "question": {
+                            "type": "string"
+                          },
+                          "answer": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "question",
+                          "answer"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seoTitle": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "seoDescription": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "mediaCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sku",
+                    "slug",
+                    "name",
+                    "family",
+                    "buyingMode",
+                    "categoryId",
+                    "categoryName",
+                    "status",
+                    "listed",
+                    "summary",
+                    "description",
+                    "searchPhrases",
+                    "specifications",
+                    "faqs",
+                    "seoTitle",
+                    "seoDescription",
+                    "mediaCount",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/catalogue/products/{id}/status": {
+      "post": {
+        "summary": "Publish, unpublish, mark temporarily unavailable or archive (CATALOGUE_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to": {
+                    "type": "string",
+                    "enum": [
+                      "DRAFT",
+                      "PUBLISHED",
+                      "TEMPORARILY_UNAVAILABLE",
+                      "ARCHIVED"
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "to",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "sku": {
+                      "type": "string"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string",
+                      "enum": [
+                        "GARMENT",
+                        "APPAREL_PRINT",
+                        "EMBROIDERY",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT",
+                        "PACKAGING",
+                        "STICKER_LABEL",
+                        "PROMOTIONAL_ITEM",
+                        "WALL_ART",
+                        "CUSTOM_PROJECT"
+                      ]
+                    },
+                    "buyingMode": {
+                      "type": "string",
+                      "enum": [
+                        "SIMPLE_CONFIGURABLE",
+                        "CONFIGURABLE_QUOTE",
+                        "CONSULTATIVE_PROJECT"
+                      ]
+                    },
+                    "categoryId": {
+                      "type": "string"
+                    },
+                    "categoryName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PUBLISHED",
+                        "TEMPORARILY_UNAVAILABLE",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "listed": {
+                      "type": "boolean"
+                    },
+                    "summary": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "description": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "searchPhrases": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "specifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "value"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "faqs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "question": {
+                            "type": "string"
+                          },
+                          "answer": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "question",
+                          "answer"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "seoTitle": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "seoDescription": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "mediaCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "sku",
+                    "slug",
+                    "name",
+                    "family",
+                    "buyingMode",
+                    "categoryId",
+                    "categoryName",
+                    "status",
+                    "listed",
+                    "summary",
+                    "description",
+                    "searchPhrases",
+                    "specifications",
+                    "faqs",
+                    "seoTitle",
+                    "seoDescription",
+                    "mediaCount",
+                    "version",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Transition not allowed or VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not ready to publish (RULE_FAILED with fieldErrors)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/me": {
       "get": {
         "summary": "The signed-in staff member, for the admin shell",
@@ -5577,6 +7009,7 @@
               "RECENT_EMAIL_CODE_REQUIRED",
               "NOT_FOUND",
               "CONFLICT",
+              "VERSION_CONFLICT",
               "RULE_FAILED",
               "RATE_LIMITED",
               "INTERNAL"

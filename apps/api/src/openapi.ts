@@ -2,6 +2,11 @@ import {
   adminMeSchema,
   apiErrorSchema,
   adminHelpRequestSchema,
+  adminProductPageSchema,
+  adminProductSchema,
+  changeProductStatusSchema,
+  createProductSchema,
+  updateProductSchema,
   auditEntrySchema,
   auditPageSchema,
   createHelpRequestSchema,
@@ -339,6 +344,36 @@ export function buildOpenApiDocument() {
             { name: "page", in: "query", required: false, schema: { type: "integer" } },
           ],
           responses: { 200: { description: "Preview URL", content: json(fileUrlSchema) }, 404: error("Not yours, or no preview") },
+        },
+      },
+      "/v1/admin/catalogue/products": {
+        get: { summary: "Products with search and filters (CATALOGUE_MANAGE)", responses: { 200: { description: "A page", content: json(adminProductPageSchema) }, ...staffOnly } },
+        post: {
+          summary: "Create a DRAFT product (CATALOGUE_MANAGE, audited)",
+          requestBody: { required: true, content: json(createProductSchema) },
+          responses: { 201: { description: "Created", content: json(adminProductSchema) }, 400: error("Bad input or slug taken"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}": {
+        get: { summary: "One product (CATALOGUE_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "The product", content: json(adminProductSchema) }, ...staffOnly } },
+        patch: {
+          summary: "Edit a product with the version it started from (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(updateProductSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/status": {
+        post: {
+          summary: "Publish, unpublish, mark temporarily unavailable or archive (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(changeProductStatusSchema) },
+          responses: {
+            200: { description: "Changed", content: json(adminProductSchema) },
+            409: error("Transition not allowed or VERSION_CONFLICT"),
+            422: error("Not ready to publish (RULE_FAILED with fieldErrors)"),
+            ...staffOnly,
+          },
         },
       },
       "/v1/admin/me": {

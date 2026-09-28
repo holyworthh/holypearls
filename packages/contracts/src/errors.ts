@@ -13,6 +13,7 @@ export const ERROR_CODES = {
   RECENT_EMAIL_CODE_REQUIRED: { status: 403, message: "Enter the code we email you to continue." },
   NOT_FOUND: { status: 404, message: "We couldn't find what you were looking for." },
   CONFLICT: { status: 409, message: "This changed while you were working. Refresh and try again." },
+  VERSION_CONFLICT: { status: 409, message: "Someone else saved this first. Review their changes, then save again." },
   RULE_FAILED: { status: 422, message: "This can't be done right now." },
   RATE_LIMITED: { status: 429, message: "Too many attempts. Wait a moment and try again." },
   INTERNAL: { status: 500, message: "Something went wrong on our side. Try again shortly." },
