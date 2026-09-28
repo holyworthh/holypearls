@@ -149,7 +149,9 @@ describe("uploads (TECH-04 §3–4)", () => {
     expectHidden(
       await as(harness, actors.customerChidi!).post("/v1/files/uploads", { purpose: "PROOF", fileName: "p.pdf", size: 10, contentType: "application/pdf" }),
     );
-    const staff = await as(harness, actors.adminAda!).post("/v1/files/uploads", { purpose: "PRODUCT_MEDIA", fileName: "m.png", size: 10, contentType: "image/png" });
+    // Tunde is STAFF_ADMIN only, without CATALOGUE_MANAGE.
+    const tunde = await harness.signInAs("adminTunde");
+    const staff = await as(harness, tunde).post("/v1/files/uploads", { purpose: "PRODUCT_MEDIA", fileName: "m.png", size: 10, contentType: "image/png" });
     expect(staff.status).toBe(403);
   });
 });

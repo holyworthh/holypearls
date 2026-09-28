@@ -239,7 +239,7 @@ describe("staff access (TECH-03 §8, §10)", () => {
     const response = await http().get("/v1/admin/me").set("cookie", cookie);
     expect(response.status).toBe(200);
     const me = adminMeSchema.parse(response.body);
-    expect(me.permissions).toEqual(["AUDIT_VIEW", "CUSTOMER_SUPPORT", "PAYMENT_VIEW", "SECURITY_ADMIN", "STAFF_ADMIN"]);
+    expect(me.permissions).toEqual(["AUDIT_VIEW", "CATALOGUE_MANAGE", "CUSTOMER_SUPPORT", "PAYMENT_VIEW", "SECURITY_ADMIN", "STAFF_ADMIN"]);
   });
 
   it("returns 403 when staff lack the route's permission", async () => {
@@ -247,7 +247,6 @@ describe("staff access (TECH-03 §8, §10)", () => {
     const response = await http().get("/v1/admin/_probe/payments").set("cookie", cookie);
     expect(response.status).toBe(403);
     expect(errorOf(response.body)).toMatchObject({ code: "FORBIDDEN", context: { permission: "PAYMENT_MANAGE" } });
-    expect((await http().get("/v1/admin/_probe/catalogue").set("cookie", cookie)).status).toBe(403);
   });
 
   it("allows a high-risk action within 15 minutes of MFA and asks again after", async () => {

@@ -75,6 +75,21 @@ await jobs.work(
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
+// Public pages refresh through the web app's revalidation route once it exists (T02-03).
+await jobs.work(
+  "cache.revalidate",
+  track("cache.revalidate", async (payload) => {
+    const url = process.env.WEB_REVALIDATE_URL;
+    if (!url) return logger.info({ tags: payload.tags }, "cache tags changed (no revalidation URL set)");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.WEB_REVALIDATE_SECRET ?? ""}` },
+      body: JSON.stringify({ tags: payload.tags }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) throw new Error(`Revalidation failed (${response.status})`);
+  }),
+);
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");

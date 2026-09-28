@@ -126,13 +126,13 @@ test("staff sign in with their authenticator and see only permitted sections", a
   const nav = page.getByRole("navigation", { name: "Admin" }).first();
   if (await nav.isVisible()) {
     await expect(nav.getByRole("link", { name: "Payments" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Products" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Production" })).toHaveCount(0);
   }
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
   // Permission guard: 403 inside the shell.
-  await page.goto("/admin/products");
+  await page.goto("/admin/production");
   await expect(page.getByRole("heading", { name: "You don't have access to this" })).toBeVisible();
   await expect(page.getByText("403 · PERMISSION REQUIRED")).toBeVisible();
   await expectNoAxeViolations(page);
