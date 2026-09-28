@@ -1,8 +1,7 @@
 import { Body, Controller, Get, type INestApplication, Post } from "@nestjs/common";
-import { loadTestDatabaseEnv } from "@holypearls/config";
+import type { IdentityAdapter } from "@holypearls/auth";
 import { apiErrorSchema } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
-import { createTestDatabase, type TestDatabase } from "@holypearls/testkit";
 import { Writable } from "node:stream";
 import request from "supertest";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -10,9 +9,8 @@ import { z } from "zod";
 import { createApp } from "./app.js";
 import { AppError } from "./errors.js";
 import { createLogger } from "./logger.js";
+import { createHarness, type Harness, TEST_WEB_ORIGIN } from "./testing/harness.js";
 import { ZodValidationPipe } from "./validation.js";
-
-const { TEST_DATABASE_URL } = loadTestDatabaseEnv();
 
 const signupSchema = z.object({
   email: z.email("Enter a valid email address"),
@@ -50,19 +48,18 @@ function captureLogs() {
 }
 
 describe("API conventions", () => {
-  let database: TestDatabase;
+  let harness: Harness;
   let app: INestApplication;
-  const logs = captureLogs();
+  const logs = { lines: [] as string[] };
 
   beforeAll(async () => {
-    database = await createTestDatabase(TEST_DATABASE_URL);
-    app = await createApp({ db: database.db, logger: logs.logger, controllers: [ConventionsController] });
-    await app.init();
+    harness = await createHarness({ controllers: [ConventionsController], seed: false });
+    app = harness.app;
+    logs.lines = harness.logs;
   });
 
   afterAll(async () => {
-    await app?.close();
-    await database?.drop();
+    await harness?.close();
   });
 
   beforeEach(() => {
@@ -72,6 +69,7 @@ describe("API conventions", () => {
   it("returns 400 in the error shape with field errors and the request ID", async () => {
     const response = await request(app.getHttpServer())
       .post("/v1/conventions/echo")
+      .set("origin", TEST_WEB_ORIGIN)
       .send({ email: "not-an-email", quantity: 0 });
 
     expect(response.status).toBe(400);
@@ -159,7 +157,8 @@ describe("API conventions", () => {
 describe("readiness without a database", () => {
   it("returns 503 when the database cannot be reached", async () => {
     const brokenDb = { execute: async () => Promise.reject(new Error("ECONNREFUSED")) } as unknown as Database;
-    const app = await createApp({ db: brokenDb, logger: captureLogs().logger });
+    const identity = { getSession: async () => null } as unknown as IdentityAdapter;
+    const app = await createApp({ db: brokenDb, logger: captureLogs().logger, identity, webOrigin: TEST_WEB_ORIGIN });
     await app.init();
     try {
       const response = await request(app.getHttpServer()).get("/health/ready");

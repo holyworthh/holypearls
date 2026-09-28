@@ -24,3 +24,6 @@ apps/web/next-env.d.ts
 # Playwright output
 apps/web/test-results/
 apps/web/playwright-report/
+
+# Local sign-in emails (magic links) until T01-02
+.outbox/

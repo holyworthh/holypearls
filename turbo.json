@@ -5,7 +5,11 @@
     "DATABASE_URL",
     "API_PORT",
     "TEST_DATABASE_URL",
-    "NODE_ENV"
+    "NODE_ENV",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "AUTH_OUTBOX_PATH",
+    "AUTH_RATE_LIMIT"
   ],
   "tasks": {
     "build": {

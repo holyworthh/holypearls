@@ -8,6 +8,8 @@ export const ERROR_CODES = {
   VALIDATION_FAILED: { status: 400, message: "Check the highlighted fields and try again." },
   NOT_SIGNED_IN: { status: 401, message: "Sign in to continue." },
   FORBIDDEN: { status: 403, message: "You don't have permission to do this." },
+  MFA_REQUIRED: { status: 403, message: "Set up or confirm your authenticator to continue." },
+  RECENT_MFA_REQUIRED: { status: 403, message: "Confirm with your authenticator to continue." },
   NOT_FOUND: { status: 404, message: "We couldn't find what you were looking for." },
   CONFLICT: { status: 409, message: "This changed while you were working. Refresh and try again." },
   RULE_FAILED: { status: 422, message: "This can't be done right now." },

@@ -1,4 +1,5 @@
-import { withTransaction, type Database, type Transaction } from "@holypearls/db";
+import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
+import { schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
 
 /** Every seeded record is test data (TECH-08 §11). Use this label in names and notes. */
 export const TEST_DATA_LABEL = "TEST DATA";
@@ -8,14 +9,31 @@ export interface SeedStep {
   run(tx: Transaction): Promise<void>;
 }
 
+export interface SeedOptions {
+  /** The API's BETTER_AUTH_SECRET, so seeded authenticator secrets decrypt. */
+  authSecret: string;
+}
+
+/** Two STAFF_ADMIN users, a staff member without MFA and a customer (TECH-03 §10, TECH-08 §11). */
+export const identitySeedStep = (options: SeedOptions): SeedStep => ({
+  name: "identity: test people",
+  async run(tx) {
+    const existing = new Set((await tx.select({ email: schema.users.email }).from(schema.users)).map((row) => row.email));
+    for (const person of Object.values(TEST_PEOPLE)) {
+      // Re-running the seed keeps people who are already there.
+      if (!existing.has(person.email)) await insertTestPerson(tx, person, options.authSecret);
+    }
+  },
+});
+
 /**
  * Seed steps in load order. Tickets add their fixtures here as their tables
  * arrive (for example the ACME organization or the Business Cards purchase).
  */
-export const seedSteps: SeedStep[] = [];
+export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [identitySeedStep(options)];
 
 /** Loads every step in one transaction, so a failed seed leaves nothing behind. */
-export async function runSeed(db: Database, steps: readonly SeedStep[] = seedSteps): Promise<string[]> {
+export async function runSeed(db: Database, steps: readonly SeedStep[]): Promise<string[]> {
   return withTransaction(db, async (tx) => {
     const loaded: string[] = [];
     for (const step of steps) {

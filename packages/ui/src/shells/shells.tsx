@@ -40,10 +40,12 @@ export interface PublicShellProps {
   /** Extra header content, such as search or the cart. */
   actions?: ReactNode;
   footer?: ReactNode;
+  /** Main content spans the full width on a bone background (sign-in, account pages). */
+  bleed?: boolean;
 }
 
 /** Public site: header, main content and dark footer. */
-export function PublicShell({ children, nav = [], actions, footer }: PublicShellProps) {
+export function PublicShell({ children, nav = [], actions, footer, bleed = false }: PublicShellProps) {
   return (
     <div className={styles.page}>
       <SkipLink />
@@ -56,7 +58,7 @@ export function PublicShell({ children, nav = [], actions, footer }: PublicShell
           {actions}
         </div>
       </header>
-      <main id={MAIN_ID} tabIndex={-1} className={cx(styles.container, styles.main)}>
+      <main id={MAIN_ID} tabIndex={-1} className={bleed ? styles.bleed : cx(styles.container, styles.main)}>
         {children}
       </main>
       <footer className={cx(styles.footer, "hp-surface-dark")}>
@@ -112,7 +114,7 @@ export function WorkspaceShell(props: AppShellProps) {
   return <AppShell {...props} navLabel="Workspace" />;
 }
 
-/** Staff admin. Access control is added in T00-06; this is layout only. */
+/** Generic app layout for the design-system demo. The real staff admin uses StaffAdminShell (T00-06). */
 export function AdminShell(props: AppShellProps) {
   return <AppShell {...props} navLabel="Admin" />;
 }

@@ -2,7 +2,7 @@ import { loadTestDatabaseEnv } from "@holypearls/config";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestDatabase, type TestDatabase } from "../database.js";
-import { runSeed, TEST_DATA_LABEL, type SeedStep } from "./index.js";
+import { buildSeedSteps, runSeed, TEST_DATA_LABEL, type SeedStep } from "./index.js";
 
 describe("runSeed", () => {
   let database: TestDatabase;
@@ -36,7 +36,20 @@ describe("runSeed", () => {
     expect(result.rows[0]?.n).toBe(1);
   });
 
-  it("runs with no registered steps", async () => {
-    await expect(runSeed(database.db)).resolves.toEqual([]);
+  it("runs with no steps", async () => {
+    await expect(runSeed(database.db, [])).resolves.toEqual([]);
+  });
+
+  it("loads the identity test people with staff profiles and grants", async () => {
+    await runSeed(database.db, buildSeedSteps({ authSecret: "t".repeat(32) }));
+    const result = await database.db.execute<{ users: number; staff: number; admins: number }>(sql`
+      select (select count(*)::int from users) as users,
+             (select count(*)::int from staff_profiles) as staff,
+             (select count(*)::int from staff_permission_grants where permission = 'STAFF_ADMIN') as admins`);
+    expect(result.rows[0]).toEqual({ users: 5, staff: 3, admins: 2 });
+    // Running it again changes nothing.
+    await runSeed(database.db, buildSeedSteps({ authSecret: "t".repeat(32) }));
+    const again = await database.db.execute<{ users: number }>(sql`select count(*)::int as users from users`);
+    expect(again.rows[0]?.users).toBe(5);
   });
 });

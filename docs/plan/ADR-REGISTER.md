@@ -22,7 +22,7 @@ Each entry: the decision, why, what we gave up, and what would make us revisit i
 
 ## ADR-005 — Better Auth behind an IdentityAdapter
 
-**Status:** Proposed until ticket T00-06 passes; then Accepted or replaced. **Why:** Modern TypeScript sessions, magic links and MFA, while our own adapter keeps the rest of the code independent of it. **Revisit if:** T00-06 fails any TECH 03 section 3 check.
+**Status:** Accepted, 28 September 2026 (T00-06). Better Auth 1.7.6 runs inside the API behind `IdentityAdapter` in `packages/auth`, with Neon used only as the database (not Neon Auth). Every TECH 03 section 3 check passes as an automated test: server-rendered signed-in page, signed-in browser request, sign-out and sign out everywhere, staff MFA, a sign-in-as test helper and no tokens in browser storage. **Why:** Modern TypeScript sessions, magic links and MFA, while our own adapter keeps the rest of the code independent of it. **Revisit if:** T00-06 fails any TECH 03 section 3 check.
 
 ## ADR-006 — Private S3-compatible file storage
 

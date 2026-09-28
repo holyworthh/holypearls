@@ -16,6 +16,7 @@
     "seed": "node dist/seed/cli.js"
   },
   "dependencies": {
+    "@holypearls/auth": "workspace:*",
     "@holypearls/config": "workspace:*",
     "@holypearls/db": "workspace:*",
     "pg": "8.23.0"

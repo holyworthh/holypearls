@@ -186,3 +186,14 @@
   font-size: var(--hp-text-body-lg);
   font-weight: var(--hp-weight-semibold);
 }
+
+.bleed {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  background: var(--hp-bone);
+}
+
+.bleed:focus {
+  outline: none;
+}
