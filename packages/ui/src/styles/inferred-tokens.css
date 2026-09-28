@@ -12,7 +12,7 @@
   --hp-weight-semibold: 600;
   --hp-dialog-width: 560px;
   --hp-toast-width: 400px;
-  --hp-sidebar-width: 256px;
+  --hp-sidebar-width: 248px; /* Pen HP/Admin/Sidebar (T00-06) */
   --hp-readable-width: 720px;
   --hp-overlay: var(--hp-ink-70);
   --hp-z-dialog: 100;
@@ -20,4 +20,39 @@
   --hp-opacity-disabled: 0.5;
   --hp-motion-spinner: 800ms;
   --hp-toast-duration: 6000ms;
+
+  /*
+   * Exact values read from Pen frames that have no Pen variable (T00-06:
+   * identity frames 87, 90, 93, 94). Type sizes and card sizes used by the
+   * sign-in, security and admin screens.
+   */
+  --hp-text-h3: 40px;
+  --hp-text-title: 32px;
+  --hp-text-title-sm: 28px;
+  --hp-text-card-title: 26px;
+  --hp-text-dialog-title: 24px;
+  --hp-text-brand: 21px;
+  --hp-text-emphasis: 17px;
+  --hp-text-mono: 12px;
+  --hp-text-caption: 13px;
+  --hp-text-otp: 24px;
+  --hp-tracking-mono: 0.6px;
+  --hp-space-2: 2px;
+  --hp-space-6: 6px;
+  --hp-space-10: 10px;
+  --hp-space-28: 28px;
+  --hp-space-120: 120px;
+  --hp-r-chip: 4px;
+  --hp-auth-card-width: 440px;
+  --hp-staff-card-width: 480px;
+  --hp-enrol-card-width: 560px;
+  --hp-account-nav-width: 240px;
+  --hp-admin-topbar-height: 64px;
+  --hp-otp-box-width: 52px;
+  --hp-otp-box-height: 56px;
+  --hp-control-height: 52px;
+  --hp-icon-badge: 52px;
+  --hp-avatar: 36px;
+  --hp-qr-size: 160px;
+  --hp-pearl: 11px;
 }

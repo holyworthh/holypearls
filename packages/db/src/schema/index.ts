@@ -1,2 +1,2 @@
 // Business tables are added by the tickets that own them (TECH-01 §2).
-export {};
+export * from "./identity.js";

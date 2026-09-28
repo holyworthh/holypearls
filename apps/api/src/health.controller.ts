@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Res } from "@nestjs/common";
 import type { HealthReady } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
-import { sql } from "drizzle-orm";
+import { sql } from "@holypearls/db";
 import type { Response } from "express";
 import type { Logger } from "pino";
 import { DATABASE, LOGGER } from "./tokens.js";

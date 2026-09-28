@@ -1,0 +1,14 @@
+.title {
+  margin: 0;
+  font-size: var(--hp-text-title);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.support {
+  margin: 0;
+  max-width: var(--hp-readable-width);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-leading-body);
+}

@@ -13,15 +13,19 @@
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
     "@holypearls/ui": "workspace:*",
+    "geist": "1.7.2",
     "next": "16.3.6",
+    "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "geist": "1.7.2"
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
     "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "1.63.0"
+    "@holypearls/auth": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   }
 }

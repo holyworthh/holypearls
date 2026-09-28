@@ -1,0 +1,224 @@
+/* Sign-in and staff identity cards (Pen frames 87 and 93). */
+
+.page {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  padding: var(--hp-space-24) var(--hp-layout-gutter-mobile);
+  background: var(--hp-bone);
+}
+
+@media (min-width: 768px) {
+  .page {
+    padding: var(--hp-space-80) 0 var(--hp-space-120);
+  }
+}
+
+.staffPage {
+  min-height: 100vh;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+  width: 100%;
+  max-width: var(--hp-auth-card-width);
+  height: fit-content;
+  padding: var(--hp-space-24);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-panel);
+  background: var(--hp-paper);
+}
+
+@media (min-width: 768px) {
+  .card {
+    padding: var(--hp-space-40);
+  }
+}
+
+.stateCard {
+  padding: var(--hp-space-24);
+}
+
+@media (min-width: 768px) {
+  .stateCard {
+    padding: var(--hp-space-32);
+  }
+}
+
+.staffCard {
+  max-width: var(--hp-staff-card-width);
+}
+
+.enrolCard {
+  max-width: var(--hp-enrol-card-width);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--hp-text-title-sm);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: var(--hp-text-title);
+  }
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: var(--hp-text-card-title);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.intro {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-leading-body);
+}
+
+.support {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+  line-height: var(--hp-leading-body);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+}
+
+.form input:not([type="checkbox"]) {
+  min-height: var(--hp-control-height);
+}
+
+.form button[type="submit"],
+.primary {
+  min-height: var(--hp-control-height);
+}
+
+.link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hp-touch-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--hp-accent);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.signUp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-6);
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+}
+
+.signUp .link {
+  min-height: auto;
+}
+
+.adminLogo {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+}
+
+.adminBrand {
+  font-size: var(--hp-text-brand);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.adminTicket {
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-radius: var(--hp-space-2);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-12);
+  margin: 0;
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.stepNumber {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-space-28);
+  height: var(--hp-space-28);
+  border-radius: 50%;
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-size: var(--hp-text-caption);
+}
+
+.qrRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-20);
+}
+
+.qr {
+  flex: none;
+  width: var(--hp-qr-size);
+  height: var(--hp-qr-size);
+  padding: var(--hp-space-8);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-paper);
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  min-width: 0;
+}
+
+.keyValue {
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-body);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-12);
+}

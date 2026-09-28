@@ -17,7 +17,12 @@ describe("environment configuration", () => {
 
   it("returns typed values for valid configuration", () => {
     expect(
-      loadApiEnv({ DATABASE_URL: "postgresql://user:secret@localhost/db", API_PORT: "3002" }).API_PORT,
+      loadApiEnv({
+        DATABASE_URL: "postgresql://user:secret@localhost/db",
+        API_PORT: "3002",
+        BETTER_AUTH_SECRET: "x".repeat(32),
+        BETTER_AUTH_URL: "http://localhost:3000",
+      }).API_PORT,
     ).toBe(3002);
     expect(loadWebEnv({ API_URL: "http://localhost:3001" }).API_URL).toBe("http://localhost:3001");
   });

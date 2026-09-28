@@ -12,6 +12,15 @@ const webSchema = z.object({
 const apiSchema = z.object({
   DATABASE_URL: databaseUrl,
   API_PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+  /** Signs session cookies and encrypts authenticator secrets (TECH-03 §3). */
+  BETTER_AUTH_SECRET: z.string().min(32),
+  /** The web app's origin; the browser only ever talks to this domain (TECH-03 §4). */
+  BETTER_AUTH_URL: z.url(),
+  /** Local file for sign-in emails until real email arrives (T01-02). */
+  AUTH_OUTBOX_PATH: z.string().default(".outbox/auth-emails.jsonl"),
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  /** Browser tests sign in many times from one address; they turn sign-in limits off. */
+  AUTH_RATE_LIMIT: z.enum(["on", "off"]).default("on"),
 });
 
 const workerSchema = z.object({

@@ -1,34 +1,47 @@
 import "reflect-metadata";
-import { type INestApplication, Module, RequestMethod, type Type } from "@nestjs/common";
+import { Module, RequestMethod, type Type } from "@nestjs/common";
 import { APP_FILTER, NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import type { IdentityAdapter } from "@holypearls/auth";
+import { ERROR_CODES } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
+import type { NextFunction, Request, Response } from "express";
 import type { Logger } from "pino";
 import { ErrorShapeFilter } from "./errors.js";
 import { HealthController } from "./health.controller.js";
+import { actorResolver } from "./identity/actor.js";
+import { AdminController } from "./identity/admin.controller.js";
+import { authRoutes } from "./identity/auth-routes.js";
+import { MeController } from "./identity/me.controller.js";
+import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
-import { DATABASE, LOGGER } from "./tokens.js";
-import { ERROR_CODES } from "@holypearls/contracts";
-import type { Request, Response } from "express";
+import { DATABASE, IDENTITY, LOGGER } from "./tokens.js";
 
 export interface CreateAppOptions {
   db: Database;
   logger: Logger;
+  identity: IdentityAdapter;
+  /** The web app's origin; state-changing requests must come from it (TECH-03 §13). */
+  webOrigin: string;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
   controllers?: Type[];
 }
 
-export async function createApp(options: CreateAppOptions): Promise<INestApplication> {
+export async function createApp(options: CreateAppOptions): Promise<NestExpressApplication> {
   @Module({
-    controllers: [HealthController, ...(options.controllers ?? [])],
+    controllers: [HealthController, MeController, AdminController, ...(options.controllers ?? [])],
     providers: [
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
+      { provide: IDENTITY, useValue: options.identity },
       { provide: APP_FILTER, useFactory: (logger: Logger) => new ErrorShapeFilter(logger), inject: [LOGGER] },
     ],
   })
   class AppModule {}
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    // Parsers are added below, after the sign-in routes, which read the raw body.
+    bodyParser: false,
     logger: {
       log: (message: unknown) => options.logger.info({ nest: true }, String(message)),
       error: (message: unknown) => options.logger.error({ nest: true }, String(message)),
@@ -37,7 +50,16 @@ export async function createApp(options: CreateAppOptions): Promise<INestApplica
       verbose: (message: unknown) => options.logger.trace({ nest: true }, String(message)),
     },
   });
+  const getActor = actorResolver(options.identity, options.db);
+
   app.use(requestContext(options.logger));
+  app.use(originCheck(options.webOrigin));
+  app.use((request: Request, _response: Response, next: NextFunction) => {
+    request.getActor = () => getActor(request);
+    next();
+  });
+  app.use(authRoutes(options.identity, options.webOrigin, options.logger));
+  app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {
     exclude: [
@@ -48,7 +70,9 @@ export async function createApp(options: CreateAppOptions): Promise<INestApplica
   await app.init();
   // Paths outside every route (including outside /v1) still get the error shape, not HTML.
   app.use((request: Request, response: Response) => {
-    response.status(404).json({ code: "NOT_FOUND", message: ERROR_CODES.NOT_FOUND.message, requestId: request.requestId ?? "unknown" });
+    response
+      .status(404)
+      .json({ code: "NOT_FOUND", message: ERROR_CODES.NOT_FOUND.message, requestId: request.requestId ?? "unknown" });
   });
   return app;
 }
