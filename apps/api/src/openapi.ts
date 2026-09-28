@@ -23,6 +23,16 @@ import {
   saveHubDraftSchema,
   saveMerchandisingListSchema,
   storefrontNavigationSchema,
+  adminPriceRuleListSchema,
+  adminPriceRuleSchema,
+  adminProductRulesSchema,
+  adminTaxSettingListSchema,
+  priceRequestSchema,
+  priceResultSchema,
+  priceRuleInputSchema,
+  saveCompatibilitySchema,
+  saveProductRulesSchema,
+  taxSettingInputSchema,
   adminProductPageSchema,
   adminProductSchema,
   changeProductStatusSchema,
@@ -530,6 +540,56 @@ export function buildOpenApiDocument() {
           parameters: [{ name: "key", in: "path", required: true, schema: { type: "string", enum: ["menu.popular", "home.most-ordered"] } }],
           requestBody: { required: true, content: json(saveMerchandisingListSchema) },
           responses: { 200: { description: "Saved", content: json(adminMerchandisingListsSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/catalogue/products/{slug}/price": {
+        post: {
+          summary: "Price a configuration of a published product: total, per unit, VAT, price state and reasons. The result is saved with the rule versions used; checkout recalculates on the server.",
+          parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: json(priceRequestSchema) },
+          responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
+        },
+      },
+      "/v1/admin/pricing/products/{id}/rules": {
+        get: { summary: "Product rules and compatibility (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Rules", content: json(adminProductRulesSchema) }, ...staffOnly } },
+        put: {
+          summary: "Create (version 0) or edit product rules (PRICING_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(saveProductRulesSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductRulesSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/pricing/products/{id}/compatibility": {
+        put: {
+          summary: "Replace the compatibility rules; bumps the rules' version (PRICING_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(saveCompatibilitySchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductRulesSchema) }, 400: error("Unknown option or value"), 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/pricing/products/{id}/prices": {
+        get: { summary: "Price history, the price in force and scheduled prices (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Prices", content: json(adminPriceRuleListSchema) }, ...staffOnly } },
+        post: {
+          summary: "Add a price from now or a later date; history is never edited (PRICING_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(priceRuleInputSchema) },
+          responses: { 201: { description: "Added", content: json(adminPriceRuleSchema) }, 400: error("Past date, unknown add-on value or duplicate start"), ...staffOnly },
+        },
+      },
+      "/v1/admin/pricing/products/{id}/calculate": {
+        post: {
+          summary: "Try a configuration against the rules, including unpublished products (PRICING_MANAGE)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(priceRequestSchema) },
+          responses: { 200: { description: "Result", content: json(priceResultSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/pricing/vat": {
+        get: { summary: "VAT history and the rate in force (PRICING_MANAGE)", responses: { 200: { description: "VAT", content: json(adminTaxSettingListSchema) }, ...staffOnly } },
+        post: {
+          summary: "Schedule a VAT rate from now or a later date (PRICING_MANAGE, audited)",
+          requestBody: { required: true, content: json(taxSettingInputSchema) },
+          responses: { 201: { description: "Saved", content: json(adminTaxSettingListSchema) }, 400: error("Past date"), ...staffOnly },
         },
       },
       "/v1/admin/me": {

@@ -1,6 +1,7 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
 import { seedCatalogue, seedMerchandising } from "./catalogue.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
+import { seedPricing } from "./pricing.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
 
@@ -63,9 +64,13 @@ export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
   run: (tx) => seedCatalogueMedia(tx, media),
 });
 
+/** Product rules, prices and VAT from the Stage 1.4 sheet (T03-01). */
+export const pricingSeedStep: SeedStep = { name: "pricing: product rules, prices and VAT", run: seedPricing };
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
+  pricingSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 
