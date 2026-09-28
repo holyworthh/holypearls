@@ -14,7 +14,7 @@ type Phase =
   | { kind: "failed"; message: string };
 
 export interface FileUploadProps {
-  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROBLEM_PHOTO";
+  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROBLEM_PHOTO" | "PRODUCT_MEDIA";
   label?: string;
   /** Allowed types in words, matching the purpose's rule (TECH-04 §4). */
   hint?: string;

@@ -9,6 +9,8 @@ const NO_PREVIEW: Record<string, string> = {
   "image/svg+xml": "We couldn't draw this SVG. Our team will check it, or you can export a PDF and upload that.",
 };
 
+export const MIN_PRODUCT_IMAGE_WIDTH = 1600;
+
 /** Proofs get every page up to 20; everything else gets the first page (TECH-04 §5). */
 const PAGES_FOR = (purpose: string) => (purpose === "PROOF" ? 20 : 1);
 
@@ -61,6 +63,14 @@ export async function previewFile(
       .insert(schema.fileRenditions)
       .values({ fileId, kind: rendition.kind, page: rendition.page, storageKey: key, contentType: rendition.contentType, width: rendition.width, height: rendition.height })
       .onConflictDoNothing();
+  }
+  // Product pages show images up to 1600 px wide (Pen frame 104, upload rejected state).
+  if (row.purpose === "PRODUCT_MEDIA" && (metadata.width ?? 0) < MIN_PRODUCT_IMAGE_WIDTH) {
+    await deps.db
+      .update(schema.files)
+      .set({ status: "REJECTED", metadata, reason: `This image is smaller than ${MIN_PRODUCT_IMAGE_WIDTH} px wide. Upload a larger file.` })
+      .where(eq(schema.files.id, fileId));
+    return;
   }
   await deps.db.update(schema.files).set({ status: "READY", metadata, reason: null }).where(eq(schema.files.id, fileId));
 }

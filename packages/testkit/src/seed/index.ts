@@ -1,5 +1,6 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
 import { seedCatalogue } from "./catalogue.js";
+import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
 
@@ -14,6 +15,8 @@ export interface SeedStep {
 export interface SeedOptions {
   /** The API's BETTER_AUTH_SECRET, so seeded authenticator secrets decrypt. */
   authSecret: string;
+  /** The public-media store; when given, seeded products get sample images. */
+  media?: SeedMediaStore;
 }
 
 async function addMissingGrants(tx: Transaction, email: string, permissions: readonly StaffPermission[]) {
@@ -49,7 +52,16 @@ export const identitySeedStep = (options: SeedOptions): SeedStep => ({
 /** The nine categories and one product per family (T02-01). */
 export const catalogueSeedStep: SeedStep = { name: "catalogue: categories and one product per family", run: seedCatalogue };
 
-export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [identitySeedStep(options), catalogueSeedStep];
+export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
+  name: "catalogue: one sample image per product",
+  run: (tx) => seedCatalogueMedia(tx, media),
+});
+
+export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
+  identitySeedStep(options),
+  catalogueSeedStep,
+  ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
+];
 
 /** Loads every step in one transaction, so a failed seed leaves nothing behind. */
 export async function runSeed(db: Database, steps: readonly SeedStep[]): Promise<string[]> {

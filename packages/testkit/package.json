@@ -20,6 +20,7 @@
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
     "@holypearls/db": "workspace:*",
+    "@holypearls/storage": "workspace:*",
     "pg": "8.23.0"
   },
   "devDependencies": {

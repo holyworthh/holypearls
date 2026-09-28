@@ -1,4 +1,4 @@
-import { adminProductSchema } from "@holypearls/contracts";
+import { adminCategoryListSchema, adminProductSchema } from "@holypearls/contracts";
 import { PermissionDenied } from "@holypearls/ui";
 import { notFound } from "next/navigation";
 import { serverApi } from "../../../../../lib/server-api";
@@ -11,7 +11,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const admin = await requireAdmin();
   if (!admin.permissions.includes("CATALOGUE_MANAGE")) return <PermissionDenied permission="CATALOGUE_MANAGE" />;
   const { id } = await params;
-  const product = await serverApi(`/v1/admin/catalogue/products/${encodeURIComponent(id)}`, adminProductSchema);
+  const [product, categories] = await Promise.all([
+    serverApi(`/v1/admin/catalogue/products/${encodeURIComponent(id)}`, adminProductSchema),
+    serverApi("/v1/admin/catalogue/categories", adminCategoryListSchema),
+  ]);
   if (!product.ok) {
     if (product.status === 404 || product.status === 400) notFound();
     throw new Error(product.error.message);
@@ -19,10 +22,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   return (
     <>
       <header className={styles.recordHead}>
-        <p className={styles.eyebrow}>PRODUCT {product.data.sku}</p>
+        <p className={styles.eyebrow}>
+          <a href="/admin/products">CATALOGUE › PRODUCTS</a> › {product.data.sku}
+        </p>
         <h1 className={styles.recordTitle}>{product.data.name}</h1>
       </header>
-      <ProductEditor initial={product.data} />
+      <ProductEditor initial={product.data} categories={categories.ok ? categories.data.entries : []} />
     </>
   );
 }

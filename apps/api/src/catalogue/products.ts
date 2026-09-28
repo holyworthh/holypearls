@@ -1,5 +1,5 @@
-import type { AdminProduct } from "@holypearls/contracts";
-import { and, type Database, eq, ilike, or, schema, sql } from "@holypearls/db";
+import type { AdminProduct, AdminProductSummary } from "@holypearls/contracts";
+import { and, asc, type Database, eq, ilike, inArray, or, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
@@ -9,13 +9,13 @@ type Status = "DRAFT" | "PUBLISHED" | "TEMPORARILY_UNAVAILABLE" | "ARCHIVED";
 
 /**
  * Product status changes (TECH-01 §4): DRAFT → PUBLISHED ⇄
- * TEMPORARILY_UNAVAILABLE; any → ARCHIVED. Pen frames 96 and 98 also offer
- * "Unpublish" (back to DRAFT); see the T02-01 report.
+ * TEMPORARILY_UNAVAILABLE; any → ARCHIVED. There's no way back to DRAFT: to
+ * take a product off the site, archive it (owner decision, 2026-09-28).
  */
 const ALLOWED: Record<Status, readonly Status[]> = {
   DRAFT: ["PUBLISHED", "ARCHIVED"],
-  PUBLISHED: ["TEMPORARILY_UNAVAILABLE", "DRAFT", "ARCHIVED"],
-  TEMPORARILY_UNAVAILABLE: ["PUBLISHED", "DRAFT", "ARCHIVED"],
+  PUBLISHED: ["TEMPORARILY_UNAVAILABLE", "ARCHIVED"],
+  TEMPORARILY_UNAVAILABLE: ["PUBLISHED", "ARCHIVED"],
   ARCHIVED: [],
 };
 
@@ -32,10 +32,28 @@ async function load(db: Database, id: string): Promise<AdminProduct> {
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
     .where(eq(schema.products.id, id));
   if (!row) throw new AppError("NOT_FOUND");
-  return toAdmin(row.product, row.categoryName, row.mediaCount);
+  const media = await db
+    .select({
+      id: schema.productMedia.id,
+      fileId: schema.productMedia.fileId,
+      alt: schema.productMedia.alt,
+      position: schema.productMedia.position,
+      fileStatus: schema.files.status,
+    })
+    .from(schema.productMedia)
+    .innerJoin(schema.files, eq(schema.files.id, schema.productMedia.fileId))
+    .where(eq(schema.productMedia.productId, id))
+    .orderBy(asc(schema.productMedia.position), asc(schema.productMedia.createdAt));
+  const related = await db
+    .select({ id: schema.products.id, name: schema.products.name, sku: schema.products.sku, status: schema.products.status })
+    .from(schema.productRelations)
+    .innerJoin(schema.products, eq(schema.products.id, schema.productRelations.relatedProductId))
+    .where(eq(schema.productRelations.productId, id))
+    .orderBy(asc(schema.productRelations.position));
+  return { ...toAdmin(row.product, row.categoryName, row.mediaCount), media, related };
 }
 
-function toAdmin(product: typeof schema.products.$inferSelect, categoryName: string, mediaCount: number): AdminProduct {
+function toAdmin(product: typeof schema.products.$inferSelect, categoryName: string, mediaCount: number): AdminProductSummary {
   return {
     id: product.id,
     sku: product.sku,
@@ -147,7 +165,7 @@ export async function updateProduct(db: Database, actor: ActorContext, id: strin
 }
 
 /** Publishing needs an image and an SEO title (Pen frame 98, validation state). */
-export function publishProblems(product: AdminProduct): Record<string, string> {
+export function publishProblems(product: AdminProductSummary): Record<string, string> {
   const problems: Record<string, string> = {};
   if (product.mediaCount === 0) problems.media = "Add at least one image";
   if (!product.seoTitle) problems.seoTitle = "Add an SEO title";
@@ -164,6 +182,18 @@ export async function changeProductStatus(
   onPublicChange: (slug: string) => Promise<void>,
 ) {
   const product = await load(db, id);
+  return applyStatus(db, actor, product, to, version, onPublicChange);
+}
+
+async function applyStatus(
+  db: Database,
+  actor: ActorContext,
+  product: AdminProductSummary,
+  to: Status,
+  version: number,
+  onPublicChange: (slug: string) => Promise<void>,
+) {
+  const id = product.id;
   if (product.version !== version) throw new AppError("VERSION_CONFLICT", { context: { latest: product } });
   if (!canChangeStatus(product.status, to)) {
     throw new AppError("CONFLICT", { message: `A ${product.status} product can't become ${to}.`, context: { reason: "STATUS_CHANGE_NOT_ALLOWED" } });
@@ -192,5 +222,77 @@ export async function changeProductStatus(
   });
   // Public pages show the change within a minute (TECH-02 §6 cache tags).
   await onPublicChange(product.slug);
+  return load(db, id);
+}
+
+const BULK_REASONS: Record<string, string> = {
+  CONFLICT: "This status change isn't allowed",
+  RULE_FAILED: "Not ready to publish",
+};
+
+/**
+ * Bulk status change (Pen frame 96). Each product is checked and audited on
+ * its own; the ones that can't change are listed with a reason.
+ */
+export async function bulkChangeStatus(
+  db: Database,
+  actor: ActorContext,
+  ids: string[],
+  to: Status,
+  onPublicChange: (slug: string) => Promise<void>,
+) {
+  const rows = await db
+    .select({ product: schema.products, categoryName: schema.categories.name, mediaCount: sql<number>`(select count(*)::int from product_media m where m.product_id = ${schema.products.id})` })
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(inArray(schema.products.id, ids));
+  const changed: string[] = [];
+  const skipped: { id: string; name: string; reason: string }[] = [];
+  for (const id of ids) {
+    const row = rows.find((candidate) => candidate.product.id === id);
+    if (!row) {
+      skipped.push({ id, name: "Unknown product", reason: "Not found" });
+      continue;
+    }
+    const product = toAdmin(row.product, row.categoryName, row.mediaCount);
+    if (product.status === to) {
+      skipped.push({ id, name: product.name, reason: `Already ${to}` });
+      continue;
+    }
+    try {
+      await applyStatus(db, actor, product, to, product.version, onPublicChange);
+      changed.push(id);
+    } catch (error) {
+      if (!(error instanceof AppError)) throw error;
+      skipped.push({ id, name: product.name, reason: BULK_REASONS[error.code] ?? "Someone else changed it; reload and try again" });
+    }
+  }
+  return { changed, skipped };
+}
+
+/** Related products shown on the product page, in order (up to 12). */
+export async function setRelatedProducts(db: Database, actor: ActorContext, id: string, productIds: string[]) {
+  const product = await load(db, id);
+  const unique = [...new Set(productIds)].filter((other) => other !== id);
+  if (unique.length) {
+    const found = await db.select({ id: schema.products.id }).from(schema.products).where(inArray(schema.products.id, unique));
+    if (found.length !== unique.length) throw new AppError("VALIDATION_FAILED", { fieldErrors: { productIds: "One of these products doesn't exist" } });
+  }
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.productRelations).where(eq(schema.productRelations.productId, id));
+    if (unique.length) {
+      await tx.insert(schema.productRelations).values(unique.map((relatedProductId, position) => ({ productId: id, relatedProductId, position })));
+    }
+    await recordAudit(tx, actor, {
+      action: "catalogue.product_related_changed",
+      summary: `Related products changed: ${product.name}`,
+      recordType: "PRODUCT",
+      recordId: id,
+      recordLabel: product.name,
+      before: { related: product.related.map((item) => item.sku) },
+      after: { related: unique },
+      permission: "CATALOGUE_MANAGE",
+    });
+  });
   return load(db, id);
 }
