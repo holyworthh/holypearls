@@ -238,6 +238,10 @@
   background: var(--hp-paper);
 }
 
+.panel[hidden] {
+  display: none;
+}
+
 .panelTitle {
   margin: 0;
   font-size: var(--hp-text-emphasis);

@@ -16,7 +16,8 @@ export function localStorageRoute(storage: LocalDiskStorage) {
     const fail = (status: 403 | 413, code: "FORBIDDEN" | "VALIDATION_FAILED") =>
       response.status(status).json({ code, message: ERROR_CODES[code].message, requestId });
     const grant = storage.verify(request.path.slice(PREFIX.length));
-    if (!grant) return fail(403, "FORBIDDEN");
+    // Signed for the other store (private or public media), forged or expired: the next route decides.
+    if (!grant) return next();
 
     if (grant.op === "get" && request.method === "GET") {
       const body = await storage.read(grant.key).catch(() => null);
@@ -41,4 +42,10 @@ export function localStorageRoute(storage: LocalDiskStorage) {
     }
     return fail(403, "FORBIDDEN");
   };
+}
+
+/** After every store has looked: a token none of them signed is refused. */
+export function localStorageRefused(request: Request, response: Response, next: NextFunction) {
+  if (!request.path.startsWith(PREFIX)) return next();
+  response.status(403).json({ code: "FORBIDDEN", message: ERROR_CODES.FORBIDDEN.message, requestId: request.requestId ?? "unknown" });
 }

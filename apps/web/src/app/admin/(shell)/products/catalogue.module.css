@@ -1,0 +1,204 @@
+/* Catalogue admin: product editor tabs, media, related products and the bulk bar (Pen 96, 98, 104). */
+
+.headRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hp-space-16);
+}
+
+.headActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-12);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--hp-space-4);
+  overflow-x: auto;
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+}
+
+.tab {
+  flex: none;
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-12);
+  border: 0;
+  border-bottom: var(--hp-space-2) solid transparent;
+  background: transparent;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-support);
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--hp-ink);
+  color: var(--hp-ink);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.tab:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: calc(var(--hp-space-2) * -1);
+}
+
+.pair {
+  display: grid;
+  gap: var(--hp-space-16);
+}
+
+@media (min-width: 768px) {
+  .pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  min-height: var(--hp-touch-target);
+  font-size: var(--hp-text-label);
+}
+
+.radio input {
+  width: var(--hp-space-20);
+  height: var(--hp-space-20);
+  accent-color: var(--hp-ink);
+}
+
+.mediaList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mediaItem {
+  display: grid;
+  grid-template-columns: var(--hp-space-96) 1fr;
+  gap: var(--hp-space-12);
+  align-items: start;
+  padding: var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: var(--hp-space-96);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--hp-r-control);
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  min-width: 0;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+}
+
+.pairRow {
+  display: grid;
+  gap: var(--hp-space-10);
+  padding: var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+}
+
+.count {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+}
+
+.bulkBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-10) var(--hp-space-16);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-size: var(--hp-text-label);
+}
+
+.bulkBar button {
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-12);
+  border: 0;
+  border-radius: var(--hp-r-control);
+  background: transparent;
+  color: var(--hp-paper);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+  cursor: pointer;
+}
+
+.bulkBar button:hover {
+  background: var(--hp-ink-2);
+}
+
+.bulkBar button:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
+}
+
+.check {
+  width: var(--hp-space-20);
+  height: var(--hp-space-20);
+  accent-color: var(--hp-ink);
+}
+
+.checkCell {
+  width: var(--hp-touch-target);
+}
+
+.searchResults {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchResults li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+  min-height: var(--hp-touch-target);
+  border-top: var(--hp-border-width) solid var(--hp-line);
+  font-size: var(--hp-text-label);
+}

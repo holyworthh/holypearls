@@ -2,7 +2,8 @@ import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectComm
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { dirname, join, normalize, sep } from "node:path";
+import { existsSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 
 /**
  * Private object storage (TECH-04 §2): Cloudflare R2 in production, MinIO or
@@ -112,11 +113,16 @@ const encode = (grant: LocalGrant) => Buffer.from(JSON.stringify(grant)).toStrin
  * `/v1/local-storage/:token` route, signed with HMAC like a real presigned URL.
  */
 export class LocalDiskStorage implements StorageAdapter {
+  private readonly secret: string;
+
   constructor(
     private readonly folder: string,
     private readonly baseUrl: string,
-    private readonly secret: string,
-  ) {}
+    secret: string,
+  ) {
+    // Each store signs with its own key, so a URL for one folder never opens another.
+    this.secret = `${secret}:${basename(folder)}`;
+  }
 
   private path(key: string) {
     const full = normalize(join(this.folder, key));
@@ -199,9 +205,25 @@ export interface StorageConfig {
  * TECH-04 §2). Local storage signs URLs for the API's /v1/local-storage route,
  * reached by the browser through `publicBaseUrl` (the web app's /api).
  */
+/**
+ * A relative LOCAL_STORAGE_DIR is taken from the repository root, so the api,
+ * worker and seed (each started in its own package folder) share one folder.
+ */
+export function localStorageRoot(dir: string, from = process.cwd()): string {
+  if (isAbsolute(dir)) return dir;
+  let current = from;
+  while (!existsSync(join(current, "pnpm-workspace.yaml"))) {
+    const parent = dirname(current);
+    if (parent === current) return resolve(from, dir);
+    current = parent;
+  }
+  return resolve(current, dir);
+}
+
 export function createStorage(config: StorageConfig, options: { publicBaseUrl: string; signingSecret: string }) {
   if (config.STORAGE_DRIVER === "local") {
-    const make = (name: string) => new LocalDiskStorage(join(config.LOCAL_STORAGE_DIR, name), options.publicBaseUrl, options.signingSecret);
+    const root = localStorageRoot(config.LOCAL_STORAGE_DIR);
+    const make = (name: string) => new LocalDiskStorage(join(root, name), options.publicBaseUrl, options.signingSecret);
     return { storage: make("private"), publicStorage: make("public-media") };
   }
   const need = (value: string | undefined, name: string) => {

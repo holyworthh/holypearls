@@ -322,6 +322,9 @@ importers:
       '@holypearls/db':
         specifier: workspace:*
         version: link:../db
+      '@holypearls/storage':
+        specifier: workspace:*
+        version: link:../storage
       pg:
         specifier: 8.23.0
         version: 8.23.0

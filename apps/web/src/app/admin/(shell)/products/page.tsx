@@ -1,10 +1,11 @@
 import { adminProductPageSchema } from "@holypearls/contracts";
-import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied, StatusChip } from "@holypearls/ui";
+import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied } from "@holypearls/ui";
 import { serverApi } from "../../../../lib/server-api";
 import styles from "../admin-list.module.css";
 import { requireAdmin } from "../admin-session";
-import { ago } from "../format";
-import { FAMILY_LABELS, MODE_LABELS, STATUS_TONE } from "./labels";
+import css from "./catalogue.module.css";
+import { FAMILY_LABELS } from "./labels";
+import { ProductTable } from "./ProductTable";
 
 type Search = { q?: string; status?: string; family?: string; cursor?: string };
 const STATUSES = ["", "DRAFT", "PUBLISHED", "TEMPORARILY_UNAVAILABLE", "ARCHIVED"];
@@ -21,9 +22,17 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <header className={styles.head}>
-        <p className={styles.eyebrow}>CATALOGUE</p>
-        <h1 className={styles.title}>Products</h1>
+      <header className={css.headRow}>
+        <div className={styles.head}>
+          <p className={styles.eyebrow}>CATALOGUE</p>
+          <h1 className={styles.title}>Products</h1>
+        </div>
+        <div className={css.headActions}>
+          <ButtonLink variant="secondary" href="/admin/categories">
+            Categories
+          </ButtonLink>
+          <ButtonLink href="/admin/products/new">New product</ButtonLink>
+        </div>
       </header>
       <form className={styles.filters} action="/admin/products" role="search" aria-label="Filter products">
         <label className={styles.search}>
@@ -67,37 +76,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         <EmptyState title={filtered ? "No products match these filters" : "No products yet"} />
       ) : (
         <div className={styles.tableCol}>
-          <table className={styles.table}>
-            <caption className="hp-visually-hidden">Products, most recently updated first</caption>
-            <thead>
-              <tr>
-                <th scope="col">PRODUCT</th>
-                <th scope="col">FAMILY / CATEGORY</th>
-                <th scope="col">BUYING MODE</th>
-                <th scope="col">STATUS</th>
-                <th scope="col">UPDATED</th>
-              </tr>
-            </thead>
-            <tbody>
-              {page.data.entries.map((product) => (
-                <tr key={product.id}>
-                  <td>
-                    <a className={styles.action} href={`/admin/products/${product.id}`}>
-                      {product.name}
-                    </a>
-                  </td>
-                  <td>
-                    {FAMILY_LABELS[product.family]} / {product.categoryName}
-                  </td>
-                  <td>{MODE_LABELS[product.buyingMode]}</td>
-                  <td>
-                    <StatusChip tone={STATUS_TONE[product.status]}>{product.status}</StatusChip>
-                  </td>
-                  <td>{ago(product.updatedAt)} ago</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <ProductTable entries={page.data.entries} />
           {page.data.nextCursor ? (
             <a className={styles.pageLink} href={`/admin/products?${new URLSearchParams({ ...params, cursor: page.data.nextCursor } as Record<string, string>)}`}>
               Next ›
