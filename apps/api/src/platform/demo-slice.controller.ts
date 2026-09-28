@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
 import { type DemoSlice, demoSliceCreateSchema } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
@@ -7,6 +7,7 @@ import type { z } from "zod";
 import { AppError } from "../errors.js";
 import { DATABASE, JOBS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import { requireRecentEmailCode } from "../identity/customers.js";
 import { createDemoSlice, findDemoSlice } from "./demo-slice.js";
 
 /** T00-04 end-to-end slice: web form → API → database → job → result. Off in production. */
@@ -23,6 +24,14 @@ export class DemoSliceController {
     @Body(new ZodValidationPipe(demoSliceCreateSchema)) body: z.infer<typeof demoSliceCreateSchema>,
   ): Promise<DemoSlice> {
     return createDemoSlice(this.db, this.jobs, body.message, request.requestId ?? "unknown");
+  }
+
+  /** Stands in for an important action (accept a quote, approve a proof) so the email-code dialog can be tried. */
+  @Post("important-action")
+  @HttpCode(200)
+  async importantAction(@Req() request: Request) {
+    await requireRecentEmailCode(this.db, await request.getActor!());
+    return { done: true as const };
   }
 
   @Get(":id")

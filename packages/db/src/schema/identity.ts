@@ -35,6 +35,8 @@ export const sessions = pgTable(
     userAgent: text("user_agent"),
     /** Last successful authenticator check in this session (TECH-03 §9, §10). */
     mfaVerifiedAt: at("mfa_verified_at"),
+    /** Last email code confirmed in this session; important actions need one within 24 hours (TECH-03 §5). */
+    emailCodeVerifiedAt: at("email_code_verified_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
