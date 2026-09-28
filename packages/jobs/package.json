@@ -1,0 +1,27 @@
+{
+  "name": "@holypearls/jobs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@holypearls/db": "workspace:*",
+    "pg-boss": "12.35.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@holypearls/config": "workspace:*",
+    "@holypearls/testkit": "workspace:*",
+    "vitest": "5.0.2"
+  }
+}

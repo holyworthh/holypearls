@@ -9,6 +9,7 @@ import {
 import { type ApiErrorBody, ERROR_CODES, type ErrorCode } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import type { Logger } from "pino";
+import { reportError } from "./monitoring.js";
 import { LOGGER } from "./tokens.js";
 
 /** Throw this from services and controllers; the filter turns it into the error shape. */
@@ -76,6 +77,7 @@ export class ErrorShapeFilter implements ExceptionFilter {
     const status = ERROR_CODES[code].status;
     if (status >= 500) {
       this.logger.error({ requestId, route: request.originalUrl, err: exception }, "request failed");
+      reportError(exception, { requestId, route: request.route?.path ?? request.path });
     }
     response.status(status).json(body);
   }

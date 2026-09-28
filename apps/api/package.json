@@ -17,9 +17,11 @@
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
     "@holypearls/db": "workspace:*",
+    "@holypearls/jobs": "workspace:*",
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",
     "@nestjs/platform-express": "12.1.0",
+    "@sentry/node": "11.0.0",
     "pino": "10.3.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
@@ -33,5 +35,11 @@
     "supertest": "7.3.0",
     "tsx": "4.23.15",
     "vitest": "5.0.2"
+  },
+  "exports": {
+    "./modules": {
+      "types": "./dist/modules.d.ts",
+      "default": "./dist/modules.js"
+    }
   }
 }

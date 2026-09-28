@@ -10,7 +10,10 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@holypearls/config": "workspace:*"
+    "@holypearls/api": "workspace:*",
+    "@holypearls/config": "workspace:*",
+    "@holypearls/db": "workspace:*",
+    "@holypearls/jobs": "workspace:*"
   },
   "devDependencies": {
     "tsx": "4.23.15"

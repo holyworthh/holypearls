@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/test-results
+**/playwright-report
+.env
+.env.*
+!.env.example
+.outbox
+.git
+docs
+*.py
+*.js.map

@@ -1,4 +1,5 @@
 export * from "./client.js";
+export * from "./demo.js";
 export * from "./errors.js";
 export * from "./health.js";
 export * from "./identity.js";

@@ -12,3 +12,4 @@ declare global {
 }
 
 export const IDENTITY = Symbol("IDENTITY");
+export const JOBS = Symbol("JOBS");

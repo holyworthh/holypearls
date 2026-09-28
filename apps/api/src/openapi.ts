@@ -1,6 +1,8 @@
 import {
   adminMeSchema,
   apiErrorSchema,
+  demoSliceCreateSchema,
+  demoSliceSchema,
   healthLiveSchema,
   healthReadySchema,
   meSchema,
@@ -83,6 +85,20 @@ export function buildOpenApiDocument() {
         get: {
           summary: "The signed-in staff member, for the admin shell",
           responses: { 200: { description: "Staff with MFA", content: json(adminMeSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/demo/slice": {
+        post: {
+          summary: "Demo only (off in production): save a message and queue its job",
+          requestBody: { required: true, content: json(demoSliceCreateSchema) },
+          responses: { 201: { description: "Saved; the job is queued", content: json(demoSliceSchema) }, 400: error("Bad input") },
+        },
+      },
+      "/v1/demo/slice/{id}": {
+        get: {
+          summary: "Demo only (off in production): the message and its job result",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+          responses: { 200: { description: "The demo request", content: json(demoSliceSchema) }, 404: error("Not found") },
         },
       },
     },

@@ -5,8 +5,20 @@ const databaseUrl = z.url().refine(
   "Expected a PostgreSQL URL",
 );
 
+/** Neon's direct (unpooled) URL for pg-boss; falls back to DATABASE_URL locally (TECH-07 §1). */
+const directUrl = { DATABASE_DIRECT_URL: databaseUrl.optional() };
+
+/** Error monitoring (TECH-07 §11); off when unset. */
+const monitoring = {
+  SENTRY_DSN: z.url().optional(),
+  /** Which environment this is (TECH-07 §2). Guards that must never run in production check this. */
+  HP_ENV: z.enum(["local", "preview", "staging", "production"]).default("local"),
+};
+
 const webSchema = z.object({
   API_URL: z.url(),
+  HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
+  ...monitoring,
 });
 
 const apiSchema = z.object({
@@ -18,13 +30,18 @@ const apiSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   /** Local file for sign-in emails until real email arrives (T01-02). */
   AUTH_OUTBOX_PATH: z.string().default(".outbox/auth-emails.jsonl"),
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   /** Browser tests sign in many times from one address; they turn sign-in limits off. */
   AUTH_RATE_LIMIT: z.enum(["on", "off"]).default("on"),
+  ...directUrl,
+  /** The T00-04 end-to-end demo routes; on locally and in staging, never in production. */
+  HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
+  ...monitoring,
 });
 
 const workerSchema = z.object({
   DATABASE_URL: databaseUrl,
+  ...directUrl,
+  ...monitoring,
 });
 
 const databaseSchema = z.object({
@@ -60,3 +77,7 @@ export const loadDatabaseEnv = (source: Record<string, string | undefined> = pro
 /** Uses TEST_DATABASE_URL, or DATABASE_URL when no separate test server is set. */
 export const loadTestDatabaseEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(testDatabaseSchema, { TEST_DATABASE_URL: source.TEST_DATABASE_URL ?? source.DATABASE_URL });
+
+/** The connection pg-boss should use: direct when set, otherwise the main URL. */
+export const jobsConnectionString = (env: { DATABASE_URL: string; DATABASE_DIRECT_URL?: string }) =>
+  env.DATABASE_DIRECT_URL ?? env.DATABASE_URL;
