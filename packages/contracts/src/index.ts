@@ -9,3 +9,4 @@ export * from "./identity.js";
 export * from "./money.js";
 export * from "./money-wire.js";
 export * from "./platform.js";
+export * from "./storefront.js";

@@ -71,6 +71,13 @@
       "when": 1790597498221,
       "tag": "0009_session_email_code",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790605503726,
+      "tag": "0010_catalogue_hubs_lists",
+      "breakpoints": true
     }
   ]
 }
