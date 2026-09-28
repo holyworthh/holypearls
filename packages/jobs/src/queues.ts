@@ -31,6 +31,12 @@ export const QUEUES = {
   "demo.slice": { payload: payload({ demoId: z.string().uuid() }), settings: {} },
   /** Sends one notification through EmailSender (TECH-02 §8: 8 retries). */
   "email.send": { payload: payload({ notificationId: z.string().uuid() }), settings: { retryLimit: 8 } },
+  /** Checks the real type and size of an upload (2-minute timeout). */
+  "file.inspect": { payload: payload({ fileId: z.string().uuid() }), settings: { expireInSeconds: 120 } },
+  /** Makes previews and thumbnails (2 retries, 2-minute timeout). */
+  "file.preview": { payload: payload({ fileId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 120 } },
+  /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
+  "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;
 
 export type QueueName = keyof typeof QUEUES;

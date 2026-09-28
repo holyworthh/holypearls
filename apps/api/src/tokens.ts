@@ -19,3 +19,6 @@ export const JOBS = Symbol("JOBS");
 /** Database, jobs, sealing key, web origin and help inbox address, for notification-sending modules. */
 export const HELP_DEPS = Symbol("HELP_DEPS");
 export type HelpDepsToken = HelpDeps;
+
+/** Database, jobs and the private and public-media storage, for the files module. */
+export const FILE_DEPS = Symbol("FILE_DEPS");

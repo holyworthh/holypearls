@@ -27,3 +27,6 @@ apps/web/playwright-report/
 
 # Local sign-in emails (magic links) until T01-02
 .outbox/
+
+# Local files (TECH-04): uploads and previews on disk until MinIO or R2 is set up
+.storage/

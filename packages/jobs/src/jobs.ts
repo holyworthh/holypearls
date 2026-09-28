@@ -107,6 +107,11 @@ export class Jobs {
     );
   }
 
+  /** Runs a queue on a cron schedule in a time zone (housekeeping only, TECH-02 §8). */
+  async schedule<Q extends QueueName>(queue: Q, cron: string, payload: JobPayload<Q>, timeZone = "Africa/Lagos"): Promise<void> {
+    await this.boss.schedule(queue, cron, QUEUES[queue].payload.parse(payload), { tz: timeZone });
+  }
+
   /** Job state for tests and the admin Jobs page. */
   async findJob(queue: string, id: string) {
     const [job] = await this.boss.findJobs(queue, { id });

@@ -4,13 +4,18 @@ import {
   initMonitoring,
   markDemoSliceFailed,
   markNotificationFailed,
+  inspectFile,
+  markFileNeedsReview,
+  previewFile,
   processDemoSlice,
+  runDailyCleanup,
   sendNotification,
   reportError,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient } from "@holypearls/db";
 import { createEmailSender } from "@holypearls/email";
+import { createStorage } from "@holypearls/storage";
 import { deadLetterName, Jobs, QUEUES, type QueueName } from "@holypearls/jobs";
 
 const env = loadWorkerEnv();
@@ -41,6 +46,9 @@ const track =
   };
 
 const sender = createEmailSender(env);
+// The worker only reads and writes objects; it never signs URLs for browsers.
+const { storage, publicStorage } = createStorage(env, { publicBaseUrl: "http://worker.invalid", signingSecret: env.DATA_ENCRYPTION_KEY });
+const files = { db: database.db, jobs, storage, publicStorage };
 
 await jobs.start();
 await jobs.work(
@@ -51,6 +59,22 @@ await jobs.workDeadLetters("email.send", async (payload) => {
   logger.error({ queue: deadLetterName("email.send"), requestId: payload.requestId }, "email moved to dead-letter queue");
   await markNotificationFailed(database.db, payload.notificationId);
 });
+await jobs.work("file.inspect", track("file.inspect", (payload) => inspectFile(files, payload.fileId, payload.requestId)));
+await jobs.work("file.preview", track("file.preview", (payload) => previewFile(files, payload.fileId)));
+for (const queue of ["file.inspect", "file.preview"] as const) {
+  await jobs.workDeadLetters(queue, async (payload) => {
+    logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "file job moved to dead-letter queue");
+    await markFileNeedsReview(database.db, payload.fileId, "We couldn't finish checking this file. Our team will look at it.");
+  });
+}
+await jobs.work(
+  "cleanup.daily",
+  track("cleanup.daily", async () => {
+    const result = await runDailyCleanup(files);
+    logger.info({ queue: "cleanup.daily", removedFiles: result.files }, "daily clean-up finished");
+  }),
+);
+await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");

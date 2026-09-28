@@ -2,6 +2,7 @@ import { type AuthOutbox, createBetterAuthIdentity } from "@holypearls/auth";
 import { jobsConnectionString, loadApiEnv } from "@holypearls/config";
 import { createDatabaseClient } from "@holypearls/db";
 import { Jobs } from "@holypearls/jobs";
+import { createStorage } from "@holypearls/storage";
 import { createApp } from "./app.js";
 import { findActiveStaff } from "./identity/actor.js";
 import { createLogger } from "./logger.js";
@@ -45,7 +46,14 @@ const identity = createBetterAuthIdentity({
   log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
 });
+// Local storage URLs go through the web app's /api forwarding, like everything else in the browser.
+const { storage, publicStorage } = createStorage(env, {
+  publicBaseUrl: `${env.BETTER_AUTH_URL}/api`,
+  signingSecret: env.DATA_ENCRYPTION_KEY,
+});
 const app = await createApp({
+  storage,
+  publicStorage,
   db: database.db,
   logger,
   identity,

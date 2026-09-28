@@ -3,3 +3,6 @@ export { markDemoSliceFailed, processDemoSlice } from "./platform/demo-slice.js"
 export { markNotificationFailed, sendNotification } from "./platform/notifications.js";
 export { createLogger } from "./logger.js";
 export { flushMonitoring, initMonitoring, reportError } from "./monitoring.js";
+export { inspectFile, markFileNeedsReview } from "./files/files.js";
+export { previewFile } from "./files/processing.js";
+export { runDailyCleanup } from "./platform/cleanup.js";

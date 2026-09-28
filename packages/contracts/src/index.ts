@@ -2,6 +2,7 @@ export * from "./client.js";
 export * from "./customers.js";
 export * from "./demo.js";
 export * from "./errors.js";
+export * from "./files.js";
 export * from "./health.js";
 export * from "./identity.js";
 export * from "./money.js";

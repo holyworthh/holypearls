@@ -27,6 +27,19 @@ const email = {
   EMAIL_FILE_DIR: z.string().default(".outbox/emails"),
 };
 
+/** Private files and public media (TECH-04 §2): R2 or MinIO over S3, or the local disk. */
+const storage = {
+  STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
+  LOCAL_STORAGE_DIR: z.string().default(".storage"),
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_PUBLIC_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("false"),
+};
+
 const webSchema = z.object({
   API_URL: z.url(),
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
@@ -49,6 +62,7 @@ const apiSchema = z.object({
   ...encryption,
   /** Where new help requests are announced to staff (PRD-00 §18). */
   HELP_INBOX_EMAIL: z.email().default("help@holypearls.test"),
+  ...storage,
 });
 
 const workerSchema = z.object({
@@ -57,6 +71,7 @@ const workerSchema = z.object({
   ...monitoring,
   ...encryption,
   ...email,
+  ...storage,
 });
 
 const databaseSchema = z.object({

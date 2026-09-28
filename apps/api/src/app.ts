@@ -17,6 +17,8 @@ import { MeController } from "./identity/me.controller.js";
 import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
+import { FilesController } from "./files/files.controller.js";
+import { localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
 import { StaffAccessController } from "./identity/staff-access.controller.js";
 import { AdminHelpController, HelpController } from "./platform/help.controller.js";
@@ -25,7 +27,8 @@ import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
-import { DATABASE, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
+import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
+import { LocalDiskStorage, type StorageAdapter } from "@holypearls/storage";
 
 export interface CreateAppOptions {
   db: Database;
@@ -39,6 +42,9 @@ export interface CreateAppOptions {
   sealKey: string;
   /** Where new help requests are announced to staff. */
   helpInboxEmail: string;
+  /** Private files (R2 or the local disk) and the public-media bucket for staff images (TECH-04 §2). */
+  storage: StorageAdapter;
+  publicStorage: StorageAdapter;
   /** Serves the T00-04 demo routes. Never on in production. */
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
@@ -64,11 +70,16 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       HelpController,
       AdminHelpController,
       NotificationsController,
+      FilesController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
     providers: [
       { provide: JOBS, useValue: options.jobs },
+      {
+        provide: FILE_DEPS,
+        useValue: { db: options.db, jobs: options.jobs, storage: options.storage, publicStorage: options.publicStorage },
+      },
       {
         provide: HELP_DEPS,
         useValue: {
@@ -111,6 +122,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   app.use(
     authRoutes({ identity: options.identity, webOrigin: options.webOrigin, logger: options.logger, db: options.db, limiter }),
   );
+  for (const store of new Set([options.storage, options.publicStorage])) {
+    if (store instanceof LocalDiskStorage) app.use(localStorageRoute(store));
+  }
   app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {

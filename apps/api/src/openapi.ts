@@ -5,6 +5,10 @@ import {
   auditEntrySchema,
   auditPageSchema,
   createHelpRequestSchema,
+  createUploadSchema,
+  fileUrlSchema,
+  fileViewSchema,
+  uploadCreatedSchema,
   emailCodeSentSchema,
   emailCodeVerifiedSchema,
   helpInboxSchema,
@@ -289,6 +293,52 @@ export function buildOpenApiDocument() {
           summary: "Turn a guest link off (CUSTOMER_SUPPORT, audited)",
           parameters: [uuidParam("id")],
           responses: { 200: { description: "Revoked" }, ...staffOnly },
+        },
+      },
+      "/v1/files/uploads": {
+        post: {
+          summary: "Start an upload: checks purpose limits and ownership, returns a 15-minute URL for one object (TECH-04 §3)",
+          requestBody: { required: true, content: json(createUploadSchema) },
+          responses: {
+            201: { description: "Upload URL", content: json(uploadCreatedSchema) },
+            400: error("Type not allowed or too big (VALIDATION_FAILED)"),
+            ...signedIn,
+            403: error("Staff purpose without its permission"),
+            404: error("Record you can't attach to (NOT_FOUND)"),
+            429: error("UPLOAD_INTENT limit"),
+          },
+        },
+      },
+      "/v1/files/{id}/complete": {
+        post: {
+          summary: "The upload finished: checks the object and its real size, then queues file.inspect",
+          parameters: [uuidParam("id")],
+          responses: { 200: { description: "PROCESSING or REJECTED", content: json(fileViewSchema) }, 404: error("Not yours"), 422: error("Nothing uploaded") },
+        },
+      },
+      "/v1/files/{id}": {
+        get: {
+          summary: "A file's status, for the upload component",
+          parameters: [uuidParam("id")],
+          responses: { 200: { description: "The file", content: json(fileViewSchema) }, 404: error("Not yours, or no such file") },
+        },
+      },
+      "/v1/files/{id}/download": {
+        get: {
+          summary: "A 5-minute URL for the original (owner and permitted staff)",
+          parameters: [uuidParam("id")],
+          responses: { 200: { description: "Download URL", content: json(fileUrlSchema) }, 404: error("Not yours"), 422: error("Not available") },
+        },
+      },
+      "/v1/files/{id}/preview": {
+        get: {
+          summary: "A 5-minute URL for a preview, thumbnail or page image",
+          parameters: [
+            uuidParam("id"),
+            { name: "kind", in: "query", required: false, schema: { type: "string", enum: ["preview", "thumbnail", "page"] } },
+            { name: "page", in: "query", required: false, schema: { type: "integer" } },
+          ],
+          responses: { 200: { description: "Preview URL", content: json(fileUrlSchema) }, 404: error("Not yours, or no preview") },
         },
       },
       "/v1/admin/me": {
