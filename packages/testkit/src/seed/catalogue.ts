@@ -81,6 +81,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     options: [
       ["paper", "Paper", ["350gsm matte", "350gsm gloss", "400gsm soft-touch"]],
       ["sides", "Printed sides", ["One side", "Both sides"]],
+      ["finish", "Finish", ["None", "Foil", "Spot UV"]],
     ],
   },
   {
@@ -192,7 +193,7 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
       })
       .returning({ id: schema.products.id });
     for (const [position, [key, label, values]] of product.options.entries()) {
-      const [option] = await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position }).returning({ id: schema.productOptions.id });
+      const [option] = await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position, required: key !== "finish" }).returning({ id: schema.productOptions.id });
       await tx.insert(schema.productOptionValues).values(
         values.map((value, index) => ({ optionId: option!.id, key: value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label: value, position: index, isDefault: index === 0 })),
       );

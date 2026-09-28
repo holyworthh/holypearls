@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { buyingModeSchema, productFamilySchema } from "./catalogue.js";
+import { configuratorSchema } from "./configuration.js";
 
 /*
  * Public catalogue (T02-03, PUB-FR-008–010). Only published products and
@@ -181,6 +182,8 @@ export const publicProductSchema = publicProductCardSchema.extend({
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
   categoryParent: z.object({ slug: z.string(), name: z.string() }).nullable(),
   related: z.array(publicProductCardSchema),
+  /** Null for consultative products, which are planned with staff. */
+  configurator: configuratorSchema.nullable(),
   seoTitle: z.string(),
   seoDescription: z.string().nullable(),
 });

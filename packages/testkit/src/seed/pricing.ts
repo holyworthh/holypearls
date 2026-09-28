@@ -1,4 +1,4 @@
-import { eq, schema, type Transaction } from "@holypearls/db";
+import { and, eq, schema, type Transaction } from "@holypearls/db";
 
 /*
  * Pricing TEST DATA (T03-01) from the Stage 1.4 seed sheet: starting prices,
@@ -46,7 +46,7 @@ const PRICING: Record<string, { rules: Rules; price: Price | null }> = {
       packSize: 100,
       base: 15_000,
       tiers: [[500, 13_000], [1_000, 11_000]],
-      addOns: [["paper", "400gsm-soft-touch", "UNIT", 30]],
+      addOns: [["paper", "400gsm-soft-touch", "UNIT", 30], ["finish", "foil", "ORDER", 5_000], ["finish", "spot-uv", "ORDER", 4_000]],
       state: "PRICE_READY",
       note: "Stage 1.4: ₦15,000 per 100 double-sided. Tiers and soft-touch add-on illustrative.",
     },
@@ -75,6 +75,24 @@ const PRICING: Record<string, { rules: Rules; price: Price | null }> = {
   "team-staff-branding": { rules: { ...COMMON, ...SAMPLE, rush: "MANUAL_REVIEW", moq: 1, leadMinDays: 10, leadMaxDays: 30 }, price: null },
 };
 
+/** Combinations that can't be produced or need review (OPS-FR-013), for the Business Cards flow. */
+const COMPATIBILITY: Record<string, (typeof schema.compatibilityRules.$inferInsert)[]> = {
+  "business-cards": [
+    { productId: "", ifOption: "paper", ifValue: "350gsm-gloss", thenOption: "finish", thenValues: ["foil"], effect: "NOT_ALLOWED", message: "Foil doesn't hold on gloss paper. Choose matte or soft-touch paper for foil." },
+    { productId: "", ifOption: "paper", ifValue: "400gsm-soft-touch", thenOption: "finish", thenValues: ["spot-uv"], effect: "NEEDS_REVIEW", message: "Spot UV on soft-touch needs a check by our print team; we'll confirm the price." },
+  ],
+};
+
+/** Adds an option (and its values) that older seeds didn't have. */
+async function ensureOption(tx: Transaction, productId: string, key: string, label: string, values: string[]) {
+  const [existing] = await tx.select({ id: schema.productOptions.id }).from(schema.productOptions).where(and(eq(schema.productOptions.productId, productId), eq(schema.productOptions.key, key)));
+  if (existing) return;
+  const [option] = await tx.insert(schema.productOptions).values({ productId, key, label, required: false, position: 10 }).returning({ id: schema.productOptions.id });
+  await tx.insert(schema.productOptionValues).values(
+    values.map((value, index) => ({ optionId: option!.id, key: value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label: value, position: index, isDefault: index === 0 })),
+  );
+}
+
 /** Product rules, one price per product and VAT. Kept if they already exist. */
 export async function seedPricing(tx: Transaction): Promise<void> {
   const [tax] = await tx.select({ id: schema.taxSettings.id }).from(schema.taxSettings).limit(1);
@@ -84,6 +102,12 @@ export async function seedPricing(tx: Transaction): Promise<void> {
     const [product] = await tx.select({ id: schema.products.id }).from(schema.products).where(eq(schema.products.slug, slug));
     if (!product) continue;
     await tx.insert(schema.productRules).values({ productId: product.id, ...rules }).onConflictDoNothing();
+    if (slug === "business-cards") await ensureOption(tx, product.id, "finish", "Finish", ["None", "Foil", "Spot UV"]);
+    const compatibility = COMPATIBILITY[slug];
+    if (compatibility) {
+      const [anyRule] = await tx.select({ id: schema.compatibilityRules.id }).from(schema.compatibilityRules).where(eq(schema.compatibilityRules.productId, product.id)).limit(1);
+      if (!anyRule) await tx.insert(schema.compatibilityRules).values(compatibility.map((rule) => ({ ...rule, productId: product.id })));
+    }
     if (!price) continue;
     const [existing] = await tx.select({ id: schema.priceRules.id }).from(schema.priceRules).where(eq(schema.priceRules.productId, product.id)).limit(1);
     if (existing) continue;
