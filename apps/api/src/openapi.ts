@@ -40,6 +40,8 @@ import {
   configurationSchema,
   createConfigurationSchema,
   emailDraftSchema,
+  quoteRequestResultSchema,
+  quoteRequestSchema,
   updateConfigurationSchema,
   adminProductPageSchema,
   adminProductSchema,
@@ -627,6 +629,20 @@ export function buildOpenApiDocument() {
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(emailDraftSchema) },
           responses: { 200: { description: "Sent", content: json(configurationSchema) }, 404: error("Not yours") },
+        },
+      },
+      "/v1/configurations/{id}/quote-request": {
+        post: {
+          summary: "Request Final Quote: keeps every answer, creates a PENDING_REVIEW quote and emails a link (CONTACT limit)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(quoteRequestSchema) },
+          responses: {
+            200: { description: "Quote reference", content: json(quoteRequestResultSchema) },
+            400: error("No quantity yet"),
+            404: error("Not yours"),
+            409: error("Not a draft"),
+            422: error("A blocking answer must change first"),
+          },
         },
       },
       "/v1/configurations/{id}/files": {

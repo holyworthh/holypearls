@@ -5,6 +5,7 @@ import {
   emailDraftSchema,
   lowResolutionActionSchema,
   personalizationImportSchema,
+  quoteRequestSchema,
   updateConfigurationSchema,
 } from "@holypearls/contracts";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
@@ -14,7 +15,7 @@ import { RateLimit } from "../platform/rate-limit.js";
 import { FILE_DEPS, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
 import type { FileDeps } from "../files/files.js";
 import { ZodValidationPipe } from "../validation.js";
-import { attachDraftFile, createDraft, type DraftAccess, emailDraftLink, getDraft, importPersonalization, removeDraftFile, setLowResolutionAction, updateDraft } from "./drafts.js";
+import { attachDraftFile, createDraft, type DraftAccess, emailDraftLink, getDraft, importPersonalization, removeDraftFile, requestQuote, setLowResolutionAction, updateDraft } from "./drafts.js";
 
 /** The browser's device key for drafts started without signing in (HttpOnly; never readable by scripts). */
 export const DEVICE_COOKIE = "hp.device";
@@ -125,5 +126,13 @@ export class ConfigurationsController {
   @RateLimit("COMMERCIAL_WRITE")
   async personalization(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Body(new ZodValidationPipe(personalizationImportSchema)) body: z.infer<typeof personalizationImportSchema>) {
     return importPersonalization(this.files, await this.access(request), id, body.fileId);
+  }
+
+  /** Request Final Quote (COM-FR-061): keeps every answer and creates a quote for staff to review. */
+  @Post(":id/quote-request")
+  @HttpCode(200)
+  @RateLimit("CONTACT")
+  async quoteRequest(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string, @Body(new ZodValidationPipe(quoteRequestSchema)) body: z.infer<typeof quoteRequestSchema>) {
+    return requestQuote(this.deps, await this.access(request), id, body);
   }
 }

@@ -634,3 +634,63 @@
   border-radius: var(--hp-r-control);
   background: var(--hp-warning-tint);
 }
+
+/* T03-08: family answers, delivery timing (COM-FR-045–047, 070–072). */
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--hp-space-10);
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--hp-choice-min-width)), 1fr));
+  gap: var(--hp-space-10);
+}
+
+.select {
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+}
+
+.area {
+  margin: 0;
+  color: var(--hp-ink);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+  min-height: var(--hp-touch-target);
+  font-size: var(--hp-text-support);
+}
+
+.timing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-14);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-bone);
+  font-size: var(--hp-text-support);
+}
+
+.timing p {
+  margin: 0;
+}
+
+.timingWarn {
+  padding: var(--hp-space-8) var(--hp-space-10);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-warning-tint);
+  color: var(--hp-ink);
+}
