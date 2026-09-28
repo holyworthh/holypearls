@@ -249,7 +249,7 @@ export async function storefrontNavigation(db: Database) {
 /** Sections every new hub starts with; staff edit them in Pen 105's editor. */
 export function defaultHub(category: { name: string; description: string | null }): Hub {
   const sections: HubSection[] = [
-    { type: "summary", visible: true, heading: category.name, body: category.description ?? "", primaryLabel: "Browse products", secondaryLabel: "Start a project", secondaryHref: "/start-a-project" },
+    { type: "summary", visible: true, heading: category.name, body: category.description ?? "", primaryLabel: "Browse products", secondaryLabel: "Start a project", secondaryHref: "/contact?topic=project" },
     { type: "subcategories", visible: true, heading: "What are you looking for?" },
     { type: "featured", visible: false, heading: "Popular choices", productSlugs: [] },
     { type: "process", visible: false, heading: "Choose how it's made", steps: [] },
@@ -331,4 +331,50 @@ export async function publicMediaFile(db: Database, fileId: string) {
         .limit(1);
   if (!onCategory) throw new AppError("NOT_FOUND");
   return file;
+}
+
+/** One visible product for its public page (images, specifications, FAQ, related). */
+export async function publicProduct(db: Database, slug: string) {
+  const [row] = (await db
+    .select({ ...cardColumns, id: schema.products.id, description: schema.products.description, specifications: schema.products.specifications, faqs: schema.products.faqs, seoTitle: schema.products.seoTitle, seoDescription: schema.products.seoDescription, parentId: schema.categories.parentId })
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(and(visibleProduct(), eq(schema.products.slug, slug)))) as (CardRow & {
+    id: string;
+    description: string | null;
+    specifications: unknown;
+    faqs: unknown;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    parentId: string | null;
+  })[];
+  if (!row) throw new AppError("NOT_FOUND");
+  const media = await db
+    .select({ fileId: schema.productMedia.fileId, alt: schema.productMedia.alt, metadata: schema.files.metadata })
+    .from(schema.productMedia)
+    .innerJoin(schema.files, eq(schema.files.id, schema.productMedia.fileId))
+    .where(and(eq(schema.productMedia.productId, row.id), eq(schema.files.status, "READY")))
+    .orderBy(asc(schema.productMedia.position));
+  const [parent] = row.parentId
+    ? await db.select({ slug: schema.categories.slug, name: schema.categories.name }).from(schema.categories).where(eq(schema.categories.id, row.parentId))
+    : [];
+  const relatedIds = await db
+    .select({ id: schema.productRelations.relatedProductId })
+    .from(schema.productRelations)
+    .where(eq(schema.productRelations.productId, row.id))
+    .orderBy(asc(schema.productRelations.position));
+  return {
+    ...toCard(row),
+    description: row.description,
+    images: media.map((item) => {
+      const meta = (item.metadata ?? {}) as { width?: number; height?: number };
+      return image(item.fileId, item.alt, meta.width ?? null, meta.height ?? null)!;
+    }),
+    specifications: row.specifications as { label: string; value: string }[],
+    faqs: row.faqs as { question: string; answer: string }[],
+    categoryParent: parent ?? null,
+    related: await cardsByIds(db, relatedIds.map((item) => item.id)),
+    seoTitle: row.seoTitle ?? `${row.name} | HolyPearls`,
+    seoDescription: row.seoDescription ?? row.summary,
+  };
 }

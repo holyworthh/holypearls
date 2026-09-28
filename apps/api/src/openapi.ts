@@ -13,6 +13,16 @@ import {
   setRelatedProductsSchema,
   updateCategorySchema,
   updateProductMediaSchema,
+  adminHubSchema,
+  adminMerchandisingListsSchema,
+  publicCategoryTreeSchema,
+  publicHubSchema,
+  publicProductPageSchema,
+  publicProductSchema,
+  publishHubSchema,
+  saveHubDraftSchema,
+  saveMerchandisingListSchema,
+  storefrontNavigationSchema,
   adminProductPageSchema,
   adminProductSchema,
   changeProductStatusSchema,
@@ -459,6 +469,67 @@ export function buildOpenApiDocument() {
             422: error("Has products or subcategories, or parent not published (RULE_FAILED)"),
             ...staffOnly,
           },
+        },
+      },
+      "/v1/catalogue/navigation": {
+        get: { summary: "Categories, popular products and homepage lists for the site header and homepage (public, cached)", responses: { 200: { description: "Navigation", content: json(storefrontNavigationSchema) } } },
+      },
+      "/v1/catalogue/categories": {
+        get: { summary: "Published categories as a two-level tree with product counts (public, cached)", responses: { 200: { description: "Categories", content: json(publicCategoryTreeSchema) } } },
+      },
+      "/v1/catalogue/products": {
+        get: {
+          summary: "Product Directory: published products with search, filters, sort, numbered pages and facet counts (public, cached)",
+          responses: { 200: { description: "A page", content: json(publicProductPageSchema) }, 400: error("Bad query") },
+        },
+      },
+      "/v1/catalogue/products/{slug}": {
+        get: {
+          summary: "One published product for its public page (public, cached)",
+          parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "The product", content: json(publicProductSchema) }, 404: error("Not published or unknown") },
+        },
+      },
+      "/v1/catalogue/hubs/{slug}": {
+        get: {
+          summary: "A published category hub with its visible sections and products (public, cached)",
+          parameters: [{ name: "slug", in: "path", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "The hub", content: json(publicHubSchema) }, 404: error("Not published or unknown") },
+        },
+      },
+      "/v1/media/{fileId}/{kind}": {
+        get: {
+          summary: "A product or category image (preview or thumbnail); only for visible products and published categories. Cached for a year.",
+          parameters: [uuidParam("fileId"), { name: "kind", in: "path", required: true, schema: { type: "string", enum: ["preview", "thumbnail"] } }],
+          responses: { 200: { description: "Image bytes" }, 404: error("Not public") },
+        },
+      },
+      "/v1/admin/catalogue/categories/{id}/hub": {
+        get: { summary: "A category hub's draft and published sections (CATALOGUE_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "The hub", content: json(adminHubSchema) }, ...staffOnly } },
+        put: {
+          summary: "Save the hub draft; the public page doesn't change (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(saveHubDraftSchema) },
+          responses: { 200: { description: "Saved", content: json(adminHubSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/categories/{id}/hub/publish": {
+        post: {
+          summary: "Publish the hub draft and refresh the page (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(publishHubSchema) },
+          responses: { 200: { description: "Published", content: json(adminHubSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/lists": {
+        get: { summary: "The mega-menu and homepage product lists (CATALOGUE_MANAGE)", responses: { 200: { description: "Lists", content: json(adminMerchandisingListsSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/catalogue/lists/{key}": {
+        put: {
+          summary: "Replace a list; version 0 creates it (CATALOGUE_MANAGE, audited)",
+          parameters: [{ name: "key", in: "path", required: true, schema: { type: "string", enum: ["menu.popular", "home.most-ordered"] } }],
+          requestBody: { required: true, content: json(saveMerchandisingListSchema) },
+          responses: { 200: { description: "Saved", content: json(adminMerchandisingListsSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly },
         },
       },
       "/v1/admin/me": {

@@ -172,3 +172,16 @@ export const storefrontNavigationSchema = z.object({
   totalProducts: z.number().int(),
 });
 export type StorefrontNavigation = z.infer<typeof storefrontNavigationSchema>;
+
+/** A product's public page data. The full product page (configurator, prices) is T03-03. */
+export const publicProductSchema = publicProductCardSchema.extend({
+  description: z.string().nullable(),
+  images: z.array(publicImageSchema),
+  specifications: z.array(z.object({ label: z.string(), value: z.string() })),
+  faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
+  categoryParent: z.object({ slug: z.string(), name: z.string() }).nullable(),
+  related: z.array(publicProductCardSchema),
+  seoTitle: z.string(),
+  seoDescription: z.string().nullable(),
+});
+export type PublicProduct = z.infer<typeof publicProductSchema>;

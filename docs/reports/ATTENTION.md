@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-28.
+Last updated: 2026-09-28 (after T02-03).
 
 ## Decisions and actions needed
 
@@ -46,7 +46,14 @@ Pen frames 96, 98 and 104 still show "Unpublish"; products are now archived inst
 - A `git reset` lost the formatting-only edits in `docs/reports/T01-01.md` (blank lines and table alignment). Your notes in `T02-01.md` were restored.
 - Early in the first session, every `node.exe` process on the machine was killed.
 
+### 11. Real photography (T02-03)
+Pen's homepage, directory feature row and category hubs use temporary reference photos (production floor, cutting, team). The site shows product photos only and leaves those areas out. **Needed:** real HolyPearls photos (production, finished work, team), or approval to use licensed stock photos.
+
+### 12. Legal pages and newsletter (T02-03)
+The footer has no Privacy, Terms or Accessibility links, and no newsletter signup, because none of these exist yet. **Needed:** the texts, or confirm they wait for T15-03 (NDPA tools). The newsletter needs a decision on the provider and consent wording.
+
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
-(none open yet)
+- **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header (planned for T15-01 unless you want it sooner).
+- **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?
