@@ -25,7 +25,8 @@ const PERIODS: readonly [string, string][] = [
   ["90", "Last 90 days"],
 ];
 
-const time = new Intl.DateTimeFormat("en-GB", {
+// Pen shows "27 SEP 14:10" in Lagos time.
+const time = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
   month: "short",
   hour: "2-digit",
@@ -33,7 +34,10 @@ const time = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
   timeZone: "Africa/Lagos",
 });
-const formatTime = (iso: string) => time.format(new Date(iso)).replace(",", "").toUpperCase();
+const formatTime = (iso: string) => {
+  const part = Object.fromEntries(time.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]));
+  return `${part.day} ${String(part.month).toUpperCase()} ${part.hour}:${part.minute}`;
+};
 
 /** A short reference for an entry, shown to staff (the ID itself is a UUID). */
 const entryRef = (id: string) => `AL-${id.replaceAll("-", "").slice(-6).toUpperCase()}`;
