@@ -1,8 +1,9 @@
 import type { AdminProduct } from "@holypearls/contracts";
-import { and, type Database, desc, eq, ilike, lt, or, schema, sql } from "@holypearls/db";
+import { and, type Database, eq, ilike, or, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
+import { afterCursor, newestFirst, pageOf } from "../platform/cursor.js";
 
 type Status = "DRAFT" | "PUBLISHED" | "TEMPORARILY_UNAVAILABLE" | "ARCHIVED";
 
@@ -72,13 +73,8 @@ export async function listProducts(
   }
   if (query.status) conditions.push(eq(schema.products.status, query.status));
   if (query.family) conditions.push(eq(schema.products.family, query.family as never));
-  if (query.cursor) {
-    const [time, id] = Buffer.from(query.cursor, "base64url").toString("utf8").split("|");
-    const at = new Date(time ?? "");
-    if (id && !Number.isNaN(at.getTime())) {
-      conditions.push(or(lt(schema.products.updatedAt, at), and(eq(schema.products.updatedAt, at), lt(schema.products.id, id))));
-    }
-  }
+  const after = afterCursor(schema.products.updatedAt, schema.products.id, query.cursor);
+  if (after) conditions.push(after);
   const rows = await db
     .select({
       product: schema.products,
@@ -88,14 +84,10 @@ export async function listProducts(
     .from(schema.products)
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(schema.products.updatedAt), desc(schema.products.id))
+    .orderBy(...newestFirst(schema.products.updatedAt, schema.products.id))
     .limit(query.limit + 1);
-  const page = rows.slice(0, query.limit);
-  const last = page.at(-1)?.product;
-  return {
-    entries: page.map((row) => toAdmin(row.product, row.categoryName, row.mediaCount)),
-    nextCursor: rows.length > query.limit && last ? Buffer.from(`${last.updatedAt.toISOString()}|${last.id}`).toString("base64url") : null,
-  };
+  const { page, nextCursor } = pageOf(rows, query.limit, (row) => ({ at: row.product.updatedAt, id: row.product.id }));
+  return { entries: page.map((row) => toAdmin(row.product, row.categoryName, row.mediaCount)), nextCursor };
 }
 
 const slugTaken = (error: unknown) => (error as { cause?: { code?: string } }).cause?.code === "23505";

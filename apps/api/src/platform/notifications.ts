@@ -1,5 +1,5 @@
 import type { NotificationEntry, NotificationPage } from "@holypearls/contracts";
-import { and, type Database, desc, eq, lt, or, schema, sql, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, or, schema, sql, type Transaction } from "@holypearls/db";
 import {
   type EmailSender,
   PermanentEmailError,
@@ -14,6 +14,7 @@ import type { Jobs } from "@holypearls/jobs";
 import type { ActorContext } from "../identity/actor.js";
 import { AppError } from "../errors.js";
 import { recordAudit } from "./audit.js";
+import { afterCursor, newestFirst, pageOf } from "./cursor.js";
 
 /** Retries plus the first try (TECH-02 §8: email.send has 8 retries). */
 const MAX_ATTEMPTS = 9;
@@ -156,33 +157,16 @@ export async function listNotifications(
       or(sql`${schema.notifications.recipient} like ${term}`, sql`lower(coalesce(${schema.notifications.recordLabel}, '')) like ${term}`),
     );
   }
-  if (query.cursor) {
-    const [time, id] = Buffer.from(query.cursor, "base64url").toString("utf8").split("|");
-    const createdAt = new Date(time ?? "");
-    if (id && !Number.isNaN(createdAt.getTime())) {
-      conditions.push(
-        or(
-          lt(schema.notifications.createdAt, createdAt),
-          and(eq(schema.notifications.createdAt, createdAt), lt(schema.notifications.id, id)),
-        ),
-      );
-    }
-  }
+  const after = afterCursor(schema.notifications.createdAt, schema.notifications.id, query.cursor);
+  if (after) conditions.push(after);
   const rows = await db
     .select()
     .from(schema.notifications)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(schema.notifications.createdAt), desc(schema.notifications.id))
+    .orderBy(...newestFirst(schema.notifications.createdAt, schema.notifications.id))
     .limit(query.limit + 1);
-  const page = rows.slice(0, query.limit);
-  const last = page.at(-1);
-  return {
-    entries: page.map(toEntry),
-    nextCursor:
-      rows.length > query.limit && last
-        ? Buffer.from(`${last.createdAt.toISOString()}|${last.id}`).toString("base64url")
-        : null,
-  };
+  const { page, nextCursor } = pageOf(rows, query.limit, (row) => ({ at: row.createdAt, id: row.id }));
+  return { entries: page.map(toEntry), nextCursor };
 }
 
 export async function findNotification(db: Database, id: string): Promise<NotificationEntry | null> {
