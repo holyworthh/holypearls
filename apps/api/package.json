@@ -7,18 +7,30 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "node dist/main.js"
+    "test": "vitest run",
+    "start": "node dist/main.js",
+    "openapi:generate": "tsx src/openapi-cli.ts write",
+    "openapi:check": "tsx src/openapi-cli.ts check"
   },
   "dependencies": {
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
+    "@holypearls/db": "workspace:*",
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",
     "@nestjs/platform-express": "12.1.0",
+    "drizzle-orm": "0.45.3",
+    "pino": "10.3.1",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
-    "tsx": "4.23.15"
+    "@holypearls/testkit": "workspace:*",
+    "@types/express": "5.0.6",
+    "@types/supertest": "7.2.1",
+    "supertest": "7.3.0",
+    "tsx": "4.23.15",
+    "vitest": "5.0.2"
   }
 }

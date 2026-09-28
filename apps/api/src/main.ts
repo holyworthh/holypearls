@@ -1,13 +1,12 @@
-import "reflect-metadata";
-import { Module } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
 import { loadApiEnv } from "@holypearls/config";
-
-@Module({})
-class AppModule {}
+import { createDatabaseClient } from "@holypearls/db";
+import { createApp } from "./app.js";
+import { createLogger } from "./logger.js";
 
 const env = loadApiEnv();
-const app = await NestFactory.create(AppModule);
-// TECH-00 §2: every API route lives under /v1.
-app.setGlobalPrefix("v1");
+const logger = createLogger();
+const database = createDatabaseClient(env.DATABASE_URL);
+const app = await createApp({ db: database.db, logger });
+app.enableShutdownHooks();
 await app.listen(env.API_PORT);
+logger.info({ port: env.API_PORT }, "api started");
