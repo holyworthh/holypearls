@@ -2,7 +2,7 @@ import { loadDatabaseEnv } from "@holypearls/config";
 import { createDatabaseClient } from "@holypearls/db";
 import { buildSeedSteps, runSeed } from "./index.js";
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV === "production" || process.env.HP_ENV === "production") {
   throw new Error("Seed data is test data and never loads in production.");
 }
 

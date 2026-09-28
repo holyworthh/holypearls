@@ -42,6 +42,8 @@ export function redact(value: unknown, depth = 0): unknown {
 }
 
 export interface LoggerOptions {
+  /** "api" or "worker". */
+  service?: string;
   level?: string;
   environment?: string;
   destination?: DestinationStream;
@@ -52,7 +54,7 @@ export function createLogger(options: LoggerOptions = {}): Logger {
   return pino(
     {
       level: options.level ?? "info",
-      base: { service: "api", environment: options.environment ?? process.env.NODE_ENV ?? "development" },
+      base: { service: options.service ?? "api", environment: options.environment ?? process.env.NODE_ENV ?? "development" },
       timestamp: pino.stdTimeFunctions.isoTime,
       formatters: {
         level: (label) => ({ level: label }),

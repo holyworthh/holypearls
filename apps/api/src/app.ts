@@ -5,6 +5,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import type { IdentityAdapter } from "@holypearls/auth";
 import { ERROR_CODES } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
+import type { Jobs } from "@holypearls/jobs";
 import type { NextFunction, Request, Response } from "express";
 import type { Logger } from "pino";
 import { ErrorShapeFilter } from "./errors.js";
@@ -13,9 +14,11 @@ import { actorResolver } from "./identity/actor.js";
 import { AdminController } from "./identity/admin.controller.js";
 import { authRoutes } from "./identity/auth-routes.js";
 import { MeController } from "./identity/me.controller.js";
+import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
-import { DATABASE, IDENTITY, LOGGER } from "./tokens.js";
+import { DemoSliceController } from "./platform/demo-slice.controller.js";
+import { DATABASE, IDENTITY, JOBS, LOGGER } from "./tokens.js";
 
 export interface CreateAppOptions {
   db: Database;
@@ -23,14 +26,26 @@ export interface CreateAppOptions {
   identity: IdentityAdapter;
   /** The web app's origin; state-changing requests must come from it (TECH-03 §13). */
   webOrigin: string;
+  /** Queues background jobs (a sender; the worker runs them). */
+  jobs?: Jobs;
+  /** Serves the T00-04 demo routes. Never on in production. */
+  demoSlice?: boolean;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
   controllers?: Type[];
 }
 
 export async function createApp(options: CreateAppOptions): Promise<NestExpressApplication> {
   @Module({
-    controllers: [HealthController, MeController, AdminController, ...(options.controllers ?? [])],
+    controllers: [
+      HealthController,
+      MeController,
+      AdminController,
+      MonitoringController,
+      ...(options.demoSlice && options.jobs ? [DemoSliceController] : []),
+      ...(options.controllers ?? []),
+    ],
     providers: [
+      { provide: JOBS, useValue: options.jobs ?? null },
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },

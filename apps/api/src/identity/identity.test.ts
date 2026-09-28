@@ -303,6 +303,20 @@ describe("staff access (TECH-03 §8, §10)", () => {
   });
 });
 
+describe("monitoring test error (T00-04)", () => {
+  it("lets SECURITY_ADMIN staff raise a deliberate 500 and refuses everyone else", async () => {
+    const ada = await harness.signInAs("adminAda");
+    const response = await post("/v1/admin/monitoring/test-error", ada).send({});
+    expect(response.status).toBe(500);
+    expect(errorOf(response.body).code).toBe("INTERNAL");
+    expect(harness.logs.some((line) => line.includes("Monitoring test error"))).toBe(true);
+
+    const tunde = await harness.signInAs("adminTunde");
+    expect((await post("/v1/admin/monitoring/test-error", tunde).send({})).status).toBe(403);
+    expect((await post("/v1/admin/monitoring/test-error").send({})).status).toBe(404);
+  });
+});
+
 describe("sign-in rate limits", () => {
   it("returns 429 RATE_LIMITED after repeated failed sign-ins", async () => {
     const limited = await createHarness({ rateLimit: true });
