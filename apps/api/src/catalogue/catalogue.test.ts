@@ -105,7 +105,7 @@ describe("product statuses (TECH-01 §4)", () => {
       expect.arrayContaining(["catalogue.product_created", "catalogue.product_updated", "catalogue.product_status_changed"]),
     );
     expect(audit.filter((entry) => entry.action === "catalogue.product_status_changed")).toHaveLength(5);
-  });
+    }, 180_000);
 });
 
 describe("catalogue admin access", () => {

@@ -1,6 +1,7 @@
 import type { AuditEntry, AuditPage } from "@holypearls/contracts";
-import { and, type Database, desc, eq, gte, ilike, lt, or, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, gte, ilike, or, schema, type Transaction } from "@holypearls/db";
 import type { ActorContext } from "../identity/actor.js";
+import { afterCursor, newestFirst, pageOf } from "./cursor.js";
 
 export interface AuditInput {
   action: string;
@@ -69,16 +70,6 @@ const toEntry = (row: typeof schema.auditLog.$inferSelect): AuditEntry => ({
   requestId: row.requestId,
 });
 
-/** Cursor = the last entry's time and ID, so paging stays stable as new entries arrive (TECH-02 §3). */
-const encodeCursor = (row: { occurredAt: Date; id: string }) =>
-  Buffer.from(`${row.occurredAt.toISOString()}|${row.id}`).toString("base64url");
-
-function decodeCursor(cursor: string): { occurredAt: Date; id: string } | null {
-  const [time, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
-  const occurredAt = new Date(time ?? "");
-  return id && !Number.isNaN(occurredAt.getTime()) ? { occurredAt, id } : null;
-}
-
 export interface AuditQuery {
   q?: string;
   action?: string;
@@ -106,28 +97,18 @@ export async function listAudit(db: Database, query: AuditQuery, now = new Date(
   if (query.recordType) conditions.push(eq(schema.auditLog.recordType, query.recordType));
   if (query.recordId) conditions.push(eq(schema.auditLog.recordId, query.recordId));
   if (query.sinceDays) conditions.push(gte(schema.auditLog.occurredAt, new Date(now.getTime() - query.sinceDays * 86_400_000)));
-  const cursor = query.cursor ? decodeCursor(query.cursor) : null;
-  if (cursor) {
-    conditions.push(
-      or(
-        lt(schema.auditLog.occurredAt, cursor.occurredAt),
-        and(eq(schema.auditLog.occurredAt, cursor.occurredAt), lt(schema.auditLog.id, cursor.id)),
-      ),
-    );
-  }
+  // Cursor = the last entry's time and ID, so paging stays stable as new entries arrive.
+  const after = afterCursor(schema.auditLog.occurredAt, schema.auditLog.id, query.cursor);
+  if (after) conditions.push(after);
 
   const rows = await db
     .select()
     .from(schema.auditLog)
     .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(schema.auditLog.occurredAt), desc(schema.auditLog.id))
+    .orderBy(...newestFirst(schema.auditLog.occurredAt, schema.auditLog.id))
     .limit(query.limit + 1);
-  const page = rows.slice(0, query.limit);
-  const last = page.at(-1);
-  return {
-    entries: page.map(toEntry),
-    nextCursor: rows.length > query.limit && last ? encodeCursor(last) : null,
-  };
+  const { page, nextCursor } = pageOf(rows, query.limit, (row) => ({ at: row.occurredAt, id: row.id }));
+  return { entries: page.map(toEntry), nextCursor };
 }
 
 export async function findAuditEntry(db: Database, id: string): Promise<AuditEntry | null> {

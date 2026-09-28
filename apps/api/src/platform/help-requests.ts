@@ -1,11 +1,12 @@
 import type { AdminHelpRequest, HelpContext, HelpInbox, HelpRequest } from "@holypearls/contracts";
-import { and, type Database, desc, eq, lt, or, schema, sql } from "@holypearls/db";
+import { and, type Database, eq, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, ensureCustomer, redeemGuestLink } from "../identity/customers.js";
 import { recordAudit } from "./audit.js";
 import { type NotificationDeps, queueEmail } from "./notifications.js";
 import { allow, type Decision, hide } from "./policy.js";
+import { afterCursor, newestFirst, pageOf } from "./cursor.js";
 
 export interface HelpDeps extends NotificationDeps {
   webOrigin: string;
@@ -185,23 +186,15 @@ export async function listHelpInbox(
   for (const row of countRows) counts[row.status] = row.n;
 
   const conditions = [eq(schema.helpRequests.status, query.status)];
-  if (query.cursor) {
-    const [time, id] = Buffer.from(query.cursor, "base64url").toString("utf8").split("|");
-    const createdAt = new Date(time ?? "");
-    if (id && !Number.isNaN(createdAt.getTime())) {
-      conditions.push(
-        or(lt(schema.helpRequests.createdAt, createdAt), and(eq(schema.helpRequests.createdAt, createdAt), lt(schema.helpRequests.id, id)))!,
-      );
-    }
-  }
+  const after = afterCursor(schema.helpRequests.createdAt, schema.helpRequests.id, query.cursor);
+  if (after) conditions.push(after);
   const rows = await db
     .select()
     .from(schema.helpRequests)
     .where(and(...conditions))
-    .orderBy(desc(schema.helpRequests.createdAt), desc(schema.helpRequests.id))
+    .orderBy(...newestFirst(schema.helpRequests.createdAt, schema.helpRequests.id))
     .limit(query.limit + 1);
-  const page = rows.slice(0, query.limit);
-  const last = page.at(-1);
+  const { page, nextCursor } = pageOf(rows, query.limit, (row) => ({ at: row.createdAt, id: row.id }));
   const entries = await Promise.all(
     page.map(async (row) => {
       const full: Partial<AdminHelpRequest> = await adminRow(db, row, false);
@@ -212,7 +205,7 @@ export async function listHelpInbox(
   return {
     counts,
     entries,
-    nextCursor: rows.length > query.limit && last ? Buffer.from(`${last.createdAt.toISOString()}|${last.id}`).toString("base64url") : null,
+    nextCursor,
   };
 }
 

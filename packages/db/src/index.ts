@@ -7,3 +7,4 @@ export * as schema from "./schema/index.js";
 
 // One drizzle-orm instance for every package; import query helpers from here.
 export { and, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+export type { AnyColumn, SQL } from "drizzle-orm";

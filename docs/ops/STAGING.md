@@ -1,3 +1,5 @@
+> Superseded: the free-tier setup in `ENVIRONMENTS.md` is what's deployed. This page describes the paid-plan layout TECH-07 targets.
+
 # Staging deployment (T00-04, former T00-08)
 
 Status: **ready to deploy, waiting on the owner.** The code, image and checks are in the repository. Choosing the API host and creating the accounts and secrets need the owner (see "Decisions needed").
