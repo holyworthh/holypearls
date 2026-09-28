@@ -9,6 +9,7 @@ import { canViewHelpRequest } from "../platform/help-requests.js";
 import {
   DOWNLOAD_URL_SECONDS,
   describeLimit,
+  declaredTypeFor,
   detectType,
   type FilePurpose,
   type FileType,
@@ -100,7 +101,8 @@ export async function createUpload(
   } else if (actor.type === "anonymous") {
     throw new AppError("NOT_SIGNED_IN");
   }
-  if (!rule.types.includes(input.contentType as FileType)) {
+  const declaredType = declaredTypeFor(input.contentType, input.fileName);
+  if (!rule.types.includes(declaredType as FileType)) {
     throw new AppError("VALIDATION_FAILED", { fieldErrors: { file: `Upload ${rule.typesLabel}.` }, context: { reason: "TYPE_NOT_ALLOWED" } });
   }
   if (input.size > rule.maxBytes) {
@@ -127,7 +129,7 @@ export async function createUpload(
       uploadedByCustomerId: customer?.id ?? null,
       originalName: input.fileName.slice(0, 255),
       safeName: safeFileName(input.fileName),
-      declaredType: input.contentType,
+      declaredType,
       declaredSize: input.size,
       storageKey: `pending-${crypto.randomUUID()}`,
       bucket: rule.bucket,
@@ -169,7 +171,7 @@ export async function completeUpload(deps: FileDeps, actor: ActorContext, id: st
 }
 
 const REJECT_TYPE = (rule: { typesLabel: string }) =>
-  `This isn't a file we can use. Upload ${rule.typesLabel}. For AI, EPS or SVG files, ask us for design help.`;
+  `This isn't a file we can use. Upload ${rule.typesLabel}. For EPS or PSD files, ask us for design help.`;
 
 /**
  * file.inspect (step 7): reads the first bytes to find the real type. A type
@@ -179,7 +181,7 @@ export async function inspectFile(deps: Pick<FileDeps, "db" | "jobs" | "storage"
   const [row] = await deps.db.select().from(schema.files).where(eq(schema.files.id, fileId));
   if (!row || row.status !== "PROCESSING") return;
   const rule = PURPOSES[row.purpose as FilePurpose];
-  const detected = detectType(await storageFor(deps, row).readStart(row.storageKey, 4096));
+  const detected = detectType(await storageFor(deps, row).readStart(row.storageKey, 4096), row.originalName);
   const allowed = detected !== null && rule.types.includes(detected);
   const matches = detected === row.declaredType || (detected === "text/csv" && row.declaredType.startsWith("text/"));
   if (!allowed || !matches) {

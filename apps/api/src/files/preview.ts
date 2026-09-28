@@ -85,6 +85,20 @@ export function renderPdf(source: Buffer, options: { pages: number; width?: numb
 }
 
 /** PDF previews: the first page (every page up to 20 for proofs), plus a thumbnail of page 1. */
+/**
+ * SVG previews are drawn to raster by librsvg (inside sharp) from memory, so
+ * scripts never run and linked files or URLs are never fetched. 300 dpi keeps
+ * small logos sharp.
+ */
+export async function previewSvg(source: Buffer): Promise<ImagePreview> {
+  const png = await sharp(source, { density: 300, failOn: "error", limitInputPixels: 268_402_689 })
+    .resize({ width: PREVIEW_EDGE, height: PREVIEW_EDGE, fit: "inside", withoutEnlargement: true })
+    .flatten({ background: "#ffffff" })
+    .png()
+    .toBuffer();
+  return previewImage(png);
+}
+
 export async function previewPdf(source: Buffer, pages: number): Promise<{ renditions: Rendition[]; metadata: { pages: number } }> {
   const rendered = await renderPdf(source, { pages });
   const first = rendered.pages[0];

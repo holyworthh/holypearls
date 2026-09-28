@@ -83,10 +83,50 @@ describe("real type detection", () => {
     expect(detectType(Buffer.from([0xff, 0xd8, 0xff, 0xe0]))).toBe("image/jpeg");
     expect(detectType(Buffer.from("%PDF-1.4"))).toBe("application/pdf");
     expect(detectType(Buffer.from("name,size\nlogo,12\n"))).toBe("text/csv");
-    expect(detectType(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>x</script></svg>'))).toBeNull();
+    expect(detectType(Buffer.from('<?xml version="1.0"?>\n<!-- logo -->\n<svg xmlns="http://www.w3.org/2000/svg"></svg>'))).toBe("image/svg+xml");
+    expect(detectType(Buffer.from("%PDF-1.6"), "Logo.AI")).toBe("application/illustrator");
+    expect(detectType(Buffer.from("%!PS-Adobe-3.0"), "old.ai")).toBe("application/illustrator");
+    expect(detectType(Buffer.from("%!PS-Adobe-3.0"), "old.eps")).toBeNull();
+    expect(detectType(Buffer.from("<html><svg></svg></html>"))).toBeNull();
     // Plain text is never an image, whatever its name says.
     expect(detectType(textPretendingToBePng)).not.toBe("image/png");
     expect(detectType(Buffer.from([0x00, 0x01, 0x02, 0x03]))).toBeNull();
+  });
+});
+
+describe("design files: SVG and Illustrator (docs/research/UPLOAD-FORMATS.md)", () => {
+  const svg = Buffer.from(
+    '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="120" height="60">' +
+      '<script>alert(1)</script><image xlink:href="file:///etc/passwd" width="10" height="10"/>' +
+      '<rect width="120" height="60" fill="#d2311a"/></svg>',
+  );
+
+  it("draws an SVG to a raster preview without running or fetching anything", async () => {
+    const { file } = await upload(actors.customerChidi!, svg, { fileName: "logo.svg", contentType: "" });
+    await until(async () => (await status(actors.customerChidi!, file!.id)).status === "READY");
+    const ready = await status(actors.customerChidi!, file!.id);
+    expect(ready).toMatchObject({ type: "image/svg+xml", hasThumbnail: true });
+    const preview = fileUrlSchema.parse((await as(harness, actors.customerChidi!).get(`/v1/files/${file!.id}/preview?kind=preview`)).body);
+    const image = await request(harness.url).get(new URL(preview.url).pathname.replace(/^\/api/, "")).buffer(true);
+    const info = await sharp(image.body as Buffer).metadata();
+    // 120 × 60 at 300 dpi.
+    expect(info).toMatchObject({ format: "webp", width: 500, height: 250 });
+
+    // The original is only ever a download, so its script can't run on our domain.
+    const original = fileUrlSchema.parse((await as(harness, actors.customerChidi!).get(`/v1/files/${file!.id}/download`)).body);
+    const got = await request(harness.url).get(new URL(original.url).pathname.replace(/^\/api/, ""));
+    expect(got.headers["content-disposition"]).toMatch(/^attachment/);
+  });
+
+  it("previews a PDF-compatible Illustrator file and explains an old one it can't show", async () => {
+    const { file } = await upload(actors.customerChidi!, pdf, { fileName: "Logo.ai", contentType: "application/postscript" });
+    await until(async () => (await status(actors.customerChidi!, file!.id)).status === "READY");
+    expect(await status(actors.customerChidi!, file!.id)).toMatchObject({ type: "application/illustrator", hasThumbnail: true });
+
+    const legacy = Buffer.from("%!PS-Adobe-3.0\n%%Creator: Adobe Illustrator(R) 8.0\n%%EOF\n");
+    const old = await upload(actors.customerChidi!, legacy, { fileName: "old.ai", contentType: "application/illustrator" });
+    await until(async () => (await status(actors.customerChidi!, old.file!.id)).status === "NEEDS_REVIEW");
+    expect((await status(actors.customerChidi!, old.file!.id)).reason).toContain("Create PDF Compatible File");
   });
 });
 
@@ -109,7 +149,7 @@ describe("uploads (TECH-04 §3–4)", () => {
   it("rejects a file whose real type is wrong, with a reason a customer understands", async () => {
     const { file } = await upload(actors.customerChidi!, textPretendingToBePng, { fileName: "logo.png", contentType: "image/png" });
     await until(async () => (await status(actors.customerChidi!, file!.id)).status === "REJECTED");
-    expect((await status(actors.customerChidi!, file!.id)).reason).toContain("Upload JPEG, PNG or PDF");
+    expect((await status(actors.customerChidi!, file!.id)).reason).toContain("Upload PDF, AI, SVG, PNG or JPEG");
   });
 
   it("refuses oversize and disallowed types before signing anything", async () => {
@@ -123,15 +163,15 @@ describe("uploads (TECH-04 §3–4)", () => {
     expect(tooBig.body.fieldErrors.file).toBe("This file is too big. Upload JPEG or PNG, up to 15 MB.");
     expect(tooBig.body).not.toHaveProperty("uploadUrl");
 
-    const svg = await as(harness, actors.customerChidi!).post("/v1/files/uploads", {
+    const eps = await as(harness, actors.customerChidi!).post("/v1/files/uploads", {
       purpose: "ARTWORK",
-      fileName: "logo.svg",
+      fileName: "logo.eps",
       size: 100,
-      contentType: "image/svg+xml",
+      contentType: "application/postscript",
     });
-    expect(svg.status).toBe(400);
-    expect(svg.body.context).toEqual({ reason: "TYPE_NOT_ALLOWED" });
-    const rows = await harness.database.db.select().from(schema.files).where(eq(schema.files.originalName, "logo.svg"));
+    expect(eps.status).toBe(400);
+    expect(eps.body.context).toEqual({ reason: "TYPE_NOT_ALLOWED" });
+    const rows = await harness.database.db.select().from(schema.files).where(eq(schema.files.originalName, "logo.eps"));
     expect(rows).toHaveLength(0);
   });
 

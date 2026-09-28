@@ -1,6 +1,13 @@
 import { type Database, eq, schema } from "@holypearls/db";
 import type { StorageAdapter } from "@holypearls/storage";
-import { previewImage, previewPdf, type Rendition } from "./preview.js";
+import { previewImage, previewPdf, previewSvg, type Rendition } from "./preview.js";
+
+const NO_PREVIEW: Record<string, string> = {
+  "application/pdf": "We couldn't open this PDF to make a preview. Our team will check it, or you can upload it again.",
+  "application/illustrator":
+    "We can't show a preview of this Illustrator file. In Illustrator, save it again with \"Create PDF Compatible File\" ticked, or export a PDF. Our team can still open it.",
+  "image/svg+xml": "We couldn't draw this SVG. Our team will check it, or you can export a PDF and upload that.",
+};
 
 /** Proofs get every page up to 20; everything else gets the first page (TECH-04 §5). */
 const PAGES_FOR = (purpose: string) => (purpose === "PROOF" ? 20 : 1);
@@ -27,7 +34,13 @@ export async function previewFile(
   let metadata: Record<string, number>;
   try {
     const source = await store.read(row.storageKey);
-    const result = row.detectedType === "application/pdf" ? await previewPdf(source, PAGES_FOR(row.purpose)) : await previewImage(source);
+    const type = row.detectedType;
+    const result =
+      type === "application/pdf" || type === "application/illustrator"
+        ? await previewPdf(source, PAGES_FOR(row.purpose))
+        : type === "image/svg+xml"
+          ? await previewSvg(source)
+          : await previewImage(source);
     renditions = result.renditions;
     metadata = result.metadata;
   } catch {
@@ -35,10 +48,7 @@ export async function previewFile(
       .update(schema.files)
       .set({
         status: "NEEDS_REVIEW",
-        reason:
-          row.detectedType === "application/pdf"
-            ? "We couldn't open this PDF to make a preview. Our team will check it, or you can upload it again."
-            : "We couldn't read this image. Our team will check it, or you can upload it again.",
+        reason: NO_PREVIEW[row.detectedType] ?? "We couldn't read this image. Our team will check it, or you can upload it again.",
       })
       .where(eq(schema.files.id, fileId));
     return;

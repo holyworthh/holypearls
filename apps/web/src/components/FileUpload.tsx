@@ -52,8 +52,8 @@ function describe(file: FileView) {
 export function FileUpload({
   purpose,
   label = "Drop your logo or browse files",
-  hint = "JPEG, PNG or PDF, up to 50 MB",
-  accept = "image/jpeg,image/png,application/pdf",
+  hint = "PDF, AI, SVG, PNG or JPEG, up to 50 MB",
+  accept = "application/pdf,.ai,image/svg+xml,.svg,image/png,image/jpeg",
   owner,
   onChange,
 }: FileUploadProps) {
