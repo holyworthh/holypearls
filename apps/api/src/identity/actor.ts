@@ -16,10 +16,12 @@ export interface StaffContext {
  * customers and guests join this in later tickets.
  */
 export type ActorContext =
-  | { type: "anonymous"; requestId: string }
+  | { type: "anonymous"; requestId: string; now: Date }
   | {
       type: "user";
       requestId: string;
+      /** When the request arrived; time-based checks use this, not the wall clock. */
+      now: Date;
       session: IdentitySession;
       /** Present only for ACTIVE staff profiles. */
       staff: StaffContext | null;
@@ -55,13 +57,14 @@ export function toHeaders(request: Request): Headers {
 }
 
 /** Builds the actor once per request, on first use. */
-export function actorResolver(identity: IdentityAdapter, db: Database) {
+export function actorResolver(identity: IdentityAdapter, db: Database, clock: () => Date = () => new Date()) {
   return (request: Request): Promise<ActorContext> => {
     request.actor ??= (async () => {
       const requestId = request.requestId ?? "unknown";
+      const now = clock();
       const session = await identity.getSession(toHeaders(request));
-      if (!session) return { type: "anonymous", requestId } as const;
-      return { type: "user", requestId, session, staff: await findActiveStaff(db, session.userId) } as const;
+      if (!session) return { type: "anonymous", requestId, now } as const;
+      return { type: "user", requestId, now, session, staff: await findActiveStaff(db, session.userId) } as const;
     })();
     return request.actor;
   };
@@ -76,7 +79,7 @@ export function requireUser(actor: ActorContext) {
  * High-risk staff actions need an authenticator check in the last 15 minutes
  * (TECH-03 §9). The web app answers RECENT_MFA_REQUIRED with the step-up dialog.
  */
-export function requireRecentMfa(actor: ActorContext, now: Date = new Date()): void {
+export function requireRecentMfa(actor: ActorContext, now: Date = actor.now): void {
   const user = requireUser(actor);
   const verifiedAt = user.session.mfaVerifiedAt;
   if (!verifiedAt || now.getTime() - verifiedAt.getTime() > MFA_RECENCY_MINUTES * 60_000) {

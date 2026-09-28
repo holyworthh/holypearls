@@ -164,6 +164,19 @@ test("a wrong authenticator code shows the field error", async ({ page }) => {
   await expect(page.getByText("That code didn't work. Check your app and try again.")).toBeVisible();
 });
 
+test("the audit viewer lists entries for AUDIT_VIEW staff", async ({ page }) => {
+  test.setTimeout(90_000);
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto("/admin/audit");
+  await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
+  await expect(page.getByRole("search", { name: "Filter the audit log" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  await page.goto("/admin/audit?q=no-such-entry-anywhere");
+  await expect(page.getByRole("heading", { name: "No entries for these filters" })).toBeVisible();
+});
+
 test("the admin menu opens at 375 px", async ({ page }, testInfo) => {
   test.setTimeout(90_000);
   test.skip(testInfo.project.name !== "mobile-375", "Mobile menu only");

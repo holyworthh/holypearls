@@ -30,10 +30,18 @@ export interface Harness {
 
 /** A migrated, seeded database and a listening API, for one test file. */
 export async function createHarness(
-  options: { controllers?: Type[]; rateLimit?: boolean; seed?: boolean; jobs?: boolean } = {},
+  options: {
+    controllers?: Type[];
+    rateLimit?: boolean;
+    seed?: boolean;
+    jobs?: boolean;
+    /** Share another harness's database, for example to run two API instances. */
+    database?: TestDatabase;
+  } = {},
 ): Promise<Harness> {
-  const database = await createTestDatabase(loadTestDatabaseEnv().TEST_DATABASE_URL);
-  if (options.seed !== false) await runSeed(database.db, buildSeedSteps({ authSecret: TEST_AUTH_SECRET }));
+  const ownDatabase = !options.database;
+  const database = options.database ?? (await createTestDatabase(loadTestDatabaseEnv().TEST_DATABASE_URL));
+  if (ownDatabase && options.seed !== false) await runSeed(database.db, buildSeedSteps({ authSecret: TEST_AUTH_SECRET }));
   const logs: string[] = [];
   const logger = createLogger({
     environment: "test",
@@ -52,7 +60,6 @@ export async function createHarness(
     webOrigin: TEST_WEB_ORIGIN,
     secureCookies: false,
     outbox,
-    rateLimit: options.rateLimit ?? false,
     now: () => now.value ?? new Date(),
     log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
@@ -71,6 +78,8 @@ export async function createHarness(
     identity,
     jobs: jobs ?? undefined,
     demoSlice: Boolean(jobs),
+    rateLimit: options.rateLimit ?? false,
+    now: () => now.value ?? new Date(),
     webOrigin: TEST_WEB_ORIGIN,
     controllers: options.controllers,
   });
@@ -91,7 +100,7 @@ export async function createHarness(
     close: async () => {
       await app.close();
       await jobs?.stop(1000);
-      await database.drop();
+      if (ownDatabase) await database.drop();
     },
   };
 }

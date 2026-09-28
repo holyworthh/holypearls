@@ -1,6 +1,10 @@
 import {
   adminMeSchema,
   apiErrorSchema,
+  auditEntrySchema,
+  auditPageSchema,
+  grantPermissionSchema,
+  staffAccessSchema,
   demoSliceCreateSchema,
   demoSliceSchema,
   healthLiveSchema,
@@ -27,6 +31,19 @@ const json = (schema: Schema | { $ref: string }) => ({
 const ERROR_REF = { $ref: "#/components/schemas/ApiError" };
 const error = (description: string) => ({ description, content: json(ERROR_REF) });
 const signedIn = { 401: error("Not signed in (NOT_SIGNED_IN)") };
+const uuidParam = (name: string) => ({ name, in: "path", required: true, schema: { type: "string", format: "uuid" } });
+const idempotencyHeader = {
+  name: "Idempotency-Key",
+  in: "header",
+  required: true,
+  description: "Created once per button press and reused on retry (TECH-02 §4).",
+  schema: { type: "string", minLength: 16, maxLength: 128 },
+};
+const highRisk = {
+  403: error("Not STAFF_ADMIN (FORBIDDEN), no recent authenticator check (RECENT_MFA_REQUIRED) or a rule such as keeping two STAFF_ADMINs"),
+  404: error("Not staff, or no such staff member (NOT_FOUND)"),
+  429: error("ADMIN_WRITE limit (RATE_LIMITED)"),
+};
 const staffOnly = {
   403: error("Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)"),
   404: error("Not staff (NOT_FOUND)"),
@@ -79,6 +96,75 @@ export function buildOpenApiDocument() {
             ...signedIn,
             403: error("Request not from the HolyPearls web origin (FORBIDDEN)"),
           },
+        },
+      },
+      "/v1/me/sessions/{sessionId}": {
+        delete: {
+          summary: "End one of your own sessions",
+          parameters: [uuidParam("sessionId")],
+          responses: {
+            200: { description: "Session ended", content: json(revokeAllResultSchema) },
+            ...signedIn,
+            404: error("Not your session, or no such session (NOT_FOUND)"),
+          },
+        },
+      },
+      "/v1/admin/audit": {
+        get: {
+          summary: "Audit entries, newest first, with cursor paging (AUDIT_VIEW)",
+          parameters: ["q", "action", "sinceDays", "recordType", "recordId", "cursor", "limit"].map((name) => ({
+            name,
+            in: "query",
+            required: false,
+            schema: { type: name === "sinceDays" || name === "limit" ? "integer" : "string" },
+          })),
+          responses: { 200: { description: "A page of entries", content: json(auditPageSchema) }, 400: error("Bad filters"), ...staffOnly },
+        },
+      },
+      "/v1/admin/audit/{id}": {
+        get: {
+          summary: "One audit entry (AUDIT_VIEW)",
+          parameters: [uuidParam("id")],
+          responses: { 200: { description: "The entry", content: json(auditEntrySchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/staff/{staffProfileId}/access": {
+        get: {
+          summary: "A staff member's permissions and MFA state (STAFF_ADMIN)",
+          parameters: [uuidParam("staffProfileId")],
+          responses: { 200: { description: "Access", content: json(staffAccessSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/staff/{staffProfileId}/permissions": {
+        post: {
+          summary: "Grant a staff permission (STAFF_ADMIN, recent MFA, audited)",
+          parameters: [uuidParam("staffProfileId"), idempotencyHeader],
+          requestBody: { required: true, content: json(grantPermissionSchema) },
+          responses: {
+            200: { description: "Access after the change", content: json(staffAccessSchema) },
+            409: error("Idempotency-Key reused with a different request (CONFLICT)"),
+            ...highRisk,
+          },
+        },
+      },
+      "/v1/admin/staff/{staffProfileId}/permissions/{permission}": {
+        delete: {
+          summary: "Remove a staff permission (STAFF_ADMIN, recent MFA, audited)",
+          parameters: [uuidParam("staffProfileId"), { name: "permission", in: "path", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Access after the change", content: json(staffAccessSchema) }, ...highRisk },
+        },
+      },
+      "/v1/admin/staff/{staffProfileId}/mfa-reset": {
+        post: {
+          summary: "Reset another staff member's MFA and end their sessions (STAFF_ADMIN, recent MFA, audited)",
+          parameters: [uuidParam("staffProfileId")],
+          responses: { 200: { description: "Access after the reset", content: json(staffAccessSchema) }, ...highRisk },
+        },
+      },
+      "/v1/admin/monitoring/test-error": {
+        post: {
+          summary: "Send a deliberate error to monitoring (SECURITY_ADMIN)",
+          responses: { 500: error("The deliberate error (INTERNAL)"), ...staffOnly },
         },
       },
       "/v1/admin/me": {

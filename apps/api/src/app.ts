@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { Module, RequestMethod, type Type } from "@nestjs/common";
-import { APP_FILTER, NestFactory } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import type { IdentityAdapter } from "@holypearls/auth";
 import { ERROR_CODES } from "@holypearls/contracts";
@@ -17,7 +17,11 @@ import { MeController } from "./identity/me.controller.js";
 import { MonitoringController } from "./identity/monitoring.controller.js";
 import { originCheck } from "./identity/origin-check.js";
 import { requestContext } from "./request-context.js";
+import { StaffAccessController } from "./identity/staff-access.controller.js";
+import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
+import { IdempotencyInterceptor } from "./platform/idempotency.js";
+import { RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
 import { DATABASE, IDENTITY, JOBS, LOGGER } from "./tokens.js";
 
 export interface CreateAppOptions {
@@ -30,17 +34,25 @@ export interface CreateAppOptions {
   jobs?: Jobs;
   /** Serves the T00-04 demo routes. Never on in production. */
   demoSlice?: boolean;
+  /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
+  rateLimit?: boolean;
+  /** Clock, for tests. */
+  now?: () => Date;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
   controllers?: Type[];
 }
 
 export async function createApp(options: CreateAppOptions): Promise<NestExpressApplication> {
+  const now = options.now ?? (() => new Date());
+  const limiter = new RateLimiter(options.db, now, options.rateLimit ?? true);
   @Module({
     controllers: [
       HealthController,
       MeController,
       AdminController,
       MonitoringController,
+      StaffAccessController,
+      AuditController,
       ...(options.demoSlice && options.jobs ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
@@ -50,6 +62,8 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },
       { provide: APP_FILTER, useFactory: (logger: Logger) => new ErrorShapeFilter(logger), inject: [LOGGER] },
+      { provide: APP_GUARD, useValue: new RateLimitGuard(limiter) },
+      { provide: APP_INTERCEPTOR, useValue: new IdempotencyInterceptor(options.db, now) },
     ],
   })
   class AppModule {}
@@ -65,7 +79,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       verbose: (message: unknown) => options.logger.trace({ nest: true }, String(message)),
     },
   });
-  const getActor = actorResolver(options.identity, options.db);
+  const getActor = actorResolver(options.identity, options.db, now);
 
   app.use(requestContext(options.logger));
   app.use(originCheck(options.webOrigin));
@@ -73,7 +87,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
     request.getActor = () => getActor(request);
     next();
   });
-  app.use(authRoutes(options.identity, options.webOrigin, options.logger));
+  app.use(
+    authRoutes({ identity: options.identity, webOrigin: options.webOrigin, logger: options.logger, db: options.db, limiter }),
+  );
   app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {

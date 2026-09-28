@@ -25,7 +25,6 @@ const identity = createBetterAuthIdentity({
   secureCookies: new URL(env.BETTER_AUTH_URL).protocol === "https:",
   // T01-02 replaces this with the email sender; production must not start without it.
   outbox: new FileOutbox(env.AUTH_OUTBOX_PATH),
-  rateLimit: env.AUTH_RATE_LIMIT === "on",
   log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
 });
@@ -42,6 +41,7 @@ const app = await createApp({
   identity,
   jobs,
   demoSlice: env.HP_DEMO_SLICE === "on",
+  rateLimit: env.AUTH_RATE_LIMIT === "on",
   webOrigin: env.BETTER_AUTH_URL,
 });
 app.enableShutdownHooks();
