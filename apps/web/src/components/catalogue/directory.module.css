@@ -51,10 +51,6 @@
   text-decoration: none;
 }
 
-.breadcrumb a:hover {
-  text-decoration: underline;
-}
-
 .titleRow {
   display: flex;
   align-items: flex-end;
@@ -264,10 +260,6 @@
   font-weight: 600;
   line-height: var(--hp-space-20);
   text-decoration: none;
-}
-
-.link:hover {
-  text-decoration: underline;
 }
 
 .group {
@@ -788,10 +780,6 @@
   text-decoration: none;
 }
 
-.interruptLink:hover {
-  text-decoration: underline;
-}
-
 .pagination {
   display: flex;
   align-items: center;
@@ -1150,11 +1138,6 @@
   transition: box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
-.feature:hover .featureTitle {
-  text-decoration: underline;
-  text-underline-offset: var(--hp-space-4);
-}
-
 .filterButton {
   transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
 }
@@ -1181,4 +1164,81 @@
 
 .pageLink:hover:not([aria-current="page"]) {
   background: var(--hp-bone);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.breadcrumb a {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.breadcrumb a:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.link {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.link:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.interruptLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.interruptLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.featureLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.feature:hover .featureLink {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

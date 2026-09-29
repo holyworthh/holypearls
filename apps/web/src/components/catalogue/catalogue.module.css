@@ -65,10 +65,6 @@
   text-decoration: none;
 }
 
-.headLink:hover {
-  text-decoration: underline;
-}
-
 .eyebrow {
   margin: 0;
   color: var(--hp-graphite);
@@ -948,4 +944,24 @@
 
 .interrupt .eyebrow {
   color: var(--hp-mid);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.headLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.headLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

@@ -108,12 +108,18 @@
  * Component styles override these (zero specificity).
  */
 :where(a:not([class])) {
-  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
-  text-underline-offset: var(--hp-space-2);
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent));
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 100% 100%, 0 100%;
+  box-decoration-break: clone;
+  transition: background-size var(--hp-motion-underline) var(--hp-ease-soft);
 }
 
 :where(a:not([class])):hover {
-  text-decoration-color: currentColor;
+  background-size: 100% var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 0 100%, 0 100%;
 }
 
 :where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"]), select, textarea):hover:not(:disabled, :focus) {

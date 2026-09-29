@@ -68,10 +68,6 @@
   text-decoration: none;
 }
 
-.stripLinks a:hover {
-  text-decoration: underline;
-}
-
 /* Header */
 
 .header {
@@ -477,27 +473,11 @@ button:focus-visible {
   text-decoration: none;
 }
 
-.megaLink {
-  text-decoration-line: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: var(--hp-space-4);
-}
-
-.megaLink:hover {
-  text-decoration-color: currentColor;
-}
-
-
-
 .allLink {
   color: var(--hp-accent);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-semibold);
   text-decoration: none;
-}
-
-.allLink:hover {
-  text-decoration: underline;
 }
 
 .feature {
@@ -718,4 +698,62 @@ button:focus-visible {
 
 a.mobileSearch:hover {
   background: var(--hp-bone);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.stripLinks a {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.stripLinks a:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.megaLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.megaLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.allLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.allLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

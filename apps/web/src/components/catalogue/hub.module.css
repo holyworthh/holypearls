@@ -45,11 +45,6 @@
   white-space: nowrap;
 }
 
-.headLink:hover,
-.textLink:hover {
-  text-decoration: underline;
-}
-
 .inkButton,
 .outlineButton {
   display: inline-flex;
@@ -223,12 +218,6 @@
   position: absolute;
   inset: 0;
   content: "";
-}
-
-.sub:hover .cardLink,
-.catCard:hover .cardLink,
-.relatedCard:hover .cardLink {
-  text-decoration: underline;
 }
 
 .subCount {
@@ -870,4 +859,43 @@
 a:hover > .photo,
 a:hover .photo {
   scale: 1.03;
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.headLink, .textLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.headLink:hover, .textLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.cardLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.sub:hover .cardLink, .catCard:hover .cardLink, .relatedCard:hover .cardLink {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

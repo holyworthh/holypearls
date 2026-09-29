@@ -40,10 +40,6 @@
   text-decoration: none;
 }
 
-.link:hover {
-  text-decoration: underline;
-}
-
 .link:focus-visible,
 .focus:focus-visible {
   outline: var(--hp-focus-ring-width) solid currentColor;
@@ -88,10 +84,6 @@
   line-height: var(--hp-size-23);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.headLink:hover {
-  text-decoration: underline;
 }
 
 /* ── Hero ─────────────────────────────────────────────── */
@@ -181,10 +173,6 @@
   line-height: var(--hp-size-23);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.textLink:hover {
-  text-decoration: underline;
 }
 
 .intentRow {
@@ -343,10 +331,6 @@
   border-top: var(--hp-size-1) solid var(--hp-line);
   color: var(--hp-ink);
   text-decoration: none;
-}
-
-.outcomeRow:hover .outcomeTitle {
-  text-decoration: underline;
 }
 
 .outcomeNo {
@@ -1160,10 +1144,6 @@
   text-decoration: none;
 }
 
-.finalAlt:hover {
-  text-decoration: underline;
-}
-
 /* Pen's #FDE8E3 on the accent band is 3.9:1; paper keeps it readable (WCAG 1.4.3). */
 .finalAltQ {
   margin-right: var(--hp-space-12);
@@ -1694,19 +1674,6 @@ a:hover .photo {
   scale: 1.03;
 }
 
-/* Hover (every clickable item has one). */
-.headLinkLight, .mFinalLink, .mMore {
-  text-decoration-line: underline;
-  text-decoration-color: transparent;
-  text-decoration-thickness: var(--hp-size-1);
-  text-underline-offset: var(--hp-space-4);
-  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
-}
-
-.headLinkLight:hover, .mFinalLink:hover, .mMore:hover {
-  text-decoration-color: currentColor;
-}
-
 .indexRowLead {
   transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
 }
@@ -1741,4 +1708,119 @@ a:hover .photo {
 
 .mOutcome:hover {
   opacity: 0.85;
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.link {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.link:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.headLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.headLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.textLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.textLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.outcomeTitle {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.outcomeRow:hover .outcomeTitle {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.finalAlt {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.finalAlt:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.headLinkLight, .mFinalLink, .mMore {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.headLinkLight:hover, .mFinalLink:hover, .mMore:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

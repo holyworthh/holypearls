@@ -1099,19 +1099,6 @@
   }
 }
 
-/* Hover (every clickable item has one). */
-.groupLink {
-  text-decoration-line: underline;
-  text-decoration-color: transparent;
-  text-decoration-thickness: var(--hp-size-1);
-  text-underline-offset: var(--hp-space-4);
-  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
-}
-
-.groupLink:hover {
-  text-decoration-color: currentColor;
-}
-
 .moreSwatches {
   transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-hover) var(--hp-ease-soft);
 }
@@ -1163,4 +1150,24 @@
 
 .swatch:hover .chip {
   transform: scale(1.1);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.groupLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.groupLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

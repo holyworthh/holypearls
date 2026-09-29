@@ -82,6 +82,7 @@
   /* Site motion (INFERRED: chosen over Pen 09's motion spec at the owner's request). Soft ease-out for reveals and hovers; all motion is off with prefers-reduced-motion. */
   --hp-ease-soft: cubic-bezier(.22, 1, .36, 1);
   --hp-motion-hover: 220ms;
+  --hp-motion-underline: 320ms;
   --hp-motion-reveal: 700ms;
   --hp-motion-viewer: 280ms;
   --hp-reveal-shift: var(--hp-space-24);

@@ -390,14 +390,22 @@
   color: var(--hp-ink);
 }
 
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
 .noteLink {
-  text-decoration-line: underline;
-  text-decoration-color: transparent;
-  text-decoration-thickness: var(--hp-size-1);
-  text-underline-offset: var(--hp-space-4);
-  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent));
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 100% 100%, 0 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
 .noteLink:hover {
-  text-decoration-color: currentColor;
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 0 100%, 0 100%;
 }
