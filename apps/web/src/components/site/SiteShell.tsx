@@ -158,8 +158,11 @@ export async function SiteShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.page}>
       <SkipLink />
-      <UtilityStrip />
-      <SiteHeader items={buildNavigation(navigation)} />
+      {/* One banner landmark holds the utility strip and the header bar. */}
+      <header>
+        <UtilityStrip />
+        <SiteHeader items={buildNavigation(navigation)} />
+      </header>
       <main id="main-content" tabIndex={-1} className={styles.main}>
         {children}
       </main>

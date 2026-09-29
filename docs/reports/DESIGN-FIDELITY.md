@@ -131,6 +131,30 @@ The directory query refuses a needed-by before today in Lagos. The page drops an
 - **Subcategory photos are data:** each subcategory's card shows its own `hero_file_id` image. The seed gives each seeded subcategory an image by slug (`packages/testkit/assets/categories`, from Pen's reference photos and product samples). A subcategory without an image shows the plain sand fill, never a photo picked by list position.
 - **Newsletter:** see difference 8.
 
+## Fifth pass: interface review fixes
+
+An interface review of the garment ordering flow covered accessibility, layout, writing, typography, colour and UI polish. It inspected the directory, the garment page and the configurator at 320, 375, 720 and 1440 px, with axe, a keyboard walk and measured contrast. Fixes:
+
+- **Reflow at 320 px (WCAG 1.4.10).** Three pages scrolled sideways:
+  - Directory title: it may now wrap (`text-wrap: balance`).
+  - Phone colour swatches: they wrap to a second row below 375 px.
+  - Configurator header: the phone wordmark is 22 px, as in the site header, and the brand can shrink before the page scrolls.
+
+  Number-only steps are 32 px wide on phones, so all six steps fit at 320 px. Before, step 6 sat past the scroll edge with no cue.
+- **Save indicator.** "Not saved yet" and "Saving…" used the success green and a check. Now:
+  - not saved yet: grey, with a dashed circle
+  - saving: grey, with an upload cloud
+  - saved: green, with a check
+  - failed: red, with a retry icon
+
+  It's one live region (`role="status"`) whose text changes. On phones the words are visually hidden instead of `display: none`, so screen readers still hear them.
+- **One name per route and decoration.** `SOURCING_LABEL` and `DECORATION_LABEL` in `packages/contracts` feed the garment page, configurator, directory filter and API messages. Their names follow PRD-02: "I'll Supply the Garment" (Pen 19 said "Customer Supplied"; the PRD wins) and "Recommend for Me".
+- **Footer text token.** The column heads, legal line and newsletter notice used `--hp-line-strong`, a border token, as text. They now use `--hp-footer-text-muted`, a new token with the same value (#8A8A93), so the look is unchanged.
+- **Landmarks.** The utility strip and header bar now sit in one `<header>` banner, so the strip is no longer outside a landmark.
+- **Live numbers** (estimate total, "Show N products", "Showing X of Y") use tabular figures.
+- **Configurator choice cards** align their text to the top, so titles that wrap don't leave a ragged row.
+- **Press feedback.** Twelve `:active` rules now use one token, `--hp-press-scale: 0.96`. Before, they used 0.92–0.97.
+
 ## Tests
 
 - **API:** card prices test, written first. "Garment product page data (Pen 19)", written first: summary, eight swatched colours, specifications, questions, four bands and the uniform set. `storefront.test.ts` 12/12 pass; the directory and hub tests were updated for the four new products (the hub test now uses Bags & Packaging, since Apparel has seeded hub content).

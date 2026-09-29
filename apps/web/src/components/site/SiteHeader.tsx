@@ -38,7 +38,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const [mobile, setMobile] = useState(false);
   const [drill, setDrill] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
-  const header = useRef<HTMLElement>(null);
+  const header = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const panelId = useId();
 
@@ -114,7 +114,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const current = (href: string) => (href !== "/products" && pathname.startsWith(href.split("?")[0]!) ? "page" : undefined);
 
   return (
-    <header className={styles.header} ref={header} onKeyDown={onKeyDown}>
+    <div className={styles.header} ref={header} onKeyDown={onKeyDown}>
       <div className={`${styles.container} ${styles.headerInner}`}>
         <Logo />
         <nav className={styles.primaryNav} aria-label="Main">
@@ -326,6 +326,6 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </div>
         </div>
       ) : null}
-    </header>
+    </div>
   );
 }

@@ -1699,7 +1699,7 @@ a:hover .photo {
 }
 
 .mFullButton:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .mOutcome {

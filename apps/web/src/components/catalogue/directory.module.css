@@ -65,7 +65,7 @@
   font-weight: 600;
   letter-spacing: var(--hp-size--2_8);
   line-height: var(--hp-space-64);
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 .intro {
@@ -141,7 +141,7 @@
 }
 
 .redButton:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .redButton:focus-visible,
@@ -790,6 +790,7 @@
 }
 
 .showing {
+  font-variant-numeric: tabular-nums;
   margin: 0;
   color: var(--hp-graphite);
   font-size: var(--hp-space-14);
@@ -1005,6 +1006,7 @@
 
 .sheetShow {
   flex: 1 1 auto;
+  font-variant-numeric: tabular-nums;
   background: var(--hp-accent);
   color: var(--hp-paper);
 }
@@ -1290,7 +1292,7 @@
 }
 
 .filterButton:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .foldHead {

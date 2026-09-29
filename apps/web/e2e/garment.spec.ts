@@ -84,10 +84,10 @@ type ProductData = { configurator: { allowedRoutes: string[]; allowedDecorations
 const SOURCING_LABEL: Record<string, RegExp> = {
   SOURCE_CUSTOMIZE: /Source & Customize/,
   MAKE_FROM_SCRATCH: /Make From Scratch/,
-  CUSTOMER_SUPPLIED: /I'll Supply the Garment|Customer Supplied/,
+  CUSTOMER_SUPPLIED: /I'll Supply the Garment/,
   HELP_ME_CHOOSE: /Help Me Choose/,
 };
-const DECORATION_LABEL: Record<string, RegExp> = { EMBROIDERY: /^Embroidery/, PRINT: /^Print/, BOTH: /^Both/, RECOMMEND: /^Recommend for me/ };
+const DECORATION_LABEL: Record<string, RegExp> = { EMBROIDERY: /^Embroidery/, PRINT: /^Print/, BOTH: /^Both/, RECOMMEND: /^Recommend for Me/ };
 
 test("the garment page shows only the routes the product offers", async ({ page }) => {
   const apron = (await (await page.request.get("/api/v1/catalogue/products/apron")).json()) as ProductData;
@@ -97,7 +97,7 @@ test("the garment page shows only the routes the product offers", async ({ page 
   await expect(routes).toHaveCount(2);
   await expect(page.getByRole("radio", { name: /Source & Customize/ })).toBeChecked();
   await expect(page.getByRole("radio", { name: /Make From Scratch/ })).toBeVisible();
-  await expect(page.getByRole("radio", { name: /Customer Supplied/ })).toHaveCount(0);
+  await expect(page.getByRole("radio", { name: /I'll Supply the Garment/ })).toHaveCount(0);
 });
 
 test("the configurator offers only the product's sourcing and decoration choices", async ({ page }) => {

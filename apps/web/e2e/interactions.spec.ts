@@ -265,7 +265,7 @@ test("icon-only actions show a tooltip with their name on hover and keyboard foc
   test.skip((page.viewportSize()?.width ?? 0) < 1024, "Header icons are desktop only; touch never shows tooltips.");
   await page.goto("/");
   // The header icon, not the utility strip's text link (which has visible text, so no tooltip).
-  await page.getByRole("banner").getByRole("link", { name: "Track an order" }).hover();
+  await page.getByRole("banner").getByLabel("Track an order").hover();
   const tip = page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Track an order" });
   await expect(tip).toBeVisible();
   const box = await tip.boundingBox();

@@ -5,13 +5,15 @@ import {
   type ConfigurationDetails,
   configurationSchema,
   type Configurator as ConfiguratorData,
+  DECORATION_LABEL,
   GARMENT_SIZES,
   type PlacementInput,
   personalizationResultSchema,
+  SOURCING_LABEL,
   type FileView,
 } from "@holypearls/contracts";
 import { Button, Dialog, FormField, Notice, TextArea, TextField } from "@holypearls/ui";
-import { ArrowLeft, ArrowRight, CircleCheck, Info, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleCheck, CircleDashed, CloudUpload, Info, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
@@ -30,17 +32,17 @@ type Artwork = NonNullable<Configuration["artwork"]>;
  * (configurator.allowedRoutes, allowedDecorations), which also refuses others.
  */
 const SOURCING: Record<Sourcing, { title: string; meta: string }> = {
-  SOURCE_CUSTOMIZE: { title: "Source & Customize", meta: "We supply the garment and add your branding" },
-  MAKE_FROM_SCRATCH: { title: "Make From Scratch", meta: "Cut and sewn to your fabric, fit and colour" },
-  CUSTOMER_SUPPLIED: { title: "I'll Supply the Garment", meta: "You send garments; we brand them" },
-  HELP_ME_CHOOSE: { title: "Help Me Choose", meta: "Tell us what it's for; we recommend" },
+  SOURCE_CUSTOMIZE: { title: SOURCING_LABEL.SOURCE_CUSTOMIZE, meta: "We supply the garment and add your branding" },
+  MAKE_FROM_SCRATCH: { title: SOURCING_LABEL.MAKE_FROM_SCRATCH, meta: "Cut and sewn to your fabric, fit and colour" },
+  CUSTOMER_SUPPLIED: { title: SOURCING_LABEL.CUSTOMER_SUPPLIED, meta: "You send garments; we brand them" },
+  HELP_ME_CHOOSE: { title: SOURCING_LABEL.HELP_ME_CHOOSE, meta: "Tell us what it's for; we recommend" },
 };
 
 const DECORATION: Record<Decoration, { title: string; meta: string }> = {
-  EMBROIDERY: { title: "Embroidery", meta: "Raised, textured, premium" },
-  PRINT: { title: "Print", meta: "Bold graphics, bigger areas" },
-  BOTH: { title: "Both", meta: "Embroidered logo, printed back" },
-  RECOMMEND: { title: "Recommend for me", meta: "We'll suggest after seeing your logo" },
+  EMBROIDERY: { title: DECORATION_LABEL.EMBROIDERY, meta: "Raised, textured, premium" },
+  PRINT: { title: DECORATION_LABEL.PRINT, meta: "Bold graphics, bigger areas" },
+  BOTH: { title: DECORATION_LABEL.BOTH, meta: "Embroidered logo, printed back" },
+  RECOMMEND: { title: DECORATION_LABEL.RECOMMEND, meta: "We'll suggest after seeing your logo" },
 };
 
 /**
@@ -132,6 +134,14 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
   const serverConflicts = garment?.conflicts ?? [];
   const canUpload = signedIn || Boolean(draft?.emailedTo);
   const artworkLaterAllowed = draft?.artworkLaterAllowed ?? true;
+  const save =
+    saveState === "failed"
+      ? { tone: w.failed, icon: <RefreshCw size={16} aria-hidden="true" />, text: "Not saved — retrying" }
+      : saveState === "saving"
+        ? { tone: w.pending, icon: <CloudUpload size={16} aria-hidden="true" />, text: "Saving…" }
+        : saveState === "saved" && draft
+          ? { tone: "", icon: <CircleCheck size={16} aria-hidden="true" />, text: "Draft saved" }
+          : { tone: w.pending, icon: <CircleDashed size={16} aria-hidden="true" />, text: "Not saved yet" };
   const unavailable = garment?.unavailable ?? [];
   const goneMessage = (field: string) => unavailable.find((item) => item.field === field)?.message;
   const placementMethods = (["EMBROIDERY", "PRINT"] as const).filter((method) => data.allowedDecorations.includes(method));
@@ -245,9 +255,10 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </ol>
         </nav>
         <div className={w.right}>
-          <span className={`${w.saved} ${saveState === "failed" ? w.failed : ""}`} role={saveState === "failed" ? "alert" : undefined}>
-            {saveState === "failed" ? <RefreshCw size={16} aria-hidden="true" /> : <CircleCheck size={16} aria-hidden="true" />}
-            <span>{saveState === "saving" ? "Saving…" : saveState === "failed" ? "Not saved — retrying" : draft ? "Draft saved" : "Not saved yet"}</span>
+          {/* One live region whose text changes; success styling only once the draft is really saved. */}
+          <span className={`${w.saved} ${save.tone}`} role="status">
+            {save.icon}
+            <span className={w.savedText}>{save.text}</span>
           </span>
           <a className={w.exit} href={`/products/${productSlug}`} onClick={() => void flush()}>
             Save &amp; exit

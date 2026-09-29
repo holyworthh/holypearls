@@ -381,7 +381,7 @@
 }
 
 .searchButton:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 /* Directory category tabs, filter rail, toolbar and pages */

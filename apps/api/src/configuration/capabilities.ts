@@ -1,4 +1,4 @@
-import type { Configuration } from "@holypearls/contracts";
+import { type Configuration, DECORATION_LABEL, SOURCING_LABEL } from "@holypearls/contracts";
 
 /*
  * What a garment can be made and decorated with (COM-FR-020, 024), from the
@@ -25,16 +25,7 @@ export interface Capabilities {
 const ROUTES = ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED"] as const;
 const GARMENT_PRINT = ["SCREEN_PRINT", "HEAT_TRANSFER"];
 
-const LABEL: Record<Sourcing | Decoration, string> = {
-  SOURCE_CUSTOMIZE: "Source & Customize",
-  MAKE_FROM_SCRATCH: "Make From Scratch",
-  CUSTOMER_SUPPLIED: "I'll Supply the Garment",
-  HELP_ME_CHOOSE: "Help Me Choose",
-  EMBROIDERY: "Embroidery",
-  PRINT: "Print",
-  BOTH: "Both",
-  RECOMMEND: "Recommend for Me",
-};
+const LABEL: Record<Sourcing | Decoration, string> = { ...SOURCING_LABEL, ...DECORATION_LABEL };
 
 /** The sourcing and decoration choices this product offers, in display order. */
 export function garmentChoices(product: Capabilities): { sourcing: Sourcing[]; decoration: Decoration[] } {

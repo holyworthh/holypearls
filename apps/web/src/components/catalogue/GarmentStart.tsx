@@ -1,6 +1,6 @@
 "use client";
 
-import type { Configurator as ConfiguratorData, PublicImage } from "@holypearls/contracts";
+import { type Configurator as ConfiguratorData, type PublicImage, SOURCING_LABEL } from "@holypearls/contracts";
 import { ArrowRight, Layers, MessageCircleQuestion, ZoomIn } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./garment.module.css";
@@ -14,9 +14,9 @@ type Route = "SOURCE_CUSTOMIZE" | "MAKE_FROM_SCRATCH" | "CUSTOMER_SUPPLIED";
  * Pen's "from 20" is left out: a scratch minimum isn't product data yet.
  */
 const ROUTE_COPY: Record<Route, { title: string; meta: string; short: string }> = {
-  SOURCE_CUSTOMIZE: { title: "Source & Customize", meta: "Your branding", short: "Quality blank" },
-  MAKE_FROM_SCRATCH: { title: "Make From Scratch", meta: "Quote · your fabric and fit", short: "Your fabric and fit · quote" },
-  CUSTOMER_SUPPLIED: { title: "Customer Supplied", meta: "Accepted after inspection", short: "Your garments, after inspection" },
+  SOURCE_CUSTOMIZE: { title: SOURCING_LABEL.SOURCE_CUSTOMIZE, meta: "Your branding", short: "Quality blank" },
+  MAKE_FROM_SCRATCH: { title: SOURCING_LABEL.MAKE_FROM_SCRATCH, meta: "Quote · your fabric and fit", short: "Your fabric and fit · quote" },
+  CUSTOMER_SUPPLIED: { title: SOURCING_LABEL.CUSTOMER_SUPPLIED, meta: "Accepted after inspection", short: "Your garments, after inspection" },
 };
 const isRoute = (value: string): value is Route => value in ROUTE_COPY;
 

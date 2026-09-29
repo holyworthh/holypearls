@@ -6,6 +6,24 @@ import { priceResultSchema } from "./pricing.js";
 export const GARMENT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"] as const;
 export const sourcingSchema = z.enum(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED", "HELP_ME_CHOOSE"]);
 export const decorationSchema = z.enum(["EMBROIDERY", "PRINT", "BOTH", "RECOMMEND"]);
+
+/**
+ * The one set of names for garment routes and decorations (PRD-02 COM-FR-020,
+ * 024), used by the product page, the configurator, the directory filters and
+ * API messages, so a buyer sees the same name at every step.
+ */
+export const SOURCING_LABEL: Record<z.infer<typeof sourcingSchema>, string> = {
+  SOURCE_CUSTOMIZE: "Source & Customize",
+  MAKE_FROM_SCRATCH: "Make From Scratch",
+  CUSTOMER_SUPPLIED: "I'll Supply the Garment",
+  HELP_ME_CHOOSE: "Help Me Choose",
+};
+export const DECORATION_LABEL: Record<z.infer<typeof decorationSchema>, string> = {
+  EMBROIDERY: "Embroidery",
+  PRINT: "Print",
+  BOTH: "Both",
+  RECOMMEND: "Recommend for Me",
+};
 export const positionSchema = z.enum(["LEFT_CHEST", "RIGHT_CHEST", "CENTRE_CHEST", "FULL_FRONT", "UPPER_BACK", "FULL_BACK", "LEFT_SLEEVE", "RIGHT_SLEEVE", "CUSTOM"]);
 export const placementSchema = z.object({
   position: positionSchema,

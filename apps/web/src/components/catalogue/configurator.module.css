@@ -201,7 +201,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--hp-space-2);
   min-height: var(--hp-space-64);
   padding: var(--hp-space-10) var(--hp-space-14);

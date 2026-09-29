@@ -929,8 +929,9 @@
     white-space: nowrap;
   }
 
+  /* One row at 375 px and up (Pen 20); wraps rather than scrolling the page at 320. */
   .swatches {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--hp-space-8);
   }
@@ -1125,7 +1126,7 @@
 }
 
 .outline:active, .quiet:active, .stickyCta:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .route {

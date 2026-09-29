@@ -152,6 +152,11 @@
   color: var(--hp-error);
 }
 
+/* Not saved yet and saving: neutral, never the success colour. */
+.pending {
+  color: var(--hp-graphite);
+}
+
 .exit {
   display: inline-flex;
   align-items: center;
@@ -353,6 +358,7 @@
 
 .liveValue {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--hp-ink);
   font-size: var(--hp-space-40);
   font-weight: 600;
@@ -427,9 +433,38 @@
     padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
   }
 
-  .crumb,
-  .saved span {
+  .header {
+    gap: var(--hp-space-12);
+  }
+
+  .crumb {
     display: none;
+  }
+
+  /* The icon shows; the words stay for screen readers (hp-visually-hidden). */
+  .savedText {
+    position: absolute;
+    width: var(--hp-size-1);
+    height: var(--hp-size-1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .right {
+    gap: var(--hp-space-12);
+  }
+
+  /* The phone wordmark is 22 px, as in the site header (Pen mobile header); it fits beside Save & exit at 320 px. */
+  .logo {
+    font-size: var(--hp-size-22);
+    line-height: var(--hp-size-22);
+  }
+
+  /* Anything narrower: the wordmark gives way before the page scrolls sideways. */
+  .brand {
+    min-width: 0;
+    overflow: hidden;
   }
 
   .stepper {
@@ -447,6 +482,11 @@
 
   .stepper li + li::before {
     display: none;
+  }
+
+  /* Number-only steps are 32 px wide, so all six fit at 320 px with no hidden step past the edge. */
+  .stepButton:not(.stepCurrent) {
+    padding-inline: var(--hp-space-6);
   }
 
   /* Labels stay for screen readers; only the numbers show on phones. */
@@ -506,7 +546,7 @@
 }
 
 .back:active, .exit:active, .viewButton:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .stepButton {

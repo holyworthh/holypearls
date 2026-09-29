@@ -80,7 +80,7 @@
 
 .close:active,
 .nav:active {
-  transform: scale(0.94);
+  transform: scale(var(--hp-press-scale));
 }
 
 .close:focus-visible,

@@ -101,7 +101,7 @@
 }
 
 .button:active:not(:disabled, [aria-disabled="true"]) {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 .destructive:hover:not(:disabled, [aria-disabled="true"]) {

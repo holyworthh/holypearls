@@ -302,7 +302,7 @@
 
 .iconLink:active,
 .menuButton:active {
-  transform: scale(0.92);
+  transform: scale(var(--hp-press-scale));
 }
 
 @media (min-width: 1024px) {
@@ -337,7 +337,7 @@
 }
 
 .cta:active {
-  transform: scale(0.97);
+  transform: scale(var(--hp-press-scale));
 }
 
 @media (min-width: 768px) {
