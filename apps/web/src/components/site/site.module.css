@@ -68,10 +68,6 @@
   text-decoration: none;
 }
 
-.stripLinks a:hover {
-  text-decoration: underline;
-}
-
 /* Header */
 
 .header {
@@ -122,9 +118,10 @@
   }
 }
 
+/* Pen HP/Nav/Header: 30px between labels (12px padding each side + 6px). */
 .primaryList {
   display: flex;
-  gap: var(--hp-space-4);
+  gap: var(--hp-space-6);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -147,16 +144,62 @@
   cursor: pointer;
 }
 
-.navItem:hover,
-.navItem[aria-expanded="true"] {
-  background: var(--hp-bone);
+/*
+ * Hover draws an ink rule under the label (and it stays while its menu is open);
+ * the current section is marked with a small vermilion pearl, like the logo's.
+ */
+.navItem {
+  position: relative;
 }
 
-.navItem[aria-current="page"] {
-  box-shadow: inset 0 calc(var(--hp-space-2) * -1) 0 var(--hp-accent);
+.navItem::after {
+  position: absolute;
+  right: var(--hp-space-12);
+  bottom: var(--hp-space-8);
+  left: var(--hp-space-12);
+  height: var(--hp-space-2);
+  border-radius: var(--hp-space-2);
+  background: var(--hp-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+  content: "";
 }
 
+.navItem:hover::after,
+.navItem[aria-expanded="true"]::after {
+  transform: scaleX(1);
+}
+
+.navItem[aria-current="page"]::before {
+  position: absolute;
+  bottom: var(--hp-space-2);
+  left: 50%;
+  width: var(--hp-space-6);
+  height: var(--hp-space-6);
+  border-radius: var(--hp-space-6);
+  background: var(--hp-accent);
+  translate: -50% 0;
+  transition: width var(--hp-motion-hover) var(--hp-ease-soft);
+  content: "";
+}
+
+/* The current item answers hover with its own mark: the pearl stretches, no underline. */
+.navItem[aria-current="page"]::after {
+  display: none;
+}
+
+.navItem[aria-current="page"]:hover::before {
+  width: var(--hp-space-24);
+}
+
+.navItem:active {
+  color: var(--hp-ink-70);
+}
+
+/* Pen shows no chevrons; aria-expanded carries the open state. */
 .chevron {
+  display: none;
   width: var(--hp-space-12);
   height: var(--hp-space-12);
   transition: transform var(--hp-motion-dropdown) var(--hp-ease-enter);
@@ -166,10 +209,11 @@
   transform: rotate(180deg);
 }
 
+/* Pen: 18px between the search, 20px icons and the button. */
 .actions {
   display: flex;
   align-items: center;
-  gap: var(--hp-space-12);
+  gap: 0;
 }
 
 .search {
@@ -177,6 +221,7 @@
   align-items: center;
   gap: var(--hp-space-8);
   width: var(--hp-header-search-width);
+  margin-right: var(--hp-space-8);
   height: var(--hp-space-40);
   padding: 0 var(--hp-space-12);
   border-radius: var(--hp-r-control);
@@ -190,9 +235,30 @@
   }
 }
 
-.search:focus-within {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-  outline-offset: var(--hp-space-2);
+.search {
+  position: relative;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.search:hover {
+  background: var(--hp-line);
+}
+
+/* The header field is a button that opens the search panel (Pen 09). */
+.searchTrigger {
+  border: 0;
+  font: inherit;
+  cursor: text;
+}
+
+/* A soft ring rather than a hard outline; still a clear 2px focus indicator. */
+.search:focus-within,
+.searchTrigger:focus-visible {
+  outline: none;
+  background: var(--hp-paper);
+  box-shadow: 0 0 0 var(--hp-focus-ring-width) var(--hp-ink);
 }
 
 .search input {
@@ -218,14 +284,25 @@
 .iconLink {
   display: none;
   place-items: center;
-  width: var(--hp-touch-target);
+  width: var(--hp-size-38);
   height: var(--hp-touch-target);
   border-radius: var(--hp-r-control);
   color: var(--hp-ink);
 }
 
+.iconLink {
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
 .iconLink:hover {
   background: var(--hp-bone);
+}
+
+.iconLink:active,
+.menuButton:active {
+  transform: scale(var(--hp-press-scale));
 }
 
 @media (min-width: 1024px) {
@@ -238,7 +315,8 @@
   display: none;
   align-items: center;
   min-height: var(--hp-touch-target);
-  padding: 0 var(--hp-space-16);
+  margin-left: var(--hp-space-8);
+  padding: 0 var(--hp-size-18);
   border-radius: var(--hp-r-control);
   background: var(--hp-accent);
   color: var(--hp-paper);
@@ -248,8 +326,18 @@
   white-space: nowrap;
 }
 
+.cta {
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
 .cta:hover {
   background: var(--hp-accent-hover);
+}
+
+.cta:active {
+  transform: scale(var(--hp-press-scale));
 }
 
 @media (min-width: 768px) {
@@ -289,10 +377,62 @@ button:focus-visible {
   top: 100%;
   left: 0;
   right: 0;
+  overflow: hidden;
   border-top: var(--hp-border-width) solid var(--hp-line);
   border-bottom: var(--hp-border-width) solid var(--hp-line);
   background: var(--hp-paper);
   box-shadow: var(--hp-shadow-menu);
+  opacity: 0;
+  translate: 0 calc(var(--hp-space-8) * -1);
+  visibility: hidden;
+  transition:
+    opacity var(--hp-motion-dropdown) var(--hp-ease-soft),
+    translate var(--hp-motion-dropdown) var(--hp-ease-soft),
+    height var(--hp-motion-card) var(--hp-ease-soft),
+    visibility 0s linear var(--hp-motion-dropdown);
+}
+
+.megaOpen {
+  opacity: 1;
+  translate: 0 0;
+  visibility: visible;
+  transition:
+    opacity var(--hp-motion-dropdown) var(--hp-ease-soft),
+    translate var(--hp-motion-dropdown) var(--hp-ease-soft),
+    height var(--hp-motion-card) var(--hp-ease-soft),
+    visibility 0s;
+}
+
+/* Panels stack in the shell; the open one is in place, the others wait to either side. */
+.megaPanel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--hp-motion-card) var(--hp-ease-soft),
+    translate var(--hp-motion-card) var(--hp-ease-soft),
+    visibility 0s linear var(--hp-motion-card);
+}
+
+.megaPanelBefore {
+  translate: calc(var(--hp-space-32) * -1) 0;
+}
+
+.megaPanelAfter {
+  translate: var(--hp-space-32) 0;
+}
+
+.megaPanelOn {
+  opacity: 1;
+  translate: 0 0;
+  visibility: visible;
+  transition:
+    opacity var(--hp-motion-card) var(--hp-ease-soft),
+    translate var(--hp-motion-card) var(--hp-ease-soft),
+    visibility 0s;
 }
 
 .megaInner {
@@ -333,19 +473,11 @@ button:focus-visible {
   text-decoration: none;
 }
 
-.megaLink:hover {
-  text-decoration: underline;
-}
-
 .allLink {
   color: var(--hp-accent);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-semibold);
   text-decoration: none;
-}
-
-.allLink:hover {
-  text-decoration: underline;
 }
 
 .feature {
@@ -484,124 +616,144 @@ button:focus-visible {
   text-decoration: none;
 }
 
-/* Footer (HP/Nav/Footer) */
-
-.footer {
-  background: var(--hp-ink);
-  color: var(--hp-bone);
-}
-
-.footerInner {
+/* Pen HP/Nav/MobileHeader (390): 59.5px bar, 22px wordmark, 11px pearl, 44px taps, 8px right inset. */
+.mobileSearch {
   display: flex;
-  flex-direction: column;
-  gap: var(--hp-space-48);
-  padding-top: var(--hp-space-64);
-  padding-bottom: var(--hp-space-32);
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-touch-target);
+  height: var(--hp-touch-target);
+  border-radius: var(--hp-r-control);
+  color: var(--hp-ink);
 }
 
-.footerTop {
-  display: grid;
-  gap: var(--hp-space-40);
-}
+@media (max-width: 1023px) {
+  .headerInner {
+    gap: 0;
+    min-height: var(--hp-size-59_5);
+    padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
+  }
 
-@media (min-width: 768px) {
-  .footerTop {
-    grid-template-columns: repeat(2, 1fr);
+  .logo {
+    gap: var(--hp-space-8);
+    font-size: var(--hp-size-22);
+    letter-spacing: var(--hp-size--0_1);
+    line-height: var(--hp-size-22);
+  }
+
+  .pearl {
+    width: var(--hp-size-11);
+    height: var(--hp-size-11);
+  }
+
+  .actions {
+    margin-left: auto;
   }
 }
 
-@media (min-width: 1200px) {
-  .footerTop {
-    grid-template-columns: var(--hp-footer-brand-width) repeat(4, 1fr);
+.mobileSearch .icon,
+.menuButton .icon {
+  width: var(--hp-size-22);
+  height: var(--hp-size-22);
+}
+
+@media (min-width: 1024px) {
+  .mobileSearch {
+    display: none;
   }
 }
 
-.footerBrand {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hp-space-20);
+/* Hover (every clickable item has one). */
+/* Logo: the pearl swells a little on hover. */
+.pearl {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
-.footerBrand .logo {
-  color: var(--hp-bone);
-  font-size: var(--hp-text-title);
+.logo:hover .pearl {
+  transform: scale(1.35);
 }
 
-.footerBlurb {
-  margin: 0;
-  color: var(--hp-mid);
-  font-size: var(--hp-text-body);
-  line-height: var(--hp-leading-body);
+.back,
+.menuButton,
+.mobileRow {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
 }
 
-.footerColumn {
-  display: flex;
-  flex-direction: column;
-  gap: var(--hp-space-12);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.back:hover,
+.menuButton:hover {
+  background: var(--hp-bone);
 }
 
-.footerHead {
-  margin: 0;
-  color: var(--hp-mid);
-  font-family: var(--hp-font-mono);
-  font-size: var(--hp-text-mono);
-  font-weight: var(--hp-weight-medium);
-  letter-spacing: var(--hp-tracking-mono);
+.mobileRow:hover {
+  background: var(--hp-bone);
 }
 
-.footerColumn a {
-  color: var(--hp-bone);
-  font-size: var(--hp-text-label);
+.mobileRow svg {
+  transition: translate var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.mobileRow:hover svg {
+  translate: var(--hp-space-4) 0;
+}
+
+a.mobileSearch:hover {
+  background: var(--hp-bone);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.stripLinks a {
   text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
-.footerColumn a:hover {
-  text-decoration: underline;
-}
-
-.footer a:focus-visible {
-  outline-color: var(--hp-paper);
-}
-
-.coverage {
-  margin: 0;
-  padding-top: var(--hp-space-24);
-  border-top: var(--hp-border-width) solid var(--hp-graphite);
-  color: var(--hp-mid);
-  font-size: var(--hp-text-support);
-  line-height: var(--hp-leading-body);
-}
-
-.footerBottom {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: var(--hp-space-16);
-  padding-top: var(--hp-space-24);
-  border-top: var(--hp-border-width) solid var(--hp-graphite);
-}
-
-.legal {
-  margin: 0;
-  color: var(--hp-mid);
-  font-family: var(--hp-font-mono);
-  font-size: var(--hp-text-mono);
-  letter-spacing: var(--hp-tracking-mono);
-}
-
-.legalLinks {
-  display: flex;
-  gap: var(--hp-space-24);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.legalLinks a {
-  color: var(--hp-mid);
-  font-size: var(--hp-text-caption);
+.stripLinks a:hover {
   text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.megaLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.megaLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.allLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.allLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

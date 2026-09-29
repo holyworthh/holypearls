@@ -77,6 +77,10 @@ export const products = pgTable(
     /** Listed in directory, search and menus once published. Unlisted products are reachable by link only. */
     listed: boolean("listed").notNull().default(true),
     searchPhrases: text("search_phrases").array().notNull().default(sql`'{}'::text[]`),
+    /** How it can be made (Pen 17 "How it's made" filter): SOURCE_CUSTOMIZE, MAKE_FROM_SCRATCH, CUSTOMER_SUPPLIED. */
+    routes: text("routes").array().notNull().default(sql`'{}'::text[]`),
+    /** Decoration methods offered (Pen 17 "Decoration" filter). */
+    decorations: text("decorations").array().notNull().default(sql`'{}'::text[]`),
     /** Label and value pairs shown on the product page. */
     specifications: jsonb("specifications").notNull().default(sql`'[]'::jsonb`),
     faqs: jsonb("faqs").notNull().default(sql`'[]'::jsonb`),
@@ -90,6 +94,11 @@ export const products = pgTable(
   (table) => [
     uniqueIndex("products_slug_unique").on(table.slug),
     uniqueIndex("products_sku_unique").on(table.sku),
+    check("products_routes_known", sql`${table.routes} <@ array['SOURCE_CUSTOMIZE','MAKE_FROM_SCRATCH','CUSTOMER_SUPPLIED']::text[]`),
+    check(
+      "products_decorations_known",
+      sql`${table.decorations} <@ array['EMBROIDERY','SCREEN_PRINT','HEAT_TRANSFER','PAPER_PRINT','LARGE_FORMAT_PRINT']::text[]`,
+    ),
     index("products_status_idx").on(table.status, table.updatedAt.desc()),
     index("products_category_idx").on(table.categoryId),
   ],
@@ -126,10 +135,12 @@ export const productOptionValues = pgTable(
     key: text("key").notNull(),
     label: text("label").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
+    /** The colour a swatch shows for this value (#RRGGBB), for colour options; product data, not a UI token. */
+    swatch: text("swatch"),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("product_option_values_key_unique").on(table.optionId, table.key)],
+  (table) => [check("product_option_values_swatch_hex", sql`${table.swatch} IS NULL OR ${table.swatch} ~ '^#[0-9A-Fa-f]{6}$'`), uniqueIndex("product_option_values_key_unique").on(table.optionId, table.key)],
 );
 
 /** Product images from the public-media bucket (staff only). */

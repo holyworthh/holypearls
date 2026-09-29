@@ -1,4 +1,4 @@
-import { schema, type Transaction } from "@holypearls/db";
+import { eq, schema, type Transaction } from "@holypearls/db";
 
 /*
  * Catalogue TEST DATA (T02-01): the nine canonical categories (Stage 1.2) and
@@ -30,26 +30,56 @@ interface SeedProduct {
   subcategory: [slug: string, name: string];
   summary: string;
   options: [key: string, label: string, values: string[]][];
+  /** Swatch colours for colour option values, by value key (product data). */
+  swatches?: Record<string, string>;
+  specifications?: { label: string; value: string }[];
+  faqs?: { question: string; answer: string }[];
+  /** Products shown beside this one, in order ("Complete the uniform", Pen 19). */
+  related?: string[];
+  /** Everyday words people search with (PUB-FR-007); staff add more in admin. */
+  phrases?: string[];
+  /** Directory filters (Pen 17): how it can be made and decoration methods. */
+  routes?: ("SOURCE_CUSTOMIZE" | "MAKE_FROM_SCRATCH" | "CUSTOMER_SUPPLIED")[];
+  decorations?: ("EMBROIDERY" | "SCREEN_PRINT" | "HEAT_TRANSFER" | "PAPER_PRINT" | "LARGE_FORMAT_PRINT")[];
 }
 
 export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-APP-007",
     slug: "polo-shirt",
+    routes: ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
+    phrases: ["staff shirts", "company polos", "embroidered polos", "corporate uniform"],
     name: "Polo Shirt",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
     category: "apparel-garment-production",
     subcategory: ["t-shirts-tops", "T-Shirts & Tops"],
-    summary: "Branded polo shirts for teams and events, sourced or made by HolyPearls.",
+    // Copy from Pen 19 (Polo PDP).
+    summary: "A reliable polo for your team, with your logo printed or embroidered. Choose a ready-made polo, have it made from scratch, or send us your own.",
     options: [
-      ["colour", "Colour", ["Navy", "Black", "White", "Wine"]],
+      ["colour", "Colour", ["Navy", "Black", "White", "Olive", "Wine", "Royal", "Grey", "Gold"]],
       ["fabric", "Fabric", ["Pique cotton", "Performance polyester"]],
     ],
+    swatches: { navy: "#1F2A44", black: "#0C0C0E", white: "#F4F4F5", olive: "#6B7A4E", wine: "#8C2F22", royal: "#2F5B8A", grey: "#8A8A93", gold: "#D9B44A" },
+    specifications: [
+      { label: "Fabric", value: "Fabric is chosen with you and confirmed before production" },
+      { label: "Fit", value: "Regular · Relaxed · Slim · Custom" },
+      { label: "Sizes", value: "XS–XXL shown · extended sizes on request" },
+      { label: "Proof", value: "Final artwork confirmed in your proof before production" },
+    ],
+    faqs: [
+      { question: "Can I mix sizes in one order?", answer: "Yes. Choose how many of each size; the minimum counts across all sizes. If you don't know the sizes yet, you can add them later." },
+      { question: "What file should I send?", answer: "Send your logo as a PNG, PDF, SVG or AI file. We turn it into an embroidery or print file and show you a proof before production." },
+      { question: "Can I order a sample first?", answer: "Yes. Ask for a sample when you configure your polo; we make one piece before the full order." },
+    ],
+    related: ["apron", "baseball-cap", "event-badges", "individual-bagging"],
   },
   {
     sku: "HP-CUS-001",
     slug: "heat-transfer-printing",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["HEAT_TRANSFER"],
     name: "Heat Transfer Printing",
     family: "APPAREL_PRINT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -61,6 +91,9 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-EMB-001",
     slug: "flat-embroidery",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY"],
+    phrases: ["embroidered logo", "embroidery on caps", "embroidered patches", "embroidered name badges"],
     name: "Flat Embroidery",
     family: "EMBROIDERY",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -72,6 +105,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRN-011",
     slug: "business-cards",
+    decorations: ["PAPER_PRINT"],
+    phrases: ["complimentary cards", "visiting cards"],
     name: "Business Cards",
     family: "PAPER_PRINT",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -88,6 +123,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-LF-005",
     slug: "roll-up-banner",
+    decorations: ["LARGE_FORMAT_PRINT"],
+    phrases: ["banner", "event banner"],
     name: "Roll-Up Banner",
     family: "LARGE_FORMAT",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -99,6 +136,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PKG-001",
     slug: "small-paper-bag",
+    decorations: ["PAPER_PRINT"],
     name: "Small Paper Bag",
     family: "PACKAGING",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -110,6 +148,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-LBL-001",
     slug: "label-sticker",
+    decorations: ["PAPER_PRINT"],
     name: "Label Sticker",
     family: "STICKER_LABEL",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -121,6 +160,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRO-001",
     slug: "standard-mug",
+    phrases: ["souvenir mugs", "branded mugs"],
     name: "Standard Mug",
     family: "PROMOTIONAL_ITEM",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -132,6 +172,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-WAL-001",
     slug: "landscape-canvas",
+    decorations: ["LARGE_FORMAT_PRINT"],
     name: "Landscape Canvas",
     family: "WALL_ART",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -143,6 +184,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRJ-001",
     slug: "team-staff-branding",
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
     name: "Team & Staff Branding",
     family: "CUSTOM_PROJECT",
     buyingMode: "CONSULTATIVE_PROJECT",
@@ -151,21 +193,78 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     summary: "Uniforms, IDs and branded items for a whole team, planned with HolyPearls.",
     options: [],
   },
+  // The polo's "Complete the uniform" set (Pen 19).
+  {
+    sku: "HP-APP-050",
+    slug: "apron",
+    routes: ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH"],
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
+    name: "Apron",
+    family: "GARMENT",
+    buyingMode: "CONFIGURABLE_QUOTE",
+    category: "apparel-garment-production",
+    subcategory: ["workwear", "Workwear"],
+    summary: "Print or embroidery",
+    options: [["colour", "Colour", ["Charcoal", "Black", "Navy"]]],
+    swatches: { charcoal: "#4A4A4F", black: "#0C0C0E", navy: "#1F2A44" },
+  },
+  {
+    sku: "HP-APP-117",
+    slug: "baseball-cap",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY", "HEAT_TRANSFER"],
+    phrases: ["branded caps", "embroidered caps"],
+    name: "Baseball Cap",
+    family: "GARMENT",
+    buyingMode: "CONFIGURABLE_QUOTE",
+    category: "apparel-garment-production",
+    subcategory: ["headwear", "Headwear"],
+    summary: "Print or embroidery",
+    options: [["colour", "Colour", ["Navy", "Black", "White"]]],
+    swatches: { navy: "#1F2A44", black: "#0C0C0E", white: "#F4F4F5" },
+  },
+  {
+    sku: "HP-PRN-027",
+    slug: "event-badges",
+    decorations: ["PAPER_PRINT"],
+    name: "Event Badges",
+    family: "PAPER_PRINT",
+    buyingMode: "SIMPLE_CONFIGURABLE",
+    category: "print-business-stationery",
+    subcategory: ["id-event", "ID & Event"],
+    summary: "With lanyard",
+    options: [["lanyard", "Lanyard", ["Black", "Red"]]],
+  },
+  {
+    sku: "HP-PKG-014",
+    slug: "individual-bagging",
+    name: "Individual bagging",
+    family: "PACKAGING",
+    buyingMode: "CONFIGURABLE_QUOTE",
+    category: "bags-packaging",
+    subcategory: ["paper-presentation-packaging", "Paper & Presentation Packaging"],
+    summary: "Named, sorted by branch",
+    options: [],
+  },
 ];
 
-/** Loads the catalogue once; re-running keeps what's there. */
+const OLD_POLO_SUMMARY = "Branded polo shirts for teams and events, sourced or made by HolyPearls.";
+
+/** Loads the catalogue; re-running keeps what's there and adds products new to the seed. */
 export async function seedCatalogue(tx: Transaction): Promise<void> {
-  const [existing] = await tx.select({ id: schema.categories.id }).from(schema.categories).limit(1);
-  if (existing) return;
-  const ids = new Map<string, string>();
-  for (const [position, [slug, name, description]] of SEED_CATEGORIES.entries()) {
-    const [row] = await tx
-      .insert(schema.categories)
-      .values({ slug, name, description, position, status: "PUBLISHED", seoTitle: `${name} | HolyPearls` })
-      .returning({ id: schema.categories.id });
-    ids.set(slug, row!.id);
+  const ids = new Map((await tx.select({ id: schema.categories.id, slug: schema.categories.slug }).from(schema.categories)).map((row) => [row.slug, row.id]));
+  if (!ids.size) {
+    for (const [position, [slug, name, description]] of SEED_CATEGORIES.entries()) {
+      const [row] = await tx
+        .insert(schema.categories)
+        .values({ slug, name, description, position, status: "PUBLISHED", seoTitle: `${name} | HolyPearls` })
+        .returning({ id: schema.categories.id });
+      ids.set(slug, row!.id);
+    }
   }
+  const present = new Set((await tx.select({ slug: schema.products.slug }).from(schema.products)).map((row) => row.slug));
   for (const product of SEED_PRODUCTS) {
+    if (present.has(product.slug)) continue;
     let subId = ids.get(product.subcategory[0]);
     if (!subId) {
       const [row] = await tx
@@ -190,18 +289,74 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
         status: "PUBLISHED",
         publishedAt: new Date(),
         seoTitle: `${product.name} | HolyPearls`,
-        searchPhrases: [product.name.toLowerCase()],
+        searchPhrases: [product.name.toLowerCase(), ...(product.phrases ?? [])],
+        routes: product.routes ?? [],
+        decorations: product.decorations ?? [],
       })
       .returning({ id: schema.products.id });
-    for (const [position, [key, label, values]] of product.options.entries()) {
-      const [option] = await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position, required: key !== "finish" }).returning({ id: schema.productOptions.id });
-      await tx.insert(schema.productOptionValues).values(
-        values.map((value, index) => {
-          // "key|Label" keeps a stable key when the label reads better than the key.
-          const [key, label] = value.includes("|") ? (value.split("|") as [string, string]) : [value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), value];
-          return { optionId: option!.id, key, label, position: index, isDefault: index === 0 };
-        }),
-      );
+    for (const [position, [key, label]] of product.options.entries()) {
+      await tx.insert(schema.productOptions).values({ productId: row!.id, key, label, position, required: key !== "finish" });
+    }
+  }
+  await seedProductDetails(tx);
+}
+
+/** "key|Label" keeps a stable key when the label reads better than the key. */
+const splitValue = (value: string): [key: string, label: string] =>
+  value.includes("|") ? (value.split("|") as [string, string]) : [value.toLowerCase().replace(/[^a-z0-9]+/g, "-"), value];
+
+/**
+ * Fills what product pages show (Pen 19): option values with swatches,
+ * specifications, questions, everyday search phrases and related products. Only adds what's missing, so
+ * staff edits are kept. The polo's first-seed summary gives way to the Pen copy.
+ */
+async function seedProductDetails(tx: Transaction): Promise<void> {
+  const products = await tx
+    .select({
+      id: schema.products.id,
+      slug: schema.products.slug,
+      summary: schema.products.summary,
+      specifications: schema.products.specifications,
+      faqs: schema.products.faqs,
+      searchPhrases: schema.products.searchPhrases,
+      routes: schema.products.routes,
+      decorations: schema.products.decorations,
+    })
+    .from(schema.products);
+  const idOf = new Map(products.map((row) => [row.slug, row.id]));
+  for (const seeded of SEED_PRODUCTS) {
+    const row = products.find((item) => item.slug === seeded.slug);
+    if (!row) continue;
+    const updates: Partial<typeof schema.products.$inferInsert> = {};
+    if (row.summary === OLD_POLO_SUMMARY) updates.summary = seeded.summary;
+    if (seeded.specifications && !(row.specifications as unknown[]).length) updates.specifications = seeded.specifications;
+    if (seeded.faqs && !(row.faqs as unknown[]).length) updates.faqs = seeded.faqs;
+    const missing = (seeded.phrases ?? []).filter((phrase) => !row.searchPhrases.includes(phrase));
+    if (missing.length) updates.searchPhrases = [...row.searchPhrases, ...missing];
+    if (seeded.routes && !row.routes.length) updates.routes = seeded.routes;
+    if (seeded.decorations && !row.decorations.length) updates.decorations = seeded.decorations;
+    if (Object.keys(updates).length) await tx.update(schema.products).set(updates).where(eq(schema.products.id, row.id));
+
+    const options = await tx.select({ id: schema.productOptions.id, key: schema.productOptions.key }).from(schema.productOptions).where(eq(schema.productOptions.productId, row.id));
+    for (const [optionKey, , values] of seeded.options) {
+      const option = options.find((item) => item.key === optionKey);
+      if (!option) continue;
+      const have = await tx
+        .select({ id: schema.productOptionValues.id, key: schema.productOptionValues.key, swatch: schema.productOptionValues.swatch })
+        .from(schema.productOptionValues)
+        .where(eq(schema.productOptionValues.optionId, option.id));
+      for (const [position, value] of values.entries()) {
+        const [key, label] = splitValue(value);
+        const swatch = seeded.swatches?.[key] ?? null;
+        const found = have.find((item) => item.key === key);
+        if (!found) await tx.insert(schema.productOptionValues).values({ optionId: option.id, key, label, position, isDefault: position === 0 && !have.length, swatch });
+        else await tx.update(schema.productOptionValues).set({ position, ...(found.swatch === null && swatch ? { swatch } : {}) }).where(eq(schema.productOptionValues.id, found.id));
+      }
+    }
+
+    for (const [position, slug] of (seeded.related ?? []).entries()) {
+      const relatedId = idOf.get(slug);
+      if (relatedId) await tx.insert(schema.productRelations).values({ productId: row.id, relatedProductId: relatedId, position }).onConflictDoNothing();
     }
   }
 }

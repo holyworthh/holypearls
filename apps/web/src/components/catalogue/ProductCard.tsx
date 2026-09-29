@@ -1,49 +1,76 @@
-import type { PriceState, PublicProductCard } from "@holypearls/contracts";
-import styles from "./catalogue.module.css";
+import { customerPriceState, type PublicProductCard } from "@holypearls/contracts";
+import styles from "./card.module.css";
 
-const FAMILY_TICKET: Record<string, string> = {
-  GARMENT: "APPAREL",
-  APPAREL_PRINT: "APPAREL PRINT",
-  EMBROIDERY: "EMBROIDERY",
-  PAPER_PRINT: "PRINT",
-  LARGE_FORMAT: "LARGE FORMAT",
-  PACKAGING: "PACKAGING",
-  STICKER_LABEL: "LABELS",
-  PROMOTIONAL_ITEM: "PROMOTIONAL",
-  WALL_ART: "WALL ART",
-  CUSTOM_PROJECT: "PROJECT",
+const naira = (minor: string, currency: string) => {
+  const whole = BigInt(minor) / 100n;
+  return `${currency === "USD" ? "$" : "₦"}${whole.toLocaleString("en-NG")}`;
 };
+
+const PIECE_FAMILIES = new Set(["GARMENT", "APPAREL_PRINT", "EMBROIDERY", "PROMOTIONAL_ITEM", "PACKAGING"]);
 
 /**
- * Card variants (PUB-FR-010, Pen HP/Commerce/ProductCard and price states):
- * A price on configuration, B quote required, C consultation, D unavailable.
- * Real "From ₦…" prices replace the A line when T03-01 adds price tables.
+ * The card price line (Pen HP/Commerce/ProductCard): "From ₦8,500 / piece",
+ * "₦15,000 / 100", "₦55,000 / unit". "From" marks an estimate; quoted and
+ * consultation products say so instead of a price.
  */
-const VARIANT: Record<PriceState, { ticket: string; line: string; action: string; tone: string }> = {
-  PRICE_ON_CONFIGURATION: { ticket: "CONFIGURE", line: "See the price as you choose options", action: "Configure", tone: styles.dotInfo! },
-  QUOTE_REQUIRED: { ticket: "QUOTE", line: "Priced by quote after we review it", action: "Get a quote", tone: styles.dotWarning! },
-  CONSULTATION_REQUIRED: { ticket: "CONSULTATION", line: "Planned with our team", action: "Start a project", tone: styles.dotAccent! },
-  UNAVAILABLE: { ticket: "UNAVAILABLE", line: "Can't be ordered right now", action: "View", tone: styles.dotMuted! },
-};
+export function priceLine(product: PublicProductCard): { text: string; amount?: string; unit?: string; tone: "ready" | "estimate" | "quote" | "muted" } {
+  // One rule for cards and product pages (customerPriceState): no list price is a quote, never an estimate.
+  const state = customerPriceState(product);
+  if (state === "UNAVAILABLE") return { text: "Can't be ordered right now", tone: "muted" };
+  if (state === "CONSULTATION_REQUIRED") return { text: "Planned with our team", tone: "quote" };
+  const price = product.price;
+  if (state === "QUOTE_REQUIRED" || !price) return { text: "Quote required", tone: "quote" };
+  const amount = naira(price.amountMinor, price.currency);
+  const unit = price.basis === "PER_PACK" ? ` / ${price.packSize.toLocaleString("en-NG")}` : price.basis === "PER_UNIT" ? (PIECE_FAMILIES.has(product.family) ? " / piece" : " / unit") : "";
+  if (state === "ESTIMATE_READY") return { text: `From ${amount}${unit}`, amount: `From ${amount}`, unit, tone: "estimate" };
+  return { text: `${amount}${unit}`, amount, unit, tone: "ready" };
+}
 
-export function ProductCard({ product, headingLevel = 3 }: { product: PublicProductCard; headingLevel?: 2 | 3 }) {
-  const variant = VARIANT[product.priceState];
+const DOT = { ready: styles.dotReady, estimate: styles.dotEstimate, quote: styles.dotQuote, muted: styles.dotMuted };
+
+/**
+ * Standard card: tall image, title, qualifier, price row with state dot and minimum (Pen 15 "Most ordered").
+ * `short` is the related-products card (Pen 19 "Complete the uniform"): the price alone, no unit or minimum.
+ */
+export function ProductCard({
+  product,
+  headingLevel = 3,
+  variant = "standard",
+  tight = false,
+  short = false,
+}: {
+  product: PublicProductCard;
+  headingLevel?: 2 | 3;
+  variant?: "standard" | "compact";
+  tight?: boolean;
+  short?: boolean;
+}) {
   const Heading = `h${headingLevel}` as "h2" | "h3";
+  const full = priceLine(product);
+  const line = short ? { ...full, text: full.tone === "quote" && !product.price ? "Priced in quote" : (full.amount ?? full.text), unit: undefined, amount: undefined } : full;
+  const moq = short ? null : product.moq && product.moq > 1 ? `Min ${product.moq.toLocaleString("en-NG")}` : product.moq === 1 ? "Min 1" : null;
+  if (variant === "compact") {
+    return (
+      <article className={styles.compact}>
+        <div className={styles.compactMedia}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" /> : null}</div>
+        <Heading className={styles.compactTitle}>
+          <a className={styles.cardLink} href={`/products/${product.slug}`}>
+            {product.name}
+          </a>
+        </Heading>
+        <p className={styles.compactPrice}>
+          <span className={`${styles.dot} ${DOT[line.tone]}`} aria-hidden="true" />
+          {line.text}
+          {moq ? ` · ${moq}` : ""}
+        </p>
+      </article>
+    );
+  }
   return (
-    <article className={styles.card}>
-      <div className={styles.cardMedia}>
-        {product.image ? (
-          // Stable, cacheable URL from the API's public media route.
-          <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" width={400} height={300} />
-        ) : (
-          <span className={styles.noImage} aria-hidden="true" />
-        )}
-        <span className={styles.ticket}>
-          {FAMILY_TICKET[product.family]} · {variant.ticket}
-        </span>
-      </div>
-      <div className={styles.cardText}>
-        <Heading className={styles.cardTitle}>
+    <article className={`${styles.card} ${tight ? styles.tight : ""}`}>
+      <div className={styles.media}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" /> : null}</div>
+      <div className={styles.text}>
+        <Heading className={styles.title}>
           <a className={styles.cardLink} href={`/products/${product.slug}`}>
             {product.name}
           </a>
@@ -51,12 +78,13 @@ export function ProductCard({ product, headingLevel = 3 }: { product: PublicProd
         {product.summary ? <p className={styles.qualifier}>{product.summary}</p> : null}
       </div>
       <p className={styles.priceRow}>
-        <span className={`${styles.dot} ${variant.tone}`} aria-hidden="true" />
-        {variant.line}
+        <span className={`${styles.dot} ${DOT[line.tone]}`} aria-hidden="true" />
+        <span className={styles.price}>
+          {line.amount ?? line.text}
+          {line.unit ? <span className={line.unit.startsWith(" / piece") || line.unit.startsWith(" / unit") ? styles.unit : undefined}>{line.unit}</span> : null}
+        </span>
+        {moq ? <span className={styles.moq}>· {moq}</span> : null}
       </p>
-      <span className={styles.cardAction} aria-hidden="true">
-        {variant.action} →
-      </span>
     </article>
   );
 }

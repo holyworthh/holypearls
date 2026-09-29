@@ -18,6 +18,7 @@ test("Business Cards: quantities are priced, autosave keeps the draft, and foil 
   await expect(page.getByText("Saved")).toBeVisible({ timeout: 30_000 });
 
   // A custom quantity is priced too.
+  await page.getByLabel(/^More/).check();
   await page.getByLabel("Or enter a quantity").fill("250");
   await expect(page.getByText("₦40,312.50").first()).toBeVisible({ timeout: 30_000 });
 

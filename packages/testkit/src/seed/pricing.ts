@@ -29,7 +29,7 @@ const SAMPLE = { sample: "OPTIONAL", sampleMultiplierBps: 15_000, sampleMinimumM
 const PRICING: Record<string, { rules: Rules; price: Price | null }> = {
   "polo-shirt": {
     rules: { ...COMMON, ...SAMPLE, moq: 10, belowMoq: "SURCHARGE", belowMoqSurchargeBps: 3_000, leadMinDays: 3, leadMaxDays: 7 },
-    price: { basis: "PER_UNIT", base: 8_500, tiers: [[50, 8_000], [100, 7_500]], state: "ESTIMATE_READY", note: "Stage 1.4: from ₦8,500 per piece. Tiers illustrative." },
+    price: { basis: "PER_UNIT", base: 8_500, tiers: [[50, 8_000], [100, 7_500], [200, 7_000]], state: "ESTIMATE_READY", note: "Stage 1.4: from ₦8,500 per piece. Tiers illustrative (Pen 19 bands)." },
   },
   "heat-transfer-printing": {
     rules: { ...COMMON, moq: 5, belowMoq: "SURCHARGE", belowMoqSurchargeBps: 3_000, leadMinDays: 3, leadMaxDays: 5 },
@@ -71,6 +71,20 @@ const PRICING: Record<string, { rules: Rules; price: Price | null }> = {
     rules: { ...COMMON, moq: 1, leadMinDays: 3, leadMaxDays: 7 },
     price: { basis: "PER_UNIT", base: 18_000, addOns: [["size", "60-40-cm", "UNIT", 7_000], ["size", "90-60-cm", "UNIT", 16_000]], state: "PRICE_READY", note: "Stage 1.4: from ₦18,000 per piece. Size add-ons illustrative." },
   },
+  apron: {
+    rules: { ...COMMON, moq: 10, belowMoq: "SURCHARGE", belowMoqSurchargeBps: 3_000, leadMinDays: 3, leadMaxDays: 7 },
+    price: { basis: "PER_UNIT", base: 6_500, state: "ESTIMATE_READY", note: "Pen 19: from ₦6,500." },
+  },
+  "baseball-cap": {
+    rules: { ...COMMON, moq: 10, belowMoq: "SURCHARGE", belowMoqSurchargeBps: 3_000, leadMinDays: 3, leadMaxDays: 7 },
+    price: { basis: "PER_UNIT", base: 4_500, state: "ESTIMATE_READY", note: "Pen 19: from ₦4,500." },
+  },
+  "event-badges": {
+    rules: { ...COMMON, moq: 10, belowMoq: "BLOCK", leadMinDays: 2, leadMaxDays: 5 },
+    price: { basis: "PER_UNIT", base: 2_400, state: "ESTIMATE_READY", note: "Pen 19: from ₦2,400 with lanyard." },
+  },
+  // Priced in the quote with the garments it packs (Pen 19).
+  "individual-bagging": { rules: { ...COMMON, moq: 1, leadMinDays: 1, leadMaxDays: 3 }, price: null },
   // Consultative: planned with the customer, so no automatic price.
   "team-staff-branding": { rules: { ...COMMON, ...SAMPLE, rush: "MANUAL_REVIEW", moq: 1, leadMinDays: 10, leadMaxDays: 30 }, price: null },
 };

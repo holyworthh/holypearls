@@ -197,3 +197,12 @@
 .bleed:focus {
   outline: none;
 }
+
+/* Hover (every clickable item has one). */
+.brand {
+  transition: opacity var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.brand:hover {
+  opacity: 0.75;
+}

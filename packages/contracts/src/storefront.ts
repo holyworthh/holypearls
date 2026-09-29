@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { buyingModeSchema, productFamilySchema } from "./catalogue.js";
+import { businessDate } from "./business-time.js";
+import { buyingModeSchema, decorationMethodSchema, makingRouteSchema, productFamilySchema } from "./catalogue.js";
 import { configuratorSchema } from "./configuration.js";
 
 /*
@@ -36,15 +37,66 @@ export const publicProductCardSchema = z.object({
   /** TEMPORARILY_UNAVAILABLE products stay listed but can't be ordered. */
   available: z.boolean(),
   priceState: priceStateSchema,
+  /** The current list price (before options and VAT), for "From ₦8,500 / piece"; null when quoted. */
+  price: z
+    .object({
+      amountMinor: z.string(),
+      currency: z.enum(["NGN", "USD"]),
+      basis: z.enum(["PER_UNIT", "PER_PACK", "FIXED"]),
+      packSize: z.number().int(),
+      state: z.enum(["PRICE_READY", "ESTIMATE_READY"]),
+    })
+    .nullable(),
+  /** Minimum order quantity; null when not set. */
+  moq: z.number().int().nullable(),
 });
 export type PublicProductCard = z.infer<typeof publicProductCardSchema>;
 
+/**
+ * What the customer is told about a product's price (PUB-FR-010), for cards,
+ * product pages and the phone's sticky bar alike. Only a list price makes a
+ * product "price ready" or "estimate ready"; no price is never an estimate.
+ */
+export type CustomerPriceState = "PRICE_READY" | "ESTIMATE_READY" | "QUOTE_REQUIRED" | "CONSULTATION_REQUIRED" | "UNAVAILABLE";
+export function customerPriceState(product: Pick<PublicProductCard, "available" | "priceState" | "price">): CustomerPriceState {
+  if (!product.available) return "UNAVAILABLE";
+  if (product.priceState === "CONSULTATION_REQUIRED") return "CONSULTATION_REQUIRED";
+  if (product.price?.state === "PRICE_READY") return "PRICE_READY";
+  if (product.price?.state === "ESTIMATE_READY") return "ESTIMATE_READY";
+  return "QUOTE_REQUIRED";
+}
+export const CUSTOMER_PRICE_LABEL: Record<CustomerPriceState, string> = {
+  PRICE_READY: "PRICE READY",
+  ESTIMATE_READY: "ESTIMATE READY",
+  QUOTE_REQUIRED: "QUOTE REQUIRED",
+  CONSULTATION_REQUIRED: "PLANNED WITH OUR TEAM",
+  UNAVAILABLE: "UNAVAILABLE",
+};
+
+export const listPriceFilterSchema = z.enum(["PRICE_READY", "ESTIMATE_READY", "QUOTE_REQUIRED"]);
+/** "1–9", "10–49", "50+": products that can be ordered in that quantity (their minimum fits). */
+export const quantityBandSchema = z.enum(["1-9", "10-49", "50+"]);
+export type QuantityBand = z.infer<typeof quantityBandSchema>;
 export const productSortSchema = z.enum(["popular", "name", "newest"]);
+/** One or several values of a filter: `?family=A&family=B` (any of them matches). */
+const manyOf = <T extends z.ZodTypeAny>(item: T) =>
+  z.preprocess((value) => (value === undefined || value === "" ? undefined : Array.isArray(value) ? value : [value]), z.array(item).min(1).max(12).optional());
+
 export const publicProductQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
-  category: z.string().max(80).optional(),
-  family: productFamilySchema.optional(),
-  mode: buyingModeSchema.optional(),
+  category: manyOf(z.string().max(80)),
+  family: manyOf(productFamilySchema),
+  mode: manyOf(buyingModeSchema),
+  /** Pen 17 rail: how it's made, price state, quantity band, decoration and a needed-by date. */
+  route: manyOf(makingRouteSchema),
+  price: manyOf(listPriceFilterSchema),
+  qty: quantityBandSchema.optional(),
+  decoration: manyOf(decorationMethodSchema),
+  /** Today or later in Lagos (the business date); an earlier date is refused. */
+  neededBy: z.iso
+    .date()
+    .refine((date) => date >= businessDate(new Date()), "Choose today or a later date")
+    .optional(),
   sort: productSortSchema.default("popular"),
   page: z.coerce.number().int().min(1).max(500).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
@@ -62,6 +114,10 @@ export const publicProductPageSchema = z.object({
     categories: z.array(z.object({ slug: z.string(), name: z.string(), count: z.number().int() })),
     families: z.array(z.object({ value: productFamilySchema, count: z.number().int() })),
     modes: z.array(z.object({ value: buyingModeSchema, count: z.number().int() })),
+    routes: z.array(z.object({ value: makingRouteSchema, count: z.number().int() })),
+    prices: z.array(z.object({ value: listPriceFilterSchema, count: z.number().int() })),
+    quantities: z.array(z.object({ value: quantityBandSchema, count: z.number().int() })),
+    decorations: z.array(z.object({ value: decorationMethodSchema, count: z.number().int() })),
   }),
 });
 export type PublicProductPage = z.infer<typeof publicProductPageSchema>;
@@ -113,9 +169,17 @@ export type HubSection = z.infer<typeof hubSectionSchema>;
 export type HubSectionType = HubSection["type"];
 export const HUB_SECTION_TYPES = ["summary", "subcategories", "featured", "grid", "guidance", "process", "faq", "related"] as const;
 
+/**
+ * How the hub page is laid out: EDITORIAL is the photo-led garment hub (Pen 18),
+ * CATALOGUE the product-led hub (Pen 11). Staff choose it in the hub editor;
+ * the category's address never decides it. Hubs saved before it default to CATALOGUE.
+ */
+export const hubLayoutSchema = z.enum(["EDITORIAL", "CATALOGUE"]);
+export type HubLayout = z.infer<typeof hubLayoutSchema>;
+
 /** Every section type appears exactly once; the order and visibility are the editor's choice. */
 export const hubSchema = z
-  .object({ sections: z.array(hubSectionSchema).length(HUB_SECTION_TYPES.length) })
+  .object({ layout: hubLayoutSchema.default("CATALOGUE"), sections: z.array(hubSectionSchema).length(HUB_SECTION_TYPES.length) })
   .refine((hub) => new Set(hub.sections.map((section) => section.type)).size === HUB_SECTION_TYPES.length, "Each section appears once");
 export type Hub = z.infer<typeof hubSchema>;
 
@@ -123,6 +187,7 @@ export type Hub = z.infer<typeof hubSchema>;
 export const publicHubSchema = z.object({
   category: publicCategorySchema,
   parent: z.object({ slug: z.string(), name: z.string() }).nullable(),
+  layout: hubLayoutSchema,
   sections: z.array(hubSectionSchema),
   featured: z.array(publicProductCardSchema),
   products: z.array(publicProductCardSchema),
@@ -188,3 +253,18 @@ export const publicProductSchema = publicProductCardSchema.extend({
   seoDescription: z.string().nullable(),
 });
 export type PublicProduct = z.infer<typeof publicProductSchema>;
+
+/**
+ * Typeahead for the header and directory search (Pen 09 · R8Aqc, PUB-FR-006/007):
+ * everyday searches, categories, the top products and guides for what's typed so far.
+ */
+export const searchSuggestionQuerySchema = z.object({ q: z.string().trim().min(1).max(100) });
+export const searchSuggestionsSchema = z.object({
+  q: z.string(),
+  searches: z.array(z.string()),
+  categories: z.array(z.object({ slug: z.string(), name: z.string(), count: z.number().int() })),
+  products: z.array(publicProductCardSchema),
+  /** Guides arrive with content pages (T02-06); empty until then. */
+  guides: z.array(z.object({ title: z.string(), href: z.string() })),
+});
+export type SearchSuggestions = z.infer<typeof searchSuggestionsSchema>;

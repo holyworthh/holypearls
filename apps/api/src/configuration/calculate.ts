@@ -79,11 +79,12 @@ export interface CalculationInput {
   /** Delivery charge from the delivery module (T04-01); null when not chosen yet. */
   delivery: { amountMinor: bigint; currency: "NGN" | "USD" } | null;
   /** Answers outside the option list that change the price state (garment sourcing, extra placements…). */
-  adjustments?: { state: PriceState; code: ReasonCode; message: string }[];
+  adjustments?: { state: PriceState; code: ReasonCode; message: string; blocking?: boolean }[];
 }
 
 export type ReasonCode =
   | "FINAL_AFTER_INSPECTION"
+  | "CHOICE_UNAVAILABLE"
   | "MADE_TO_ORDER"
   | "RECOMMENDATION"
   | "EXTRA_PLACEMENTS"
@@ -234,7 +235,7 @@ export function calculatePrice(input: CalculationInput): CalculationResult {
 
   let state: PriceState = "PRICE_READY";
   for (const adjustment of input.adjustments ?? []) {
-    reason(adjustment.code, adjustment.message);
+    reason(adjustment.code, adjustment.message, adjustment.blocking ?? false);
     state = worse(state, adjustment.state);
   }
 

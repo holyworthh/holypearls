@@ -68,6 +68,8 @@ function toAdmin(product: typeof schema.products.$inferSelect, categoryName: str
     summary: product.summary,
     description: product.description,
     searchPhrases: product.searchPhrases,
+    routes: product.routes as AdminProduct["routes"],
+    decorations: product.decorations as AdminProduct["decorations"],
     specifications: product.specifications as AdminProduct["specifications"],
     faqs: product.faqs as AdminProduct["faqs"],
     seoTitle: product.seoTitle,

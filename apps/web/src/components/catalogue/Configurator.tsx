@@ -6,6 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { api, errorCode, errorReason } from "../../lib/api";
 import styles from "./configurator.module.css";
+import p from "./pdp.module.css";
+import { CircleCheck, Clock, PenTool, Truck, Upload } from "lucide-react";
 import { DeliveryFields, FamilyFields, QuoteRequest } from "./FamilyDelivery";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
@@ -30,11 +32,17 @@ const naira = (minor: string | null | undefined, currency: string | null) => {
   return `${symbol}${whole.toLocaleString("en-NG")}${kobo ? `.${kobo.toString().padStart(2, "0")}` : ""}`;
 };
 
-const ARTWORK: { value: Artwork; title: string; meta: string }[] = [
-  { value: "UPLOAD", title: "Upload my design", meta: "PDF works best · we check it" },
-  { value: "DESIGN_HELP", title: "Need design help", meta: "We'll contact you with options" },
-  { value: "LATER", title: "I'll send it later", meta: "Held for artwork" },
+const ARTWORK: { value: Artwork; title: string; meta: string; Icon: typeof Upload }[] = [
+  { value: "UPLOAD", title: "Upload my design", meta: "PDF · we check it", Icon: Upload },
+  { value: "DESIGN_HELP", title: "Need design help", meta: "We'll contact you with options", Icon: PenTool },
+  { value: "LATER", title: "I'll send it later", meta: "Held for artwork", Icon: Clock },
 ];
+
+/** Option labels carry an optional second line after " · " ("Smooth matte · 350gsm"), shown as Pen's card meta. */
+const splitLabel = (label: string) => {
+  const at = label.indexOf(" · ");
+  return at > 0 ? { title: label.slice(0, at), meta: label.slice(at + 3) } : { title: label, meta: null };
+};
 
 const STATE_LABEL: Record<PriceResult["state"], { label: string; className: string }> = {
   PRICE_READY: { label: "PRICE READY · ORDER NOW", className: styles.stateReady! },
@@ -48,6 +56,8 @@ interface Props {
   productName: string;
   family: string;
   data: ConfiguratorData;
+  /** The list price state, for the chip before anything is chosen (Pen 21 "PRICE READY · ORDER NOW"). */
+  listState?: "PRICE_READY" | "ESTIMATE_READY" | null;
   initialDraft: Configuration | null;
 }
 
@@ -58,11 +68,12 @@ interface Props {
  * are blocked before Review; a change that would remove later answers is
  * shown for confirmation first.
  */
-export function Configurator({ productSlug, productName, family, data, initialDraft }: Props) {
+export function Configurator({ productSlug, productName, family, data, initialDraft, listState = null }: Props) {
   const defaults = Object.fromEntries(data.options.map((option) => [option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])?.key ?? ""]));
   const [draft, setDraft] = useState<Configuration | null>(initialDraft);
   const [choices, setChoices] = useState<Record<string, string>>(initialDraft?.choices ?? defaults);
   const [quantity, setQuantity] = useState<number | null>(initialDraft?.quantity ?? null);
+  const [more, setMore] = useState(Boolean(initialDraft?.quantity && !data.quantityPresets.some((preset) => preset.quantity === initialDraft.quantity)));
   const [custom, setCustom] = useState(initialDraft?.quantity && !data.quantityPresets.some((preset) => preset.quantity === initialDraft.quantity) ? String(initialDraft.quantity) : "");
   const [artwork, setArtwork] = useState<Artwork | null>(initialDraft?.artwork ?? null);
   const [details, setDetails] = useState<ConfigurationDetails>(initialDraft?.details ?? {});
@@ -252,33 +263,40 @@ export function Configurator({ productSlug, productName, family, data, initialDr
   };
 
   const valueLabel = (option: string, value: string | undefined) => data.options.find((item) => item.key === option)?.values.find((item) => item.key === value)?.label ?? "Not chosen";
-  const state = price ? STATE_LABEL[price.state] : null;
+  const shownState = price?.state ?? listState;
+  const state = shownState ? STATE_LABEL[shownState] : null;
   const blockingReasons = price?.reasons.filter((reason) => reason.blocking) ?? [];
   const summary = [quantity ? `${quantity.toLocaleString("en-NG")}` : null, ...data.options.map((option) => valueLabel(option.key, choices[option.key]))].filter(Boolean).join(" · ");
-  const steps = ["options", "quantity", "artwork", "delivery", "review"] as const;
-  const number = (step: (typeof steps)[number]) => String(steps.indexOf(step) + 1).padStart(2, "0");
+  const steps = [...data.options.map((option) => `option-${option.key}`), "quantity", "artwork", "delivery", "review"];
+  const number = (step: string) => String(steps.indexOf(step) + 1).padStart(2, "0");
+  const presetPrices = data.quantityPresets.flatMap((preset) => (preset.perUnitMinor ? [BigInt(preset.perUnitMinor)] : []));
+  const cheaperFrom = presetPrices.length > 1 && presetPrices[presetPrices.length - 1]! < presetPrices[0]! ? data.quantityPresets[1]?.quantity : null;
 
   return (
     <div className={styles.configurator}>
       {state ? (
-        <span className={`${styles.stateChip} ${state.className}`}>{state.label}</span>
+        <span className={`${p.stateChip} ${state.className}`}>
+          {shownState === "PRICE_READY" ? <CircleCheck size={14} aria-hidden="true" /> : null}
+          {state.label}
+        </span>
       ) : data.fromPerUnitMinor ? (
-        <span className={`${styles.stateChip} ${styles.stateReady}`}>FROM {naira(data.fromPerUnitMinor, data.currency)} EACH</span>
+        <span className={`${p.stateChip} ${styles.stateReady}`}>FROM {naira(data.fromPerUnitMinor, data.currency)} EACH</span>
       ) : null}
 
-      <fieldset className={styles.step} id="step-options">
-        <legend className={styles.stepTitle}>
-          <span className={styles.stepNumber}>{number("options")}</span> Options
-        </legend>
+      <div id="step-options" className={p.steps}>
         {data.options.map((option) => (
-          <fieldset key={option.key} className={styles.step}>
-            <legend className={styles.stepExtra}>{option.label}</legend>
-            <div className={styles.choices}>
+          <fieldset key={option.key} className={p.step}>
+            <legend className={p.stepHead}>
+              <span className={p.stepNum}>{number(`option-${option.key}`)}</span>
+              <span className={p.stepTitle}>{option.label}</span>
+            </legend>
+            <div className={p.cards}>
               {option.values.map((value) => {
                 const blocked = blockedReason(option.key, value.key);
                 const id = `choice-${option.key}-${value.key}`;
+                const label = splitLabel(value.label);
                 return (
-                  <label key={value.key} className={styles.choice} htmlFor={id}>
+                  <label key={value.key} className={p.card} htmlFor={id}>
                     <input
                       id={id}
                       type="radio"
@@ -289,91 +307,107 @@ export function Configurator({ productSlug, productName, family, data, initialDr
                       aria-describedby={blocked ? `${id}-blocked` : undefined}
                       onChange={() => choose(option.key, value.key)}
                     />
-                    <span className={styles.choiceTitle}>{value.label}</span>
+                    <span className={p.cardTitle}>{label.title}</span>
                     {blocked ? (
-                      <span className={styles.choiceMeta} id={`${id}-blocked`}>
+                      <span className={p.cardMeta} id={`${id}-blocked`}>
                         Not available with your choices
                       </span>
+                    ) : label.meta ? (
+                      <span className={p.cardMeta}>{label.meta}</span>
                     ) : null}
                   </label>
                 );
               })}
             </div>
             {option.values.some((value) => blockedReason(option.key, value.key)) ? (
-              <p className={styles.blockedNote}>{option.values.map((value) => blockedReason(option.key, value.key)).find(Boolean)}</p>
+              <p className={p.hint}>{option.values.map((value) => blockedReason(option.key, value.key)).find(Boolean)}</p>
             ) : null}
           </fieldset>
         ))}
         <FamilyFields family={family} details={details} onChange={(change) => changeDetails(change)} />
-      </fieldset>
+      </div>
 
-      <fieldset className={styles.step} id="step-quantity">
-        <legend className={styles.stepHead}>
-          <span className={styles.stepTitle}>
-            <span className={styles.stepNumber}>{number("quantity")}</span> Quantity
-          </span>
+      <fieldset className={p.step} id="step-quantity">
+        <legend className={p.stepHead}>
+          <span className={p.stepNum}>{number("quantity")}</span>
+          <span className={p.stepTitle}>Quantity</span>
+          <span className={p.stepAside}>{cheaperFrom ? `Lower price each at ${cheaperFrom.toLocaleString("en-NG")}+` : `Minimum ${data.moq.toLocaleString("en-NG")}`}</span>
         </legend>
-        <p className={styles.stepExtra}>Minimum {data.moq.toLocaleString("en-NG")}. Prices include VAT.</p>
-        <div className={styles.choices}>
+        <div className={p.cards}>
           {data.quantityPresets.map((preset) => (
-            <label key={preset.quantity} className={styles.choice} htmlFor={`quantity-${preset.quantity}`}>
+            <label key={preset.quantity} className={`${p.card} ${p.qty}`} htmlFor={`quantity-${preset.quantity}`}>
               <input
                 id={`quantity-${preset.quantity}`}
                 type="radio"
                 name="quantity"
-                checked={quantity === preset.quantity && !custom}
+                checked={quantity === preset.quantity && !more}
                 onChange={() => {
+                  setMore(false);
                   setCustom("");
                   chooseQuantity(preset.quantity);
                 }}
               />
-              <span className={styles.quantityNumber}>{preset.quantity.toLocaleString("en-NG")}</span>
-              {preset.perUnitMinor ? <span className={styles.choiceMeta}>{naira(preset.perUnitMinor, data.currency)} each</span> : null}
+              <span className={p.qtyNumber}>{preset.quantity.toLocaleString("en-NG")}</span>
+              {preset.perUnitMinor ? <span className={p.cardMeta}>{naira(preset.perUnitMinor, data.currency)} each</span> : null}
             </label>
           ))}
+          <label className={`${p.card} ${p.qty}`} htmlFor="quantity-more">
+            <input id="quantity-more" type="radio" name="quantity" checked={more} onChange={() => setMore(true)} />
+            <span className={p.qtyNumber}>More</span>
+            <span className={p.cardMeta}>Any amount</span>
+          </label>
         </div>
-        <div className={styles.customQuantity}>
-          <FormField label="Or enter a quantity" id="custom-quantity">
-            <TextField
-              inputMode="numeric"
-              value={custom}
-              onChange={(event) => {
-                const text = event.target.value.replace(/\D/g, "").slice(0, 8);
-                setCustom(text);
-                chooseQuantity(text ? Number(text) : null);
-              }}
-            />
-          </FormField>
-        </div>
+        {more ? (
+          <div className={p.custom}>
+            <FormField label="Or enter a quantity" id="custom-quantity" hint={`Minimum ${data.moq.toLocaleString("en-NG")}. Prices include VAT.`}>
+              <TextField
+                inputMode="numeric"
+                value={custom}
+                autoFocus
+                onChange={(event) => {
+                  const text = event.target.value.replace(/\D/g, "").slice(0, 8);
+                  setCustom(text);
+                  chooseQuantity(text ? Number(text) : null);
+                }}
+              />
+            </FormField>
+          </div>
+        ) : null}
       </fieldset>
 
-      <fieldset className={styles.step} id="step-artwork">
-        <legend className={styles.stepTitle}>
-          <span className={styles.stepNumber}>{number("artwork")}</span> Artwork
+      <fieldset className={p.step} id="step-artwork">
+        <legend className={p.stepHead}>
+          <span className={p.stepNum}>{number("artwork")}</span>
+          <span className={p.stepTitle}>Artwork</span>
         </legend>
-        <div className={styles.choices}>
+        <div className={p.cards}>
           {ARTWORK.map((option) => (
-            <label key={option.value} className={styles.choice} htmlFor={`artwork-${option.value}`}>
+            <label key={option.value} className={`${p.card} ${p.iconCard}`} htmlFor={`artwork-${option.value}`}>
               <input id={`artwork-${option.value}`} type="radio" name="artwork" checked={artwork === option.value} onChange={() => chooseArtwork(option.value)} />
-              <span className={styles.choiceTitle}>{option.title}</span>
-              <span className={styles.choiceMeta}>{option.meta}</span>
+              <option.Icon size={18} aria-hidden="true" />
+              <span className={p.iconText}>
+                <span className={p.cardTitle}>{option.title}</span>
+                <span className={p.cardMeta}>{option.meta}</span>
+              </span>
             </label>
           ))}
         </div>
-        {artwork === "UPLOAD" ? <p className={styles.placeholder}>You&apos;ll upload your file when you order. We check it and send a proof before printing.</p> : null}
+        {artwork === "UPLOAD" ? <p className={p.hint}>You&apos;ll upload your file when you order. We check it and send a proof before printing.</p> : null}
       </fieldset>
 
-      <section className={styles.step} id="step-delivery" aria-labelledby="delivery-title">
-        <h2 id="delivery-title" className={styles.stepTitle}>
-          <span className={styles.stepNumber}>{number("delivery")}</span> Delivery
+      <section className={p.step} id="step-delivery" aria-labelledby="delivery-title">
+        <h2 id="delivery-title" className={p.stepHead}>
+          <span className={p.stepNum}>{number("delivery")}</span>
+          <span className={p.stepTitle}>Delivery</span>
         </h2>
         <DeliveryFields draft={draft} details={details} rush={rush} onChange={(change) => changeDetails(change, "delivery")} onRush={chooseRush} />
-        <p className={styles.stepExtra}>Delivery cost and pickup are confirmed at checkout for your address.</p>
+        <p className={p.hint}>Delivery cost and pickup are confirmed at checkout for your address.</p>
       </section>
 
-      <section className={styles.step} id="step-review" aria-labelledby="review-title">
-        <h2 id="review-title" className={styles.stepTitle}>
-          <span className={styles.stepNumber}>{number("review")}</span> Review
+      <section className={p.step} id="step-review" aria-labelledby="review-title">
+        <h2 id="review-title" className={p.stepHead}>
+          <span className={p.stepNum}>{number("review")}</span>
+          <span className={p.stepTitle}>Review</span>
         </h2>
         <dl className={styles.review}>
           {data.options.map((option) => (
@@ -399,13 +433,13 @@ export function Configurator({ productSlug, productName, family, data, initialDr
         </dl>
       </section>
 
-      <div className={styles.totalBar} ref={totalBar} aria-live="polite">
-        <div className={styles.totalRow}>
-          <div>
-            <p className={styles.summary}>{summary}</p>
-            <p className={styles.perUnit}>{price?.perUnitMinor ? `${naira(price.perUnitMinor, price.currency)} each, including VAT` : "Choose a quantity to see the price"}</p>
+      <div className={p.total} ref={totalBar} aria-live="polite">
+        <div className={p.totalRow}>
+          <div className={p.totalText}>
+            <p className={p.summary}>{summary.toUpperCase()}</p>
+            <p className={p.perUnit}>{price?.perUnitMinor ? `${naira(price.perUnitMinor, price.currency)} each, including VAT` : "Choose a quantity to see the price"}</p>
           </div>
-          <p className={styles.total}>{price?.totalMinor ? naira(price.totalMinor, price.currency) : "—"}</p>
+          <p className={p.amount}>{price?.totalMinor ? naira(price.totalMinor, price.currency) : "—"}</p>
         </div>
         {price?.reasons.length ? (
           <ul className={styles.reasons}>
@@ -424,9 +458,9 @@ export function Configurator({ productSlug, productName, family, data, initialDr
           </Notice>
         ) : null}
         {price?.state === "PRICE_READY" && !blockingReasons.length && !draft?.quote ? (
-          <Button fullWidth disabled title="Online checkout opens soon">
-            Continue to checkout
-          </Button>
+          <button type="button" className={p.add} disabled title="Online checkout opens soon">
+            Add to bag
+          </button>
         ) : (
           <QuoteRequest draft={draft} ensure={ensure} onRequested={(reference) => void api(`/v1/configurations/${draftRef.current!.id}`, { response: configurationSchema }).then(setDraft).catch(() => setNotice(`Quote requested: ${reference}.`))} />
         )}
@@ -448,9 +482,10 @@ export function Configurator({ productSlug, productName, family, data, initialDr
             {draft?.emailedTo ? `Link sent to ${draft.emailedTo} · send again` : "Email me a link to this design"}
           </button>
         </div>
-        {data.leadDays && !draft?.timing.production ? (
-          <p className={styles.perUnit}>
-            Typical production {data.leadDays.min}–{data.leadDays.max} working days after artwork and proof approval.
+        {data.leadDays ? (
+          <p className={p.production}>
+            <Truck size={16} aria-hidden="true" />
+            Typical production {data.leadDays.min}–{data.leadDays.max} working days after artwork and proof approval
           </p>
         ) : null}
       </div>

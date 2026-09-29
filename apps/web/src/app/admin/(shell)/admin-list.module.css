@@ -162,10 +162,6 @@
   text-decoration: none;
 }
 
-.action:hover {
-  text-decoration: underline;
-}
-
 @media (max-width: 767px) {
   .table thead {
     position: absolute;
@@ -386,4 +382,71 @@
   font-size: var(--hp-text-label);
   line-height: var(--hp-leading-body);
   white-space: pre-wrap;
+}
+
+.item {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.item:hover {
+  background: var(--hp-bone);
+}
+
+.tab {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.tab:hover:not([aria-current="page"], [aria-selected="true"]) {
+  background: var(--hp-bone);
+}
+
+.search:hover {
+  color: var(--hp-ink);
+}
+
+.select select {
+  transition: border-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.select select:hover {
+  border-color: var(--hp-ink);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.action {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.action:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}
+
+.clear {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.clear:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
 }

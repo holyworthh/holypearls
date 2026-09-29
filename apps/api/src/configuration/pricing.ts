@@ -3,6 +3,7 @@ import { and, asc, type Database, eq, inArray, lt, schema } from "@holypearls/db
 import { AppError } from "../errors.js";
 import { currentPriceRule, currentTaxSetting } from "../catalogue/rules.js";
 import { type CalculationInput, type CalculationResult, calculatePrice, type Rush } from "./calculate.js";
+import { garmentChoices } from "./capabilities.js";
 
 /*
  * Price calculation service (configuration module, TECH-00 §4). Loads the
@@ -159,19 +160,20 @@ export async function productOptions(db: Database, productId: string) {
       valueKey: schema.productOptionValues.key,
       valueLabel: schema.productOptionValues.label,
       isDefault: schema.productOptionValues.isDefault,
+      swatch: schema.productOptionValues.swatch,
     })
     .from(schema.productOptions)
     .innerJoin(schema.productOptionValues, eq(schema.productOptionValues.optionId, schema.productOptions.id))
     .where(eq(schema.productOptions.productId, productId))
     .orderBy(asc(schema.productOptions.position), asc(schema.productOptionValues.position));
-  const options: { key: string; label: string; required: boolean; values: { key: string; label: string; isDefault: boolean }[] }[] = [];
+  const options: { key: string; label: string; required: boolean; values: { key: string; label: string; isDefault: boolean; swatch: string | null }[] }[] = [];
   for (const row of rows) {
     let option = options.find((item) => item.key === row.key);
     if (!option) {
       option = { key: row.key, label: row.label, required: row.required, values: [] };
       options.push(option);
     }
-    option.values.push({ key: row.valueKey, label: row.valueLabel, isDefault: row.isDefault });
+    option.values.push({ key: row.valueKey, label: row.valueLabel, isDefault: row.isDefault, swatch: row.swatch });
   }
   return options;
 }
@@ -181,16 +183,20 @@ export const defaultChoices = (options: Awaited<ReturnType<typeof productOptions
 
 /**
  * The product page's configurator data (T03-03): options, MOQ, lead time,
- * standard quantities priced at the default choices (COM-FR-043), and the
- * combinations that can't be made, so the page blocks them early (COM-FR-042).
+ * standard quantities priced at the default choices (COM-FR-043), the
+ * combinations that can't be made, so the page blocks them early (COM-FR-042),
+ * and the garment routes and decorations the product offers (COM-FR-020, 024).
  */
 export async function configuratorFor(db: Database, productId: string, at: Date) {
+  const [capabilities] = await db.select({ routes: schema.products.routes, decorations: schema.products.decorations }).from(schema.products).where(eq(schema.products.id, productId));
+  if (!capabilities) throw new AppError("NOT_FOUND");
+  const allowed = garmentChoices(capabilities);
   const options = await productOptions(db, productId);
   const choices = defaultChoices(options);
   const base = await pricingInputs(db, productId, { choices, quantity: 1, rush: "STANDARD", sample: false }, at);
   const moq = base.rules?.moq ?? 1;
   const tiers = base.price?.tiers.map((tier) => tier.minQuantity) ?? [];
-  const quantities = [...new Set([moq, ...tiers].filter((quantity) => quantity >= moq))].sort((a, b) => a - b).slice(0, 3);
+  const quantities = [...new Set([moq, ...tiers].filter((quantity) => quantity >= moq))].sort((a, b) => a - b).slice(0, 4);
   const presets = quantities.map((quantity) => {
     const result = calculatePrice({ ...base, quantity });
     return { quantity, perUnitMinor: result.perUnitMinor === null ? null : result.perUnitMinor.toString() };
@@ -205,5 +211,7 @@ export async function configuratorFor(db: Database, productId: string, at: Date)
     blocked: base.compatibility.filter((rule) => rule.effect === "NOT_ALLOWED").map(({ ifOption, ifValue, thenOption, thenValues, message }) => ({ ifOption, ifValue, thenOption, thenValues, message })),
     currency: base.price?.currency ?? null,
     fromPerUnitMinor: perUnits.length ? perUnits.reduce((low, value) => (value < low ? value : low)).toString() : null,
+    allowedRoutes: allowed.sourcing,
+    allowedDecorations: allowed.decoration,
   };
 }

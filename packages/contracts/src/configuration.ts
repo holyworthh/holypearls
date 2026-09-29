@@ -6,6 +6,24 @@ import { priceResultSchema } from "./pricing.js";
 export const GARMENT_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"] as const;
 export const sourcingSchema = z.enum(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED", "HELP_ME_CHOOSE"]);
 export const decorationSchema = z.enum(["EMBROIDERY", "PRINT", "BOTH", "RECOMMEND"]);
+
+/**
+ * The one set of names for garment routes and decorations (PRD-02 COM-FR-020,
+ * 024), used by the product page, the configurator, the directory filters and
+ * API messages, so a buyer sees the same name at every step.
+ */
+export const SOURCING_LABEL: Record<z.infer<typeof sourcingSchema>, string> = {
+  SOURCE_CUSTOMIZE: "Source & Customize",
+  MAKE_FROM_SCRATCH: "Make From Scratch",
+  CUSTOMER_SUPPLIED: "I'll Supply the Garment",
+  HELP_ME_CHOOSE: "Help Me Choose",
+};
+export const DECORATION_LABEL: Record<z.infer<typeof decorationSchema>, string> = {
+  EMBROIDERY: "Embroidery",
+  PRINT: "Print",
+  BOTH: "Both",
+  RECOMMEND: "Recommend for Me",
+};
 export const positionSchema = z.enum(["LEFT_CHEST", "RIGHT_CHEST", "CENTRE_CHEST", "FULL_FRONT", "UPPER_BACK", "FULL_BACK", "LEFT_SLEEVE", "RIGHT_SLEEVE", "CUSTOM"]);
 export const placementSchema = z.object({
   position: positionSchema,
@@ -108,6 +126,13 @@ export const configurationSchema = z.object({
         }),
       ),
       personalization: z.object({ count: z.number().int(), preview: z.array(z.object({ row: z.number().int(), name: z.string().nullable(), number: z.string().nullable(), department: z.string().nullable(), size: z.string().nullable() })) }),
+      /**
+       * Saved answers the product no longer offers (staff removed a route or
+       * decoration after they were chosen). Kept, not discarded; a quote waits
+       * until the customer chooses a replacement. `field` is "sourcing",
+       * "decoration" or "placements.<POSITION>".
+       */
+      unavailable: z.array(z.object({ field: z.string(), value: z.string(), message: z.string() })),
     })
     .nullable(),
   files: z.array(
@@ -169,7 +194,7 @@ export const configuratorSchema = z.object({
       key: z.string(),
       label: z.string(),
       required: z.boolean(),
-      values: z.array(z.object({ key: z.string(), label: z.string(), isDefault: z.boolean() })),
+      values: z.array(z.object({ key: z.string(), label: z.string(), isDefault: z.boolean(), swatch: z.string().nullable() })),
     }),
   ),
   moq: z.number().int(),
@@ -181,6 +206,14 @@ export const configuratorSchema = z.object({
   blocked: z.array(z.object({ ifOption: z.string(), ifValue: z.string(), thenOption: z.string(), thenValues: z.array(z.string()), message: z.string() })),
   currency: z.enum(["NGN", "USD"]).nullable(),
   fromPerUnitMinor: z.string().nullable(),
+  /**
+   * Garment sourcing choices this product offers, in display order, from its
+   * stored routes (COM-FR-020). HELP_ME_CHOOSE is an assistance state, not a
+   * production route, so every garment offers it. The API refuses anything else.
+   */
+  allowedRoutes: z.array(sourcingSchema),
+  /** Garment decoration choices this product offers, from its stored decoration methods (COM-FR-024). */
+  allowedDecorations: z.array(decorationSchema),
 });
 export type Configurator = z.infer<typeof configuratorSchema>;
 

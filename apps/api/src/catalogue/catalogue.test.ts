@@ -205,6 +205,20 @@ describe("product images, text and related products (Pen frames 98 and 104)", ()
   });
 });
 
+describe("directory filter attributes (Pen 17 rail: How it's made, Decoration)", () => {
+  it("saves how a product can be made and its decoration methods, and refuses unknown values", async () => {
+    const product = await productBySlug("label-sticker");
+    const edited = await patch(`/v1/admin/catalogue/products/${product.id}`, {
+      version: product.version,
+      routes: ["SOURCE_CUSTOMIZE"],
+      decorations: ["PAPER_PRINT", "LARGE_FORMAT_PRINT"],
+    });
+    expect(adminProductSchema.parse(edited.body)).toMatchObject({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["PAPER_PRINT", "LARGE_FORMAT_PRINT"] });
+    const bad = await patch(`/v1/admin/catalogue/products/${product.id}`, { version: edited.body.version, decorations: ["GLITTER"] });
+    expect(bad.status).toBe(400);
+  });
+});
+
 describe("bulk status changes (Pen frame 96)", () => {
   it("changes each product it can and explains the ones it can't", async () => {
     const canvas = await productBySlug("landscape-canvas");

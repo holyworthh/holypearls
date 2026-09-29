@@ -1,0 +1,4 @@
+ALTER TABLE "products" ADD COLUMN "routes" text[] DEFAULT '{}'::text[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD COLUMN "decorations" text[] DEFAULT '{}'::text[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_routes_known" CHECK ("products"."routes" <@ array['SOURCE_CUSTOMIZE','MAKE_FROM_SCRATCH','CUSTOMER_SUPPLIED']::text[]);--> statement-breakpoint
+ALTER TABLE "products" ADD CONSTRAINT "products_decorations_known" CHECK ("products"."decorations" <@ array['EMBROIDERY','SCREEN_PRINT','HEAT_TRANSFER','PAPER_PRINT','LARGE_FORMAT_PRINT']::text[]);

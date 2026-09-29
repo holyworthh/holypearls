@@ -1,0 +1,414 @@
+/* Search autocomplete (Pen 09 · R8Aqc). Values are the Pen's exact sizes via tokens. */
+
+/* The panel hangs from the whole search form, which is the positioned box. */
+.dropdownRoot {
+  position: static;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  align-items: center;
+}
+
+.dropdownRoot > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachedRoot {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header trigger: "Search" with a quiet "/" hint. */
+.triggerText {
+  flex: 1;
+  text-align: left;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.slash {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--hp-space-20);
+  height: var(--hp-space-20);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-space-4);
+  background: var(--hp-paper);
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+}
+
+/* Pen: 760px panel, radius 10, 1px line, just under the header bar. A modal <dialog>: its backdrop is the scrim. */
+.dialog {
+  position: fixed;
+  inset: auto;
+  top: calc(var(--hp-strip-height) + var(--hp-header-height) - var(--hp-space-12));
+  left: 50%;
+  z-index: var(--hp-z-dialog);
+  width: min(var(--hp-size-760), calc(100vw - var(--hp-space-32)));
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  translate: -50% 0;
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-space-10);
+  background: var(--hp-paper);
+  box-shadow: var(--hp-shadow-menu);
+  overflow: hidden;
+  animation: drop var(--hp-motion-card) var(--hp-ease-soft);
+}
+
+.dialog::backdrop {
+  background: var(--hp-scrim);
+  animation: fade var(--hp-motion-dropdown) var(--hp-ease-soft);
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-12);
+  height: var(--hp-size-56);
+  padding: 0 var(--hp-space-16);
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+}
+
+.fieldIcon {
+  flex: none;
+  color: var(--hp-ink);
+}
+
+.fieldInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-text-emphasis);
+  caret-color: var(--hp-accent);
+}
+
+.fieldInput:focus {
+  outline: none;
+}
+
+.fieldInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clear {
+  display: grid;
+  place-items: center;
+  width: var(--hp-space-32);
+  height: var(--hp-space-32);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--hp-graphite);
+  cursor: pointer;
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.clear:hover {
+  background: var(--hp-bone);
+}
+
+.escHint {
+  border: 0;
+  background: transparent;
+  color: var(--hp-graphite);
+  font: inherit;
+  font-size: var(--hp-text-mono);
+  cursor: pointer;
+}
+
+.panel {
+  background: var(--hp-paper);
+}
+
+.panelDropdown {
+  position: absolute;
+  top: calc(100% + var(--hp-space-8));
+  left: 0;
+  right: 0;
+  z-index: var(--hp-z-dialog);
+  min-width: min(var(--hp-size-320), 90vw);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-space-10);
+  box-shadow: var(--hp-shadow-menu);
+  overflow: hidden;
+  transform-origin: top center;
+  animation: drop var(--hp-motion-dropdown) var(--hp-ease-soft);
+  container-type: inline-size;
+}
+
+.panelAttached {
+  container-type: inline-size;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  transition: opacity var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.busy {
+  opacity: 0.6;
+}
+
+/* Two columns once there's room (Pen: 300px searches and categories | products and guides). */
+@container (min-width: 600px) {
+  .cols {
+    grid-template-columns: var(--hp-size-300) 1fr;
+  }
+
+  .colLeft {
+    border-right: var(--hp-border-width) solid var(--hp-line);
+  }
+
+  .colRight:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.colLeft,
+.colRight {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-20);
+  min-width: 0;
+}
+
+.colLeft {
+  gap: var(--hp-space-4);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+}
+
+.group + .group {
+  margin-top: var(--hp-space-8);
+}
+
+.groupLabel {
+  margin-bottom: var(--hp-space-4);
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+  letter-spacing: var(--hp-tracking-mono);
+  text-transform: uppercase;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  min-height: var(--hp-space-40);
+  padding: 0 var(--hp-space-10);
+  border-radius: var(--hp-r-control);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  text-decoration: none;
+  transition: background-color var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.option[aria-selected="true"] {
+  background: var(--hp-bone);
+}
+
+.rowIcon {
+  flex: none;
+  color: var(--hp-ink);
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.option[aria-selected="true"] .rowIcon {
+  transform: scale(1.1);
+}
+
+.rowText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match {
+  font-weight: var(--hp-weight-semibold);
+}
+
+/* Product hits: 52px thumb, radius 6, name 15/600, meta 13 graphite. */
+.hit {
+  gap: var(--hp-space-12);
+  min-height: var(--hp-size-60);
+  padding: var(--hp-space-4);
+  margin: 0 calc(var(--hp-space-4) * -1);
+}
+
+.thumb {
+  flex: none;
+  width: var(--hp-size-52);
+  height: var(--hp-size-52);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-bone) center / cover no-repeat;
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.hit[aria-selected="true"] .thumb {
+  transform: scale(1.04);
+}
+
+.hitText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hitName {
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.hitName .match {
+  text-decoration: underline;
+  text-decoration-color: var(--hp-accent);
+  text-underline-offset: var(--hp-space-4);
+}
+
+.hitMeta {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0;
+  padding: var(--hp-space-20);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+  line-height: var(--hp-leading-body);
+}
+
+.noteLink {
+  color: var(--hp-ink);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-20);
+}
+
+.skeleton span {
+  height: var(--hp-space-16);
+  border-radius: var(--hp-space-4);
+  background: linear-gradient(90deg, var(--hp-bone), var(--hp-line), var(--hp-bone)) 0 0 / 200% 100%;
+  animation: shimmer calc(var(--hp-motion-spinner) * 1.5) linear infinite;
+}
+
+.skeleton span:nth-child(2) {
+  width: 70%;
+}
+
+.skeleton span:nth-child(3) {
+  width: 45%;
+}
+
+/* Pen: bone footer, 52px, "See all results" 15/600 and the keyboard hint. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+  min-height: var(--hp-size-52);
+  padding: 0 var(--hp-space-20);
+  background: var(--hp-bone);
+}
+
+.all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+  text-decoration: none;
+}
+
+.all svg {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.all:hover svg {
+  transform: translateX(var(--hp-space-4));
+}
+
+.keys {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-mono);
+}
+
+@media (hover: none), (max-width: 767px) {
+  .keys,
+  .escHint,
+  .slash {
+    display: none;
+  }
+}
+
+@keyframes drop {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--hp-space-8) * -1)) scale(0.99);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Hover (every clickable item has one). */
+.escHint:hover {
+  color: var(--hp-ink);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.noteLink {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent));
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 100% 100%, 0 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.noteLink:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 0 100%, 0 100%;
+}

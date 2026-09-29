@@ -6,8 +6,11 @@ import type {
   PublicImage,
   PublicProductCard,
   PublicProductQuery,
+  QuantityBand,
+  SearchSuggestions,
+
 } from "@holypearls/contracts";
-import { hubSchema } from "@holypearls/contracts";
+import { BUSINESS_TIME_ZONE, businessDate, decorationMethodSchema, hubSchema, listPriceFilterSchema, makingRouteSchema, quantityBandSchema } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { configuratorFor } from "../configuration/pricing.js";
@@ -52,6 +55,51 @@ const mainImage = sql<{ fileId: string; alt: string; width: number | null; heigh
   order by m.position, m.created_at limit 1
 )`;
 
+/** The price rule in effect now (TECH-05: the latest that has started). */
+const listPrice = sql<{ amountMinor: string; currency: "NGN" | "USD"; basis: "PER_UNIT" | "PER_PACK" | "FIXED"; packSize: number; state: "PRICE_READY" | "ESTIMATE_READY" } | null>`(
+  select json_build_object('amountMinor', r.base_minor::text, 'currency', r.currency, 'basis', r.basis, 'packSize', r.pack_size, 'state', r.state)
+  from price_rules r
+  where r.product_id = ${schema.products.id} and r.effective_from <= now()
+  order by r.effective_from desc limit 1
+)`;
+
+const minimumOrder = sql<number | null>`(select pr.moq from product_rules pr where pr.product_id = ${schema.products.id})`;
+
+/** The card's price state as a filter value; consultative products and products without a price are quoted. */
+const priceState = sql<string>`(case when ${schema.products.buyingMode} = 'CONSULTATIVE_PROJECT' then 'QUOTE_REQUIRED'
+  else coalesce((select r.state::text from price_rules r where r.product_id = ${schema.products.id} and r.effective_from <= now()
+    order by r.effective_from desc limit 1), 'QUOTE_REQUIRED') end)`;
+
+/** Standard lead time; products without rules use the rules' default of 5 working days. */
+const leadMaxDays = sql<number>`coalesce((select pr.lead_max_days from product_rules pr where pr.product_id = ${schema.products.id}), 5)`;
+
+/** A band fits when the product's minimum is within it ("1–9" needs a minimum of 9 or less). */
+const QUANTITY_MAX: Record<QuantityBand, number | null> = { "1-9": 9, "10-49": 49, "50+": null };
+function quantityCondition(band: QuantityBand): SQL {
+  const max = QUANTITY_MAX[band];
+  return max === null ? sql`true` : sql`coalesce(${minimumOrder}, 1) <= ${max}`;
+}
+
+/**
+ * Monday–Friday days after today up to the date. "Today" is the business date
+ * in Lagos, not the server's or UTC's. Public holidays are not excluded here:
+ * this is a storefront filter, and the final quote applies the full calendar.
+ */
+export function workingDaysUntil(date: string, { now = new Date(), timeZone = BUSINESS_TIME_ZONE }: { now?: Date; timeZone?: string } = {}): number {
+  // Both ends are calendar dates, so the count itself runs on plain UTC days.
+  const end = new Date(`${date}T00:00:00Z`);
+  const day = new Date(`${businessDate(now, timeZone)}T00:00:00Z`);
+  let days = 0;
+  while (day < end) {
+    day.setUTCDate(day.getUTCDate() + 1);
+    const weekday = day.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) days += 1;
+  }
+  return days;
+}
+
+const textArray = (values: readonly string[]) => sql`${`{${values.join(",")}}`}::text[]`;
+
 const cardColumns = {
   slug: schema.products.slug,
   name: schema.products.name,
@@ -62,6 +110,8 @@ const cardColumns = {
   categorySlug: schema.categories.slug,
   categoryName: schema.categories.name,
   image: mainImage,
+  price: listPrice,
+  moq: minimumOrder,
 };
 
 type CardRow = {
@@ -74,6 +124,8 @@ type CardRow = {
   categorySlug: string;
   categoryName: string;
   image: { fileId: string; alt: string; width: number | null; height: number | null } | null;
+  price: PublicProductCard["price"];
+  moq: number | null;
 };
 
 const toCard = (row: CardRow): PublicProductCard => ({
@@ -86,9 +138,12 @@ const toCard = (row: CardRow): PublicProductCard => ({
   image: row.image ? image(row.image.fileId, row.image.alt, row.image.width, row.image.height) : null,
   available: row.status === "PUBLISHED",
   priceState: row.status === "PUBLISHED" ? (PRICE_STATE[row.buyingMode] ?? "QUOTE_REQUIRED") : "UNAVAILABLE",
+  price: row.buyingMode === "CONSULTATIVE_PROJECT" ? null : (row.price ?? null),
+  moq: row.moq ?? null,
 });
 
-const escapeLike = (text: string) => `%${text.replace(/[%_\\]/g, (match) => `\\${match}`)}%`;
+const escapeLikeText = (text: string) => text.replace(/[%_\\]/g, (match) => `\\${match}`);
+const escapeLike = (text: string) => `%${escapeLikeText(text)}%`;
 
 /** Name, summary and staff-added everyday phrases (PUB-FR-007 phrases are used here too). */
 function searchCondition(q: string): SQL {
@@ -97,11 +152,12 @@ function searchCondition(q: string): SQL {
     or exists (select 1 from unnest(${schema.products.searchPhrases}) phrase where phrase ilike ${term}))`;
 }
 
-/** A category slug matches the category itself and its subcategories. */
-function categoryCondition(slug: string): SQL {
+/** A category slug matches the category itself and its subcategories; several slugs match any of them. */
+function categoryCondition(slugs: string[]): SQL {
+  const list = `{${slugs.join(",")}}`;
   return sql`${schema.products.categoryId} in (
-    select c.id from categories c where c.slug = ${slug}
-    union select child.id from categories child join categories p on p.id = child.parent_id where p.slug = ${slug}
+    select c.id from categories c where c.slug = any(${list}::text[])
+    union select child.id from categories child join categories p on p.id = child.parent_id where p.slug = any(${list}::text[])
   )`;
 }
 
@@ -112,11 +168,16 @@ async function listOrder(db: Database, key: string): Promise<string[]> {
 
 /** The Product Directory (PUB-FR-008): search, filters, sort and numbered pages, with facet counts. */
 export async function listPublicProducts(db: Database, query: PublicProductQuery) {
-  const filters: Record<"q" | "category" | "family" | "mode", SQL | undefined> = {
+  const filters: Record<"q" | "category" | "family" | "mode" | "route" | "price" | "qty" | "decoration" | "neededBy", SQL | undefined> = {
     q: query.q ? searchCondition(query.q) : undefined,
     category: query.category ? categoryCondition(query.category) : undefined,
-    family: query.family ? eq(schema.products.family, query.family) : undefined,
-    mode: query.mode ? eq(schema.products.buyingMode, query.mode) : undefined,
+    family: query.family ? inArray(schema.products.family, query.family) : undefined,
+    mode: query.mode ? inArray(schema.products.buyingMode, query.mode) : undefined,
+    route: query.route ? sql`${schema.products.routes} && ${textArray(query.route)}` : undefined,
+    price: query.price ? sql`${priceState} = any(${textArray(query.price)})` : undefined,
+    qty: query.qty ? quantityCondition(query.qty) : undefined,
+    decoration: query.decoration ? sql`${schema.products.decorations} && ${textArray(query.decoration)}` : undefined,
+    neededBy: query.neededBy ? sql`${leadMaxDays} <= ${workingDaysUntil(query.neededBy)}` : undefined,
   };
   const where = (skip?: keyof typeof filters) =>
     and(visibleProduct(), ...Object.entries(filters).flatMap(([key, condition]) => (key === skip || !condition ? [] : [condition])));
@@ -165,6 +226,19 @@ export async function listPublicProducts(db: Database, query: PublicProductQuery
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
     .where(where("family"))
     .groupBy(schema.products.family);
+  // One query per rail group: each value's count, ignoring that group's own filter.
+  const facet = async <V extends string>(skip: keyof typeof filters, values: readonly V[], condition: (value: V) => SQL) => {
+    const [row] = (await db
+      .select(Object.fromEntries(values.map((value, index) => [`c${index}`, sql<number>`(count(*) filter (where ${condition(value)}))::int`])))
+      .from(schema.products)
+      .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+      .where(where(skip))) as Record<string, number>[];
+    return values.map((value, index) => ({ value, count: row?.[`c${index}`] ?? 0 }));
+  };
+  const routes = await facet("route", makingRouteSchema.options, (value) => sql`${value} = any(${schema.products.routes})`);
+  const prices = await facet("price", listPriceFilterSchema.options, (value) => sql`${priceState} = ${value}`);
+  const quantities = await facet("qty", quantityBandSchema.options, quantityCondition);
+  const decorations = await facet("decoration", decorationMethodSchema.options, (value) => sql`${value} = any(${schema.products.decorations})`);
   const modeFacet = await db
     .select({ value: schema.products.buyingMode, count: sql<number>`count(*)::int` })
     .from(schema.products)
@@ -181,8 +255,84 @@ export async function listPublicProducts(db: Database, query: PublicProductQuery
       categories: topNames.map((top) => ({ slug: top.slug, name: top.name, count: categoryFacet.find((row) => row.slug === top.slug)?.count ?? 0 })),
       families: familyFacet.sort((a, b) => b.count - a.count),
       modes: modeFacet,
+      routes,
+      prices,
+      quantities,
+      decorations,
     },
   };
+}
+
+/**
+ * Typeahead (Pen 09 · R8Aqc): up to four everyday searches, three categories and
+ * three products for what's typed so far. Only visible products and their
+ * phrases are used, so drafts never leak through suggestions.
+ */
+export async function searchSuggestions(db: Database, q: string): Promise<SearchSuggestions> {
+  const term = escapeLike(q);
+  const lower = q.toLowerCase();
+  const phraseRows = (await db.execute(sql`
+    select distinct phrase from products
+      join categories on categories.id = products.category_id,
+      unnest(products.search_phrases) phrase
+    where ${visibleProduct()} and phrase ilike ${term}`)) as unknown as { rows?: { phrase: string }[] } | { phrase: string }[];
+  const phrases = (Array.isArray(phraseRows) ? phraseRows : (phraseRows.rows ?? [])).map((row) => row.phrase);
+  const searches = phrases
+    .filter((phrase) => phrase.toLowerCase() !== lower)
+    .sort((a, b) => Number(!a.toLowerCase().startsWith(lower)) - Number(!b.toLowerCase().startsWith(lower)) || a.length - b.length || a.localeCompare(b))
+    .slice(0, 4);
+
+  // Categories named like the query, then those holding matching products; counts are all visible products in them.
+  const matching = await db
+    .select({ categoryId: schema.products.categoryId, parentId: schema.categories.parentId })
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(and(visibleProduct(), searchCondition(q)));
+  const holding = new Set(matching.flatMap((row) => [row.categoryId, ...(row.parentId ? [row.parentId] : [])]));
+  const rows = await db
+    .select({
+      id: schema.categories.id,
+      slug: schema.categories.slug,
+      name: schema.categories.name,
+      parentId: schema.categories.parentId,
+      direct: sql<number>`(select count(*)::int from products where category_id = "categories"."id" and ${sql.raw(`status in ('PUBLISHED','TEMPORARILY_UNAVAILABLE')`)} and listed)`,
+    })
+    .from(schema.categories)
+    .where(eq(schema.categories.status, "PUBLISHED"));
+  const published = new Set(rows.map((row) => row.id));
+  const flat = rows
+    .filter((row) => !row.parentId || published.has(row.parentId))
+    .map((row) => ({
+      ...row,
+      depth: row.parentId ? 1 : 0,
+      count: row.direct + rows.filter((child) => child.parentId === row.id).reduce((sum, child) => sum + child.direct, 0),
+    }));
+  const categories = flat
+    .filter((category) => category.count > 0 && (category.name.toLowerCase().includes(lower) || holding.has(category.id)))
+    .sort((a, b) => Number(!a.name.toLowerCase().includes(lower)) - Number(!b.name.toLowerCase().includes(lower)) || a.depth - b.depth || b.count - a.count)
+    .slice(0, 3)
+    .map(({ slug, name, count }) => ({ slug, name, count }));
+
+  return { q, searches, categories, products: await suggestedProducts(db, q, 3), guides: [] };
+}
+
+/**
+ * The typeahead's products: one ranked, limited query, without the
+ * directory's count, pages or facets, since it runs as the visitor types.
+ * Names starting with the query come first, then names containing it, then
+ * summary and phrase matches; the "Most ordered" list breaks ties, then name.
+ */
+export async function suggestedProducts(db: Database, q: string, limit = 3): Promise<PublicProductCard[]> {
+  const popular = await listOrder(db, "home.most-ordered");
+  const rank = sql`case when ${schema.products.name} ilike ${`${escapeLikeText(q)}%`} then 0 when ${schema.products.name} ilike ${escapeLike(q)} then 1 else 2 end`;
+  const rows = (await db
+    .select(cardColumns)
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(and(visibleProduct(), searchCondition(q)))
+    .orderBy(rank, sql`array_position(${`{${popular.join(",")}}`}::uuid[], ${schema.products.id}) nulls last`, asc(schema.products.name))
+    .limit(limit)) as CardRow[];
+  return rows.map(toCard);
 }
 
 async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
@@ -259,7 +409,7 @@ export function defaultHub(category: { name: string; description: string | null 
     { type: "faq", visible: false, heading: "Questions", items: [] },
     { type: "related", visible: false, heading: "Projects and guides", links: [] },
   ];
-  return { sections };
+  return { layout: "CATALOGUE", sections };
 }
 
 /** A category hub page (PUB-FR-009): the published hub, or the default one if staff haven't published a hub yet. */
@@ -293,12 +443,13 @@ export async function publicHub(db: Database, slug: string) {
     .select(cardColumns)
     .from(schema.products)
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
-    .where(and(visibleProduct(), categoryCondition(slug)))
+    .where(and(visibleProduct(), categoryCondition([slug])))
     .orderBy(asc(schema.products.name))
     .limit(48)) as CardRow[];
   return {
     category,
     parent,
+    layout: hub.layout,
     sections: hub.sections.filter((section) => section.visible),
     featured,
     products: products.map(toCard),

@@ -24,7 +24,7 @@ test("the Products mega-menu works by keyboard", async ({ page }) => {
   const isMobile = (page.viewportSize()?.width ?? 0) < 768;
   test.skip(isMobile, "The mega-menu is desktop only; mobile uses the drill-down menu.");
   await page.goto("/");
-  const products = page.getByRole("button", { name: "Products" });
+  const products = page.getByRole("button", { name: "Products", exact: true });
   await products.focus();
   await page.keyboard.press("Enter");
   await expect(products).toHaveAttribute("aria-expanded", "true");
@@ -41,7 +41,7 @@ test("the mobile menu drills down with 44 px targets", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();
   const menu = page.getByRole("dialog", { name: "Menu" });
-  await expect(menu.getByRole("searchbox")).toBeVisible();
+  await expect(menu.getByRole("combobox", { name: "Search products" })).toBeVisible();
   await expectNoAxeViolations(page);
   const rows = menu.getByRole("button", { name: "Products" });
   expect((await rows.boundingBox())!.height).toBeGreaterThanOrEqual(44);
@@ -63,8 +63,8 @@ test("the directory searches, filters and marks filtered pages noindex", async (
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
-  await page.getByRole("searchbox", { name: "Search products" }).last().fill("mug");
-  await page.getByRole("searchbox", { name: "Search products" }).last().press("Enter");
+  await page.getByRole("combobox", { name: "Search products" }).last().fill("mug");
+  await page.getByRole("combobox", { name: "Search products" }).last().press("Enter");
   await expect(page).toHaveURL(/q=mug/);
   await expect(page.getByRole("link", { name: "Standard Mug" })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);

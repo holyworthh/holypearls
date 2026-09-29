@@ -3,17 +3,16 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, CloseIcon, MenuIcon, PackageIcon, SearchIcon, UserIcon } from "./icons";
+import { HeaderSearch, SuggestInput } from "../search/SearchSuggest";
 import type { TopItem } from "./nav";
 import styles from "./site.module.css";
 
+/** The menu's search box, with suggestions underneath (Pen 09). */
 function SearchForm({ id, placeholder, large = false }: { id: string; placeholder: string; large?: boolean }) {
   return (
     <form className={styles.search} action="/products" role="search" aria-label="Search products">
       <SearchIcon className={styles.icon} />
-      <label htmlFor={id} className="hp-visually-hidden">
-        Search products
-      </label>
-      <input id={id} name="q" type="search" placeholder={placeholder} autoComplete="off" enterKeyHint="search" autoFocus={large} />
+      <SuggestInput id={id} placeholder={placeholder} autoFocus={large} />
     </form>
   );
 }
@@ -39,9 +38,41 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const [mobile, setMobile] = useState(false);
   const [drill, setDrill] = useState<number | null>(null);
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
-  const header = useRef<HTMLElement>(null);
+  const header = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const panelId = useId();
+
+  // Desktop mega-menus also open on hover, after a short pause so passing the pointer across doesn't flash them.
+  const hoverTimer = useRef<number | undefined>(undefined);
+  const openedByHover = useRef(0);
+  const hoverOpen = (index: number, event: PointerEvent) => {
+    if (event.pointerType !== "mouse") return;
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => {
+      openedByHover.current = Date.now();
+      setOpen(index);
+    }, open === null ? 120 : 0);
+  };
+  const hoverClose = (event: PointerEvent) => {
+    if (event.pointerType !== "mouse") return;
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => setOpen(null), 220);
+  };
+  const hoverStay = () => window.clearTimeout(hoverTimer.current);
+
+  // The shell takes the open panel's height, so switching menus resizes smoothly.
+  const panels = useRef<(HTMLDivElement | null)[]>([]);
+  const [shellHeight, setShellHeight] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    const panel = open === null ? null : panels.current[open];
+    if (!panel || typeof ResizeObserver === "undefined") return;
+    const measure = () => setShellHeight(panel.offsetHeight);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [open]);
+  useEffect(() => () => window.clearTimeout(hoverTimer.current), []);
 
   const close = useCallback((returnFocus = false) => {
     setOpen((current) => {
@@ -83,14 +114,14 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const current = (href: string) => (href !== "/products" && pathname.startsWith(href.split("?")[0]!) ? "page" : undefined);
 
   return (
-    <header className={styles.header} ref={header} onKeyDown={onKeyDown}>
+    <div className={styles.header} ref={header} onKeyDown={onKeyDown}>
       <div className={`${styles.container} ${styles.headerInner}`}>
         <Logo />
         <nav className={styles.primaryNav} aria-label="Main">
           <ul className={styles.primaryList}>
             {items.map((item, index) =>
               item.menu ? (
-                <li key={item.label}>
+                <li key={item.label} onPointerEnter={(event) => hoverOpen(index, event.nativeEvent)} onPointerLeave={(event) => hoverClose(event.nativeEvent)}>
                   <button
                     ref={(element) => {
                       triggers.current[index] = element;
@@ -99,7 +130,11 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
                     className={styles.navItem}
                     aria-expanded={open === index}
                     aria-controls={`${panelId}-${index}`}
-                    onClick={() => setOpen(open === index ? null : index)}
+                    onClick={() => {
+                      // A click right after hover opened it keeps it open rather than closing it.
+                      if (open === index && Date.now() - openedByHover.current < 600) return;
+                      setOpen(open === index ? null : index);
+                    }}
                   >
                     {item.label}
                     <ChevronDown className={styles.chevron} />
@@ -116,7 +151,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </ul>
         </nav>
         <div className={styles.actions}>
-          <SearchForm id={`${panelId}-search`} placeholder="Search" />
+          <HeaderSearch id={`${panelId}-search`} fieldClassName={`${styles.search} ${styles.searchTrigger}`} iconClassName={styles.icon} />
           <a className={styles.iconLink} href="/contact?topic=order" aria-label="Track an order">
             <PackageIcon className={styles.icon} />
           </a>
@@ -125,6 +160,9 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </a>
           <a className={styles.cta} href="/contact?topic=project">
             Start a Project
+          </a>
+          <a className={styles.mobileSearch} href="/products#directory-search" aria-label="Search products">
+            <SearchIcon className={styles.icon} />
           </a>
           <button
             ref={menuButton}
@@ -143,9 +181,25 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
         </div>
       </div>
 
+      {/* One shell for every mega-menu: moving between them morphs its height and slides the content across. */}
+      <div
+        className={`${styles.mega} ${open !== null ? styles.megaOpen : ""}`}
+        style={{ height: shellHeight }}
+        onPointerEnter={hoverStay}
+        onPointerLeave={(event) => hoverClose(event.nativeEvent)}
+      >
       {items.map((item, index) =>
         item.menu ? (
-          <div key={item.label} id={`${panelId}-${index}`} className={styles.mega} hidden={open !== index}>
+          <div
+            key={item.label}
+            id={`${panelId}-${index}`}
+            ref={(element) => {
+              panels.current[index] = element;
+            }}
+            className={`${styles.megaPanel} ${open === index ? styles.megaPanelOn : index < (open ?? 0) ? styles.megaPanelBefore : styles.megaPanelAfter}`}
+            aria-hidden={open !== index}
+            inert={open !== index}
+          >
             <div className={`${styles.container} ${styles.megaInner}`}>
               <div className={styles.megaColumns}>
                 {item.menu.columns.map((column) => (
@@ -179,6 +233,8 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </div>
         ) : null,
       )}
+
+      </div>
 
       {mobile ? (
         <div id={`${panelId}-mobile`} className={styles.mobile} role="dialog" aria-modal="true" aria-label="Menu">
@@ -270,6 +326,6 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </div>
         </div>
       ) : null}
-    </header>
+    </div>
   );
 }

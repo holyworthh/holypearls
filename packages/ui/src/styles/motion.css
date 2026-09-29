@@ -1,0 +1,127 @@
+/*
+ * Site motion (INFERRED, kept over Pen 09's motion spec at the owner's request).
+ * Reveals: elements marked data-reveal rise and fade in once they scroll into
+ * view. They're only hidden while :root has data-motion="on", which a script
+ * sets before first paint and only when reduced motion isn't requested, so
+ * without scripts or with reduced motion everything simply shows.
+ */
+:root[data-motion="on"] [data-reveal]:not([data-revealed="true"]) {
+  opacity: 0;
+  translate: 0 var(--hp-reveal-shift);
+}
+
+:root[data-motion="on"] [data-reveal] {
+  transition:
+    opacity var(--hp-motion-reveal) var(--hp-ease-soft),
+    translate var(--hp-motion-reveal) var(--hp-ease-soft);
+  transition-delay: calc(var(--hp-reveal-index, 0) * var(--hp-reveal-stagger));
+}
+
+/* Entrances for what's on screen at load (headings, hero copy). */
+:root[data-motion="on"] [data-enter] {
+  animation: hp-enter var(--hp-motion-reveal) var(--hp-ease-soft) both;
+  animation-delay: calc(var(--hp-enter-index, 0) * var(--hp-reveal-stagger));
+}
+
+@keyframes hp-enter {
+  from {
+    opacity: 0;
+    translate: 0 var(--hp-space-16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root [data-reveal],
+  :root [data-enter] {
+    opacity: 1 !important;
+    translate: none !important;
+    animation: none !important;
+  }
+}
+
+/* Quiet defaults: colours ease rather than snap on every link and button. */
+:where(a, button, summary, [role="button"], input, select, textarea) {
+  transition-property: color, background-color, border-color, outline-color, text-decoration-color, box-shadow, opacity;
+  transition-duration: var(--hp-motion-hover);
+  transition-timing-function: var(--hp-ease-soft);
+}
+
+/* Arrows lean the way they point when their link is hovered. */
+:where(a, button) :where(svg.lucide-arrow-right, svg.lucide-arrow-up-right, svg.lucide-chevron-right) {
+  transition: translate var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+:where(a, button):hover :where(svg.lucide-arrow-right, svg.lucide-chevron-right) {
+  translate: var(--hp-space-4) 0;
+}
+
+:where(a, button):hover :where(svg.lucide-arrow-up-right) {
+  translate: var(--hp-size-3) calc(var(--hp-size-3) * -1);
+}
+
+/* Disclosures open smoothly where the browser supports animating to auto. */
+@supports (interpolate-size: allow-keywords) {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--hp-motion-card) var(--hp-ease-soft),
+      content-visibility var(--hp-motion-card) allow-discrete;
+  }
+
+  details[open]::details-content {
+    block-size: auto;
+  }
+}
+
+/*
+ * Big editorial photos unveil as they scroll in (CSS scroll-driven animation,
+ * where supported; elsewhere they simply show).
+ */
+@supports (animation-timeline: view()) {
+  :root[data-motion="on"] [data-unveil] {
+    animation: hp-unveil linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 30%;
+  }
+}
+
+@keyframes hp-unveil {
+  from {
+    clip-path: inset(7% 5% round var(--hp-space-8));
+    opacity: 0.4;
+  }
+
+  to {
+    clip-path: inset(0);
+    opacity: 1;
+  }
+}
+
+/*
+ * Fallbacks so every clickable item answers the pointer, however subtly:
+ * unstyled links draw their underline in, and plain form controls darken.
+ * Component styles override these (zero specificity).
+ */
+:where(a:not([class])) {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent));
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 100% 100%, 0 100%;
+  box-decoration-break: clone;
+  transition: background-size var(--hp-motion-underline) var(--hp-ease-soft);
+}
+
+:where(a:not([class])):hover {
+  background-size: 100% var(--hp-size-1), 100% var(--hp-size-1);
+  background-position: 0 100%, 0 100%;
+}
+
+:where(input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="range"]), select, textarea):hover:not(:disabled, :focus) {
+  border-color: var(--hp-ink);
+}

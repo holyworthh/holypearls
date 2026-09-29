@@ -11,6 +11,7 @@ test("roll-up banner: a custom size switches to a quote, keeps every choice, and
   await expectNoHorizontalScroll(page);
 
   await page.getByLabel(/^85 × 200 cm/).check();
+  await page.getByLabel(/^More/).check();
   await page.getByLabel("Or enter a quantity").fill("2");
   await expect(page.getByText("PRICE READY", { exact: false }).first()).toBeVisible({ timeout: 45_000 });
 
@@ -52,6 +53,7 @@ test("a tight deadline suggests rush", async ({ page }) => {
   test.setTimeout(150_000);
   await page.goto("/products/roll-up-banner");
   await page.getByLabel(/^85 × 200 cm/).check();
+  await page.getByLabel(/^More/).check();
   await page.getByLabel("Or enter a quantity").fill("1");
   await page.getByLabel(/^Lagos/).check();
   const soon = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);

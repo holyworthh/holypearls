@@ -1,0 +1,567 @@
+/* Garment configurator, stepped (Pen 22 · O2tORo desktop; Pen 40 · PeLav mobile). Values from the Pen export. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--hp-bone);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-24);
+  min-height: var(--hp-size-71_5);
+  padding: 0 max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2));
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+  background: var(--hp-paper);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  white-space: nowrap;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-24);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_4);
+  line-height: var(--hp-space-24);
+  text-decoration: none;
+}
+
+.pearl {
+  width: var(--hp-space-12);
+  height: var(--hp-space-12);
+  border-radius: 50%;
+  background: var(--hp-accent);
+}
+
+.crumb {
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper li {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+}
+
+.stepper li + li::before {
+  width: var(--hp-space-14);
+  height: var(--hp-size-1);
+  background: var(--hp-line-strong);
+  content: "";
+}
+
+.stepButton {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-6) var(--hp-space-10);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: transparent;
+  color: var(--hp-graphite);
+  font: inherit;
+  font-size: var(--hp-space-14);
+  font-weight: 500;
+  line-height: var(--hp-space-20);
+  cursor: pointer;
+}
+
+.stepButton:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.stepNum {
+  display: grid;
+  place-items: center;
+  width: var(--hp-space-20);
+  height: var(--hp-space-20);
+  border-radius: 50%;
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-11);
+  font-weight: 700;
+}
+
+.stepDone {
+  color: var(--hp-ink);
+}
+
+.stepDone .stepNum {
+  outline: 0;
+  background: var(--hp-success);
+  color: var(--hp-paper);
+}
+
+.stepCurrent {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-weight: 700;
+}
+
+.stepCurrent .stepNum {
+  outline: 0;
+  background: var(--hp-marigold);
+  color: var(--hp-ink);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-size-18);
+  white-space: nowrap;
+}
+
+.saved {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  color: var(--hp-success);
+  font-size: var(--hp-space-14);
+  font-weight: 600;
+  line-height: var(--hp-space-20);
+}
+
+.failed {
+  color: var(--hp-error);
+}
+
+/* Not saved yet and saving: neutral, never the success colour. */
+.pending {
+  color: var(--hp-graphite);
+}
+
+.exit {
+  display: inline-flex;
+  align-items: center;
+  height: var(--hp-space-40);
+  padding: 0 var(--hp-space-14);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-14);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.exit:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 780fr) minmax(0, 508fr);
+  gap: var(--hp-space-40);
+  flex: 1 1 0;
+  padding: var(--hp-space-28) max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2)) var(--hp-space-32);
+}
+
+.previewColumn {
+  position: sticky;
+  top: calc(var(--hp-size-71_5) + var(--hp-space-28));
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-14);
+  align-self: start;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--hp-size-760);
+  padding: var(--hp-space-80) var(--hp-space-40) var(--hp-space-40);
+  overflow: hidden;
+  border-radius: var(--hp-space-12);
+  background: var(--hp-sand);
+}
+
+.stage svg {
+  width: min(100%, var(--hp-size-560));
+  height: auto;
+}
+
+.viewToggle {
+  position: absolute;
+  top: var(--hp-space-24);
+  left: var(--hp-space-24);
+  display: flex;
+  gap: var(--hp-space-4);
+  padding: var(--hp-space-4);
+  border-radius: var(--hp-space-8);
+  background: var(--hp-paper);
+}
+
+.viewButton {
+  height: var(--hp-space-40);
+  padding: 0 var(--hp-space-16);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-space-14);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.viewButton[aria-pressed="true"] {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.viewButton:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.tag {
+  position: absolute;
+  bottom: var(--hp-space-24);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-6) var(--hp-space-10);
+  border-radius: var(--hp-space-4);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+  font-weight: 600;
+  line-height: var(--hp-space-16);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.previewFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-space-14);
+  line-height: var(--hp-space-20);
+}
+
+/* Four option cards per row, as in Pen 22's placement grid. */
+.column {
+  --hp-choice-min-width: var(--hp-size-110);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-size-22);
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--hp-ink);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+  text-transform: uppercase;
+}
+
+.title {
+  margin: var(--hp-space-8) 0 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-36);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_6);
+  line-height: var(--hp-size-36);
+}
+
+.live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+  padding: var(--hp-size-18);
+  border-radius: var(--hp-space-10);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+}
+
+.liveHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+}
+
+.liveLabel {
+  overflow: hidden;
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.updated {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-radius: var(--hp-space-4);
+  background: var(--hp-success-tint);
+  color: var(--hp-success);
+  font-size: var(--hp-space-12);
+  font-weight: 600;
+  line-height: var(--hp-size-17);
+}
+
+.liveRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hp-space-8) var(--hp-space-16);
+}
+
+.liveValue {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-40);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_6);
+  line-height: var(--hp-size-58);
+}
+
+.liveNote {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.nav {
+  display: flex;
+  gap: var(--hp-space-12);
+}
+
+.back,
+.continue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hp-space-8);
+  height: var(--hp-size-56);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  font: inherit;
+  cursor: pointer;
+}
+
+.back {
+  padding: 0 var(--hp-size-22);
+  outline: var(--hp-size-1_5) solid var(--hp-ink);
+  outline-offset: var(--hp-size--0_75);
+  background: transparent;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-16);
+  font-weight: 600;
+}
+
+.continue {
+  flex: 1 1 0;
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+}
+
+.continue:hover {
+  background: var(--hp-accent-hover);
+}
+
+.back:focus-visible,
+.continue:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-16);
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+}
+
+@media (max-width: 1023px) {
+  .header {
+    min-height: var(--hp-size-59_5);
+    padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
+  }
+
+  .header {
+    gap: var(--hp-space-12);
+  }
+
+  .crumb {
+    display: none;
+  }
+
+  /* The icon shows; the words stay for screen readers (hp-visually-hidden). */
+  .savedText {
+    position: absolute;
+    width: var(--hp-size-1);
+    height: var(--hp-size-1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .right {
+    gap: var(--hp-space-12);
+  }
+
+  /* The phone wordmark is 22 px, as in the site header (Pen mobile header); it fits beside Save & exit at 320 px. */
+  .logo {
+    font-size: var(--hp-size-22);
+    line-height: var(--hp-size-22);
+  }
+
+  /* Anything narrower: the wordmark gives way before the page scrolls sideways. */
+  .brand {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .stepper {
+    position: fixed;
+    top: var(--hp-size-59_5);
+    right: 0;
+    left: 0;
+    z-index: 9;
+    justify-content: space-between;
+    padding: var(--hp-space-8) var(--hp-space-20);
+    overflow-x: auto;
+    border-bottom: var(--hp-size-1) solid var(--hp-line);
+    background: var(--hp-paper);
+  }
+
+  .stepper li + li::before {
+    display: none;
+  }
+
+  /* Number-only steps are 32 px wide, so all six fit at 320 px with no hidden step past the edge. */
+  .stepButton:not(.stepCurrent) {
+    padding-inline: var(--hp-space-6);
+  }
+
+  /* Labels stay for screen readers; only the numbers show on phones. */
+  .stepButton:not(.stepCurrent) .stepLabel {
+    position: absolute;
+    width: var(--hp-size-1);
+    height: var(--hp-size-1);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--hp-space-20);
+    padding: var(--hp-size-72) var(--hp-space-20) var(--hp-space-32);
+    background: var(--hp-paper);
+  }
+
+  .previewColumn {
+    position: static;
+  }
+
+  .stage {
+    min-height: var(--hp-size-300);
+    padding: var(--hp-size-72) var(--hp-space-20) var(--hp-space-20);
+  }
+
+  .title {
+    font-size: var(--hp-space-28);
+    line-height: var(--hp-space-32);
+  }
+
+  .nav {
+    position: sticky;
+    bottom: 0;
+    padding: var(--hp-space-12) 0;
+    background: var(--hp-paper);
+  }
+}
+
+/* Hover (every clickable item has one). */
+.back,
+.exit,
+.viewButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), outline-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.back:hover,
+.exit:hover,
+.viewButton:hover {
+  background: var(--hp-bone);
+}
+
+.exit:hover {
+  outline-color: var(--hp-ink);
+}
+
+.back:active, .exit:active, .viewButton:active {
+  transform: scale(var(--hp-press-scale));
+}
+
+.stepButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.stepButton:hover {
+  background: var(--hp-bone);
+  color: var(--hp-ink);
+}
+
+.logo {
+  transition: opacity var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.logo:hover {
+  opacity: 0.75;
+}

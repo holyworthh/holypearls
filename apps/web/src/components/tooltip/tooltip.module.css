@@ -1,0 +1,41 @@
+/* Tooltip for icon-only actions: ink bubble, 13px, above everything. */
+.tip {
+  position: fixed;
+  z-index: var(--hp-z-toast);
+  max-width: min(var(--hp-size-240), calc(100vw - var(--hp-space-16)));
+  padding: var(--hp-space-6) var(--hp-space-10);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-caption);
+  font-weight: var(--hp-weight-medium);
+  line-height: var(--hp-leading-tight);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--hp-shadow-menu);
+}
+
+.bottom {
+  translate: -50% 0;
+  animation: fromAbove var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.top {
+  translate: -50% -100%;
+  animation: fromBelow var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+@keyframes fromAbove {
+  from {
+    opacity: 0;
+    margin-top: calc(var(--hp-space-4) * -1);
+  }
+}
+
+@keyframes fromBelow {
+  from {
+    opacity: 0;
+    margin-top: var(--hp-space-4);
+  }
+}

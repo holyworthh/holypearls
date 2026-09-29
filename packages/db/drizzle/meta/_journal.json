@@ -120,6 +120,20 @@
       "when": 1790619859314,
       "tag": "0016_quote_reference_sequence",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790634367063,
+      "tag": "0017_option_value_swatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790674005839,
+      "tag": "0018_product_filter_attributes",
+      "breakpoints": true
     }
   ]
 }

@@ -65,6 +65,107 @@ describe("garment sourcing and decoration (COM-FR-020–024)", () => {
   });
 });
 
+describe("the product's routes and decorations are the rule (COM-FR-020, 024)", () => {
+  /** Changes the polo's stored capabilities for one test, then puts them back. */
+  async function withPolo(capabilities: { routes: string[]; decorations: string[] }, test: () => Promise<void>) {
+    const db = harness.database.db;
+    const [polo] = await db.select().from(schema.products).where(eq(schema.products.slug, "polo-shirt"));
+    await db.update(schema.products).set(capabilities).where(eq(schema.products.id, polo!.id));
+    try {
+      await test();
+    } finally {
+      await db.update(schema.products).set({ routes: polo!.routes, decorations: polo!.decorations }).where(eq(schema.products.id, polo!.id));
+    }
+  }
+
+  it("returns the allowed choices with the product page's configurator data", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY"] }, async () => {
+      const product = await request(harness.url).get("/v1/catalogue/products/polo-shirt");
+      expect(product.body.configurator).toMatchObject({ allowedRoutes: ["SOURCE_CUSTOMIZE", "HELP_ME_CHOOSE"], allowedDecorations: ["EMBROIDERY", "RECOMMEND"] });
+    });
+  });
+
+  it("accepts a route the product offers and refuses one it doesn't", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY", "HEAT_TRANSFER"] }, async () => {
+      let draft = await newPolo();
+      draft = draftOf((await patch(draft.id, { version: draft.version, sourcing: "SOURCE_CUSTOMIZE" })).body);
+      expect(draft.garment!.sourcing).toBe("SOURCE_CUSTOMIZE");
+      const refused = await patch(draft.id, { version: draft.version, sourcing: "MAKE_FROM_SCRATCH" });
+      expect(refused.status).toBe(400);
+      expect(refused.body).toMatchObject({ code: "VALIDATION_FAILED", fieldErrors: { sourcing: "This production route is not available for this product." } });
+      // Nothing was saved.
+      expect(draftOf((await as(harness, chidi).get(`/v1/configurations/${draft.id}`)).body).garment!.sourcing).toBe("SOURCE_CUSTOMIZE");
+    });
+  });
+
+  it("always accepts Help Me Choose, which asks staff to recommend a route", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: [] }, async () => {
+      const draft = await newPolo();
+      const saved = draftOf((await patch(draft.id, { version: draft.version, sourcing: "HELP_ME_CHOOSE" })).body);
+      expect(saved.garment!.sourcing).toBe("HELP_ME_CHOOSE");
+    });
+  });
+
+  it("accepts a supported decoration and refuses an unsupported one", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY"] }, async () => {
+      let draft = await newPolo();
+      draft = draftOf((await patch(draft.id, { version: draft.version, decoration: "EMBROIDERY" })).body);
+      expect(draft.garment!.decoration).toBe("EMBROIDERY");
+      const refused = await patch(draft.id, { version: draft.version, decoration: "PRINT" });
+      expect(refused.status).toBe(400);
+      expect(refused.body.fieldErrors).toEqual({ decoration: "This decoration method is not available for this product." });
+      // A placement can't use a method the product doesn't offer either.
+      const placement = await patch(draft.id, { version: draft.version, placements: [{ position: "FULL_BACK", size: "LARGE", method: "PRINT", note: null }] });
+      expect(placement.status).toBe(400);
+      expect(placement.body.fieldErrors).toEqual({ "placements.FULL_BACK": "This decoration method is not available for this product." });
+    });
+  });
+
+  it("offers Both only when the product has embroidery and a garment print method", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY", "PAPER_PRINT"] }, async () => {
+      const draft = await newPolo();
+      expect((await patch(draft.id, { version: draft.version, decoration: "BOTH" })).status).toBe(400);
+    });
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY", "SCREEN_PRINT"] }, async () => {
+      const draft = await newPolo();
+      expect(draftOf((await patch(draft.id, { version: draft.version, decoration: "BOTH" })).body).garment!.decoration).toBe("BOTH");
+    });
+  });
+
+  it("offers Recommend for Me only when the product has a garment decoration to recommend", async () => {
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: [] }, async () => {
+      const draft = await newPolo();
+      expect((await patch(draft.id, { version: draft.version, decoration: "RECOMMEND" })).status).toBe(400);
+    });
+  });
+
+  it("keeps a saved route staff later removed: the draft still opens, marked, and a quote waits for a new choice", async () => {
+    let draft = await newPolo();
+    draft = draftOf((await patch(draft.id, { version: draft.version, sourcing: "MAKE_FROM_SCRATCH", sizes: [{ size: "M", quantity: 30 }] })).body);
+    await withPolo({ routes: ["SOURCE_CUSTOMIZE"], decorations: ["EMBROIDERY"] }, async () => {
+      const opened = await as(harness, chidi).get(`/v1/configurations/${draft.id}`);
+      expect(opened.status).toBe(200);
+      draft = draftOf(opened.body);
+      // The answer is kept, not silently discarded.
+      expect(draft.garment!.sourcing).toBe("MAKE_FROM_SCRATCH");
+      expect(draft.garment!.unavailable).toEqual([expect.objectContaining({ field: "sourcing", value: "MAKE_FROM_SCRATCH" })]);
+      // Other answers still save.
+      draft = draftOf((await patch(draft.id, { version: draft.version, quantity: 30 })).body);
+      expect(draft.price!.reasons).toEqual(expect.arrayContaining([expect.objectContaining({ code: "CHOICE_UNAVAILABLE", blocking: true })]));
+
+      const ask = () => as(harness, chidi).post(`/v1/configurations/${draft.id}/quote-request`, { email: "chidi.customer@holypearls.test", name: "Chidi" });
+      const blocked = await ask();
+      expect(blocked.status).toBe(422);
+      expect(blocked.body.context).toMatchObject({ reason: "CHOICE_UNAVAILABLE" });
+
+      // Choosing a route the product offers clears it.
+      draft = draftOf((await patch(draft.id, { version: draft.version, sourcing: "SOURCE_CUSTOMIZE" })).body);
+      expect(draft.garment!.unavailable).toEqual([]);
+      expect(draft.price!.reasons.some((reason) => reason.code === "CHOICE_UNAVAILABLE")).toBe(false);
+    });
+  });
+});
+
 describe("placements (COM-FR-025, 026)", () => {
   it("saves overlapping placements with a fix, and fixing one keeps the others", async () => {
     let draft = await newPolo();
