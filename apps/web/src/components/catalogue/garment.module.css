@@ -1144,7 +1144,9 @@
   background: var(--hp-accent-hover);
 }
 
+/* The chip only shows the colour; clicks go to the radio under it, even while it's scaled. */
 .swatch .chip {
+  pointer-events: none;
   transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
