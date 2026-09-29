@@ -9,8 +9,10 @@ import {
   publishContentPageSchema,
   updateContentPageSchema,
 } from "@holypearls/contracts";
+import { and, eq, inArray, schema } from "@holypearls/db";
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { AppError } from "../errors.js";
 import type { FileDeps } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
 import { StaffGuard } from "../identity/staff.guard.js";
@@ -85,6 +87,32 @@ export class ContentAdminController {
   @RateLimit("ADMIN_WRITE")
   async create(@Req() request: Request, @Body(new ZodValidationPipe(createContentPageSchema)) body: z.infer<typeof createContentPageSchema>) {
     return createContentPage(this.deps.db, await this.actor(request), body);
+  }
+
+  /**
+   * Draft images for the editor. Staff see any media-library image here,
+   * published or not; it's never cached as a public asset.
+   */
+  @Get("media/:fileId/:kind")
+  async media(@Param("fileId", uuid) fileId: string, @Param("kind") kind: string, @Res() response: Response) {
+    if (kind !== "preview" && kind !== "thumbnail") throw new AppError("NOT_FOUND");
+    const [file] = await this.deps.db
+      .select({ id: schema.files.id, bucket: schema.files.bucket })
+      .from(schema.files)
+      .where(and(eq(schema.files.id, fileId), inArray(schema.files.purpose, ["CONTENT_MEDIA", "PRODUCT_MEDIA"])));
+    if (!file) throw new AppError("NOT_FOUND");
+    const [rendition] = await this.deps.db
+      .select()
+      .from(schema.fileRenditions)
+      .where(and(eq(schema.fileRenditions.fileId, fileId), eq(schema.fileRenditions.kind, kind === "preview" ? "PREVIEW" : "THUMBNAIL")));
+    if (!rendition) throw new AppError("NOT_FOUND");
+    const store = file.bucket === "public" ? this.deps.publicStorage : this.deps.storage;
+    const body = await store.read(rendition.storageKey).catch(() => null);
+    if (!body) throw new AppError("NOT_FOUND");
+    response.setHeader("content-type", rendition.contentType);
+    response.setHeader("cache-control", "private, no-store");
+    response.setHeader("x-content-type-options", "nosniff");
+    response.send(body);
   }
 
   @Get(":id")

@@ -89,7 +89,7 @@ export class PublicMediaController {
   @RateLimit("PUBLIC_READ")
   async media(@Param("fileId", new ParseUUIDPipe()) fileId: string, @Param("kind") kind: string, @Res() response: Response) {
     if (kind !== "preview" && kind !== "thumbnail") throw new AppError("NOT_FOUND");
-    await publicMediaFile(this.deps.db, fileId);
+    const { content } = await publicMediaFile(this.deps.db, fileId);
     const [rendition] = await this.deps.db
       .select()
       .from(schema.fileRenditions)
@@ -98,7 +98,8 @@ export class PublicMediaController {
     const body = await this.deps.publicStorage.read(rendition.storageKey).catch(() => null);
     if (!body) throw new AppError("NOT_FOUND");
     response.setHeader("content-type", rendition.contentType);
-    response.setHeader("cache-control", "public, max-age=31536000, immutable");
+    // Content images can be unpublished, so caches check back after five minutes.
+    response.setHeader("cache-control", content ? "public, max-age=300, must-revalidate" : "public, max-age=31536000, immutable");
     response.setHeader("x-content-type-options", "nosniff");
     response.send(body);
   }

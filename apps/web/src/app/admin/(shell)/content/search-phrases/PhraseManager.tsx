@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError, type SearchPhrase, searchPhraseSchema, searchTargetOptionsSchema } from "@holypearls/contracts";
-import { Button, ErrorSummary, FormField, Notice, TextField } from "@holypearls/ui";
+import { Button, ErrorSummary, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -12,6 +12,12 @@ import c from "../content-admin.module.css";
 
 type Target = { type: "PRODUCT" | "CATEGORY" | "PAGE"; id: string; label: string; detail: string };
 const KIND = { PRODUCT: "Product", CATEGORY: "Category", PAGE: "Page" } as const;
+/** Why a phrase isn't working on the site yet (it's kept, and starts working when its target is public). */
+const STATE_NOTE: Record<string, string> = {
+  DRAFT: "Works once the target is published",
+  ARCHIVED: "The target is archived",
+  REMOVED: "The target was deleted",
+};
 
 /** Everyday phrases that lead to the right page (PUB-FR-007): add, list and remove. */
 export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
@@ -49,7 +55,10 @@ export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
     try {
       const created = await api("/v1/admin/search/phrases", { method: "POST", body: { phrase: phrase.trim(), targetType: target.type, targetId: target.id }, response: searchPhraseSchema });
       setPhrases((list) => [created, ...list]);
-      setNotice({ tone: "success", title: "Phrase added", body: `Searching “${created.phrase}” now leads to ${created.target.label}. Recorded in the audit log.` });
+      setNotice({ tone: "success", title: "Phrase added", body: created.target.active
+          ? `“${created.phrase}” now leads to ${created.target.label}. Recorded in the audit log.`
+          : `“${created.phrase}” will lead to ${created.target.label} once it's published. Recorded in the audit log.`,
+      });
       setPhrase("");
       setQuery("");
       setTarget(null);
@@ -144,6 +153,7 @@ export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
             <tr>
               <th scope="col">PHRASE</th>
               <th scope="col">LEADS TO</th>
+              <th scope="col">STATE</th>
               <th scope="col">ADDED</th>
               <th scope="col">
                 <span className="hp-visually-hidden">Actions</span>
@@ -155,10 +165,24 @@ export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
               <tr key={item.id}>
                 <td className={styles.strong}>{item.phrase}</td>
                 <td>
-                  <a className={styles.action} href={item.target.href} target="_blank" rel="noopener">
-                    {item.target.label}
-                  </a>{" "}
+                  {item.target.href ? (
+                    <a className={styles.action} href={item.target.href} target="_blank" rel="noopener">
+                      {item.target.label}
+                    </a>
+                  ) : (
+                    item.target.label
+                  )}{" "}
                   <span className={c.meta}>{KIND[item.target.type]}</span>
+                </td>
+                <td>
+                  {item.target.active ? (
+                    <StatusChip tone="success">ACTIVE</StatusChip>
+                  ) : (
+                    <span className={c.chips}>
+                      <StatusChip tone="neutral">INACTIVE</StatusChip>
+                      <span className={c.meta}>{STATE_NOTE[item.target.status] ?? "Works once the target is public"}</span>
+                    </span>
+                  )}
                 </td>
                 <td className={styles.mono}>{item.createdBy ?? "—"}</td>
                 <td>

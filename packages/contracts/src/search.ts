@@ -63,7 +63,16 @@ export const searchPhraseTargetSchema = z.enum(["PRODUCT", "CATEGORY", "PAGE"]);
 export const searchPhraseSchema = z.object({
   id: z.string(),
   phrase: z.string(),
-  target: z.object({ type: searchPhraseTargetSchema, id: z.string(), label: z.string(), href: z.string() }),
+  target: z.object({
+    type: searchPhraseTargetSchema,
+    id: z.string(),
+    label: z.string(),
+    href: z.string(),
+    /** The target's own status (PUBLISHED, DRAFT, ARCHIVED…), or REMOVED. */
+    status: z.string(),
+    /** True while the target is public: only then does the phrase work on the site. */
+    active: z.boolean(),
+  }),
   createdAt: z.string(),
   createdBy: z.string().nullable(),
 });
@@ -98,5 +107,6 @@ export const searchReportSchema = z.object({
 
 /** Public pages for the XML sitemap (PUB-SEO-009): published and indexable only. */
 export const sitemapSchema = z.object({
-  entries: z.array(z.object({ path: z.string(), updatedAt: z.string() })),
+  /** `updatedAt` is null for pages whose content doesn't change (it's left out of the sitemap). */
+  entries: z.array(z.object({ path: z.string(), updatedAt: z.string().nullable() })),
 });

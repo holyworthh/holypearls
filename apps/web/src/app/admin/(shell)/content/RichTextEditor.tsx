@@ -9,6 +9,25 @@ import { type ReactNode, useState } from "react";
 import { FileUpload } from "../../../../components/FileUpload";
 import e from "./editor.module.css";
 
+/** Public media address → the staff preview of the same image (drafts' images aren't public). */
+export const staffMediaUrl = (src: string) => src.replace(/^\/api\/v1\/media\//, "/api/v1/admin/content/media/");
+
+/**
+ * Images keep their public address in the saved text; in the editor they're
+ * shown from the staff preview route, since a draft's images aren't public
+ * until the page is published.
+ */
+const StaffImage = Image.extend({
+  addNodeView() {
+    return ({ node }) => {
+      const img = document.createElement("img");
+      img.src = staffMediaUrl(String(node.attrs.src ?? ""));
+      img.alt = String(node.attrs.alt ?? "");
+      return { dom: img };
+    };
+  },
+});
+
 /**
  * A guide diagram placed in the text (comparison or decision aid). It saves
  * as <div data-block="…"></div>; its content is edited in the guide's parts.
@@ -48,14 +67,11 @@ export function RichTextEditor({
   onChange,
   blocks = false,
   labelledBy,
-  onImageInserted,
 }: {
   value: string;
   onChange: (html: string) => void;
   blocks?: boolean;
   labelledBy?: string;
-  /** Images show once the page that uses them is saved, so the editor saves straight after. */
-  onImageInserted?: () => void;
 }) {
   const [linking, setLinking] = useState<string | null>(null);
   const [imaging, setImaging] = useState(false);
@@ -66,7 +82,7 @@ export function RichTextEditor({
     shouldRerenderOnTransaction: true,
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] }, code: false, codeBlock: false, strike: false, underline: false, link: { openOnClick: false, autolink: true, protocols: ["mailto", "tel"] } }),
-      Image.configure({ inline: false }),
+      StaffImage.configure({ inline: false }),
       Block,
     ],
     content: value,
@@ -186,7 +202,6 @@ export function RichTextEditor({
               setImaging(false);
               setUploaded(null);
               setAlt("");
-              onImageInserted?.();
             }}
           >
             Insert image

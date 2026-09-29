@@ -313,7 +313,7 @@ export async function searchSuggestions(db: Database, q: string): Promise<Search
     .slice(0, 3)
     .map(({ slug, name, count }) => ({ slug, name, count }));
 
-  return { q, searches, categories, products: await suggestedProducts(db, q, 3), guides: [] };
+  return { q, searches, shortcuts: [], categories, products: await suggestedProducts(db, q, 3), guides: [] };
 }
 
 /**
@@ -458,9 +458,22 @@ export async function publicHub(db: Database, slug: string) {
   };
 }
 
+/** A content image is public only while the live copy of a PUBLISHED page uses it (T02-06). Drafts never count. */
+export async function isContentMediaPublic(db: Database, fileId: string): Promise<boolean> {
+  const [onPage] = await db
+    .select({ id: schema.contentPages.id })
+    .from(schema.contentPagePublishedMedia)
+    .innerJoin(schema.contentPages, eq(schema.contentPages.id, schema.contentPagePublishedMedia.pageId))
+    .where(and(eq(schema.contentPagePublishedMedia.fileId, fileId), eq(schema.contentPages.status, "PUBLISHED")))
+    .limit(1);
+  return Boolean(onPage);
+}
+
 /**
- * Public images: a READY product-media file that belongs to a visible product
- * or a published category. Anything else is 404, so drafts' images stay private.
+ * Public images: a READY media file that belongs to a visible product, a
+ * published category or a published content page's live copy. Anything else
+ * is 404, so drafts' images stay private. `content` says the file is public
+ * because of a content page, which can be unpublished at any time.
  */
 export async function publicMediaFile(db: Database, fileId: string) {
   const [file] = await db
@@ -468,15 +481,10 @@ export async function publicMediaFile(db: Database, fileId: string) {
     .from(schema.files)
     .where(and(eq(schema.files.id, fileId), inArray(schema.files.purpose, ["PRODUCT_MEDIA", "CONTENT_MEDIA"]), eq(schema.files.status, "READY")));
   if (!file) throw new AppError("NOT_FOUND");
-  // Content images (T02-06) may be shown once a page that isn't archived uses them.
-  const [onPage] = await db
-    .select({ id: schema.contentPages.id })
-    .from(schema.contentPageMedia)
-    .innerJoin(schema.contentPages, eq(schema.contentPages.id, schema.contentPageMedia.pageId))
-    .where(and(eq(schema.contentPageMedia.fileId, fileId), sql`${schema.contentPages.status} <> 'ARCHIVED'`))
-    .limit(1);
-  if (onPage) return file;
-  if (file.purpose === "CONTENT_MEDIA") throw new AppError("NOT_FOUND");
+  if (file.purpose === "CONTENT_MEDIA") {
+    if (await isContentMediaPublic(db, fileId)) return { file, content: true };
+    throw new AppError("NOT_FOUND");
+  }
   const [onProduct] = await db
     .select({ id: schema.products.id })
     .from(schema.productMedia)
@@ -490,8 +498,10 @@ export async function publicMediaFile(db: Database, fileId: string) {
         .from(schema.categories)
         .where(and(eq(schema.categories.heroFileId, fileId), eq(schema.categories.status, "PUBLISHED")))
         .limit(1);
-  if (!onCategory) throw new AppError("NOT_FOUND");
-  return file;
+  if (onCategory) return { file, content: false };
+  // A product photo reused on a content page is public while that page is.
+  if (await isContentMediaPublic(db, fileId)) return { file, content: true };
+  throw new AppError("NOT_FOUND");
 }
 
 /** One visible product for its public page (images, specifications, FAQ, related). */

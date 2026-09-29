@@ -86,8 +86,11 @@ export class SearchAdminController {
   }
 }
 
-/** Always-public pages, for the sitemap. */
-const STATIC_PATHS = ["/", "/products", "/projects", "/our-work", "/resources", "/contact"];
+/**
+ * Index pages dated by the newest record they list. "/" and "/contact" have
+ * no editable content, so they carry no date rather than a misleading one.
+ */
+const INDEX_PATHS = { "/projects": "/projects/", "/our-work": "/our-work/", "/resources": "/resources/" } as const;
 
 /** The XML sitemap's pages (PUB-SEO-009): published and indexable only; private routes never appear. */
 @Controller("seo")
@@ -116,10 +119,14 @@ export class SeoController {
         ),
       sitemapContent(db),
     ]);
-    const newest = [...products, ...categories].reduce((latest, row) => (row.updatedAt > latest ? row.updatedAt : latest), new Date(0));
+    const newest = (dates: string[]) => (dates.length ? dates.reduce((latest, date) => (date > latest ? date : latest)) : null);
+    const catalogue = newest([...products, ...categories].map((row) => row.updatedAt.toISOString()));
     return {
       entries: [
-        ...STATIC_PATHS.map((path) => ({ path, updatedAt: newest.toISOString() })),
+        { path: "/", updatedAt: null },
+        { path: "/products", updatedAt: catalogue },
+        ...Object.entries(INDEX_PATHS).map(([path, prefix]) => ({ path, updatedAt: newest(pages.filter((page) => page.path.startsWith(prefix)).map((page) => page.updatedAt)) })),
+        { path: "/contact", updatedAt: null },
         ...categories.map((row) => ({ path: `/categories/${row.slug}`, updatedAt: row.updatedAt.toISOString() })),
         ...products.map((row) => ({ path: `/products/${row.slug}`, updatedAt: row.updatedAt.toISOString() })),
         ...pages,

@@ -21,7 +21,7 @@ import { formatTime } from "../format";
 import c from "./content-admin.module.css";
 import { PartsEditor } from "./PartsEditor";
 import { PARTS } from "./parts";
-import { RichTextEditor } from "./RichTextEditor";
+import { RichTextEditor, staffMediaUrl } from "./RichTextEditor";
 
 const TONE = { DRAFT: "neutral", PUBLISHED: "success", ARCHIVED: "neutral" } as const;
 const SINGULAR = { PROJECT: "project page", GUIDE: "guide", CASE_STUDY: "case study", ABOUT: "About page" } as const;
@@ -324,7 +324,6 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
               blocks={page.type === "GUIDE"}
               labelledBy="content-body-label"
               onChange={(html) => set("body", html)}
-              onImageInserted={() => void save(true)}
             />
           </div>
           <section className={c.panel} aria-labelledby="content-parts-title">
@@ -418,7 +417,7 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
               Hero image
             </h2>
             {page.heroImage && !hero ? (
-              <img className={c.hero} src={page.heroImage.url} alt="" />
+              <img className={c.hero} src={staffMediaUrl(page.heroImage.url)} alt="" />
             ) : null}
             {errors.heroFileId ? <p className={c.hint}>{errors.heroFileId}</p> : null}
             {!archived ? (

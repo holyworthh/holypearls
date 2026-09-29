@@ -20,7 +20,7 @@ import { AppError } from "../errors.js";
 import { attachFile } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
-import { cleanRichText, mediaIdsIn, plainText } from "./rich-text.js";
+import { cleanRichText, mediaIdsIn, mediaImagesIn, plainText } from "./rich-text.js";
 import { cardsByIds, cardsBySlugs, image } from "./storefront.js";
 
 /*
@@ -194,15 +194,72 @@ export async function createContentPage(db: Database, actor: ActorContext, input
   }
 }
 
-/** Keeps the page's media list in step with the images it uses, so the public media route may show them. */
-async function syncMedia(tx: Transaction, pageId: string, fields: ContentFields) {
+/** Every media-library file a copy of the page uses: hero, body figures and case-study gallery. */
+export function contentMediaIds(fields: ContentFields): string[] {
   const gallery = ((fields.data as Partial<CaseStudyData>).gallery ?? []).map((item) => item.fileId);
-  const wanted = [...new Set([...(fields.heroFileId ? [fields.heroFileId] : []), ...mediaIdsIn(fields.body), ...gallery])];
+  return [...new Set([...(fields.heroFileId ? [fields.heroFileId] : []), ...mediaIdsIn(fields.body), ...gallery])];
+}
+
+const MEDIA_PURPOSES = ["CONTENT_MEDIA", "PRODUCT_MEDIA"] as const;
+type MediaIssue = "missing" | "processing" | null;
+
+/**
+ * The one check for a page's images. Saving (`strict` false) only needs each
+ * file to be a media-library upload, so staff can keep writing while an image
+ * is still being checked. Publishing (`strict` true) needs every image READY,
+ * with the rendition the page shows and alt text. Errors are keyed by field.
+ */
+export async function contentMediaProblems(db: Database | Transaction, fields: ContentFields, strict: boolean): Promise<Record<string, string>> {
+  const ids = contentMediaIds(fields);
+  if (!ids.length) return {};
+  const [files, renditions] = await Promise.all([
+    db
+      .select({ id: schema.files.id, purpose: schema.files.purpose, status: schema.files.status, contentType: sql<string>`coalesce(${schema.files.detectedType}, ${schema.files.declaredType})` })
+      .from(schema.files)
+      .where(inArray(schema.files.id, ids)),
+    db.select({ fileId: schema.fileRenditions.fileId, kind: schema.fileRenditions.kind }).from(schema.fileRenditions).where(inArray(schema.fileRenditions.fileId, ids)),
+  ]);
+  const issueOf = (id: string, kind: "preview" | "thumbnail" = "preview"): MediaIssue => {
+    const file = files.find((candidate) => candidate.id === id);
+    if (!file || !(MEDIA_PURPOSES as readonly string[]).includes(file.purpose)) return "missing";
+    if (!strict) return null;
+    if (file.status === "PROCESSING" || file.status === "PENDING_UPLOAD") return "processing";
+    if (file.status !== "READY" || !file.contentType.startsWith("image/")) return "missing";
+    const rendition = kind === "preview" ? "PREVIEW" : "THUMBNAIL";
+    if (!renditions.some((candidate) => candidate.fileId === id && candidate.kind === rendition)) return "processing";
+    return null;
+  };
+  const errors: Record<string, string> = {};
+  if (fields.heroFileId) {
+    const issue = issueOf(fields.heroFileId);
+    if (issue === "missing") errors.heroFileId = "This hero image is no longer available. Choose another.";
+    else if (issue === "processing") errors.heroFileId = "The hero image is still being checked. Publish once it's ready.";
+    else if (!fields.heroAlt.trim()) errors.heroAlt = "Describe the image for people who can't see it";
+  }
+  const body = mediaImagesIn(fields.body);
+  const bodyIssues = body.map((item) => issueOf(item.id, item.kind));
+  const missing = bodyIssues.filter((issue) => issue === "missing").length;
+  if (missing === 1) errors.body = "One image in the text is no longer available. Remove or replace it.";
+  else if (missing > 1) errors.body = `${missing} images in the text are no longer available. Remove or replace them.`;
+  else if (bodyIssues.includes("processing")) errors.body = "An image in the text is still being checked. Publish once it's ready.";
+  else if (strict && body.some((item) => !item.alt)) errors.body = "Describe every image in the text (alt text).";
+  ((fields.data as Partial<CaseStudyData>).gallery ?? []).forEach((item, index) => {
+    const issue = issueOf(item.fileId);
+    if (issue === "missing") errors[`data.gallery.${index}.fileId`] = "This gallery image is no longer available.";
+    else if (issue === "processing") errors[`data.gallery.${index}.fileId`] = "This gallery image is still being checked.";
+    else if (strict && !item.alt.trim()) errors[`data.gallery.${index}.alt`] = "Describe the image for people who can't see it";
+  });
+  return errors;
+}
+
+/** Keeps the working copy's uploads attached (so the daily clean-up keeps them). It never makes an image public. */
+async function syncMedia(tx: Transaction, pageId: string, fields: ContentFields) {
+  const wanted = contentMediaIds(fields);
   const known = wanted.length
     ? await tx
         .select({ id: schema.files.id })
         .from(schema.files)
-        .where(and(inArray(schema.files.id, wanted), inArray(schema.files.purpose, ["CONTENT_MEDIA", "PRODUCT_MEDIA"])))
+        .where(and(inArray(schema.files.id, wanted), inArray(schema.files.purpose, [...MEDIA_PURPOSES])))
     : [];
   await tx.delete(schema.contentPageMedia).where(eq(schema.contentPageMedia.pageId, pageId));
   if (known.length) {
@@ -223,11 +280,7 @@ async function checkLinks(db: Database, id: string, fields: ContentFields) {
     const found = await db.select({ id: schema.contentPages.id }).from(schema.contentPages).where(inArray(schema.contentPages.id, fields.linkedPageIds));
     if (found.length !== new Set(fields.linkedPageIds).size) fieldErrors.linkedPageIds ??= "One of these pages doesn't exist";
   }
-  if (fields.heroFileId) {
-    const [file] = await db.select({ purpose: schema.files.purpose }).from(schema.files).where(eq(schema.files.id, fields.heroFileId));
-    if (!file || (file.purpose !== "CONTENT_MEDIA" && file.purpose !== "PRODUCT_MEDIA")) fieldErrors.heroFileId = "Choose an image from the media library";
-    else if (!fields.heroAlt) fieldErrors.heroAlt = "Describe the image for people who can't see it";
-  }
+  Object.assign(fieldErrors, await contentMediaProblems(db, fields, false));
   if (Object.keys(fieldErrors).length) throw new AppError("VALIDATION_FAILED", { fieldErrors });
 }
 
@@ -287,52 +340,83 @@ export interface PublishedChange {
 
 /** Publishing copies the working copy to what the site shows (Pen 106 "Publish"). */
 export async function publishContentPage(db: Database, actor: ActorContext, id: string, version: number): Promise<{ page: AdminContentPage; change: PublishedChange }> {
-  const row = await loadRow(db, id);
-  if (row.version !== version) throw new AppError("VERSION_CONFLICT", { context: { latest: await getAdminContentPage(db, id) } });
-  if (row.status === "ARCHIVED") throw new AppError("CONFLICT", { message: "Archived pages can't be published.", context: { reason: "ARCHIVED" } });
-  const problems = publishProblems(row);
-  if (Object.keys(problems).length) throw new AppError("RULE_FAILED", { message: "Fix these before publishing.", fieldErrors: problems });
-  const previous = row.published as ContentFields | null;
-  const snapshot = fieldsOf(row);
   const now = new Date();
-  await db.transaction(async (tx) => {
-    const rows = await tx
-      .update(schema.contentPages)
-      .set({ status: "PUBLISHED", published: snapshot, publishedAt: now, updatedByStaffId: staffId(actor), version: sql`${schema.contentPages.version} + 1` })
-      .where(and(eq(schema.contentPages.id, id), eq(schema.contentPages.version, version)))
-      .returning({ id: schema.contentPages.id });
-    if (rows.length === 0) throw new AppError("VERSION_CONFLICT");
-    await recordAudit(tx, actor, {
-      action: "content.page_published",
-      summary: `Content page published: ${row.title}`,
-      recordType: "CONTENT_PAGE",
-      recordId: id,
-      recordLabel: row.title,
-      before: { status: row.status },
-      after: { status: "PUBLISHED", href: contentHref(row.type, row.slug) },
-      permission: "CONTENT_MANAGE",
+  let row: Row;
+  try {
+    // The row is locked while its images are checked and the copy is taken, so
+    // a save in between can't put unchecked images on the site.
+    row = await db.transaction(async (tx) => {
+      const [locked] = await tx.select().from(schema.contentPages).where(eq(schema.contentPages.id, id)).for("update");
+      if (!locked) throw new AppError("NOT_FOUND");
+      if (locked.version !== version) throw new AppError("VERSION_CONFLICT");
+      if (locked.status === "ARCHIVED") throw new AppError("CONFLICT", { message: "Archived pages can't be published.", context: { reason: "ARCHIVED" } });
+      const snapshot = fieldsOf(locked);
+      const problems = { ...publishProblems(locked), ...(await contentMediaProblems(tx, snapshot, true)) };
+      if (Object.keys(problems).length) throw new AppError("RULE_FAILED", { message: "Fix these before publishing.", fieldErrors: problems });
+      const rows = await tx
+        .update(schema.contentPages)
+        .set({
+          status: "PUBLISHED",
+          published: snapshot,
+          // The first publication stays the publication date; every publish moves the modified date.
+          publishedAt: locked.publishedAt ?? now,
+          lastPublishedAt: now,
+          updatedByStaffId: staffId(actor),
+          version: sql`${schema.contentPages.version} + 1`,
+        })
+        .where(and(eq(schema.contentPages.id, id), eq(schema.contentPages.version, version)))
+        .returning({ id: schema.contentPages.id });
+      if (rows.length === 0) throw new AppError("VERSION_CONFLICT");
+      // The public media route may show exactly the images this copy uses.
+      await tx.delete(schema.contentPagePublishedMedia).where(eq(schema.contentPagePublishedMedia.pageId, id));
+      const media = contentMediaIds(snapshot);
+      if (media.length) await tx.insert(schema.contentPagePublishedMedia).values(media.map((fileId) => ({ pageId: id, fileId })));
+      await recordAudit(tx, actor, {
+        action: "content.page_published",
+        summary: `Content page published: ${locked.title}`,
+        recordType: "CONTENT_PAGE",
+        recordId: id,
+        recordLabel: locked.title,
+        before: { status: locked.status },
+        after: { status: "PUBLISHED", href: contentHref(locked.type, locked.slug) },
+        permission: "CONTENT_MANAGE",
+      });
+      return locked;
     });
-  });
+  } catch (error) {
+    if (error instanceof AppError && error.code === "VERSION_CONFLICT") throw new AppError("VERSION_CONFLICT", { context: { latest: await getAdminContentPage(db, id) } });
+    throw error;
+  }
+  const previous = row.published as ContentFields | null;
   return {
     page: await getAdminContentPage(db, id),
     change: { type: row.type, slug: row.slug, previousSlug: previous && previous.slug !== row.slug ? previous.slug : null },
   };
 }
 
-/** Unpublish (back to DRAFT) or archive. Either takes the page off the site. */
+/**
+ * Unpublish (PUBLISHED → DRAFT), archive (→ ARCHIVED) or restore (ARCHIVED →
+ * DRAFT). Unpublishing and archiving take the page and its images off the site.
+ */
 export async function changeContentStatus(db: Database, actor: ActorContext, id: string, to: "DRAFT" | "ARCHIVED", version: number) {
   const row = await loadRow(db, id);
-  if (row.version !== version) throw new AppError("VERSION_CONFLICT", { context: { latest: await getAdminContentPage(db, id) } });
-  if (row.status === "ARCHIVED") throw new AppError("CONFLICT", { message: "Archived pages stay archived.", context: { reason: "ARCHIVED" } });
+  const conflict = async () => new AppError("VERSION_CONFLICT", { context: { latest: await getAdminContentPage(db, id) } });
+  if (row.version !== version) throw await conflict();
+  if (row.status === to) throw new AppError("CONFLICT", { message: to === "ARCHIVED" ? "This page is already archived." : "This page is already a draft.", context: { reason: to } });
   if (row.type === "ABOUT" && to === "ARCHIVED") throw new AppError("CONFLICT", { message: "The About page can be unpublished but not archived.", context: { reason: "ABOUT" } });
-  await db.transaction(async (tx) => {
-    await tx
+  const action = to === "ARCHIVED" ? "archived" : row.status === "ARCHIVED" ? "restored" : "unpublished";
+  const done = await db.transaction(async (tx) => {
+    // The version in the write is the real check: a stale request changes nothing.
+    const rows = await tx
       .update(schema.contentPages)
       .set({ status: to, updatedByStaffId: staffId(actor), version: sql`${schema.contentPages.version} + 1` })
-      .where(eq(schema.contentPages.id, id));
+      .where(and(eq(schema.contentPages.id, id), eq(schema.contentPages.version, version)))
+      .returning({ id: schema.contentPages.id });
+    if (rows.length === 0) return false;
+    await tx.delete(schema.contentPagePublishedMedia).where(eq(schema.contentPagePublishedMedia.pageId, id));
     await recordAudit(tx, actor, {
-      action: to === "ARCHIVED" ? "content.page_archived" : "content.page_unpublished",
-      summary: `Content page ${to === "ARCHIVED" ? "archived" : "unpublished"}: ${row.title}`,
+      action: `content.page_${action}`,
+      summary: `Content page ${action}: ${row.title}`,
       recordType: "CONTENT_PAGE",
       recordId: id,
       recordLabel: row.title,
@@ -340,7 +424,9 @@ export async function changeContentStatus(db: Database, actor: ActorContext, id:
       after: { status: to },
       permission: "CONTENT_MANAGE",
     });
+    return true;
   });
+  if (!done) throw await conflict();
   return { page: await getAdminContentPage(db, id), change: { type: row.type, slug: (row.published as ContentFields | null)?.slug ?? row.slug, previousSlug: null } };
 }
 
@@ -472,7 +558,7 @@ export async function publicContentPage(db: Database, type: ContentType, slug: s
     linkedPages: [...named, ...linkedPages.filter((card) => !named.some((other) => other.href === card.href))],
     images,
     publishedAt: (row.publishedAt ?? row.updatedAt).toISOString(),
-    updatedAt: (row.publishedAt ?? row.updatedAt).toISOString(),
+    updatedAt: (row.lastPublishedAt ?? row.publishedAt ?? row.updatedAt).toISOString(),
   };
 }
 
@@ -482,5 +568,5 @@ export async function sitemapContent(db: Database) {
   const about = await publishedRows(db, and(eq(schema.contentPages.type, "ABOUT")));
   return [...pages, ...about]
     .filter(({ row, live }) => live.indexable && (!live.canonicalPath || live.canonicalPath === contentHref(row.type, live.slug)))
-    .map(({ row, live }) => ({ path: contentHref(row.type, live.slug), updatedAt: (row.publishedAt ?? row.updatedAt).toISOString() }));
+    .map(({ row, live }) => ({ path: contentHref(row.type, live.slug), updatedAt: (row.lastPublishedAt ?? row.publishedAt ?? row.updatedAt).toISOString() }));
 }

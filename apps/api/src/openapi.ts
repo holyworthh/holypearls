@@ -627,20 +627,27 @@ export function buildOpenApiDocument() {
           summary: "Publish the working copy; pages, search and the sitemap refresh (CONTENT_MANAGE, audited)",
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(publishContentPageSchema) },
-          responses: { 200: { description: "Published", content: json(adminContentPageSchema) }, 409: error("Archived or VERSION_CONFLICT"), 422: error("Missing summary or text (RULE_FAILED)"), ...staffOnly },
+          responses: { 200: { description: "Published", content: json(adminContentPageSchema) }, 409: error("Archived or VERSION_CONFLICT"), 422: error("Missing summary or text, or an image that is missing, still being checked or without alt text (RULE_FAILED, keyed by field)"), ...staffOnly },
         },
       },
       "/v1/admin/content/{id}/status": {
         post: {
-          summary: "Unpublish (DRAFT) or archive a page (CONTENT_MANAGE, audited)",
+          summary: "Unpublish (PUBLISHED → DRAFT), archive, or restore (ARCHIVED → DRAFT) a page; unpublishing and archiving make its images private (CONTENT_MANAGE, audited)",
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(changeContentStatusSchema) },
           responses: { 200: { description: "Changed", content: json(adminContentPageSchema) }, 409: error("Not allowed or VERSION_CONFLICT"), ...staffOnly },
         },
       },
+      "/v1/admin/content/media/{fileId}/{kind}": {
+        get: {
+          summary: "A media-library image for the content editor, including draft pages' images (CONTENT_MANAGE). Never cached publicly.",
+          parameters: [uuidParam("fileId"), { name: "kind", in: "path", required: true, schema: { type: "string", enum: ["preview", "thumbnail"] } }],
+          responses: { 200: { description: "Image bytes" }, ...staffOnly },
+        },
+      },
       "/v1/media/{fileId}/{kind}": {
         get: {
-          summary: "A product, category or content-page image (preview or thumbnail); only for visible products, published categories and pages that aren't archived. Cached for a year.",
+          summary: "A product, category or content-page image (preview or thumbnail); only for visible products, published categories and images the live copy of a published page uses. Product images cache for a year, content images for five minutes.",
           parameters: [uuidParam("fileId"), { name: "kind", in: "path", required: true, schema: { type: "string", enum: ["preview", "thumbnail"] } }],
           responses: { 200: { description: "Image bytes" }, 404: error("Not public") },
         },

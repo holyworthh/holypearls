@@ -1,10 +1,10 @@
-import { searchPhraseListSchema, searchResultsSchema, searchSuggestionsSchema } from "@holypearls/contracts";
+import { searchPhraseListSchema, searchResultsSchema, searchSuggestionsSchema, sitemapSchema } from "@holypearls/contracts";
 import { desc, eq, schema } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, expectForbidden, expectHidden, signInActors, type Actors } from "../testing/actors.js";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
-import { refreshSearchIndex } from "./search.js";
+import { CORRECTION, correct, refreshSearchIndex, removeExpiredSearchEvents, SEARCH_EVENT_RETENTION_DAYS } from "./search.js";
 
 /*
  * T02-06 search (PUB-FR-006, 007, 016), written before the code.
@@ -131,9 +131,11 @@ describe("everyday phrases staff add (PUB-FR-007)", () => {
     await refreshSearchIndex(harness.database.db);
     expect((await search("q=souvenir")).products.entries[0]?.slug).toBe("standard-mug");
     const suggest = searchSuggestionsSchema.parse((await request(harness.url).get("/v1/catalogue/suggest?q=souv")).body);
-    expect(suggest.searches).toContain("souvenir");
+    // A staff phrase goes straight to its target from the typeahead.
+    expect(suggest.shortcuts).toContainEqual({ phrase: "souvenir", href: "/products/standard-mug", label: expect.any(String) });
+    expect(suggest.searches).not.toContain("souvenir");
     const list = searchPhraseListSchema.parse((await request(harness.url).get("/v1/admin/search/phrases").set("cookie", staff)).body);
-    expect(list.entries.find((entry) => entry.phrase === "souvenir")?.target).toMatchObject({ type: "PRODUCT", href: "/products/standard-mug" });
+    expect(list.entries.find((entry) => entry.phrase === "souvenir")?.target).toMatchObject({ type: "PRODUCT", href: "/products/standard-mug", active: true, status: "PUBLISHED" });
   });
 
   it("refuses a phrase pointing at something that doesn't exist", async () => {
@@ -145,5 +147,92 @@ describe("everyday phrases staff add (PUB-FR-007)", () => {
     expectForbidden(await as(harness, actors.catalogueNoMfa!).post("/v1/admin/search/phrases", { phrase: "x", targetType: "PRODUCT", targetId: "0190c5b3-0000-7000-8000-000000000009" }));
     expectHidden(await as(harness, actors.customerChidi!).get("/v1/admin/search/phrases"));
     expectHidden(await as(harness, "").get("/v1/admin/search/report"));
+  });
+});
+
+describe("phrases for targets that aren't public yet (PR #30 review)", () => {
+  it("keeps a phrase for a draft inactive, then it works once the page is published and stops when unpublished", async () => {
+    const created = await staffPost("/v1/admin/content", { type: "GUIDE", title: "Lanyard lengths", slug: "lanyard-lengths" });
+    const page = created.body as { id: string; version: number; fields: Record<string, unknown> };
+    const phrase = await staffPost("/v1/admin/search/phrases", { phrase: "neck strap", targetType: "PAGE", targetId: page.id });
+    expect(phrase.status).toBe(201);
+    expect(phrase.body.target).toMatchObject({ active: false, status: "DRAFT" });
+    await refreshSearchIndex(harness.database.db);
+    const suggest = async () => searchSuggestionsSchema.parse((await request(harness.url).get("/v1/catalogue/suggest?q=neck")).body);
+    expect((await suggest()).shortcuts.map((item) => item.phrase)).not.toContain("neck strap");
+
+    const saved = await request(harness.url)
+      .put(`/v1/admin/content/${page.id}`)
+      .set("origin", TEST_WEB_ORIGIN)
+      .set("cookie", staff)
+      .send({ ...page.fields, summary: "How long a lanyard should be.", body: "<p>Words.</p>", version: page.version });
+    const published = await staffPost(`/v1/admin/content/${page.id}/publish`, { version: saved.body.version });
+    expect(published.status).toBe(200);
+    await refreshSearchIndex(harness.database.db);
+    expect((await suggest()).shortcuts).toContainEqual({ phrase: "neck strap", href: "/resources/lanyard-lengths", label: "Lanyard lengths" });
+    expect((await search("q=neck%20strap")).guides.entries[0]?.slug).toBe("lanyard-lengths");
+
+    await staffPost(`/v1/admin/content/${page.id}/status`, { to: "DRAFT", version: published.body.version });
+    await refreshSearchIndex(harness.database.db);
+    expect((await suggest()).shortcuts.map((item) => item.phrase)).not.toContain("neck strap");
+    const list = searchPhraseListSchema.parse((await request(harness.url).get("/v1/admin/search/phrases").set("cookie", staff)).body);
+    expect(list.entries.find((entry) => entry.phrase === "neck strap")?.target).toMatchObject({ active: false, status: "DRAFT" });
+  });
+
+  it("lists many phrases with their targets", async () => {
+    const products = await harness.database.db.select({ id: schema.products.id, slug: schema.products.slug }).from(schema.products).limit(12);
+    for (const [index, product] of products.entries()) await staffPost("/v1/admin/search/phrases", { phrase: `bulk phrase ${index}`, targetType: "PRODUCT", targetId: product.id });
+    const list = searchPhraseListSchema.parse((await request(harness.url).get("/v1/admin/search/phrases").set("cookie", staff)).body);
+    for (const [index, product] of products.entries()) {
+      expect(list.entries.find((entry) => entry.phrase === `bulk phrase ${index}`)?.target.href).toBe(`/products/${product.slug}`);
+    }
+  });
+});
+
+describe("spelling correction stays bounded (PR #30 review)", () => {
+  it("leaves known words alone, fixes a one-letter slip, and gives up when nothing is close", async () => {
+    const db = harness.database.db;
+    expect(await correct(db, "polo")).toBeNull();
+    expect(await correct(db, "polp")).toBe("polo");
+    expect(await correct(db, "qwxzvbnm")).toBeNull();
+  });
+
+  it("looks up at most a few words of a long query", async () => {
+    const started = Date.now();
+    const result = await correct(harness.database.db, "polp mgu bnaner flyr stikcer xqzv plkq wwzz");
+    expect(Date.now() - started).toBeLessThan(10_000);
+    // Only the first CORRECTION.maxWords words are looked up; the rest are kept as typed.
+    expect(result?.split(" ").slice(CORRECTION.maxWords)).toEqual(["stikcer", "xqzv", "plkq", "wwzz"]);
+    expect(CORRECTION.maxWords).toBe(4);
+  });
+});
+
+describe("search event retention (PR #30 review)", () => {
+  it("removes raw events older than 90 days, keeps newer ones, and can run again", async () => {
+    const db = harness.database.db;
+    const now = new Date();
+    const old = new Date(now.getTime() - (SEARCH_EVENT_RETENTION_DAYS + 1) * 86_400_000);
+    const recent = new Date(now.getTime() - 5 * 86_400_000);
+    const [oldRow] = await db.insert(schema.searchEvents).values({ kind: "SEARCH", query: "retention old", results: 1, createdAt: old }).returning();
+    const [recentRow] = await db.insert(schema.searchEvents).values({ kind: "SEARCH", query: "retention recent", results: 1, createdAt: recent }).returning();
+    expect(await removeExpiredSearchEvents(db, now)).toBeGreaterThanOrEqual(1);
+    expect(await db.select().from(schema.searchEvents).where(eq(schema.searchEvents.id, oldRow!.id))).toHaveLength(0);
+    expect(await db.select().from(schema.searchEvents).where(eq(schema.searchEvents.id, recentRow!.id))).toHaveLength(1);
+    expect(await removeExpiredSearchEvents(db, now)).toBe(0);
+    const report = await request(harness.url).get("/v1/admin/search/report").set("cookie", staff);
+    expect(report.status).toBe(200);
+    expect(report.body.top.map((row: { query: string }) => row.query)).toContain("retention recent");
+  });
+});
+
+describe("sitemap dates (PR #30 review)", () => {
+  it("leaves static pages undated and dates indexes by what they list", async () => {
+    const sitemap = sitemapSchema.parse((await request(harness.url).get("/v1/seo/sitemap")).body);
+    const entry = (path: string) => sitemap.entries.find((item) => item.path === path);
+    expect(entry("/")?.updatedAt).toBeNull();
+    expect(entry("/contact")?.updatedAt).toBeNull();
+    expect(entry("/products")?.updatedAt).not.toBeNull();
+    const guides = sitemap.entries.filter((item) => item.path.startsWith("/resources/")).map((item) => item.updatedAt!);
+    expect(entry("/resources")?.updatedAt).toBe(guides.sort().at(-1));
   });
 });

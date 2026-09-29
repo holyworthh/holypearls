@@ -8,7 +8,7 @@ import {
   type SearchScope,
   type SearchSuggestions,
 } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, gte, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, gte, inArray, lt, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
@@ -116,6 +116,15 @@ export async function refreshSearchIndex(db: Database): Promise<number> {
   await db.transaction(async (tx) => {
     await tx.delete(schema.searchDocuments);
     for (let start = 0; start < docs.length; start += 200) await tx.insert(schema.searchDocuments).values(docs.slice(start, start + 200));
+    // The spelling lexicon: each word of the titles and phrases once, with how many documents use it.
+    await tx.delete(schema.searchTerms);
+    await tx.execute(sql`
+      insert into search_terms (term, documents)
+      select word, count(distinct id)::int from (
+        select id, regexp_split_to_table(terms, '[^[:alnum:]]+') as word from search_documents
+      ) words
+      where length(word) between 3 and 40
+      group by word`);
   });
   return docs.length;
 }
@@ -139,34 +148,67 @@ async function recordEvent(db: Database, event: { kind: "SEARCH" | "NO_RESULTS" 
 const tsQuery = (q: string) => sql`websearch_to_tsquery('english', ${q})`;
 const matches = (q: string) => sql`${schema.searchDocuments.tsv} @@ ${tsQuery(q)}`;
 
-/** Words of the query that match nothing are replaced by the closest indexed word (one or two letters off). */
-async function correct(db: Database, q: string): Promise<string | null> {
+/** Guardrails for spelling correction: it runs only when a search finds nothing, and stays cheap. */
+export const CORRECTION = {
+  /** Words shorter than this are left alone (too many near neighbours). */
+  minLength: 3,
+  /** Longest word considered; longer tokens are pasted codes, not typos. */
+  maxLength: 40,
+  /** At most this many words of one query are looked up. */
+  maxWords: 4,
+  /** Trigram shortlist size before exact edit distances are compared. */
+  candidates: 20,
+  /** Trigram similarity a candidate needs to be shortlisted (pg_trgm's default is 0.3). */
+  similarity: 0.2,
+  /** Each lookup gives up after this long rather than slowing the page. */
+  timeoutMs: 500,
+} as const;
+
+/**
+ * Words of the query that match nothing are replaced by the closest word in
+ * the lexicon (one letter off for short words, two for longer). The trigram
+ * index shortlists candidates; edit distance picks among them.
+ */
+export async function correct(db: Database, q: string): Promise<string | null> {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const fixed: string[] = [];
   let changed = false;
+  let lookups = 0;
   for (const word of words) {
     const clean = word.replace(/[^\p{L}\p{N}]/gu, "");
-    if (clean.length < 3) {
+    if (clean.length < CORRECTION.minLength || clean.length > CORRECTION.maxLength || lookups >= CORRECTION.maxWords) {
       fixed.push(word);
       continue;
     }
-    const [known] = rowsOf<{ known: boolean }>(
-      await db.execute(sql`select (plainto_tsquery('english', ${clean})::text = '' or exists (select 1 from search_documents where tsv @@ plainto_tsquery('english', ${clean}))) as known`),
-    );
-    if (known?.known) {
-      fixed.push(word);
-      continue;
-    }
+    lookups += 1;
     const max = clean.length <= 4 ? 1 : 2;
-    const [best] = rowsOf<{ word: string }>(
-      await db.execute(sql`
-        select word from (select distinct regexp_split_to_table(terms, '[^[:alnum:]]+') as word from search_documents) lexicon
-        where length(word) >= 3 and levenshtein_less_equal(word, ${clean}, ${max}) <= ${max}
-        order by levenshtein(word, ${clean}), similarity(word, ${clean}) desc, word
-        limit 1`),
-    );
-    if (best) {
-      fixed.push(best.word);
+    const best = await db
+      .transaction(async (tx) => {
+        await tx.execute(sql.raw(`set local statement_timeout = ${CORRECTION.timeoutMs}`));
+        // Swapped letters ("shrits") share few trigrams, so the shortlist is a little looser than pg_trgm's default.
+        await tx.execute(sql.raw(`set local pg_trgm.similarity_threshold = ${CORRECTION.similarity}`));
+        const [known] = rowsOf<{ known: boolean }>(
+          await tx.execute(sql`select (plainto_tsquery('english', ${clean})::text = '' or exists (select 1 from search_documents where tsv @@ plainto_tsquery('english', ${clean}))) as known`),
+        );
+        if (known?.known) return null;
+        const [row] = rowsOf<{ term: string }>(
+          await tx.execute(sql`
+            select term from (
+              select term, documents from search_terms
+              where term % ${clean}
+              order by similarity(term, ${clean}) desc
+              limit ${CORRECTION.candidates}
+            ) shortlist
+            where levenshtein_less_equal(term, ${clean}, ${max}) <= ${max}
+            order by levenshtein(term, ${clean}), documents desc, term
+            limit 1`),
+        );
+        return row?.term ?? null;
+      })
+      // A slow or failed lookup just means no correction.
+      .catch(() => null);
+    if (best && best !== clean) {
+      fixed.push(best);
       changed = true;
     } else fixed.push(word);
   }
@@ -216,11 +258,14 @@ async function narrowing(db: Database, q: string) {
       group by c.slug, c.name order by count desc, c.name limit 2`),
   );
   const words = q.toLowerCase().split(/\s+/).filter((word) => word.length >= 3);
+  // Staff phrases count only when what they lead to is public (it's in the index).
   const phraseRows = rowsOf<{ phrase: string }>(
     await db.execute(sql`
       select distinct lower(phrase) as phrase from (
         select unnest(search_phrases) as phrase from products where ${visibleProduct()}
-        union all select phrase from search_phrases
+        union all
+        select sp.phrase from search_phrases sp
+        where exists (select 1 from search_documents d where d.ref_id = sp.target_id)
       ) phrases`),
   );
   const searches = phraseRows
@@ -326,26 +371,78 @@ export async function suggestedGuides(db: Database, q: string, limit = 1): Promi
   return rows.map((row) => ({ title: row.title, href: contentHref("GUIDE", row.slug) }));
 }
 
-/** Staff phrases for the typeahead's "Searches". */
-export async function staffPhrasesLike(db: Database, q: string): Promise<string[]> {
+/**
+ * Staff phrases for the typeahead: each one leads straight to its product,
+ * category or page (PUB-FR-007). Phrases whose target isn't public are left out.
+ */
+export async function staffShortcuts(db: Database, q: string, limit = 3): Promise<SearchSuggestions["shortcuts"]> {
   const term = `%${q.replace(/[%_\\]/g, (match) => `\\${match}`)}%`;
-  const rows = await db.select({ phrase: schema.searchPhrases.phrase }).from(schema.searchPhrases).where(sql`${schema.searchPhrases.phrase} ilike ${term}`);
-  return [...new Set(rows.map((row) => row.phrase))];
+  const rows = await db
+    .select({ phrase: schema.searchPhrases.phrase, targetType: schema.searchPhrases.targetType, targetId: schema.searchPhrases.targetId })
+    .from(schema.searchPhrases)
+    .where(sql`${schema.searchPhrases.phrase} ilike ${term}`)
+    .orderBy(asc(sql`length(${schema.searchPhrases.phrase})`), asc(schema.searchPhrases.phrase))
+    .limit(20);
+  const targets = await describeTargets(db, rows);
+  const seen = new Set<string>();
+  const shortcuts: SearchSuggestions["shortcuts"] = [];
+  for (const row of rows) {
+    const target = targets.get(targetKey(row.targetType, row.targetId));
+    if (!target?.active || seen.has(row.phrase)) continue;
+    seen.add(row.phrase);
+    shortcuts.push({ phrase: row.phrase, href: target.href, label: target.label });
+  }
+  return shortcuts.slice(0, limit);
 }
 
 /* ---------- Staff phrases (PUB-FR-007) ---------- */
 
-async function describeTarget(db: Database, type: "PRODUCT" | "CATEGORY" | "PAGE", id: string): Promise<{ label: string; href: string } | null> {
-  if (type === "PRODUCT") {
-    const [row] = await db.select({ name: schema.products.name, slug: schema.products.slug }).from(schema.products).where(eq(schema.products.id, id));
-    return row ? { label: row.name, href: `/products/${row.slug}` } : null;
+type TargetType = "PRODUCT" | "CATEGORY" | "PAGE";
+type Target = SearchPhrase["target"];
+const targetKey = (type: string, id: string) => `${type}:${id}`;
+
+/**
+ * What phrases point at, looked up once per target type whatever the number
+ * of phrases. `active` means the target is public, so the phrase works on the
+ * site; a phrase for a draft is kept and starts working when it's published.
+ */
+async function describeTargets(db: Database, refs: { targetType: TargetType; targetId: string }[]): Promise<Map<string, Omit<Target, "type" | "id">>> {
+  const ids = (type: TargetType) => [...new Set(refs.filter((ref) => ref.targetType === type).map((ref) => ref.targetId))];
+  const [productIds, categoryIds, pageIds] = [ids("PRODUCT"), ids("CATEGORY"), ids("PAGE")];
+  const [products, categories, pages] = await Promise.all([
+    productIds.length
+      ? db
+          .select({ id: schema.products.id, name: schema.products.name, slug: schema.products.slug, status: schema.products.status, visible: sql<boolean>`(${visibleProduct()})` })
+          .from(schema.products)
+          .where(inArray(schema.products.id, productIds))
+      : [],
+    categoryIds.length
+      ? db
+          .select({
+            id: schema.categories.id,
+            name: schema.categories.name,
+            slug: schema.categories.slug,
+            status: schema.categories.status,
+            visible: sql<boolean>`(${schema.categories.status} = 'PUBLISHED' and (${schema.categories.parentId} is null or exists (select 1 from categories p where p.id = ${schema.categories.parentId} and p.status = 'PUBLISHED')))`,
+          })
+          .from(schema.categories)
+          .where(inArray(schema.categories.id, categoryIds))
+      : [],
+    pageIds.length
+      ? db
+          .select({ id: schema.contentPages.id, title: schema.contentPages.title, slug: schema.contentPages.slug, type: schema.contentPages.type, status: schema.contentPages.status, published: schema.contentPages.published })
+          .from(schema.contentPages)
+          .where(inArray(schema.contentPages.id, pageIds))
+      : [],
+  ]);
+  const map = new Map<string, Omit<Target, "type" | "id">>();
+  for (const row of products) map.set(targetKey("PRODUCT", row.id), { label: row.name, href: `/products/${row.slug}`, status: row.status, active: Boolean(row.visible) });
+  for (const row of categories) map.set(targetKey("CATEGORY", row.id), { label: row.name, href: `/categories/${row.slug}`, status: row.status, active: Boolean(row.visible) });
+  for (const row of pages) {
+    const live = row.status === "PUBLISHED" ? (row.published as ContentFields | null) : null;
+    map.set(targetKey("PAGE", row.id), { label: live?.title ?? row.title, href: contentHref(row.type, live?.slug ?? row.slug), status: row.status, active: Boolean(live) });
   }
-  if (type === "CATEGORY") {
-    const [row] = await db.select({ name: schema.categories.name, slug: schema.categories.slug }).from(schema.categories).where(eq(schema.categories.id, id));
-    return row ? { label: row.name, href: `/categories/${row.slug}` } : null;
-  }
-  const [row] = await db.select({ title: schema.contentPages.title, slug: schema.contentPages.slug, type: schema.contentPages.type }).from(schema.contentPages).where(eq(schema.contentPages.id, id));
-  return row ? { label: row.title, href: contentHref(row.type, row.slug) } : null;
+  return map;
 }
 
 export async function listSearchPhrases(db: Database): Promise<SearchPhrase[]> {
@@ -354,22 +451,22 @@ export async function listSearchPhrases(db: Database): Promise<SearchPhrase[]> {
     .from(schema.searchPhrases)
     .leftJoin(schema.staffProfiles, eq(schema.staffProfiles.id, schema.searchPhrases.createdByStaffId))
     .orderBy(asc(sql`lower(${schema.searchPhrases.phrase})`));
-  const entries: SearchPhrase[] = [];
-  for (const row of rows) {
-    const target = await describeTarget(db, row.phrase.targetType, row.phrase.targetId);
-    entries.push({
-      id: row.phrase.id,
-      phrase: row.phrase.phrase,
-      target: { type: row.phrase.targetType, id: row.phrase.targetId, label: target?.label ?? "Removed", href: target?.href ?? "" },
-      createdAt: row.phrase.createdAt.toISOString(),
-      createdBy: row.by,
-    });
-  }
-  return entries;
+  const targets = await describeTargets(db, rows.map((row) => row.phrase));
+  return rows.map((row) => ({
+    id: row.phrase.id,
+    phrase: row.phrase.phrase,
+    target: {
+      type: row.phrase.targetType,
+      id: row.phrase.targetId,
+      ...(targets.get(targetKey(row.phrase.targetType, row.phrase.targetId)) ?? { label: "Removed", href: "", status: "REMOVED", active: false }),
+    },
+    createdAt: row.phrase.createdAt.toISOString(),
+    createdBy: row.by,
+  }));
 }
 
 export async function createSearchPhrase(db: Database, actor: ActorContext, input: { phrase: string; targetType: "PRODUCT" | "CATEGORY" | "PAGE"; targetId: string }) {
-  const target = await describeTarget(db, input.targetType, input.targetId);
+  const target = (await describeTargets(db, [input])).get(targetKey(input.targetType, input.targetId));
   if (!target) throw new AppError("VALIDATION_FAILED", { fieldErrors: { targetId: "Choose a product, category or page that exists" } });
   const phrase = input.phrase.replace(/\s+/g, " ").trim().toLowerCase();
   try {
@@ -440,6 +537,19 @@ export async function searchTargets(db: Database, q: string) {
   ];
 }
 
+/**
+ * Raw search events are kept for 90 days, then deleted by cleanup.daily.
+ * Queries are redacted when stored, but people still type names and order
+ * references, so nothing keeps them longer. The report reads the last 30 days.
+ */
+export const SEARCH_EVENT_RETENTION_DAYS = 90;
+
+export async function removeExpiredSearchEvents(db: Database, now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - SEARCH_EVENT_RETENTION_DAYS * 86_400_000);
+  const removed = await db.delete(schema.searchEvents).where(lt(schema.searchEvents.createdAt, cutoff)).returning({ id: schema.searchEvents.id });
+  return removed.length;
+}
+
 /** Last 30 days: how many searches, how many found nothing, and the most common of each. */
 export async function searchReport(db: Database, now = new Date()) {
   const since = new Date(now.getTime() - 30 * 86_400_000);
@@ -466,13 +576,17 @@ export async function searchReport(db: Database, now = new Date()) {
   };
 }
 
-/** The typeahead (Pen 09): the catalogue's suggestions plus staff phrases and a matching guide. */
+/**
+ * The typeahead (Pen 09): the catalogue's suggestions, staff phrases as
+ * shortcuts straight to their target, and a matching guide. A product's own
+ * phrases stay "Searches" (they run a search); staff phrases navigate.
+ */
 export async function typeahead(db: Database, q: string): Promise<SearchSuggestions> {
-  const [base, staff, guides] = await Promise.all([searchSuggestions(db, q), staffPhrasesLike(db, q), suggestedGuides(db, q, 1)]);
+  const [base, shortcuts, guides] = await Promise.all([searchSuggestions(db, q), staffShortcuts(db, q), suggestedGuides(db, q, 1)]);
   const lower = q.toLowerCase();
-  const searches = [...new Set([...base.searches, ...staff])]
-    .filter((phrase) => phrase.toLowerCase() !== lower)
+  const searches = [...new Set(base.searches)]
+    .filter((phrase) => phrase.toLowerCase() !== lower && !shortcuts.some((shortcut) => shortcut.phrase === phrase.toLowerCase()))
     .sort((a, b) => Number(!a.toLowerCase().startsWith(lower)) - Number(!b.toLowerCase().startsWith(lower)) || a.length - b.length || a.localeCompare(b))
-    .slice(0, 4);
-  return { ...base, searches, guides };
+    .slice(0, Math.max(0, 4 - shortcuts.length));
+  return { ...base, searches, shortcuts, guides };
 }

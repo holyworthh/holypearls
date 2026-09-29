@@ -47,7 +47,10 @@ export const contentPages = pgTable(
     data: jsonb("data").notNull().default(sql`'{}'::jsonb`),
     /** The last published copy of every field above; null until first published. */
     published: jsonb("published"),
+    /** When the page first went live; republishing keeps it (Article datePublished). */
     publishedAt: at("published_at"),
+    /** When the live copy last changed (Article dateModified, sitemap lastmod). */
+    lastPublishedAt: at("last_published_at"),
     /** What the last save removed from the text, for the editor's warning. */
     sanitized: jsonb("sanitized"),
     updatedByStaffId: uuid("updated_by_staff_id").references(() => staffProfiles.id, { onDelete: "set null" }),
@@ -63,7 +66,7 @@ export const contentPages = pgTable(
   ],
 );
 
-/** Images a content page uses (hero, figures, gallery), so the public media route knows they may be shown. */
+/** Images the working copy uses (hero, figures, gallery); keeps uploads attached. Never makes an image public. */
 export const contentPageMedia = pgTable(
   "content_page_media",
   {
@@ -76,6 +79,25 @@ export const contentPageMedia = pgTable(
     createdAt: createdAt(),
   },
   (table) => [primaryKey({ columns: [table.pageId, table.fileId] }), index("content_page_media_file_idx").on(table.fileId)],
+);
+
+/**
+ * Images the published copy uses. Publishing replaces the page's rows;
+ * unpublishing and archiving remove them. The public media route shows a
+ * content image only while it is listed here for a PUBLISHED page.
+ */
+export const contentPagePublishedMedia = pgTable(
+  "content_page_published_media",
+  {
+    pageId: uuid("page_id")
+      .notNull()
+      .references(() => contentPages.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => files.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (table) => [primaryKey({ columns: [table.pageId, table.fileId] }), index("content_page_published_media_file_idx").on(table.fileId)],
 );
 
 const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
@@ -118,6 +140,21 @@ export const searchDocuments = pgTable(
     index("search_documents_tsv_idx").using("gin", table.tsv),
     index("search_documents_terms_trgm_idx").using("gin", sql`${table.terms} gin_trgm_ops`),
   ],
+);
+
+/**
+ * Words of the index for spelling correction, rebuilt with search_documents.
+ * A trigram index shortlists candidates, so correcting a word never scans
+ * every document.
+ */
+export const searchTerms = pgTable(
+  "search_terms",
+  {
+    term: text("term").primaryKey(),
+    /** How many documents use the word; commoner words win ties. */
+    documents: integer("documents").notNull().default(1),
+  },
+  (table) => [index("search_terms_trgm_idx").using("gin", sql`${table.term} gin_trgm_ops`)],
 );
 
 export const searchPhraseTarget = pgEnum("search_phrase_target", ["PRODUCT", "CATEGORY", "PAGE"]);

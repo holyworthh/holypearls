@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic";
 /** The XML sitemap (PUB-SEO-009): only published, indexable pages; refreshed when content is published or removed. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const data = await getSitemap().catch(() => null);
-  return (data?.entries ?? [{ path: "/", updatedAt: new Date().toISOString() }]).map((entry) => ({
+  return (data?.entries ?? [{ path: "/", updatedAt: null }]).map((entry) => ({
     url: absoluteUrl(entry.path),
-    lastModified: entry.updatedAt,
+    // Pages without editable content carry no date rather than a made-up one.
+    ...(entry.updatedAt ? { lastModified: entry.updatedAt } : {}),
   }));
 }
 

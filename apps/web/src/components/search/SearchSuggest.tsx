@@ -1,7 +1,7 @@
 "use client";
 
 import { type SearchSuggestions, searchSuggestionsSchema } from "@holypearls/contracts";
-import { ArrowRight, ArrowUpLeft, BookOpen, Folder, History, Search, X } from "lucide-react";
+import { ArrowRight, ArrowUpLeft, ArrowUpRight, BookOpen, Folder, History, Search, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { priceLine } from "../catalogue/ProductCard";
 import styles from "./search.module.css";
@@ -94,6 +94,22 @@ type Item = { key: string; href: string; group: "searches" | "categories" | "pro
 
 function itemsFor(data: SearchSuggestions, q: string, searchPath: string): Item[] {
   return [
+    // Staff phrases (PUB-FR-007) go straight to what they point at.
+    ...(data.shortcuts ?? []).map((shortcut) => ({
+      key: `x-${shortcut.phrase}`,
+      href: shortcut.href,
+      group: "searches" as const,
+      label: `${shortcut.phrase}, go to ${shortcut.label}`,
+      body: (
+        <>
+          <ArrowUpRight className={styles.rowIcon} size={16} aria-hidden="true" />
+          <span className={styles.rowText}>
+            <Highlight text={shortcut.phrase} q={q} />
+            <span className={styles.shortcutTarget}> · {shortcut.label}</span>
+          </span>
+        </>
+      ),
+    })),
     ...data.searches.map((phrase) => ({
       key: `s-${phrase}`,
       href: `${searchPath}?q=${encodeURIComponent(phrase)}`,

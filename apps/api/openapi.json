@@ -12969,6 +12969,30 @@
                         "type": "string"
                       }
                     },
+                    "shortcuts": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "phrase": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "phrase",
+                          "href",
+                          "label"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "categories": {
                       "type": "array",
                       "items": {
@@ -13217,6 +13241,7 @@
                   "required": [
                     "q",
                     "searches",
+                    "shortcuts",
                     "categories",
                     "products",
                     "guides"
@@ -14386,13 +14411,21 @@
                               },
                               "href": {
                                 "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "active": {
+                                "type": "boolean"
                               }
                             },
                             "required": [
                               "type",
                               "id",
                               "label",
-                              "href"
+                              "href",
+                              "status",
+                              "active"
                             ],
                             "additionalProperties": false
                           },
@@ -14519,13 +14552,21 @@
                         },
                         "href": {
                           "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "active": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
                         "type",
                         "id",
                         "label",
-                        "href"
+                        "href",
+                        "status",
+                        "active"
                       ],
                       "additionalProperties": false
                     },
@@ -14833,7 +14874,10 @@
                             "type": "string"
                           },
                           "updatedAt": {
-                            "type": "string"
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -17509,7 +17553,7 @@
             }
           },
           "422": {
-            "description": "Missing summary or text (RULE_FAILED)",
+            "description": "Missing summary or text, or an image that is missing, still being checked or without alt text (RULE_FAILED, keyed by field)",
             "content": {
               "application/json": {
                 "schema": {
@@ -17523,7 +17567,7 @@
     },
     "/v1/admin/content/{id}/status": {
       "post": {
-        "summary": "Unpublish (DRAFT) or archive a page (CONTENT_MANAGE, audited)",
+        "summary": "Unpublish (PUBLISHED → DRAFT), archive, or restore (ARCHIVED → DRAFT) a page; unpublishing and archiving make its images private (CONTENT_MANAGE, audited)",
         "parameters": [
           {
             "name": "id",
@@ -17960,9 +18004,62 @@
         }
       }
     },
+    "/v1/admin/content/media/{fileId}/{kind}": {
+      "get": {
+        "summary": "A media-library image for the content editor, including draft pages' images (CONTENT_MANAGE). Never cached publicly.",
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "preview",
+                "thumbnail"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes"
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/media/{fileId}/{kind}": {
       "get": {
-        "summary": "A product, category or content-page image (preview or thumbnail); only for visible products, published categories and pages that aren't archived. Cached for a year.",
+        "summary": "A product, category or content-page image (preview or thumbnail); only for visible products, published categories and images the live copy of a published page uses. Product images cache for a year, content images for five minutes.",
         "parameters": [
           {
             "name": "fileId",

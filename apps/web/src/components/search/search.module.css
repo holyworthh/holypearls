@@ -615,3 +615,8 @@
     background: transparent;
   }
 }
+
+/* A staff phrase's destination, after the phrase (PUB-FR-007). */
+.shortcutTarget {
+  color: var(--hp-graphite);
+}

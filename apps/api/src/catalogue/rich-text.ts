@@ -97,12 +97,19 @@ export function plainText(html: string): string {
     .trim();
 }
 
+/** Media-library images a body uses, in order, with their alt text and which rendition they show. */
+export function mediaImagesIn(html: string): { id: string; kind: "preview" | "thumbnail"; alt: string }[] {
+  const images: { id: string; kind: "preview" | "thumbnail"; alt: string }[] = [];
+  for (const [tag] of html.matchAll(/<img\s[^>]*>/g)) {
+    const match = MEDIA_SRC.exec(/\ssrc="([^"]*)"/.exec(tag)?.[1] ?? "");
+    if (!match) continue;
+    const alt = /\salt="([^"]*)"/.exec(tag)?.[1] ?? "";
+    images.push({ id: match[1]!, kind: match[2] as "preview" | "thumbnail", alt: plainText(alt) });
+  }
+  return images;
+}
+
 /** File IDs of the media-library images a body uses. */
 export function mediaIdsIn(html: string): string[] {
-  const ids = new Set<string>();
-  for (const match of html.matchAll(/<img[^>]*src="([^"]+)"/g)) {
-    const id = MEDIA_SRC.exec(match[1]!)?.[1];
-    if (id) ids.add(id);
-  }
-  return [...ids];
+  return [...new Set(mediaImagesIn(html).map((item) => item.id))];
 }
