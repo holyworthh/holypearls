@@ -1,4 +1,5 @@
-import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt } from "../columns.js";
 import { staffProfiles, users } from "./identity.js";
 
@@ -174,6 +175,10 @@ export const helpRequests = pgTable(
     /** The guest session that sent it, so that guest can see it and no one else. */
     guestSessionId: uuid("guest_session_id").references(() => guestSessions.id, { onDelete: "set null" }),
     name: text("name"),
+    /** Contact page enquiry type (Pen 60): NEW_ORDER, EXISTING_ORDER, COMPANY_ACCOUNT, SOMETHING_ELSE. */
+    topic: text("topic"),
+    company: text("company"),
+    phone: text("phone"),
     message: text("message").notNull(),
     /** IDs and short labels only: page, step, product, configuration, project, quote, proof, order, files. */
     context: jsonb("context").notNull(),
@@ -184,6 +189,7 @@ export const helpRequests = pgTable(
   },
   (table) => [
     uniqueIndex("help_requests_reference_unique").on(table.reference),
+    check("help_requests_topic_known", sql`${table.topic} IS NULL OR ${table.topic} IN ('NEW_ORDER','EXISTING_ORDER','COMPANY_ACCOUNT','SOMETHING_ELSE')`),
     index("help_requests_status_idx").on(table.status, table.createdAt.desc()),
     index("help_requests_customer_idx").on(table.customerId),
   ],

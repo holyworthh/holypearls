@@ -9,7 +9,7 @@ export function BigSearch({ id, defaultValue, placeholder, label = "Search produ
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
       </svg>
-      <SuggestInput id={id} defaultValue={defaultValue} placeholder={placeholder} label={label} />
+      <SuggestInput id={id} defaultValue={defaultValue} placeholder={placeholder} label={label} searchPath="/products" />
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

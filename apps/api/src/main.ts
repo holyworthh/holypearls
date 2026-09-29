@@ -1,3 +1,4 @@
+import { refreshSearchIndex } from "./catalogue/search.js";
 import { type AuthOutbox, createBetterAuthIdentity } from "@holypearls/auth";
 import { jobsConnectionString, loadApiEnv } from "@holypearls/config";
 import { createDatabaseClient } from "@holypearls/db";
@@ -75,3 +76,8 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 await app.listen(env.API_PORT);
 logger.info({ port: env.API_PORT }, "api started");
+// The search index is rebuilt by the worker; building it here too means a fresh
+// database (or an API run without the worker, as in browser tests) can search at once.
+refreshSearchIndex(database.db)
+  .then((documents) => logger.info({ documents }, "search index rebuilt"))
+  .catch((error: unknown) => logger.warn({ err: error }, "search index rebuild failed; the worker retries"));

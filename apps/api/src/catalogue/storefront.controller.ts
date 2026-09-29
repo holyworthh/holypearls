@@ -16,8 +16,10 @@ import { StaffGuard } from "../identity/staff.guard.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { FILE_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import { publicChange } from "./public-change.js";
+import { typeahead } from "./search.js";
 import { getAdminHub, getMerchandisingLists, publishHub, saveHubDraft, saveMerchandisingList } from "./merchandising.js";
-import { listPublicProducts, publicCategoryTree, searchSuggestions, publicHub, publicMediaFile, publicProduct, storefrontNavigation } from "./storefront.js";
+import { listPublicProducts, publicCategoryTree, publicHub, publicMediaFile, publicProduct, storefrontNavigation } from "./storefront.js";
 
 /** Public reads can sit in shared caches briefly; publishing also refreshes the web app's tagged cache. */
 const PUBLIC_CACHE = "public, max-age=60, stale-while-revalidate=300";
@@ -60,7 +62,7 @@ export class StorefrontController {
     @Res({ passthrough: true }) response: Response,
   ) {
     response.setHeader("cache-control", PUBLIC_CACHE);
-    return searchSuggestions(this.deps.db, query.q);
+    return typeahead(this.deps.db, query.q);
   }
 
   @Get("products/:slug")
@@ -133,7 +135,7 @@ export class MerchandisingAdminController {
   ) {
     const actor = await request.getActor!();
     return publishHub(this.deps.db, actor, id, body.version, async (slug) => {
-      await this.deps.jobs.send("cache.revalidate", { v: 1, requestId: actor.requestId, tags: [`category:${slug}`, "catalogue"] });
+      await publicChange(this.deps.jobs, actor, [`category:${slug}`, "catalogue"]);
     });
   }
 
@@ -151,7 +153,7 @@ export class MerchandisingAdminController {
   ) {
     const actor = await request.getActor!();
     const result = await saveMerchandisingList(this.deps.db, actor, key, body.productIds, body.version);
-    await this.deps.jobs.send("cache.revalidate", { v: 1, requestId: actor.requestId, tags: ["catalogue"] });
+    await publicChange(this.deps.jobs, actor, ["catalogue"]);
     return result;
   }
 }

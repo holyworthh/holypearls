@@ -41,7 +41,7 @@ test("the mobile menu drills down with 44 px targets", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Open menu" }).click();
   const menu = page.getByRole("dialog", { name: "Menu" });
-  await expect(menu.getByRole("combobox", { name: "Search products" })).toBeVisible();
+  await expect(menu.getByRole("combobox", { name: "Search", exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   const rows = menu.getByRole("button", { name: "Products" });
   expect((await rows.boundingBox())!.height).toBeGreaterThanOrEqual(44);

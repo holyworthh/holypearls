@@ -42,6 +42,8 @@ const storage = {
 
 const webSchema = z.object({
   API_URL: z.url(),
+  SITE_URL: z.url().optional(),
+  INDEXNOW_KEY: z.string().optional(),
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
   ...monitoring,
 });
@@ -65,8 +67,18 @@ const apiSchema = z.object({
   ...storage,
 });
 
+/** IndexNow (PUB-SEO-009): production only. SITE_URL is the public web address; the key is also served at /indexnow-key.txt. */
+const seo = {
+  SITE_URL: z.url().optional(),
+  INDEXNOW_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{8,128}$/)
+    .optional(),
+};
+
 const workerSchema = z.object({
   DATABASE_URL: databaseUrl,
+  ...seo,
   ...directUrl,
   ...monitoring,
   ...encryption,

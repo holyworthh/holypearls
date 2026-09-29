@@ -389,6 +389,44 @@ describe("help requests with context (PRD-00 §18)", () => {
     expect(noEmail.body.fieldErrors).toEqual({ email: "Enter your email so we can reply" });
   });
 
+  it("takes a contact-page enquiry with its type, company, phone and the sender's own files (Pen 60)", async () => {
+    const db = harness.database.db;
+    const [chidi] = await db.select().from(schema.users).where(eq(schema.users.email, TEST_PEOPLE.customerChidi.email));
+    const [ada] = await db.select().from(schema.users).where(eq(schema.users.email, TEST_PEOPLE.adminAda.email));
+    const file = async (userId: string, name: string) =>
+      (
+        await db
+          .insert(schema.files)
+          .values({ purpose: "PROJECT_ATTACHMENT", bucket: "private", storageKey: `test/${name}`, originalName: name, safeName: name, declaredType: "application/pdf", declaredSize: 1000, status: "READY", uploadedByUserId: userId })
+          .returning()
+      )[0]!;
+    const mine = await file(chidi!.id, "brief.pdf");
+    const created = await as(harness, actors.customerChidi!).post("/v1/help-requests", {
+      message: "120 staff polos with our logo, needed by November",
+      topic: "NEW_ORDER",
+      company: "ACME Hospitality Group",
+      phone: "+234 800 000 0000",
+      fileIds: [mine.id],
+      context: { page: { path: "/contact", title: "Contact us" } },
+    });
+    expect(created.status).toBe(201);
+    expect(helpRequestSchema.parse(created.body)).toMatchObject({ topic: "NEW_ORDER", company: "ACME Hospitality Group", phone: "+234 800 000 0000" });
+    const [attached] = await db.select().from(schema.files).where(eq(schema.files.id, mine.id));
+    expect(attached).toMatchObject({ ownerType: "HELP_REQUEST", ownerId: created.body.id });
+    const detail = adminHelpRequestSchema.parse((await as(harness, actors.adminAda!).get(`/v1/admin/help-requests/${created.body.id}`)).body);
+    expect(detail.context.files).toEqual([{ id: mine.id, label: "brief.pdf", status: "READY" }]);
+
+    // Someone else's file can't be attached.
+    const theirs = await file(ada!.id, "not-yours.pdf");
+    const refused = await as(harness, actors.customerChidi!).post("/v1/help-requests", {
+      message: "Attach this",
+      fileIds: [theirs.id],
+      context: { page: { path: "/contact", title: "Contact us" } },
+    });
+    expect(refused.status).toBe(400);
+    expect(refused.body.fieldErrors).toHaveProperty("fileIds");
+  });
+
   it("keeps the inbox from customers and staff without CUSTOMER_SUPPORT", async () => {
     expectHidden(await as(harness, actors.customerChidi!).get("/v1/admin/help-requests"));
     expect((await as(harness, actors.adminTunde!).get("/v1/admin/help-requests")).status).toBe(403);

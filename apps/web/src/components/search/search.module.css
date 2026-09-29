@@ -363,9 +363,17 @@
 
 @media (hover: none), (max-width: 767px) {
   .keys,
-  .escHint,
   .slash {
     display: none;
+  }
+
+  /* No Esc key on touch screens: the close button says "Cancel". */
+  .escDesktop {
+    display: none;
+  }
+
+  .escPhone {
+    display: inline;
   }
 }
 
@@ -411,4 +419,199 @@
   text-decoration: none;
   background-size: 100% var(--hp-size-1), 100% var(--hp-size-1);
   background-position: 0 100%, 0 100%;
+}
+
+/* "Esc to close" on desktop; "Cancel" on the phone's full-screen search (Pen 08). */
+.escPhone {
+  display: none;
+}
+
+/* Empty full-screen search (Pen 08 A): recent searches, then popular chips. */
+.starters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-16) 0 var(--hp-space-8);
+}
+
+.starters > section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  padding: 0 var(--hp-space-20);
+}
+
+.startersHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.startersHead .groupLabel,
+.starters h2.groupLabel {
+  margin: 0;
+  font-weight: 400;
+  line-height: var(--hp-space-16);
+}
+
+.clearRecent {
+  min-height: var(--hp-size-44);
+  margin: calc((var(--hp-size-44) - var(--hp-size-19)) / -2) 0;
+  padding: 0 var(--hp-space-4);
+  border: 0;
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-size-13);
+  font-weight: 600;
+  line-height: var(--hp-size-19);
+  cursor: pointer;
+}
+
+.recentList,
+.popularChips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-12);
+  height: var(--hp-size-44);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+  text-decoration: none;
+}
+
+.recentRow .rowText {
+  flex: 1 1 0;
+}
+
+.recentRow:hover .rowText {
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.popularChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+  padding-top: var(--hp-space-6);
+}
+
+.popularChip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--hp-size-36);
+  padding: 0 var(--hp-space-12);
+  border-radius: var(--hp-size-18);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-space-20);
+  text-decoration: none;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.popularChip:hover {
+  background: var(--hp-bone);
+  outline-color: var(--hp-ink);
+}
+
+.popularChip:active {
+  transform: scale(var(--hp-press-scale));
+}
+
+/*
+ * Phones (Pen 08 · qxLIy): opening search goes full screen. The field sits in
+ * a 48px outlined box with "Cancel" beside it; suggestions stack in one
+ * column and the page behind stays hidden. Content scrolls above the keyboard.
+ */
+@media (max-width: 767px) {
+  .dialog {
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    translate: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    animation: fade var(--hp-motion-dropdown) var(--hp-ease-soft);
+  }
+
+  .fieldRow {
+    gap: var(--hp-space-8);
+    height: auto;
+    padding: var(--hp-space-10) var(--hp-space-12);
+  }
+
+  .fieldRow > .fieldIcon {
+    position: absolute;
+    left: calc(var(--hp-space-12) * 2);
+    pointer-events: none;
+  }
+
+  .fieldRow > .fieldInput {
+    height: var(--hp-space-48);
+    padding: 0 var(--hp-space-12) 0 calc(var(--hp-space-12) + var(--hp-space-20) + var(--hp-space-10));
+    border-radius: var(--hp-space-6);
+    outline: var(--hp-space-2) solid var(--hp-ink);
+    outline-offset: var(--hp-size--1);
+    font-size: var(--hp-space-16);
+    line-height: var(--hp-size-23);
+  }
+
+  .fieldRow > .clear {
+    position: absolute;
+    right: calc(var(--hp-space-12) + var(--hp-size-60) + var(--hp-space-8));
+  }
+
+  .escHint {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--hp-size-44);
+    color: var(--hp-ink);
+    font-size: var(--hp-size-15);
+    font-weight: 600;
+    line-height: var(--hp-size-22);
+  }
+
+  .escDesktop {
+    display: none;
+  }
+
+  .escPhone {
+    display: inline;
+  }
+
+  .fieldRow {
+    position: relative;
+  }
+
+  .panelAttached .colLeft,
+  .panelAttached .colRight {
+    padding: var(--hp-space-4) var(--hp-space-20);
+  }
+
+  .panelAttached .colLeft .option {
+    min-height: var(--hp-size-47_5);
+    padding: 0;
+    border-bottom: var(--hp-size-1) solid var(--hp-line);
+    border-radius: 0;
+    font-size: var(--hp-space-16);
+  }
+
+  .panelAttached .footer {
+    background: transparent;
+  }
 }

@@ -37,6 +37,10 @@ export const QUEUES = {
   "file.preview": { payload: payload({ fileId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 120 } },
   /** Tells the web app to refresh cached public pages for these cache tags (TECH-02 §6). */
   "cache.revalidate": { payload: payload({ tags: z.array(z.string().max(120)).min(1).max(50) }), settings: { retryLimit: 3 } },
+  /** Rebuilds the search index from published records after catalogue or content changes (TECH-02 §8: 3 retries). */
+  "search.refresh": { payload: payload({}), settings: { retryLimit: 3 } },
+  /** Tells search engines which public addresses changed (IndexNow, PUB-SEO-009). */
+  "seo.indexnow": { payload: payload({ paths: z.array(z.string().startsWith("/").max(300)).min(1).max(100) }), settings: { retryLimit: 3 } },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;

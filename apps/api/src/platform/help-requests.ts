@@ -1,6 +1,7 @@
-import type { AdminHelpRequest, HelpContext, HelpInbox, HelpRequest } from "@holypearls/contracts";
+import type { AdminHelpRequest, HelpContext, HelpInbox, HelpRequest, HelpTopic } from "@holypearls/contracts";
 import { and, type Database, eq, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
+import { attachFile, findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, ensureCustomer, redeemGuestLink } from "../identity/customers.js";
 import { recordAudit } from "./audit.js";
@@ -57,6 +58,9 @@ const toPublic = (row: Row, list: Awaited<ReturnType<typeof replies>>): HelpRequ
   reference: row.reference,
   status: row.status,
   message: row.message,
+  topic: (row.topic as HelpRequest["topic"]) ?? null,
+  company: row.company,
+  phone: row.phone,
   context: row.context as HelpContext,
   createdAt: row.createdAt.toISOString(),
   replies: list.map((reply) => ({ id: reply.id, author: reply.author, body: reply.body, createdAt: reply.createdAt.toISOString() })),
@@ -76,9 +80,21 @@ export interface CreatedHelpRequest {
 export async function createHelpRequest(
   deps: HelpDeps,
   actor: ActorContext,
-  input: { message: string; email?: string; name?: string; context: HelpContext },
+  input: { message: string; email?: string; name?: string; topic?: HelpTopic; company?: string; phone?: string; fileIds?: string[]; context: HelpContext },
 ): Promise<CreatedHelpRequest> {
   const now = actor.now;
+  // Only the sender's own uploads, not yet attached to anything, can join the request.
+  const files: (typeof schema.files.$inferSelect)[] = [];
+  for (const id of [...new Set(input.fileIds ?? [])]) {
+    const file = await findFileForActor(deps.db, actor, id).catch(() => null);
+    if (!file || file.ownerId || file.status === "REJECTED") {
+      throw new AppError("VALIDATION_FAILED", { fieldErrors: { fileIds: "Attach only files you uploaded here" } });
+    }
+    files.push(file);
+  }
+  const context: HelpContext = files.length
+    ? { ...input.context, files: [...(input.context.files ?? []), ...files.map((file) => ({ id: file.id, label: file.safeName, status: file.status }))] }
+    : input.context;
   const email = actor.type === "user" ? actor.session.email : input.email;
   const customer =
     actor.type === "guest"
@@ -94,7 +110,7 @@ export async function createHelpRequest(
 
   const reference = await nextReference(deps.db, now);
   const name = input.name ?? (actor.type === "user" ? actor.session.name : customer.name) ?? null;
-  const where = describeContext(input.context);
+  const where = describeContext(context);
 
   const { row, link } = await deps.db.transaction(async (tx) => {
     const [row] = await tx
@@ -105,10 +121,14 @@ export async function createHelpRequest(
         userId: actor.type === "user" ? actor.session.userId : null,
         guestSessionId: actor.type === "guest" ? actor.guest.guestSessionId : null,
         name,
+        topic: input.topic ?? null,
+        company: input.company || null,
+        phone: input.phone || null,
         message: input.message,
-        context: input.context,
+        context,
       })
       .returning();
+    for (const file of files) await attachFile(tx, file.id, { type: "HELP_REQUEST", id: row!.id });
     // Someone with no session gets a link to their own request, so they can come back to it.
     const link =
       actor.type === "anonymous"

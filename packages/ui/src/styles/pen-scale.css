@@ -4,6 +4,18 @@
  * names are the pixel value (dots become underscores).
  */
 :root {
+  --hp-size--2_6: -2.6px;
+  --hp-size--0_3: -0.3px;
+  --hp-size-0_3: 0.3px;
+  --hp-size-31: 31px;
+  --hp-size-65: 65px;
+  --hp-size-93: 93px;
+  --hp-size-130: 130px;
+  --hp-size-172: 172px;
+  --hp-size-880: 880px;
+  --hp-size--1_2: -1.2px;
+  --hp-size-120: 120px;
+  --hp-size-340: 340px;
   --hp-size--4_2: -4.2px;
   --hp-size--3_3: -3.3px;
   --hp-size--3_1: -3.1px;

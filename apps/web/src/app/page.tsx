@@ -3,9 +3,11 @@ import type { CSSProperties } from "react";
 import { ProductCard } from "../components/catalogue/ProductCard";
 import s from "../components/home/home.module.css";
 import { Icon } from "../components/pen/Icon";
-import { categoryHref } from "../components/site/nav";
+import { categoryHref, projectHref } from "../components/site/nav";
 import { SuggestInput } from "../components/search/SearchSuggest";
 import { SiteShell } from "../components/site/SiteShell";
+import { JsonLd } from "../components/seo/JsonLd";
+import { organizationLd, websiteLd } from "../lib/seo";
 import { getNavigation } from "../lib/storefront";
 
 // Rendered per request so a build without the API never freezes empty menus; the API data itself is cached under tags.
@@ -21,11 +23,11 @@ export const metadata: Metadata = {
 const photo = (n: number): CSSProperties => ({ backgroundImage: `url("/pen/generated-${n}.webp")` });
 
 const OUTCOMES = [
-  { title: "Staff uniforms", meta: "Polos, aprons and workwear for your whole team", href: categoryHref("apparel-garment-production"), photo: 50 },
-  { title: "An event or conference", meta: "Backdrops, name badges, crew shirts", href: categoryHref("large-format-signage-displays"), photo: 48 },
-  { title: "A product launch", meta: "Packaging, labels and launch kits", href: categoryHref("bags-packaging"), photo: 47 },
-  { title: "Office or shop branding", meta: "Signs, wall graphics and displays", href: categoryHref("large-format-signage-displays"), photo: 45 },
-  { title: "Gifts for staff or clients", meta: "Corporate gifts and welcome packs", href: categoryHref("promotional-products-corporate-gifts"), photo: 47 },
+  { title: "Staff uniforms", meta: "Polos, aprons and workwear for your whole team", href: projectHref("staff-team-branding"), photo: 50 },
+  { title: "An event or conference", meta: "Backdrops, name badges, crew shirts", href: projectHref("event-branding"), photo: 48 },
+  { title: "A product launch", meta: "Packaging, labels and launch kits", href: projectHref("business-launch"), photo: 47 },
+  { title: "Office or shop branding", meta: "Signs, wall graphics and displays", href: projectHref("retail-branding"), photo: 45 },
+  { title: "Gifts for staff or clients", meta: "Corporate gifts and welcome packs", href: projectHref("corporate-gifts"), photo: 47 },
 ];
 
 /** Category photos from the Pen board (desktop lead row and mobile thumbnails). */
@@ -82,7 +84,7 @@ function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "
   const hero = variant === "hero";
   if (variant === "mHero") {
     return (
-      <form className={s.mIntent} role="search" action="/products">
+      <form className={s.mIntent} role="search" action="/search">
         <Icon name="search" size={22} />
         <span className={s.query}>
           <span className={s.mSearchLabel} aria-hidden="true">
@@ -95,14 +97,14 @@ function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "
   }
   if (variant === "mFinal") {
     return (
-      <form className={s.mFinalSearch} role="search" action="/products">
+      <form className={s.mFinalSearch} role="search" action="/search">
         <Icon name="search" size={20} />
         <SuggestInput id={id} className={s.mSearchInput} placeholder="Search products or ideas" label="Search products or ideas" />
       </form>
     );
   }
   return (
-    <form className={hero ? s.intentSearch : s.finalSearch} role="search" action="/products">
+    <form className={hero ? s.intentSearch : s.finalSearch} role="search" action="/search">
       <Icon name="search" size={24} />
       {hero ? (
         <span className={s.query}>
@@ -134,6 +136,7 @@ export default async function HomePage() {
   const [lead, ...rest] = categories;
   return (
     <SiteShell>
+      <JsonLd data={[organizationLd(), websiteLd()]} />
       {/* ── Desktop (Pen 15) ── */}
       <div className={s.desk}>
         <section className={`${s.hero} ${s.pad}`} aria-labelledby="hero-title">

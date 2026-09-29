@@ -15,6 +15,10 @@
   background: var(--hp-sand);
 }
 
+.square {
+  aspect-ratio: 302 / 300;
+}
+
 .media img,
 .compactMedia img {
   display: block;

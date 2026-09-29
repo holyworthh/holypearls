@@ -196,7 +196,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             .map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
-          <SuggestInput id="directory-q" className={s.searchInput} defaultValue={q} placeholder="Search products. Try “polo”, “roll-up” or “paper bag”" />
+          <SuggestInput id="directory-q" className={s.searchInput} defaultValue={q} searchPath="/products" placeholder="Search products. Try “polo”, “roll-up” or “paper bag”" />
           <button type="submit" className={s.redButton}>
             Search
           </button>

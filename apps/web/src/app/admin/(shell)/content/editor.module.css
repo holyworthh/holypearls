@@ -1,0 +1,229 @@
+/* Rich text (Pen 106 · RZTtl): values from the Pen html-css export, mapped to tokens. */
+
+.rich {
+  display: flex;
+  flex-direction: column;
+  min-height: var(--hp-size-340);
+  overflow: hidden;
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+}
+
+.rich:focus-within {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: 0;
+}
+
+/* Toolbar: bone, 52 tall, 44px tools. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-2);
+  min-height: var(--hp-size-52);
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+  background: var(--hp-bone);
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-size-44);
+  height: var(--hp-size-44);
+  padding: 0;
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: transparent;
+  color: var(--hp-ink);
+  cursor: pointer;
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.tool:hover {
+  background: var(--hp-paper);
+}
+
+.tool[aria-pressed="true"] {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.tool:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: 0;
+}
+
+.tool:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.toolSep {
+  width: var(--hp-size-1);
+  height: var(--hp-space-24);
+  margin: 0 var(--hp-space-4);
+  background: var(--hp-line);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: var(--hp-size-280);
+  padding: var(--hp-space-20);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+  outline: none;
+}
+
+.body > * + * {
+  margin-top: var(--hp-space-12);
+}
+
+.body p {
+  margin: 0;
+}
+
+.body h2 {
+  margin: var(--hp-space-20) 0 0;
+  font-size: var(--hp-size-22);
+  font-weight: 600;
+  line-height: var(--hp-space-28);
+}
+
+.body h3 {
+  margin: var(--hp-space-16) 0 0;
+  font-size: var(--hp-size-18);
+  font-weight: 600;
+  line-height: var(--hp-size-26);
+}
+
+.body > :first-child {
+  margin-top: 0;
+}
+
+.body ul,
+.body ol {
+  margin: 0;
+  padding-left: var(--hp-space-24);
+}
+
+.body blockquote {
+  margin: 0;
+  padding-left: var(--hp-space-16);
+  border-left: var(--hp-space-2) solid var(--hp-line-strong);
+  color: var(--hp-graphite);
+}
+
+.body a {
+  color: var(--hp-ink);
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--hp-space-6);
+}
+
+.body img.ProseMirror-selectednode,
+.blockChip.ProseMirror-selectednode {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+}
+
+/* A placed guide diagram: a labelled slot, edited in the guide's parts. */
+.blockChip {
+  display: flex;
+  align-items: center;
+  height: var(--hp-size-52);
+  padding: 0 var(--hp-space-14);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) dashed var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  cursor: grab;
+}
+
+.blockChip[data-block="comparison"]::before {
+  content: "Comparison diagram";
+}
+
+.blockChip[data-block="decision"]::before {
+  content: "Decision aid";
+}
+
+.inlineForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-12) var(--hp-space-16);
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+  background: var(--hp-bone);
+}
+
+.inlineLabel {
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  font-weight: 600;
+}
+
+.inlineInput {
+  flex: 1 1 var(--hp-size-220);
+  min-width: 0;
+  height: var(--hp-size-44);
+  padding: 0 var(--hp-space-12);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-space-16);
+}
+
+.inlineInput:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: 0;
+}
+
+.inlineButton,
+.inlineCancel {
+  height: var(--hp-size-44);
+  padding: 0 var(--hp-space-16);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  font: inherit;
+  font-size: var(--hp-text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inlineButton {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.inlineButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.inlineCancel {
+  background: transparent;
+  color: var(--hp-ink);
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.imageUpload {
+  flex: 1 1 100%;
+}

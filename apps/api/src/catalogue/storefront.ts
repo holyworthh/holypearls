@@ -31,11 +31,11 @@ const PRICE_STATE: Record<string, PriceState> = {
 
 export const mediaUrl = (fileId: string, kind: "preview" | "thumbnail") => `/api/v1/media/${fileId}/${kind}`;
 
-const image = (fileId: string | null, alt: string | null, width: number | null, height: number | null): PublicImage | null =>
+export const image = (fileId: string | null, alt: string | null, width: number | null, height: number | null): PublicImage | null =>
   fileId ? { url: mediaUrl(fileId, "preview"), thumbnailUrl: mediaUrl(fileId, "thumbnail"), alt: alt ?? "", width, height } : null;
 
 /** Visible product, in a published category (and a published parent, if it has one). */
-function visibleProduct(): SQL {
+export function visibleProduct(): SQL {
   return sql`${schema.products.status} in ('PUBLISHED', 'TEMPORARILY_UNAVAILABLE')
     and ${schema.products.listed}
     and exists (
@@ -100,7 +100,7 @@ export function workingDaysUntil(date: string, { now = new Date(), timeZone = BU
 
 const textArray = (values: readonly string[]) => sql`${`{${values.join(",")}}`}::text[]`;
 
-const cardColumns = {
+export const cardColumns = {
   slug: schema.products.slug,
   name: schema.products.name,
   summary: schema.products.summary,
@@ -128,7 +128,7 @@ type CardRow = {
   moq: number | null;
 };
 
-const toCard = (row: CardRow): PublicProductCard => ({
+export const toCard = (row: CardRow): PublicProductCard => ({
   slug: row.slug,
   name: row.name,
   summary: row.summary,
@@ -161,7 +161,7 @@ function categoryCondition(slugs: string[]): SQL {
   )`;
 }
 
-async function listOrder(db: Database, key: string): Promise<string[]> {
+export async function listOrder(db: Database, key: string): Promise<string[]> {
   const [row] = await db.select({ ids: schema.merchandisingLists.productIds }).from(schema.merchandisingLists).where(eq(schema.merchandisingLists.key, key));
   return row?.ids ?? [];
 }
@@ -335,7 +335,7 @@ export async function suggestedProducts(db: Database, q: string, limit = 3): Pro
   return rows.map(toCard);
 }
 
-async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
+export async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
   if (!slugs.length) return [];
   const rows = (await db
     .select(cardColumns)
@@ -345,7 +345,7 @@ async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProduc
   return slugs.flatMap((slug) => rows.filter((row) => row.slug === slug)).map(toCard);
 }
 
-async function cardsByIds(db: Database, ids: string[]): Promise<PublicProductCard[]> {
+export async function cardsByIds(db: Database, ids: string[]): Promise<PublicProductCard[]> {
   if (!ids.length) return [];
   const rows = (await db
     .select({ ...cardColumns, id: schema.products.id })
@@ -466,8 +466,17 @@ export async function publicMediaFile(db: Database, fileId: string) {
   const [file] = await db
     .select()
     .from(schema.files)
-    .where(and(eq(schema.files.id, fileId), eq(schema.files.purpose, "PRODUCT_MEDIA"), eq(schema.files.status, "READY")));
+    .where(and(eq(schema.files.id, fileId), inArray(schema.files.purpose, ["PRODUCT_MEDIA", "CONTENT_MEDIA"]), eq(schema.files.status, "READY")));
   if (!file) throw new AppError("NOT_FOUND");
+  // Content images (T02-06) may be shown once a page that isn't archived uses them.
+  const [onPage] = await db
+    .select({ id: schema.contentPages.id })
+    .from(schema.contentPageMedia)
+    .innerJoin(schema.contentPages, eq(schema.contentPages.id, schema.contentPageMedia.pageId))
+    .where(and(eq(schema.contentPageMedia.fileId, fileId), sql`${schema.contentPages.status} <> 'ARCHIVED'`))
+    .limit(1);
+  if (onPage) return file;
+  if (file.purpose === "CONTENT_MEDIA") throw new AppError("NOT_FOUND");
   const [onProduct] = await db
     .select({ id: schema.products.id })
     .from(schema.productMedia)

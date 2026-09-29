@@ -81,6 +81,8 @@
   --hp-footer-text-muted: #8a8a93;
   /* Press feedback: every button and icon control shrinks to the same 0.96 when pressed. */
   --hp-press-scale: 0.96;
+  /* Pen 59 "How every order is made": step outlines on ink (#FFFFFF33). */
+  --hp-on-dark-line: #ffffff33;
   /* Search autocomplete (Pen 09 · R8Aqc): scrim #0C0C0E59, 760px panel, 300px suggestion column. */
   --hp-scrim: rgb(12 12 14 / 35%);
   /* Site motion (INFERRED: chosen over Pen 09's motion spec at the owner's request). Soft ease-out for reveals and hovers; all motion is off with prefers-reduced-motion. */
