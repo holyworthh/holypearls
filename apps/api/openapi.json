@@ -9898,6 +9898,68 @@
                               "CONSULTATION_REQUIRED",
                               "UNAVAILABLE"
                             ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PER_UNIT",
+                                      "PER_PACK",
+                                      "FIXED"
+                                    ]
+                                  },
+                                  "packSize": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "basis",
+                                  "packSize",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "moq": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -9909,7 +9971,9 @@
                           "category",
                           "image",
                           "available",
-                          "priceState"
+                          "priceState",
+                          "price",
+                          "moq"
                         ],
                         "additionalProperties": false
                       }
@@ -10254,6 +10318,68 @@
                               "CONSULTATION_REQUIRED",
                               "UNAVAILABLE"
                             ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PER_UNIT",
+                                      "PER_PACK",
+                                      "FIXED"
+                                    ]
+                                  },
+                                  "packSize": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "basis",
+                                  "packSize",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "moq": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -10265,7 +10391,9 @@
                           "category",
                           "image",
                           "available",
-                          "priceState"
+                          "priceState",
+                          "price",
+                          "moq"
                         ],
                         "additionalProperties": false
                       }
@@ -10543,6 +10671,68 @@
                         "UNAVAILABLE"
                       ]
                     },
+                    "price": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "enum": [
+                                "NGN",
+                                "USD"
+                              ]
+                            },
+                            "basis": {
+                              "type": "string",
+                              "enum": [
+                                "PER_UNIT",
+                                "PER_PACK",
+                                "FIXED"
+                              ]
+                            },
+                            "packSize": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "PRICE_READY",
+                                "ESTIMATE_READY"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "amountMinor",
+                            "currency",
+                            "basis",
+                            "packSize",
+                            "state"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "moq": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "description": {
                       "type": [
                         "string",
@@ -10779,6 +10969,68 @@
                               "CONSULTATION_REQUIRED",
                               "UNAVAILABLE"
                             ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PER_UNIT",
+                                      "PER_PACK",
+                                      "FIXED"
+                                    ]
+                                  },
+                                  "packSize": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "basis",
+                                  "packSize",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "moq": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -10790,7 +11042,9 @@
                           "category",
                           "image",
                           "available",
-                          "priceState"
+                          "priceState",
+                          "price",
+                          "moq"
                         ],
                         "additionalProperties": false
                       }
@@ -10827,12 +11081,19 @@
                                         },
                                         "isDefault": {
                                           "type": "boolean"
+                                        },
+                                        "swatch": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
                                         }
                                       },
                                       "required": [
                                         "key",
                                         "label",
-                                        "isDefault"
+                                        "isDefault",
+                                        "swatch"
                                       ],
                                       "additionalProperties": false
                                     }
@@ -11007,6 +11268,8 @@
                     "image",
                     "available",
                     "priceState",
+                    "price",
+                    "moq",
                     "description",
                     "images",
                     "specifications",
@@ -11685,6 +11948,68 @@
                               "CONSULTATION_REQUIRED",
                               "UNAVAILABLE"
                             ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PER_UNIT",
+                                      "PER_PACK",
+                                      "FIXED"
+                                    ]
+                                  },
+                                  "packSize": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "basis",
+                                  "packSize",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "moq": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -11696,7 +12021,9 @@
                           "category",
                           "image",
                           "available",
-                          "priceState"
+                          "priceState",
+                          "price",
+                          "moq"
                         ],
                         "additionalProperties": false
                       }
@@ -11821,6 +12148,68 @@
                               "CONSULTATION_REQUIRED",
                               "UNAVAILABLE"
                             ]
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "amountMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "basis": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PER_UNIT",
+                                      "PER_PACK",
+                                      "FIXED"
+                                    ]
+                                  },
+                                  "packSize": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "amountMinor",
+                                  "currency",
+                                  "basis",
+                                  "packSize",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "moq": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -11832,7 +12221,9 @@
                           "category",
                           "image",
                           "available",
-                          "priceState"
+                          "priceState",
+                          "price",
+                          "moq"
                         ],
                         "additionalProperties": false
                       }

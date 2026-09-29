@@ -75,4 +75,6 @@
   /* Configurator choice cards (Pen 21 · paper, sides, finish options). */
   --hp-choice-min-width: 140px;
   --hp-shadow-menu: 0 18px 48px rgb(27 26 23 / 14%);
+  /* Footer dividers on ink (Pen HP/Nav/Footer, #3A3833). */
+  --hp-footer-rule: #3a3833;
 }

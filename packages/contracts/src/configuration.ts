@@ -169,7 +169,7 @@ export const configuratorSchema = z.object({
       key: z.string(),
       label: z.string(),
       required: z.boolean(),
-      values: z.array(z.object({ key: z.string(), label: z.string(), isDefault: z.boolean() })),
+      values: z.array(z.object({ key: z.string(), label: z.string(), isDefault: z.boolean(), swatch: z.string().nullable() })),
     }),
   ),
   moq: z.number().int(),

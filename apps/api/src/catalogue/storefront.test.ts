@@ -1,4 +1,4 @@
-import { adminHubSchema, adminMerchandisingListsSchema, publicHubSchema, publicProductPageSchema, storefrontNavigationSchema } from "@holypearls/contracts";
+import { adminHubSchema, adminMerchandisingListsSchema, publicHubSchema, publicProductPageSchema, publicProductSchema, storefrontNavigationSchema } from "@holypearls/contracts";
 import { eq, schema } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -52,7 +52,7 @@ describe("public product directory (PUB-FR-008)", () => {
     const all = await page("?limit=48");
     expect(all.entries.map((entry) => entry.slug)).not.toContain("secret-draft-flyer");
     expect(all.entries.map((entry) => entry.slug)).not.toContain("old-archived-flyer");
-    expect(all.total).toBe(10);
+    expect(all.total).toBe(14);
     expect(all.entries[0]).not.toHaveProperty("sku");
 
     await harness.database.db.update(schema.products).set({ status: "PUBLISHED" }).where(eq(schema.products.id, draft.id));
@@ -72,12 +72,12 @@ describe("public product directory (PUB-FR-008)", () => {
     await insertProduct({ slug: "office-letterhead", status: "PUBLISHED", categorySlug: "business-stationery", phrases: ["company paper"] });
     const print = await page("?category=print-business-stationery");
     expect(print.entries.map((entry) => entry.slug)).toEqual(expect.arrayContaining(["business-cards", "office-letterhead"]));
-    expect(print.entries.every((entry) => entry.category.name === "Business Stationery")).toBe(true);
+    expect(new Set(print.entries.map((entry) => entry.category.name))).toEqual(new Set(["Business Stationery", "ID & Event"]));
     // Facet counts ignore the category filter itself, so every chip shows its own count.
-    expect(print.facets.categories.find((facet) => facet.slug === "apparel-garment-production")!.count).toBe(1);
+    expect(print.facets.categories.find((facet) => facet.slug === "apparel-garment-production")!.count).toBe(3);
 
     expect((await page("?q=company%20paper")).entries.map((entry) => entry.slug)).toEqual(["office-letterhead"]);
-    expect((await page("?family=GARMENT")).entries.map((entry) => entry.slug)).toEqual(["polo-shirt"]);
+    expect((await page("?family=GARMENT")).entries.map((entry) => entry.slug).sort()).toEqual(["apron", "baseball-cap", "polo-shirt"]);
     const consult = await page("?mode=CONSULTATIVE_PROJECT");
     expect(consult.entries).toEqual([expect.objectContaining({ slug: "team-staff-branding", priceState: "CONSULTATION_REQUIRED" })]);
   });
@@ -133,31 +133,31 @@ describe("public images", () => {
 
 describe("category hubs (PUB-FR-009, Pen 105)", () => {
   it("renders a default hub, keeps drafts private until published, and refuses unpublished categories", async () => {
-    const hub = publicHubSchema.parse((await get("/v1/catalogue/hubs/apparel-garment-production")).body);
+    const hub = publicHubSchema.parse((await get("/v1/catalogue/hubs/bags-packaging")).body);
     expect(hub.sections.map((section) => section.type)).toEqual(["summary", "subcategories", "grid"]);
-    expect(hub.products.map((product) => product.slug)).toContain("polo-shirt");
-    expect(hub.category.children.map((child) => child.slug)).toContain("t-shirts-tops");
+    expect(hub.products.map((product) => product.slug)).toContain("small-paper-bag");
+    expect(hub.category.children.map((child) => child.slug)).toContain("paper-presentation-packaging");
 
-    const [category] = await harness.database.db.select().from(schema.categories).where(eq(schema.categories.slug, "apparel-garment-production"));
+    const [category] = await harness.database.db.select().from(schema.categories).where(eq(schema.categories.slug, "bags-packaging"));
     const admin = adminHubSchema.parse((await as(harness, staff).get(`/v1/admin/catalogue/categories/${category!.id}/hub`)).body);
     const sections = admin.draft.sections.map((section) =>
       section.type === "faq"
         ? { ...section, visible: true, items: [{ question: "What's the minimum order?", answer: "10 pieces for most garments." }] }
         : section.type === "featured"
-          ? { ...section, visible: true, productSlugs: ["polo-shirt"] }
+          ? { ...section, visible: true, productSlugs: ["small-paper-bag"] }
           : section,
     );
     const saved = adminHubSchema.parse((await put(`/v1/admin/catalogue/categories/${category!.id}/hub`, { hub: { sections }, version: admin.version })).body);
     expect(saved.unpublishedChanges).toBe(true);
     // Saving a draft doesn't change the public page.
-    expect(publicHubSchema.parse((await get("/v1/catalogue/hubs/apparel-garment-production")).body).sections.map((section) => section.type)).not.toContain("faq");
+    expect(publicHubSchema.parse((await get("/v1/catalogue/hubs/bags-packaging")).body).sections.map((section) => section.type)).not.toContain("faq");
 
     const published = await as(harness, staff).post(`/v1/admin/catalogue/categories/${category!.id}/hub/publish`, { version: saved.version });
     expect(published.status).toBe(200);
     expect(adminHubSchema.parse(published.body).unpublishedChanges).toBe(false);
-    const live = publicHubSchema.parse((await get("/v1/catalogue/hubs/apparel-garment-production")).body);
+    const live = publicHubSchema.parse((await get("/v1/catalogue/hubs/bags-packaging")).body);
     expect(live.sections.map((section) => section.type)).toEqual(expect.arrayContaining(["faq", "featured"]));
-    expect(live.featured.map((product) => product.slug)).toEqual(["polo-shirt"]);
+    expect(live.featured.map((product) => product.slug)).toEqual(["small-paper-bag"]);
 
     const stale = await put(`/v1/admin/catalogue/categories/${category!.id}/hub`, { hub: { sections }, version: saved.version });
     expect(stale.status).toBe(409);
@@ -195,5 +195,36 @@ describe("admin-managed lists and navigation (PUB-FR-004)", () => {
 
     const again = await put("/v1/admin/catalogue/lists/menu.popular", { productIds: [], version: menu.version });
     expect(again.status).toBe(409);
+  });
+});
+
+describe("card prices (Pen HP/Commerce/ProductCard: \"From ₦8,500 / piece · Min 10\")", () => {
+  it("cards carry the current list price, its basis and state, and the minimum order", async () => {
+    const page = publicProductPageSchema.parse((await get("/v1/catalogue/products?q=polo")).body);
+    const polo = page.entries.find((card) => card.slug === "polo-shirt")!;
+    expect(polo.price).toEqual({ amountMinor: "850000", currency: "NGN", basis: "PER_UNIT", packSize: 1, state: "ESTIMATE_READY" });
+    expect(polo.moq).toBe(10);
+    const cards = publicProductPageSchema.parse((await get("/v1/catalogue/products?q=business")).body).entries.find((card) => card.slug === "business-cards")!;
+    expect(cards.price).toMatchObject({ basis: "PER_PACK", packSize: 100, state: "PRICE_READY" });
+    expect(cards.moq).toBe(100);
+    const team = publicProductPageSchema.parse((await get("/v1/catalogue/products?q=team")).body).entries.find((card) => card.slug === "team-staff-branding")!;
+    expect(team.price).toBeNull();
+  });
+});
+
+describe("garment product page data (Pen 19)", () => {
+  it("gives the polo page everything its design shows: gallery, swatches, facts, bands, questions and the uniform set", async () => {
+    const polo = publicProductSchema.parse((await get("/v1/catalogue/products/polo-shirt")).body);
+    expect(polo.summary).toBe("A reliable polo for your team, with your logo printed or embroidered. Choose a ready-made polo, have it made from scratch, or send us your own.");
+    const colour = polo.configurator!.options.find((option) => option.key === "colour")!;
+    expect(colour.values.map((value) => value.label)).toEqual(["Navy", "Black", "White", "Olive", "Wine", "Royal", "Grey", "Gold"]);
+    expect(colour.values.every((value) => /^#[0-9a-f]{6}$/i.test(value.swatch ?? ""))).toBe(true);
+    const fabric = polo.configurator!.options.find((option) => option.key === "fabric")!;
+    expect(fabric.values.every((value) => value.swatch === null)).toBe(true);
+    expect(polo.specifications.map((spec) => spec.label)).toEqual(["Fabric", "Fit", "Sizes", "Proof"]);
+    expect(polo.faqs.map((faq) => faq.question)).toEqual(["Can I mix sizes in one order?", "What file should I send?", "Can I order a sample first?"]);
+    expect(polo.configurator!.quantityPresets.map((preset) => preset.quantity)).toEqual([10, 50, 100, 200]);
+    expect(polo.related.map((item) => item.slug)).toEqual(["apron", "baseball-cap", "event-badges", "individual-bagging"]);
+    expect(polo.related.find((item) => item.slug === "individual-bagging")!.price).toBeNull();
   });
 });

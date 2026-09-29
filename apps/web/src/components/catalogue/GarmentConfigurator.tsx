@@ -11,10 +11,12 @@ import {
   type FileView,
 } from "@holypearls/contracts";
 import { Button, Dialog, FormField, Notice, TextArea, TextField } from "@holypearls/ui";
-import { useState } from "react";
+import { ArrowLeft, ArrowRight, CircleCheck, Info, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
 import styles from "./configurator.module.css";
+import w from "./wizard.module.css";
 import { DeliveryFields, QuoteRequest } from "./FamilyDelivery";
 import { GarmentPreview, POSITION_LABEL, type Position } from "./GarmentPreview";
 import { useDraft } from "./useDraft";
@@ -47,6 +49,9 @@ const ARTWORK: { value: Artwork; title: string; meta: string }[] = [
 
 const ROLE_FOR: Record<string, "ARTWORK" | "LOGO" | "REFERENCE"> = { UPLOAD: "ARTWORK", LOGO: "LOGO", REFERENCE: "REFERENCE" };
 const STEPS = ["Product", "Customize", "Quantity", "Artwork", "Delivery", "Review"] as const;
+const STEP_KEYS = ["product", "customize", "quantity", "artwork", "delivery", "review"] as const;
+/** The question each step asks (Pen 22: "Place your logo."). */
+const STEP_TITLES = ["How should we make it?", "Place your logo.", "How many, in which sizes?", "Add your artwork.", "When and where?", "Check your design."] as const;
 
 const naira = (minor: string | null | undefined) => {
   if (!minor) return "—";
@@ -61,6 +66,11 @@ interface Props {
   data: ConfiguratorData;
   initialDraft: Configuration | null;
   signedIn: boolean;
+  /** Chosen on the product page (Pen 19) before "Configure yours". */
+  startSourcing?: Sourcing | null;
+  startChoices?: Record<string, string>;
+  /** Front photos by colour key, shown behind the placement map (Pen 22). */
+  photos?: Record<string, string>;
 }
 
 /**
@@ -69,13 +79,13 @@ interface Props {
  * personalization, and artwork with resolution warnings that never block.
  * Six steady steps; every change autosaves to the draft.
  */
-export function GarmentConfigurator({ productSlug, productName, data, initialDraft, signedIn }: Props) {
-  const defaults = Object.fromEntries(data.options.map((option) => [option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])?.key ?? ""]));
+export function GarmentConfigurator({ productSlug, productName, data, initialDraft, signedIn, startSourcing = null, startChoices = {}, photos = {} }: Props) {
+  const defaults = { ...Object.fromEntries(data.options.map((option) => [option.key, (option.values.find((value) => value.isDefault) ?? option.values[0])?.key ?? ""])), ...startChoices };
   const { draft, apply, saveState, notice, setNotice, conflicts, resolveConflicts, queue, flush, ensure, draftRef } = useDraft(productSlug, initialDraft, defaults);
   const garment = draft?.garment ?? null;
 
   const [choices, setChoices] = useState<Record<string, string>>(initialDraft?.choices ?? defaults);
-  const [sourcing, setSourcing] = useState<Sourcing | null>(garment?.sourcing ?? null);
+  const [sourcing, setSourcing] = useState<Sourcing | null>(garment?.sourcing ?? startSourcing);
   const [decoration, setDecoration] = useState<Decoration | null>(garment?.decoration ?? null);
   const [details, setDetails] = useState<Record<string, string | boolean>>((garment?.details as Record<string, string | boolean>) ?? {});
   const [delivery, setDelivery] = useState<ConfigurationDetails>(initialDraft?.details ?? {});
@@ -91,6 +101,19 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string>();
   const [uploadKey, setUploadKey] = useState(0);
+  const draftStep = STEP_KEYS.indexOf((initialDraft?.step ?? "") as (typeof STEP_KEYS)[number]);
+  const [current, setCurrent] = useState(draftStep >= 0 ? draftStep : startSourcing ? 1 : 0);
+
+  // A route chosen on the product page is saved as soon as the configurator opens.
+  useEffect(() => {
+    if (!initialDraft && startSourcing) queue({ sourcing: startSourcing, step: "customize" }, 0);
+  }, []);
+
+  const go = (index: number) => {
+    setCurrent(index);
+    queue({ step: STEP_KEYS[index] }, 0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const price = draft?.price ?? null;
   const serverConflicts = garment?.conflicts ?? [];
@@ -174,32 +197,88 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
   };
 
   const sizeTotal = Object.values(sizes).reduce((sum, value) => sum + value, 0);
-  const number = (index: number) => String(index + 1).padStart(2, "0");
   const conflictFor = (position: Position) => serverConflicts.some((conflict) => conflict.positions.includes(position));
 
   return (
-    <div className="garment-configurator">
-      <div className={styles.top}>
-        <aside className={styles.preview} aria-label="Preview">
-          <span className={styles.previewTag}>
-            {placements.length ? placements.map((placement) => POSITION_LABEL[placement.position]).join(" · ").toUpperCase() : "CHOOSE WHERE YOUR DESIGN GOES"}
-          </span>
-          <GarmentPreview view={view} placements={placements} conflicts={serverConflicts} onToggle={togglePlacement} />
-          <div className={styles.views} role="group" aria-label="Garment side">
-            {(["front", "back"] as const).map((side) => (
-              <Button key={side} variant={view === side ? "ink" : "secondary"} aria-pressed={view === side} onClick={() => setView(side)}>
-                {side === "front" ? "Front" : "Back"}
-              </Button>
+    <div className={w.page}>
+      <header className={w.header}>
+        <div className={w.brand}>
+          <a className={w.logo} href="/" aria-label="HolyPearls home">
+            <span className={w.pearl} aria-hidden="true" />
+            HolyPearls
+          </a>
+          <span className={w.crumb}>/ {productName}</span>
+        </div>
+        <nav aria-label="Steps">
+          <ol className={w.stepper}>
+            {STEPS.map((label, index) => (
+              <li key={label}>
+                <button
+                  type="button"
+                  className={`${w.stepButton} ${index === current ? w.stepCurrent : index < current ? w.stepDone : ""}`}
+                  aria-current={index === current ? "step" : undefined}
+                  onClick={() => go(index)}
+                >
+                  <span className={w.stepNum} aria-hidden="true">
+                    {index < current ? <CircleCheck size={14} /> : index + 1}
+                  </span>
+                  <span className={w.stepLabel}>{label}</span>
+                </button>
+              </li>
             ))}
+          </ol>
+        </nav>
+        <div className={w.right}>
+          <span className={`${w.saved} ${saveState === "failed" ? w.failed : ""}`} role={saveState === "failed" ? "alert" : undefined}>
+            {saveState === "failed" ? <RefreshCw size={16} aria-hidden="true" /> : <CircleCheck size={16} aria-hidden="true" />}
+            <span>{saveState === "saving" ? "Saving…" : saveState === "failed" ? "Not saved — retrying" : draft ? "Draft saved" : "Not saved yet"}</span>
+          </span>
+          <a className={w.exit} href={`/products/${productSlug}`} onClick={() => void flush()}>
+            Save &amp; exit
+          </a>
+        </div>
+      </header>
+
+      <main id="main-content" className={w.body}>
+        <aside className={w.previewColumn} aria-label="Preview">
+          <div className={w.stage}>
+            <div className={w.viewToggle} role="group" aria-label="Garment side">
+              {(["front", "back"] as const).map((side) => (
+                <button key={side} type="button" className={w.viewButton} aria-pressed={view === side} onClick={() => setView(side)}>
+                  {side === "front" ? "Front" : "Back"}
+                </button>
+              ))}
+            </div>
+            <GarmentPreview
+              view={view}
+              placements={placements}
+              conflicts={serverConflicts}
+              onToggle={togglePlacement}
+              fill={data.options.find((option) => option.key === "colour")?.values.find((value) => value.key === choices.colour)?.swatch}
+              photo={choices.colour ? photos[choices.colour] : null}
+            />
+            <span className={w.tag}>
+              {placements.length ? `${placements.map((placement) => POSITION_LABEL[placement.position]).join(" · ").toUpperCase()} · SIZE IN PROOF` : "CHOOSE WHERE YOUR DESIGN GOES"}
+            </span>
           </div>
-          <p className={styles.previewNote}>Preview only, not to scale. You&apos;ll approve the final design in a proof before we produce.</p>
+          <p className={w.previewFoot}>
+            <Info size={16} aria-hidden="true" />
+            Preview only, not to scale. You&apos;ll approve the final design in a proof before we produce.
+          </p>
         </aside>
 
-        <div className={styles.configurator}>
+        <div className={w.column}>
+          <div>
+            <p className={w.eyebrow}>
+              Step {current + 1} of {STEPS.length} · {STEPS[current]}
+              {current === 1 && decoration ? ` · ${DECORATION.find((item) => item.value === decoration)?.title}` : ""}
+            </p>
+            <h1 className={w.title}>{STEP_TITLES[current]}</h1>
+          </div>
           {/* 01 Product */}
-          <fieldset className={styles.step} id="step-product">
-            <legend className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(0)}</span> {STEPS[0]}
+          <fieldset className={styles.step} id="step-product" hidden={current !== 0}>
+            <legend className="hp-visually-hidden">
+              {STEPS[0]}
             </legend>
             <div className={styles.choices}>
               {SOURCING.map((option) => (
@@ -295,9 +374,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </fieldset>
 
           {/* 02 Customize */}
-          <fieldset className={styles.step} id="step-customize">
-            <legend className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(1)}</span> {STEPS[1]}
+          <fieldset className={styles.step} id="step-customize" hidden={current !== 1}>
+            <legend className="hp-visually-hidden">
+              {STEPS[1]}
             </legend>
             <div className={styles.choices}>
               {DECORATION.map((option) => (
@@ -382,9 +461,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </fieldset>
 
           {/* 03 Quantity */}
-          <fieldset className={styles.step} id="step-quantity">
-            <legend className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(2)}</span> {STEPS[2]}
+          <fieldset className={styles.step} id="step-quantity" hidden={current !== 2}>
+            <legend className="hp-visually-hidden">
+              {STEPS[2]}
             </legend>
             <p className={styles.stepExtra}>Minimum {data.moq}. Enter how many of each size.</p>
             <label className={styles.choice} htmlFor="sizes-unknown">
@@ -463,9 +542,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </fieldset>
 
           {/* 04 Artwork */}
-          <fieldset className={styles.step} id="step-artwork">
-            <legend className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(3)}</span> {STEPS[3]}
+          <fieldset className={styles.step} id="step-artwork" hidden={current !== 3}>
+            <legend className="hp-visually-hidden">
+              {STEPS[3]}
             </legend>
             <div className={styles.choices}>
               {ARTWORK.filter((option) => option.value !== "LATER" || artworkLaterAllowed).map((option) => (
@@ -532,9 +611,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </fieldset>
 
           {/* 05 Delivery */}
-          <section className={styles.step} id="step-delivery" aria-labelledby="garment-delivery">
-            <h2 id="garment-delivery" className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(4)}</span> {STEPS[4]}
+          <section className={styles.step} id="step-delivery" aria-labelledby="garment-delivery" hidden={current !== 4}>
+            <h2 id="garment-delivery" className="hp-visually-hidden">
+              {STEPS[4]}
             </h2>
             <DeliveryFields
               draft={draft}
@@ -553,9 +632,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           </section>
 
           {/* 06 Review */}
-          <section className={styles.step} id="step-review" aria-labelledby="garment-review">
-            <h2 id="garment-review" className={styles.stepTitle}>
-              <span className={styles.stepNumber}>{number(5)}</span> {STEPS[5]}
+          <section className={styles.step} id="step-review" aria-labelledby="garment-review" hidden={current !== 5}>
+            <h2 id="garment-review" className="hp-visually-hidden">
+              {STEPS[5]}
             </h2>
             <dl className={styles.review}>
               {(
@@ -572,25 +651,34 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
                   <dt>{label}</dt>
                   <dd>
                     {value}{" "}
-                    <a href={`#${anchor}`}>
+                    <button type="button" className={styles.linkButton} onClick={() => go(STEP_KEYS.indexOf(anchor.replace("step-", "") as (typeof STEP_KEYS)[number]))}>
                       Edit<span className="hp-visually-hidden"> {label.toLowerCase()}</span>
-                    </a>
+                    </button>
                   </dd>
                 </div>
               ))}
             </dl>
           </section>
 
-          <div className={styles.totalBar} aria-live="polite">
-            <div className={styles.totalRow}>
-              <div>
-                <p className={styles.summary}>
-                  {price?.state === "ESTIMATE_READY" ? "ESTIMATED · " : ""}
-                  {price?.quantity ? `${price.quantity} ${productName.toUpperCase()}` : productName.toUpperCase()}
-                </p>
-                <p className={styles.perUnit}>{price?.perUnitMinor ? `≈ ${naira(price.perUnitMinor)} each, including VAT` : "Add sizes or a quantity to see an estimate"}</p>
-              </div>
-              <p className={styles.total}>{price?.totalMinor ? naira(price.totalMinor) : "—"}</p>
+          <div className={w.live} aria-live="polite">
+            <div className={w.liveHead}>
+              <p className={w.liveLabel}>
+                {price?.state === "ESTIMATE_READY" ? "ESTIMATED · " : ""}
+                {price?.quantity ? `${price.quantity} ${productName.toUpperCase()}` : productName.toUpperCase()}
+                {placements.length ? ` · ${placements.map((placement) => POSITION_LABEL[placement.position]).join(", ").toUpperCase()}` : ""}
+              </p>
+              {price && saveState === "saved" ? (
+                <span className={w.updated}>
+                  <RefreshCw size={14} aria-hidden="true" />
+                  Estimate updated
+                </span>
+              ) : null}
+            </div>
+            <div className={w.liveRow}>
+              <p className={w.liveValue}>{price?.totalMinor ? naira(price.totalMinor) : "—"}</p>
+              <p className={w.liveNote}>
+                {price?.perUnitMinor ? `≈ ${naira(price.perUnitMinor)} / piece · final amount confirmed after production review` : "Add sizes or a quantity to see an estimate"}
+              </p>
             </div>
             {price?.reasons.length ? (
               <ul className={styles.reasons}>
@@ -606,28 +694,36 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
                 <p>{notice}</p>
               </Notice>
             ) : null}
-            <QuoteRequest draft={draft} ensure={ensure} onRequested={() => void (draftRef.current ? api(`/v1/configurations/${draftRef.current.id}`, { response: configurationSchema }).then(apply) : null)} />
-            <p className={styles.perUnit}>Online ordering opens soon. Your design is saved as you go.</p>
-            <div className={styles.saveState}>
-              {saveState === "saving" ? <span>Saving…</span> : null}
-              {saveState === "saved" ? <span>Draft saved</span> : null}
+            {current === STEPS.length - 1 ? (
+              <QuoteRequest draft={draft} ensure={ensure} onRequested={() => void (draftRef.current ? api(`/v1/configurations/${draftRef.current.id}`, { response: configurationSchema }).then(apply) : null)} />
+            ) : null}
+            <div className={w.links}>
               {saveState === "failed" ? (
-                <>
-                  <span className={styles.saveFailed} role="alert">
-                    Not saved — retrying
-                  </span>
-                  <button type="button" className={styles.linkButton} onClick={() => void flush()}>
-                    Retry now
-                  </button>
-                </>
+                <button type="button" className={styles.linkButton} onClick={() => void flush()}>
+                  Retry now
+                </button>
               ) : null}
               <button type="button" className={styles.linkButton} onClick={() => setEmailOpen(true)}>
                 {draft?.emailedTo ? `Link sent to ${draft.emailedTo}` : "Email me a link to this design"}
               </button>
             </div>
           </div>
+          <div className={w.nav}>
+            {current > 0 ? (
+              <button type="button" className={w.back} onClick={() => go(current - 1)}>
+                <ArrowLeft size={18} aria-hidden="true" />
+                Back
+              </button>
+            ) : null}
+            {current < STEPS.length - 1 ? (
+              <button type="button" className={w.continue} onClick={() => go(current + 1)}>
+                Continue to {STEPS[current + 1]!.toLowerCase()}
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </main>
 
       <Dialog
         open={conflicts !== null}

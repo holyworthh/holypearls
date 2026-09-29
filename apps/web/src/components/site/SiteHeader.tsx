@@ -126,6 +126,9 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           <a className={styles.cta} href="/contact?topic=project">
             Start a Project
           </a>
+          <a className={styles.mobileSearch} href="/products#directory-search" aria-label="Search products">
+            <SearchIcon className={styles.icon} />
+          </a>
           <button
             ref={menuButton}
             type="button"

@@ -196,6 +196,7 @@
   gap: var(--hp-space-10);
 }
 
+/* Pen 21 option card: 8px radius, 1px line outline, 2px ink when chosen. */
 .choice {
   position: relative;
   display: flex;
@@ -204,16 +205,17 @@
   gap: var(--hp-space-2);
   min-height: var(--hp-space-64);
   padding: var(--hp-space-10) var(--hp-space-14);
-  border: var(--hp-border-width) solid var(--hp-line);
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-space-8);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
   background: var(--hp-paper);
   color: var(--hp-ink);
   cursor: pointer;
 }
 
 .choice:has(input:checked) {
-  border: var(--hp-space-2) solid var(--hp-ink);
-  padding: calc(var(--hp-space-10) - var(--hp-border-width)) calc(var(--hp-space-14) - var(--hp-border-width));
+  outline: var(--hp-space-2) solid var(--hp-ink);
+  outline-offset: 0;
 }
 
 .choice:has(input:focus-visible) {
@@ -240,13 +242,15 @@
 }
 
 .choiceTitle {
-  font-size: var(--hp-text-label);
-  font-weight: var(--hp-weight-semibold);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
 }
 
 .choiceMeta {
   color: var(--hp-graphite);
-  font-size: var(--hp-text-caption);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
 }
 
 .blockedNote {
@@ -545,7 +549,8 @@
   padding: 0 var(--hp-space-14);
   border: var(--hp-border-width) solid var(--hp-line);
   border-radius: var(--hp-r-control);
-  font-size: var(--hp-text-support);
+  background: var(--hp-paper);
+  font-size: var(--hp-space-14);
   font-weight: var(--hp-weight-semibold);
   cursor: pointer;
 }
@@ -693,4 +698,41 @@
   border-radius: var(--hp-r-control);
   background: var(--hp-warning-tint);
   color: var(--hp-ink);
+}
+
+/* Front reference photo with placement zones (Pen 22). */
+.photoMap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 780 / 913;
+  max-height: var(--hp-size-760);
+  background: var(--hp-sand) center / cover no-repeat;
+}
+
+.photoZone {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hp-space-2);
+  outline: var(--hp-size-1) dashed var(--hp-paper);
+  outline-offset: calc(var(--hp-size-1) * -1);
+  background: transparent;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.photoZone:hover,
+.photoZone:focus-visible {
+  outline: var(--hp-space-2) solid var(--hp-marigold);
+  opacity: 1;
+}
+
+.photoZoneOn {
+  outline: var(--hp-space-2) solid var(--hp-marigold);
+  outline-offset: calc(var(--hp-space-2) * -1);
+  opacity: 1;
+}
+
+.photoZone.zoneConflict {
+  outline-color: var(--hp-error);
 }

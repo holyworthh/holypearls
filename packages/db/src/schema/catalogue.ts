@@ -126,10 +126,12 @@ export const productOptionValues = pgTable(
     key: text("key").notNull(),
     label: text("label").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
+    /** The colour a swatch shows for this value (#RRGGBB), for colour options; product data, not a UI token. */
+    swatch: text("swatch"),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("product_option_values_key_unique").on(table.optionId, table.key)],
+  (table) => [check("product_option_values_swatch_hex", sql`${table.swatch} IS NULL OR ${table.swatch} ~ '^#[0-9A-Fa-f]{6}$'`), uniqueIndex("product_option_values_key_unique").on(table.optionId, table.key)],
 );
 
 /** Product images from the public-media bucket (staff only). */

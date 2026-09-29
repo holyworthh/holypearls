@@ -52,6 +52,16 @@ const mainImage = sql<{ fileId: string; alt: string; width: number | null; heigh
   order by m.position, m.created_at limit 1
 )`;
 
+/** The price rule in effect now (TECH-05: the latest that has started). */
+const listPrice = sql<{ amountMinor: string; currency: "NGN" | "USD"; basis: "PER_UNIT" | "PER_PACK" | "FIXED"; packSize: number; state: "PRICE_READY" | "ESTIMATE_READY" } | null>`(
+  select json_build_object('amountMinor', r.base_minor::text, 'currency', r.currency, 'basis', r.basis, 'packSize', r.pack_size, 'state', r.state)
+  from price_rules r
+  where r.product_id = ${schema.products.id} and r.effective_from <= now()
+  order by r.effective_from desc limit 1
+)`;
+
+const minimumOrder = sql<number | null>`(select pr.moq from product_rules pr where pr.product_id = ${schema.products.id})`;
+
 const cardColumns = {
   slug: schema.products.slug,
   name: schema.products.name,
@@ -62,6 +72,8 @@ const cardColumns = {
   categorySlug: schema.categories.slug,
   categoryName: schema.categories.name,
   image: mainImage,
+  price: listPrice,
+  moq: minimumOrder,
 };
 
 type CardRow = {
@@ -74,6 +86,8 @@ type CardRow = {
   categorySlug: string;
   categoryName: string;
   image: { fileId: string; alt: string; width: number | null; height: number | null } | null;
+  price: PublicProductCard["price"];
+  moq: number | null;
 };
 
 const toCard = (row: CardRow): PublicProductCard => ({
@@ -86,6 +100,8 @@ const toCard = (row: CardRow): PublicProductCard => ({
   image: row.image ? image(row.image.fileId, row.image.alt, row.image.width, row.image.height) : null,
   available: row.status === "PUBLISHED",
   priceState: row.status === "PUBLISHED" ? (PRICE_STATE[row.buyingMode] ?? "QUOTE_REQUIRED") : "UNAVAILABLE",
+  price: row.buyingMode === "CONSULTATIVE_PROJECT" ? null : (row.price ?? null),
+  moq: row.moq ?? null,
 });
 
 const escapeLike = (text: string) => `%${text.replace(/[%_\\]/g, (match) => `\\${match}`)}%`;

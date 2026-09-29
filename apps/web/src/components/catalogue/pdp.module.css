@@ -1,0 +1,554 @@
+/*
+ * Product page, non-garment (Pen 21 · VSjt2 Business Cards; Pen 25 roll-up and
+ * the other family pages share it). Values from the Pen html-css export.
+ */
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+  padding: var(--hp-space-24) max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2)) var(--hp-size-88);
+  background: var(--hp-bone);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.breadcrumb li + li::before {
+  margin-right: var(--hp-space-12);
+  content: "/";
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 720fr) minmax(0, 560fr);
+  gap: var(--hp-space-48);
+  align-items: start;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-size-26);
+}
+
+.gallery {
+  position: sticky;
+  top: var(--hp-space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+}
+
+.main {
+  position: relative;
+  height: var(--hp-size-760);
+  overflow: hidden;
+  border-radius: var(--hp-space-8);
+  background: var(--hp-sand);
+}
+
+.main img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cap {
+  position: absolute;
+  top: var(--hp-size-18);
+  left: var(--hp-size-18);
+  margin: 0;
+  padding: var(--hp-space-6) var(--hp-space-10);
+  border-radius: var(--hp-space-4);
+  background: var(--hp-ink-80);
+  color: var(--hp-paper);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  height: var(--hp-size-160);
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-sand);
+  cursor: pointer;
+}
+
+.thumb[aria-pressed="true"] {
+  outline: var(--hp-space-2) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.thumb:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+}
+
+.h1 {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-48);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--1_9);
+  line-height: var(--hp-space-48);
+}
+
+.stateChip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: var(--hp-space-6);
+  margin-bottom: var(--hp-space-4);
+  padding: var(--hp-space-4) var(--hp-space-8);
+  border-radius: var(--hp-space-4);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+  font-weight: 600;
+  line-height: var(--hp-space-16);
+}
+
+/* Numbered steps: "01 Paper". */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-size-26);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.stepHead {
+  display: flex;
+  float: left;
+  align-items: baseline;
+  gap: var(--hp-space-8);
+  width: 100%;
+  margin: 0 0 var(--hp-space-12);
+  padding: 0;
+}
+
+.step > .stepHead + * {
+  clear: both;
+}
+
+.stepNum {
+  color: var(--hp-ink);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+}
+
+.stepTitle {
+  color: var(--hp-ink);
+  font-size: var(--hp-size-17);
+  font-weight: 700;
+  line-height: var(--hp-size-25);
+}
+
+.stepAside {
+  margin-left: auto;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  font-weight: 400;
+  line-height: var(--hp-size-19);
+}
+
+.cards {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--hp-space-10);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--hp-space-2);
+  min-height: var(--hp-space-64);
+  padding: 0 var(--hp-space-14);
+  border-radius: var(--hp-space-8);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  cursor: pointer;
+}
+
+.card:has(input:checked) {
+  outline: var(--hp-space-2) solid var(--hp-ink);
+  outline-offset: 0;
+}
+
+.card:has(input:focus-visible) {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.card:has(input:disabled) {
+  outline-style: dashed;
+  color: var(--hp-graphite);
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+/* The real radio covers the whole card, invisible. */
+.card input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.cardTitle {
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+}
+
+.cardMeta {
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.card:has(input:checked) .cardMeta {
+  color: var(--hp-ink);
+}
+
+/* Quantity: 22px numbers; the chosen one inverts to ink with a marigold price. */
+.qty {
+  justify-content: flex-start;
+  padding: var(--hp-space-12);
+}
+
+.qtyNumber {
+  font-size: var(--hp-size-22);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_1);
+  line-height: var(--hp-space-32);
+}
+
+.qty:has(input:checked) {
+  outline: var(--hp-size-1) solid var(--hp-ink);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.qty:has(input:checked) .cardMeta {
+  color: var(--hp-marigold);
+}
+
+.custom {
+  max-width: var(--hp-size-260);
+}
+
+.iconCard {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--hp-space-10);
+  padding: var(--hp-space-12);
+}
+
+.iconText {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+}
+
+.iconCard .cardTitle {
+  font-size: var(--hp-space-14);
+  line-height: var(--hp-space-20);
+}
+
+.iconCard .cardMeta {
+  font-size: var(--hp-space-12);
+  line-height: var(--hp-size-17);
+}
+
+.hint {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+/* Total box. */
+.total {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+  padding: var(--hp-size-22);
+  border-radius: var(--hp-space-10);
+  outline: var(--hp-size-1_5) solid var(--hp-ink);
+  outline-offset: var(--hp-size--0_75);
+  background: var(--hp-paper);
+}
+
+.totalRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hp-space-16);
+}
+
+.totalText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+  min-width: 0;
+}
+
+.summary {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-14);
+}
+
+.perUnit {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.amount {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-44);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_7);
+  line-height: var(--hp-space-64);
+  white-space: nowrap;
+}
+
+.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hp-space-8);
+  width: 100%;
+  height: var(--hp-size-56);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+  font: inherit;
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+  line-height: var(--hp-size-25);
+  cursor: pointer;
+}
+
+.add:disabled {
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+.production {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+/* Below the band: about, specifications, questions (PRD COM-FR-004; not in Pen 21). */
+.more {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--hp-size-320), 1fr));
+  gap: var(--hp-space-48);
+  padding: var(--hp-size-72) max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2));
+}
+
+.moreTitle {
+  margin: 0 0 var(--hp-space-16);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-24);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_4);
+  line-height: var(--hp-size-35);
+}
+
+.moreBody {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+}
+
+.specs {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.specs th,
+.specs td {
+  padding: var(--hp-space-10) 0;
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 400;
+  text-align: left;
+}
+
+.specs th {
+  color: var(--hp-graphite);
+}
+
+.faq details {
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+}
+
+.faq summary {
+  padding: var(--hp-space-14) 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-16);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq p {
+  margin: 0 0 var(--hp-space-14);
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+}
+
+.related {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-32);
+  padding: var(--hp-space-80) max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2));
+  background: var(--hp-bone);
+}
+
+.relatedRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--hp-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 1023px) {
+  .top {
+    padding: var(--hp-space-12) var(--hp-space-20) var(--hp-space-40);
+    background: var(--hp-paper);
+  }
+
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--hp-space-20);
+  }
+
+  .gallery {
+    position: static;
+  }
+
+  .main {
+    height: var(--hp-size-360);
+  }
+
+  .thumbs {
+    display: none;
+  }
+
+  .h1 {
+    font-size: var(--hp-size-34);
+    letter-spacing: var(--hp-size--1_3);
+    line-height: var(--hp-size-36);
+  }
+
+  .cards {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .amount {
+    font-size: var(--hp-space-32);
+    line-height: var(--hp-space-40);
+  }
+
+  .more,
+  .related {
+    padding: var(--hp-space-48) var(--hp-space-20);
+  }
+
+  .relatedRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--hp-space-20) var(--hp-space-12);
+  }
+}

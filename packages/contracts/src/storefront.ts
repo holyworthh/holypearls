@@ -36,6 +36,18 @@ export const publicProductCardSchema = z.object({
   /** TEMPORARILY_UNAVAILABLE products stay listed but can't be ordered. */
   available: z.boolean(),
   priceState: priceStateSchema,
+  /** The current list price (before options and VAT), for "From ₦8,500 / piece"; null when quoted. */
+  price: z
+    .object({
+      amountMinor: z.string(),
+      currency: z.enum(["NGN", "USD"]),
+      basis: z.enum(["PER_UNIT", "PER_PACK", "FIXED"]),
+      packSize: z.number().int(),
+      state: z.enum(["PRICE_READY", "ESTIMATE_READY"]),
+    })
+    .nullable(),
+  /** Minimum order quantity; null when not set. */
+  moq: z.number().int().nullable(),
 });
 export type PublicProductCard = z.infer<typeof publicProductCardSchema>;
 
