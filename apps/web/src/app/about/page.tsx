@@ -9,6 +9,9 @@ import { SiteShell } from "../../components/site/SiteShell";
 import { getContentPage } from "../../lib/content";
 import { breadcrumbLd, organizationLd, pageMetadata } from "../../lib/seo";
 
+// Rendered per request (like the home page): the build has no API to read published content from.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getContentPage("ABOUT", "about");
   if (!page) return { title: "About", robots: { index: false } };

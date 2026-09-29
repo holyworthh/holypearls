@@ -9,6 +9,9 @@ import { SiteShell } from "../../components/site/SiteShell";
 import { getContentIndex } from "../../lib/content";
 import { breadcrumbLd, pageMetadata } from "../../lib/seo";
 
+// Rendered per request (like the home page): the build has no API to read published content from.
+export const dynamic = "force-dynamic";
+
 type Params = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
 

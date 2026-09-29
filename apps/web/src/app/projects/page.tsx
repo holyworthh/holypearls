@@ -8,6 +8,9 @@ import { SiteShell } from "../../components/site/SiteShell";
 import { getContentIndex } from "../../lib/content";
 import { breadcrumbLd, pageMetadata } from "../../lib/seo";
 
+// Rendered per request (like the home page): the build has no API to read published content from.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = pageMetadata({
   kind: "page",
   name: "Projects",

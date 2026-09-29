@@ -23,6 +23,8 @@ export interface Removed {
 }
 
 const unsafeUrl = (value: string) => {
+  // Control characters and spaces are dropped on purpose: browsers ignore them, so "java\0script:" would still run.
+  // eslint-disable-next-line no-control-regex
   const trimmed = value.replace(/[\u0000- ]/g, "").toLowerCase();
   return /^(javascript|vbscript|data):/.test(trimmed);
 };

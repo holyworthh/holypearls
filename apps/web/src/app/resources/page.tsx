@@ -8,6 +8,9 @@ import { SiteShell } from "../../components/site/SiteShell";
 import { getContentIndex } from "../../lib/content";
 import { breadcrumbLd, pageMetadata } from "../../lib/seo";
 
+// Rendered per request (like the home page): the build has no API to read published content from.
+export const dynamic = "force-dynamic";
+
 type Params = { searchParams: Promise<{ topic?: string }> };
 
 const ICON: Record<GuideTopic, typeof Shirt> = { APPAREL: Shirt, EMBROIDERY: Sparkles, PRINT: FileText, LARGE_FORMAT: Presentation, PACKAGING: Package, ORDERING: Upload };
