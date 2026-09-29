@@ -25,13 +25,14 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
-/** Garment hubs use the editorial layout (Pen 18); every other hub the catalogue layout (Pen 11). */
-const EDITORIAL = new Set(["apparel-garment-production", "embroidery-garment-customization"]);
-
-/** The design's labelled reference photos, used until staff add category images. */
+/**
+ * The design's labelled reference photos for hub sections that don't carry
+ * images yet (temporary; see DESIGN-FIDELITY). Subcategory cards use each
+ * subcategory's own image from the catalogue, never one picked by position.
+ */
 const PHOTOS = {
-  editorial: { hero: [50, 52, 60], subs: [33, 36, 56, 44, 58, 51], routes: [33, 51, 47], table: [52, 61, 59], related: [50, 57] },
-  catalogue: { subs: [37, 34, 84, 88, 89, 90], band: 45, related: [91, 87] },
+  editorial: { hero: [50, 52, 60], routes: [33, 51, 47], table: [52, 61, 59], related: [50, 57] },
+  catalogue: { band: 45, related: [91, 87] },
 };
 
 const bg = (url: string | null | undefined, fallback: number | undefined): CSSProperties | undefined =>
@@ -114,9 +115,9 @@ function Summary({ section, hub, editorial }: { section: Of<"summary">; hub: Pub
       </div>
       {hub.category.children.length ? (
         <ul className={`${h.list} ${h.catCards}`}>
-          {hub.category.children.map((child, index) => (
+          {hub.category.children.map((child) => (
             <li key={child.slug} className={h.catCard}>
-              <span className={`${h.catPhoto} ${h.photo}`} style={bg(child.image?.url, PHOTOS.catalogue.subs[index % PHOTOS.catalogue.subs.length])} />
+              <span className={`${h.catPhoto} ${h.photo}`} style={bg(child.image?.url, undefined)} />
               <div className={h.catText}>
                 <h2 className={h.catName}>
                   <a className={h.cardLink} href={categoryHref(child.slug)}>
@@ -148,9 +149,9 @@ function Subcategories({ section, hub, editorial }: { section: Of<"subcategories
         </a>
       </div>
       <ul className={`${h.list} ${h.subRow}`}>
-        {hub.category.children.map((child, index) => (
+        {hub.category.children.map((child) => (
           <li key={child.slug} className={h.sub}>
-            <span className={`${h.subPhoto} ${h.photo}`} style={bg(child.image?.url, PHOTOS.editorial.subs[index % PHOTOS.editorial.subs.length])} />
+            <span className={`${h.subPhoto} ${h.photo}`} style={bg(child.image?.url, undefined)} />
             <span className={h.subName}>
               <a className={h.cardLink} href={categoryHref(child.slug)}>
                 {child.name}
@@ -415,6 +416,7 @@ function Grid({ section, hub }: { section: Of<"grid">; hub: PublicHub }) {
 
 /**
  * Category hub (Pen 18 · jUd9y editorial, 11 · YBK8S catalogue; PUB-FR-009).
+ * The hub's `layout` picks the design.
  * Sections, their order and visibility come from the published hub.
  */
 export default async function CategoryHubPage({ params }: Params) {
@@ -422,7 +424,8 @@ export default async function CategoryHubPage({ params }: Params) {
   if (!validSlug(slug)) notFound();
   const hub = await getHub(slug);
   if (!hub) notFound();
-  const editorial = EDITORIAL.has(slug);
+  // The layout is the hub's own setting (staff choose it in the hub editor), not the category's address.
+  const editorial = hub.layout === "EDITORIAL";
   const visible = hub.sections.filter((section) => section.visible);
   const summary = visible.find((section) => section.type === "summary") as Of<"summary"> | undefined;
   const related = hub.sections.find((section) => section.type === "related") as Of<"related"> | undefined;

@@ -1,4 +1,4 @@
-import type { PublicProductCard } from "@holypearls/contracts";
+import { customerPriceState, type PublicProductCard } from "@holypearls/contracts";
 import styles from "./card.module.css";
 
 const naira = (minor: string, currency: string) => {
@@ -14,13 +14,15 @@ const PIECE_FAMILIES = new Set(["GARMENT", "APPAREL_PRINT", "EMBROIDERY", "PROMO
  * consultation products say so instead of a price.
  */
 export function priceLine(product: PublicProductCard): { text: string; amount?: string; unit?: string; tone: "ready" | "estimate" | "quote" | "muted" } {
-  if (!product.available) return { text: "Can't be ordered right now", tone: "muted" };
-  if (product.priceState === "CONSULTATION_REQUIRED") return { text: "Planned with our team", tone: "quote" };
+  // One rule for cards and product pages (customerPriceState): no list price is a quote, never an estimate.
+  const state = customerPriceState(product);
+  if (state === "UNAVAILABLE") return { text: "Can't be ordered right now", tone: "muted" };
+  if (state === "CONSULTATION_REQUIRED") return { text: "Planned with our team", tone: "quote" };
   const price = product.price;
-  if (!price) return { text: "Quote required", tone: "quote" };
+  if (state === "QUOTE_REQUIRED" || !price) return { text: "Quote required", tone: "quote" };
   const amount = naira(price.amountMinor, price.currency);
   const unit = price.basis === "PER_PACK" ? ` / ${price.packSize.toLocaleString("en-NG")}` : price.basis === "PER_UNIT" ? (PIECE_FAMILIES.has(product.family) ? " / piece" : " / unit") : "";
-  if (price.state === "ESTIMATE_READY") return { text: `From ${amount}${unit}`, amount: `From ${amount}`, unit, tone: "estimate" };
+  if (state === "ESTIMATE_READY") return { text: `From ${amount}${unit}`, amount: `From ${amount}`, unit, tone: "estimate" };
   return { text: `${amount}${unit}`, amount, unit, tone: "ready" };
 }
 

@@ -1,4 +1,4 @@
-import { configurationSchema } from "@holypearls/contracts";
+import { configurationSchema, CUSTOMER_PRICE_LABEL, customerPriceState } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Configurator } from "../../../components/catalogue/Configurator";
@@ -35,6 +35,26 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
  * stepped configurator (Pen 22) at /products/[slug]/configure. A `?draft=`
  * address reopens a saved design (owners only).
  */
+/**
+ * The "how we brand it" copy follows the decorations this product offers
+ * (configurator.allowedDecorations), so a print-only garment never promises
+ * embroidery. Pen 19's copy is the embroidery case.
+ */
+function brandingCopy(decorations: string[]) {
+  const embroidery = decorations.includes("EMBROIDERY");
+  const print = decorations.includes("PRINT");
+  if (embroidery && print) {
+    return { title: "We prepare your logo for embroidery or print", body: "Just send your logo. We turn it into an embroidery or print file and show you a proof before we produce anything. When you reorder, we use the same approved file." };
+  }
+  if (embroidery) {
+    return { title: "We prepare your logo for embroidery", body: "Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file." };
+  }
+  if (print) {
+    return { title: "We prepare your logo for print", body: "Just send your logo. We turn it into a print file and show you a proof before we print anything. When you reorder, we use the same approved file." };
+  }
+  return { title: "We agree the branding with you", body: "Tell us what you'd like on it. We confirm how it's made and show you a proof before we produce anything." };
+}
+
 /** What each quantity band says (Pen 19): the minimum, a worked example, a live estimate, or a production review. */
 function bandNote(tier: { quantity: number; perUnitMinor: string | null }, index: number, count: number, moq: number) {
   if (index === 0) return `Standard minimum ${moq.toLocaleString("en-NG")}`;
@@ -157,9 +177,12 @@ export default async function ProductPage({ params, searchParams }: Params) {
   if (initialDraft) redirect(`/products/${slug}/configure?draft=${initialDraft.id}`);
   const config = product.configurator!;
   const tiers = config.quantityPresets;
-  const from = product.price;
-  const state = from?.state === "PRICE_READY" ? "PRICE READY" : "ESTIMATE READY";
+  const priceState = customerPriceState(product);
+  const state = CUSTOMER_PRICE_LABEL[priceState];
+  // A list price only when the state says there is one (never "estimate ready" without a price).
+  const from = priceState === "PRICE_READY" || priceState === "ESTIMATE_READY" ? product.price : null;
   const pen = (n: number) => `/pen/generated-${n}.webp`;
+  const branding = brandingCopy(config.allowedDecorations);
   return (
     <SiteShell>
       <section className={g.top} aria-labelledby="product-title">
@@ -189,7 +212,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
               {product.summary ? <p className={g.lead}>{product.summary}</p> : null}
             </div>
             <div className={g.priceBlock}>
-              <span className={`${g.state} ${from?.state === "PRICE_READY" ? g.stateReady : ""}`}>{state}</span>
+              <span className={`${g.state} ${priceState === "PRICE_READY" ? g.stateReady : ""}`}>{state}</span>
               {from ? (
                 <p className={g.price}>
                   <span className={g.priceValue}>
@@ -199,7 +222,11 @@ export default async function ProductPage({ params, searchParams }: Params) {
                   <span className={`${g.priceUnit} ${g.narrow}`}>/ piece · {from.state === "ESTIMATE_READY" ? "estimate" : "price ready"}</span>
                 </p>
               ) : null}
-              <p className={g.priceNote}>You&apos;ll see an estimate as you choose options. We confirm the final price before you pay.</p>
+              <p className={g.priceNote}>
+                {from
+                  ? "You'll see an estimate as you choose options. We confirm the final price before you pay."
+                  : "Choose your options and we'll send you a quote. We confirm the final price before you pay."}
+              </p>
             </div>
             <ul className={g.chips} aria-label="At a glance">
               <li>
@@ -252,7 +279,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
       <section className={g.material} aria-label="Material and process">
         <div className={g.materialCol}>
           <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(60)}")` }} />
-          <h2 className={g.mt}>Fabric is chosen with you</h2>
+          <h2 className={g.mt}>Fabric &amp; fit</h2>
           {product.specifications.length ? (
             <dl className={g.spec}>
               {product.specifications.map((spec) => (
@@ -268,10 +295,8 @@ export default async function ProductPage({ params, searchParams }: Params) {
         </div>
         <div className={g.materialCol}>
           <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(58)}")` }} />
-          <h2 className={g.mt}>We prepare your logo for embroidery</h2>
-          <p className={g.pb}>
-            Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file.
-          </p>
+          <h2 className={g.mt}>{branding.title}</h2>
+          <p className={g.pb}>{branding.body}</p>
         </div>
         <div className={g.tiers}>
           {tiers.length ? (
@@ -311,7 +336,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
       <section className={g.folds} aria-label={`About the ${product.name}`}>
         {[
           { title: "Fabric & fit", body: product.specifications.filter((spec) => spec.label !== "Sizes") },
-          { title: "How we brand it", text: "Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file." },
+          { title: "How we brand it", text: branding.body },
           { title: "Quantity bands", bands: true },
           { title: "Sizing", body: product.specifications.filter((spec) => spec.label === "Sizes") },
           { title: "Questions", faqs: true },

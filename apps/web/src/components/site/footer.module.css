@@ -44,50 +44,19 @@
   line-height: var(--hp-size-23);
 }
 
+/* Pen's newsletter bar, as a notice until there's a mailing list (no field, no button). */
 .newsletter {
   display: flex;
   align-items: center;
   height: var(--hp-size-52);
+  margin: 0;
   padding: 0 var(--hp-space-6) 0 var(--hp-space-16);
   border-radius: var(--hp-space-6);
   outline: var(--hp-size-1) solid var(--hp-graphite);
   outline-offset: var(--hp-size--0_5);
-}
-
-.newsletter:focus-within {
-  outline-color: var(--hp-bone);
-}
-
-.newsletterInput {
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--hp-bone);
-  font: inherit;
+  color: var(--hp-line-strong);
   font-size: var(--hp-space-16);
   line-height: var(--hp-size-23);
-}
-
-.newsletterInput::placeholder {
-  color: var(--hp-line-strong);
-  opacity: 1;
-}
-
-.newsletterButton {
-  height: var(--hp-space-40);
-  padding: 0 var(--hp-space-14);
-  border: 0;
-  border-radius: var(--hp-space-4);
-  background: var(--hp-bone);
-  color: var(--hp-ink);
-  font: inherit;
-  font-size: var(--hp-space-14);
-  font-weight: 600;
-  line-height: var(--hp-space-20);
-  cursor: pointer;
 }
 
 .note {
@@ -248,18 +217,6 @@
 
 .logo:hover .pearl {
   transform: scale(1.35);
-}
-
-.newsletterButton {
-  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
-}
-
-.newsletterButton:hover {
-  background: var(--hp-paper);
-}
-
-.newsletterButton:active {
-  transform: scale(0.97);
 }
 
 /* Drawn underline: grows left to right on hover, retracts to the right after. */

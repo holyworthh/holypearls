@@ -9,6 +9,29 @@ export interface SeedMediaStore {
 
 /** Generated sample photos, 2000 × 1500 with 400 px thumbnails (TEST DATA, see assets/products). */
 const ASSETS = new URL("../../assets/products/", import.meta.url);
+/** Subcategory photos (TEST DATA): Pen's reference photography and product samples, until real HolyPearls photos arrive. */
+const CATEGORY_ASSETS = new URL("../../assets/categories/", import.meta.url);
+
+/**
+ * Each subcategory's hero image, by slug: the category page shows the
+ * category's own image (categories.hero_file_id), never one picked by its
+ * position in a list (its alt text is the category name). Staff replace them in admin.
+ */
+const CATEGORY_IMAGES: Record<string, [width: number, height: number, thumbWidth: number, thumbHeight: number]> = {
+  headwear: [928, 1152, 400, 497],
+  "t-shirts-tops": [928, 1152, 322, 400],
+  workwear: [1408, 768, 400, 218],
+  "apparel-printing": [928, 1152, 322, 400],
+  embroidery: [1408, 768, 400, 218],
+  "business-stationery": [928, 1152, 322, 400],
+  "id-event": [1408, 768, 400, 218],
+  "roll-ups": [928, 1152, 322, 400],
+  "paper-presentation-packaging": [928, 1152, 322, 400],
+  stickers: [928, 1152, 322, 400],
+  drinkware: [2000, 1500, 400, 300],
+  canvas: [2000, 1500, 400, 300],
+  solutions: [2000, 1500, 400, 300],
+};
 
 const ALT: Record<string, string> = {
   "polo-shirt": "Navy polo shirt with a small embroidered logo on the chest",
@@ -75,21 +98,39 @@ export async function seedCatalogueMedia(tx: Transaction, store: SeedMediaStore)
       await addImage(tx, store, product.id, name, alt, position);
     }
   }
+  // Subcategory images: only where staff haven't set one.
+  for (const [slug, size] of Object.entries(CATEGORY_IMAGES)) {
+    const [category] = await tx.select({ id: schema.categories.id, heroFileId: schema.categories.heroFileId }).from(schema.categories).where(eq(schema.categories.slug, slug));
+    if (!category || category.heroFileId) continue;
+    const fileId = await storeImage(tx, store, { base: CATEGORY_ASSETS, name: slug, key: `seed-category-${slug}`, size, owner: { type: "CATEGORY", id: category.id } });
+    await tx.update(schema.categories).set({ heroFileId: fileId }).where(eq(schema.categories.id, category.id));
+  }
 }
 
 async function addImage(tx: Transaction, store: SeedMediaStore, productId: string, name: string, alt: string, position: number) {
-  const [width, height, thumbWidth, thumbHeight] = SIZES[name] ?? [2000, 1500, 400, 300];
-  const source = await readFile(new URL(`${name}.webp`, ASSETS));
-  const thumb = await readFile(new URL(`${name}.thumb.webp`, ASSETS));
-  const key = `files/source/seed-${name}`;
+  const fileId = await storeImage(tx, store, { base: ASSETS, name, key: `seed-${name}`, size: SIZES[name] ?? [2000, 1500, 400, 300], owner: { type: "PRODUCT", id: productId } });
+  await tx.insert(schema.productMedia).values({ productId, fileId, alt, position });
+}
+
+/** Writes a READY public image with its preview and thumbnail renditions; returns its file ID. */
+async function storeImage(
+  tx: Transaction,
+  store: SeedMediaStore,
+  image: { base: URL; name: string; key: string; size: [number, number, number, number]; owner: { type: "PRODUCT" | "CATEGORY"; id: string } },
+): Promise<string> {
+  const { name } = image;
+  const [width, height, thumbWidth, thumbHeight] = image.size;
+  const source = await readFile(new URL(`${name}.webp`, image.base));
+  const thumb = await readFile(new URL(`${name}.thumb.webp`, image.base));
+  const key = `files/source/${image.key}`;
   const [file] = await tx
     .insert(schema.files)
     .values({
       purpose: "PRODUCT_MEDIA",
       status: "READY",
       bucket: "public",
-      ownerType: "PRODUCT",
-      ownerId: productId,
+      ownerType: image.owner.type,
+      ownerId: image.owner.id,
       attachedAt: new Date(),
       originalName: `${name}.webp`,
       safeName: `${name}.webp`,
@@ -110,5 +151,5 @@ async function addImage(tx: Transaction, store: SeedMediaStore, productId: strin
     { fileId: file!.id, kind: "PREVIEW", page: 1, storageKey: previewKey, contentType: "image/webp", width, height },
     { fileId: file!.id, kind: "THUMBNAIL", page: 1, storageKey: thumbKey, contentType: "image/webp", width: thumbWidth, height: thumbHeight },
   ]);
-  await tx.insert(schema.productMedia).values({ productId, fileId: file!.id, alt, position });
+  return file!.id;
 }

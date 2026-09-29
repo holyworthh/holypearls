@@ -338,14 +338,26 @@ export function SuggestInput({
 /**
  * The header search (Pen 09): the field in the bar opens the suggestion panel
  * over a dimmed page. "/" opens it from anywhere; Esc or the scrim closes it.
+ * A native modal <dialog>, as the image viewer is: the page behind is inert
+ * (no focus, clicks or screen-reader access) and focus returns to the trigger.
  */
 export function HeaderSearch({ id, fieldClassName, iconClassName }: { id: string; fieldClassName?: string; iconClassName?: string }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
   const close = () => {
     setOpen(false);
     trigger.current?.focus();
   };
+  useEffect(() => {
+    const element = dialog.current;
+    if (!element) return;
+    if (open && !element.open) {
+      element.showModal();
+      element.querySelector<HTMLInputElement>("input[type='search']")?.focus();
+    }
+    if (!open && element.open) element.close();
+  }, [open]);
   useEffect(() => {
     const slash = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
@@ -366,16 +378,26 @@ export function HeaderSearch({ id, fieldClassName, iconClassName }: { id: string
           /
         </kbd>
       </button>
-      {open ? (
-        <>
-          <div className={styles.scrim} onClick={close} aria-hidden="true" />
-          <div className={styles.dialog} role="dialog" aria-modal="true" aria-label="Search">
-            <form action="/products" role="search" aria-label="Search products">
-              <SuggestInput id={id} placeholder="What do you need made?" variant="attached" autoFocus onClose={close} className={styles.fieldInput} />
-            </form>
-          </div>
-        </>
-      ) : null}
+      <dialog
+        ref={dialog}
+        className={styles.dialog}
+        aria-label="Search"
+        onClose={() => open && close()}
+        onCancel={(event) => {
+          event.preventDefault();
+          close();
+        }}
+        onClick={(event) => {
+          // A click on the scrim (the dialog's backdrop, outside the panel) closes it.
+          if (event.target === event.currentTarget) close();
+        }}
+      >
+        {open ? (
+          <form action="/products" role="search" aria-label="Search products">
+            <SuggestInput id={id} placeholder="What do you need made?" variant="attached" onClose={close} className={styles.fieldInput} />
+          </form>
+        ) : null}
+      </dialog>
     </>
   );
 }

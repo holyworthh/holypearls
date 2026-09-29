@@ -1,5 +1,5 @@
 import { adminHubSchema, adminMerchandisingListsSchema, publicHubSchema, publicProductPageSchema, publicProductSchema, searchSuggestionsSchema, storefrontNavigationSchema } from "@holypearls/contracts";
-import { eq, schema } from "@holypearls/db";
+import { eq, inArray, schema } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
@@ -27,7 +27,7 @@ afterAll(async () => {
   await harness?.close();
 });
 
-async function insertProduct(values: { slug: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED"; categorySlug: string; phrases?: string[] }) {
+async function insertProduct(values: { slug: string; status: "DRAFT" | "PUBLISHED" | "ARCHIVED"; categorySlug: string; phrases?: string[]; listed?: boolean }) {
   const [category] = await harness.database.db.select().from(schema.categories).where(eq(schema.categories.slug, values.categorySlug));
   const [row] = await harness.database.db
     .insert(schema.products)
@@ -40,6 +40,7 @@ async function insertProduct(values: { slug: string; status: "DRAFT" | "PUBLISHE
       categoryId: category!.id,
       status: values.status,
       searchPhrases: values.phrases ?? [],
+      listed: values.listed ?? true,
     })
     .returning();
   return row!;
@@ -182,6 +183,32 @@ describe("search suggestions (Pen 09 · R8Aqc; PUB-FR-006, 007)", () => {
     expect(result.searches).not.toContain("embossed secret folder");
   });
 
+  it("suggests at most three products, names starting with the query first, then names containing it, then phrase matches", async () => {
+    const db = harness.database.db;
+    const [parent] = await db.insert(schema.categories).values({ slug: "qq-hidden-parent", name: "QQ hidden parent", status: "DRAFT" }).returning();
+    const [child] = await db.insert(schema.categories).values({ slug: "qq-visible-child", name: "QQ visible child", status: "PUBLISHED", parentId: parent!.id }).returning();
+    const inserted = [
+      await insertProduct({ slug: "zeta-folder", status: "PUBLISHED", categorySlug: "business-stationery", phrases: ["qqprefix folder"] }),
+      await insertProduct({ slug: "blue-qqprefix-card", status: "PUBLISHED", categorySlug: "business-stationery" }),
+      await insertProduct({ slug: "qqprefix-memo", status: "PUBLISHED", categorySlug: "business-stationery" }),
+      await insertProduct({ slug: "qqprefix-card", status: "PUBLISHED", categorySlug: "business-stationery" }),
+      await insertProduct({ slug: "qqprefix-draft", status: "DRAFT", categorySlug: "business-stationery" }),
+      await insertProduct({ slug: "qqprefix-unlisted", status: "PUBLISHED", categorySlug: "business-stationery", listed: false }),
+      await insertProduct({ slug: "qqprefix-orphan", status: "PUBLISHED", categorySlug: "qq-visible-child" }),
+    ];
+    try {
+      expect((await suggest("qqprefix")).products.map((product) => product.slug)).toEqual(["qqprefix-card", "qqprefix-memo", "blue-qqprefix-card"]);
+      // A phrase-only match still shows when nothing ranks above it.
+      expect((await suggest("qqprefix folder")).products.map((product) => product.slug)).toEqual(["zeta-folder"]);
+      // Drafts, unlisted products and products under an unpublished parent category never appear.
+      const found = (await suggest("qqprefix d")).products.concat((await suggest("qqprefix u")).products, (await suggest("qqprefix o")).products);
+      expect(found).toEqual([]);
+    } finally {
+      await db.delete(schema.products).where(inArray(schema.products.id, inserted.map((row) => row.id)));
+      await db.delete(schema.categories).where(inArray(schema.categories.id, [child!.id, parent!.id]));
+    }
+  });
+
   it("returns empty groups when nothing matches, rejects an empty query and is rate limited as SEARCH", async () => {
     const none = await suggest("zzqx");
     expect(none).toMatchObject({ searches: [], categories: [], products: [], guides: [] });
@@ -255,6 +282,40 @@ describe("category hubs (PUB-FR-009, Pen 105)", () => {
     await harness.database.db.insert(schema.categories).values({ slug: "draft-category", name: "Draft", status: "DRAFT" });
     expect((await get("/v1/catalogue/hubs/draft-category")).status).toBe(404);
   }, 180_000);
+
+  it("takes its layout from the hub, which staff choose, not from the category's address", async () => {
+    const layout = async (slug: string) => publicHubSchema.parse((await get(`/v1/catalogue/hubs/${slug}`)).body).layout;
+    expect(await layout("apparel-garment-production")).toBe("EDITORIAL");
+    expect(await layout("embroidery-garment-customization")).toBe("EDITORIAL");
+    expect(await layout("stickers-labels-product-branding")).toBe("CATALOGUE");
+
+    const [category] = await harness.database.db.select().from(schema.categories).where(eq(schema.categories.slug, "stickers-labels-product-branding"));
+    const admin = adminHubSchema.parse((await as(harness, staff).get(`/v1/admin/catalogue/categories/${category!.id}/hub`)).body);
+    expect(admin.draft.layout).toBe("CATALOGUE");
+    const saved = adminHubSchema.parse((await put(`/v1/admin/catalogue/categories/${category!.id}/hub`, { hub: { ...admin.draft, layout: "EDITORIAL" }, version: admin.version })).body);
+    expect(await layout("stickers-labels-product-branding")).toBe("CATALOGUE");
+    await as(harness, staff).post(`/v1/admin/catalogue/categories/${category!.id}/hub/publish`, { version: saved.version });
+    expect(await layout("stickers-labels-product-branding")).toBe("EDITORIAL");
+  });
+
+  it("gives each subcategory its own image, not one chosen by its place in a list", async () => {
+    const db = harness.database.db;
+    const [workwear] = await db.select().from(schema.categories).where(eq(schema.categories.slug, "workwear"));
+    const [file] = await db
+      .insert(schema.files)
+      .values({ purpose: "PRODUCT_MEDIA", status: "READY", bucket: "public", originalName: "workwear.webp", safeName: "workwear.webp", declaredType: "image/webp", declaredSize: 4, storageKey: "files/source/workwear.webp" })
+      .returning();
+    await db.update(schema.categories).set({ heroFileId: file!.id }).where(eq(schema.categories.id, workwear!.id));
+    try {
+      const hub = publicHubSchema.parse((await get("/v1/catalogue/hubs/apparel-garment-production")).body);
+      const image = (slug: string) => hub.category.children.find((child) => child.slug === slug)!.image;
+      // The category's own image, whatever its position; a category without one has none (the page shows a plain fill).
+      expect(image("workwear")).toMatchObject({ url: `/api/v1/media/${file!.id}/preview`, alt: "Workwear" });
+      expect(image("headwear")).toBeNull();
+    } finally {
+      await db.update(schema.categories).set({ heroFileId: null }).where(eq(schema.categories.id, workwear!.id));
+    }
+  });
 
   it("is 403 for staff without CATALOGUE_MANAGE and 404 for customers", async () => {
     const [category] = await harness.database.db.select().from(schema.categories).limit(1);

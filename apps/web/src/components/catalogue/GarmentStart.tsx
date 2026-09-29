@@ -6,12 +6,19 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./garment.module.css";
 import { ImageViewer } from "./ImageViewer";
 
-/* Route copy: `meta` from Pen 19 (desktop), `short` from Pen 20 (mobile). */
-const ROUTES = [
-  { value: "SOURCE_CUSTOMIZE", title: "Source & Customize", meta: "Your branding", short: "Quality blank" },
-  { value: "MAKE_FROM_SCRATCH", title: "Make From Scratch", meta: "Quote · from 20 per style", short: "Your fabric and fit · quote · from 20" },
-  { value: "CUSTOMER_SUPPLIED", title: "Customer Supplied", meta: "Accepted after inspection", short: "Your garments, after inspection" },
-] as const;
+type Route = "SOURCE_CUSTOMIZE" | "MAKE_FROM_SCRATCH" | "CUSTOMER_SUPPLIED";
+
+/*
+ * Route copy only: `meta` from Pen 19 (desktop), `short` from Pen 20 (mobile).
+ * Which routes a product offers comes from the API (configurator.allowedRoutes).
+ * Pen's "from 20" is left out: a scratch minimum isn't product data yet.
+ */
+const ROUTE_COPY: Record<Route, { title: string; meta: string; short: string }> = {
+  SOURCE_CUSTOMIZE: { title: "Source & Customize", meta: "Your branding", short: "Quality blank" },
+  MAKE_FROM_SCRATCH: { title: "Make From Scratch", meta: "Quote · your fabric and fit", short: "Your fabric and fit · quote" },
+  CUSTOMER_SUPPLIED: { title: "Customer Supplied", meta: "Accepted after inspection", short: "Your garments, after inspection" },
+};
+const isRoute = (value: string): value is Route => value in ROUTE_COPY;
 
 /** Swatches shown before "+N" on phones (Pen 20). */
 const PHONE_SWATCHES = 6;
@@ -90,8 +97,10 @@ export function GarmentGallery({ images, name, fallback }: { images: PublicImage
 export function GarmentStart({ slug, data, facts, compareHref }: { slug: string; data: ConfiguratorData; facts?: ReactNode; compareHref?: string }) {
   const colour = data.options.find((option) => option.key === "colour");
   const [chosen, setChosen] = useState(colour?.values.find((value) => value.isDefault)?.key ?? colour?.values[0]?.key ?? "");
-  const [route, setRoute] = useState<(typeof ROUTES)[number]["value"]>("SOURCE_CUSTOMIZE");
-  const href = `/products/${slug}/configure?${new URLSearchParams({ sourcing: route, ...(chosen ? { colour: chosen } : {}) })}`;
+  // The product page offers the production routes; Help Me Choose waits in the configurator.
+  const routes = data.allowedRoutes.filter(isRoute).map((value) => ({ value, ...ROUTE_COPY[value] }));
+  const [route, setRoute] = useState<Route | null>(routes[0]?.value ?? null);
+  const href = `/products/${slug}/configure?${new URLSearchParams({ ...(route ? { sourcing: route } : {}), ...(chosen ? { colour: chosen } : {}) })}`;
   const label = colour?.values.find((value) => value.key === chosen)?.label;
   const [allColours, setAllColours] = useState(false);
   const hidden = colour ? colour.values.length - PHONE_SWATCHES : 0;
@@ -120,16 +129,17 @@ export function GarmentStart({ slug, data, facts, compareHref }: { slug: string;
         </fieldset>
       ) : null}
       {facts}
-      <fieldset className={`${styles.group} ${styles.routesGroup}`}>
-        <legend className={styles.groupHead}>
-          How should we make it?
-          {compareHref ? (
-            <a className={styles.groupLink} href={compareHref}>
-              Compare routes
-            </a>
+      {routes.length ? (
+        <fieldset className={`${styles.group} ${styles.routesGroup}`}>
+          <legend className={styles.groupHead}>
+            How should we make it?
+            {compareHref ? (
+              <a className={styles.groupLink} href={compareHref}>
+                Compare routes
+              </a>
           ) : null}
         </legend>
-        {ROUTES.map((option) => (
+        {routes.map((option) => (
           <label key={option.value} className={styles.route}>
             <input type="radio" name="route" value={option.value} checked={route === option.value} onChange={() => setRoute(option.value)} />
             <span className={styles.ring} aria-hidden="true" />
@@ -141,6 +151,7 @@ export function GarmentStart({ slug, data, facts, compareHref }: { slug: string;
           </label>
         ))}
       </fieldset>
+      ) : null}
       <div className={styles.actions}>
         <a className={styles.configure} href={href} id="configure-yours">
           Configure yours

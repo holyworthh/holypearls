@@ -44,6 +44,12 @@ describe("timing (COM-FR-060, 070–072)", () => {
     expect(addWorkingDays(monday, 5).toISOString().slice(0, 10)).toBe("2026-10-12");
   });
 
+  it("starts from today's date in Lagos, not UTC's", () => {
+    // Thursday 23:30 UTC is already Friday 00:30 in Lagos: one working day later is Monday.
+    expect(addWorkingDays(new Date("2026-10-08T23:30:00Z"), 1).toISOString().slice(0, 10)).toBe("2026-10-12");
+    expect(addWorkingDays(new Date("2026-10-08T22:30:00Z"), 1).toISOString().slice(0, 10)).toBe("2026-10-09");
+  });
+
   it("rush and priority shorten production like the calculator", () => {
     expect(productionDays(rollUp, "STANDARD")).toEqual({ min: 1, max: 4 });
     expect(productionDays(rollUp, "RUSH")).toEqual({ min: 1, max: 3 });

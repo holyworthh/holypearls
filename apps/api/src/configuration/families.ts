@@ -13,6 +13,7 @@
  *   is priced by quote (freight) and never stops the configuration.
  */
 
+import { businessDate } from "@holypearls/contracts";
 import type { CalculationInput } from "./calculate.js";
 
 type Adjustment = NonNullable<CalculationInput["adjustments"]>[number];
@@ -79,9 +80,12 @@ export const TRANSIT_DAYS: Record<NonNullable<FamilyDetails["destination"]>, { m
   INTERNATIONAL: null,
 };
 
-/** Adds working days (Monday to Friday) to a date, in UTC. */
+/**
+ * Adds working days (Monday to Friday) to today's business date (Lagos, not
+ * the server's or UTC's). The result is that calendar date at 00:00 UTC.
+ */
 export function addWorkingDays(from: Date, days: number): Date {
-  const date = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  const date = new Date(`${businessDate(from)}T00:00:00Z`);
   let left = days;
   while (left > 0) {
     date.setUTCDate(date.getUTCDate() + 1);

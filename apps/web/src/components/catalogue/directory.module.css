@@ -872,6 +872,154 @@
   gap: var(--hp-space-28);
 }
 
+/* Products added by "Load more" sit below the first ones with the same row gap. */
+.added {
+  margin-top: var(--hp-space-28);
+}
+
+/*
+ * Filter sheet (Pen 06 · Screen C): a modal <dialog> 88px from the top, full
+ * width, 16px top corners, over the scrim. Head, scrolling groups, and the
+ * Clear all / Show N products bar fixed at the bottom. Phones and tablets only.
+ */
+.sheet {
+  position: fixed;
+  inset: var(--hp-size-88) 0 0;
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hp-space-16) var(--hp-space-16) 0 0;
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  overflow: hidden;
+}
+
+.sheet[open] {
+  display: flex;
+  animation: sheetUp var(--hp-motion-card) var(--hp-ease-soft);
+}
+
+.sheet::backdrop {
+  background: var(--hp-scrim);
+}
+
+/* The page behind doesn't scroll while the sheet is open. */
+:global(html):has(.sheet[open]) {
+  overflow: hidden;
+}
+
+.sheetHead {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--hp-space-16) var(--hp-space-20);
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: var(--hp-space-20);
+  font-weight: 600;
+  line-height: var(--hp-space-28);
+}
+
+.sheetClose {
+  display: grid;
+  place-items: center;
+  width: var(--hp-size-44);
+  height: var(--hp-size-44);
+  margin-right: calc(var(--hp-space-12) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: transparent;
+  color: var(--hp-ink);
+  cursor: pointer;
+}
+
+.sheetClose:focus-visible,
+.sheetClear:focus-visible,
+.sheetShow:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.sheetBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 var(--hp-space-20);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The rail's own heading and apply button give way to the sheet's head and bar. */
+.sheetBody .railHead,
+.sheetBody .apply {
+  display: none;
+}
+
+/* The head's rule already separates the first group (Pen: groups rule below only). */
+.sheetBody .fold:first-of-type {
+  border-top: 0;
+}
+
+.sheetActions {
+  display: flex;
+  flex: none;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-14) var(--hp-space-20) var(--hp-space-24);
+  border-top: var(--hp-size-1) solid var(--hp-line);
+  background: var(--hp-paper);
+}
+
+.sheetClear,
+.sheetShow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--hp-space-48);
+  padding: 0 var(--hp-size-18);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  font: inherit;
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sheetClear {
+  flex: none;
+  width: var(--hp-space-120);
+  outline: var(--hp-size-1_5) solid var(--hp-ink);
+  outline-offset: var(--hp-size--0_75);
+  color: var(--hp-ink);
+}
+
+.sheetShow {
+  flex: 1 1 auto;
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+}
+
+.sheetShow:hover {
+  background: var(--hp-accent-hover);
+}
+
+@keyframes sheetUp {
+  from {
+    translate: 0 var(--hp-space-24);
+    opacity: 0;
+  }
+}
+
 /* ── Mobile (Pen 06 · 390) ── */
 @media (max-width: 1023px) {
   .pad {
@@ -982,11 +1130,6 @@
     display: none;
   }
 
-  .railOpen {
-    display: block;
-    padding: var(--hp-space-16) var(--hp-space-20);
-    border-bottom: var(--hp-size-1) solid var(--hp-line);
-  }
 
   .filterButton {
     display: inline-flex;

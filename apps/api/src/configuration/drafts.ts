@@ -8,6 +8,7 @@ import { type NotificationDeps, queueEmail } from "../platform/notifications.js"
 import { findFileForActor } from "../files/files.js";
 import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
+import { type Capabilities, garmentChoices, unavailableGarmentChoices } from "./capabilities.js";
 import { type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
 import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
 import { priceProduct, pricingInputs, productOptions } from "./pricing.js";
@@ -91,7 +92,10 @@ async function filesOf(db: Database, id: string, placements: Placement[]) {
 }
 
 async function view(db: Database, row: Row, now: Date): Promise<Configuration> {
-  const [product] = await db.select({ slug: schema.products.slug, name: schema.products.name, family: schema.products.family }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const [product] = await db
+    .select({ slug: schema.products.slug, name: schema.products.name, family: schema.products.family, routes: schema.products.routes, decorations: schema.products.decorations })
+    .from(schema.products)
+    .where(eq(schema.products.id, row.productId));
   const [rules] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
   const placements = await placementsOf(db, row.id);
   const [quote] = await db
@@ -135,6 +139,7 @@ async function view(db: Database, row: Row, now: Date): Promise<Configuration> {
             count: personalization.length,
             preview: personalization.slice(0, 5).map(({ row: number, name, number: shirt, department, size }) => ({ row: number, name, number: shirt, department, size })),
           },
+          unavailable: unavailableGarmentChoices(product!, { sourcing: row.sourcing, decoration: row.decoration, placements }),
         }
       : null,
     files: await filesOf(db, row.id, placements),
@@ -148,7 +153,10 @@ async function view(db: Database, row: Row, now: Date): Promise<Configuration> {
 
 /** Price-state changes from garment, family and delivery answers (COM-FR-022–024, 045–047, 060, 072). */
 async function adjustments(db: Database, row: Row, now: Date): Promise<NonNullable<CalculationInput["adjustments"]>> {
-  const [product] = await db.select({ family: schema.products.family }).from(schema.products).where(eq(schema.products.id, row.productId));
+  const [product] = await db
+    .select({ family: schema.products.family, routes: schema.products.routes, decorations: schema.products.decorations })
+    .from(schema.products)
+    .where(eq(schema.products.id, row.productId));
   const [rules] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
   const details = row.details as FamilyDetails;
   const list: NonNullable<CalculationInput["adjustments"]> = [...familyAdjustments(product!.family, details), ...timingAdjustments(timingFor(rules ?? null, row.rush, details, now))];
@@ -157,9 +165,38 @@ async function adjustments(db: Database, row: Row, now: Date): Promise<NonNullab
   if (row.sourcing === "HELP_ME_CHOOSE") list.push({ state: "QUOTE_REQUIRED", code: "RECOMMENDATION", message: "We'll recommend the right garment and send a quote." });
   if (row.decoration === "RECOMMEND") list.push({ state: "ESTIMATE_READY", code: "RECOMMENDATION", message: "We'll recommend embroidery or print when we review your artwork." });
   const placements = await placementsOf(db, row.id);
+  // A saved answer the product no longer offers blocks the quote until it's replaced; the answer itself is kept.
+  if (GARMENT_FAMILIES.has(product!.family)) {
+    for (const choice of unavailableGarmentChoices(product!, { sourcing: row.sourcing, decoration: row.decoration, placements })) {
+      list.push({ state: "QUOTE_REQUIRED", code: "CHOICE_UNAVAILABLE", message: choice.message, blocking: true });
+    }
+  }
   if (placements.length > 1) list.push({ state: "ESTIMATE_READY", code: "EXTRA_PLACEMENTS", message: `${placements.length} placements: extra positions are confirmed in the final price.` });
   if (row.sizesUnknown) list.push({ state: "ESTIMATE_READY", code: "SIZES_UNKNOWN", message: "Sizes can be added later; the estimate uses your total quantity." });
   return list;
+}
+
+/**
+ * Refuses a route, decoration or placement method the product doesn't offer
+ * (COM-FR-020, 024). The product's stored capabilities are the rule; see
+ * capabilities.ts. Only answers being changed are checked, so a saved answer
+ * staff later removed never stops other answers from saving.
+ */
+export function checkGarmentPatch(
+  product: Capabilities,
+  patch: { sourcing?: Row["sourcing"]; decoration?: Row["decoration"]; placements?: Placement[] },
+) {
+  const allowed = garmentChoices(product);
+  if (patch.sourcing && !allowed.sourcing.includes(patch.sourcing)) {
+    throw new AppError("VALIDATION_FAILED", { fieldErrors: { sourcing: "This production route is not available for this product." } });
+  }
+  if (patch.decoration && !allowed.decoration.includes(patch.decoration)) {
+    throw new AppError("VALIDATION_FAILED", { fieldErrors: { decoration: "This decoration method is not available for this product." } });
+  }
+  const placement = patch.placements?.find((item) => item.method && !allowed.decoration.includes(item.method));
+  if (placement) {
+    throw new AppError("VALIDATION_FAILED", { fieldErrors: { [`placements.${placement.position}`]: "This decoration method is not available for this product." } });
+  }
 }
 
 /**
@@ -307,6 +344,10 @@ export async function updateDraft(
   const row = await load(db, access, id);
   if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, row, access.actor.now) } });
+  if (patch.sourcing || patch.decoration || patch.placements) {
+    const [capabilities] = await db.select({ routes: schema.products.routes, decorations: schema.products.decorations }).from(schema.products).where(eq(schema.products.id, row.productId));
+    checkGarmentPatch(capabilities!, patch);
+  }
 
   if (patch.artwork === "LATER") {
     const [rules] = await db.select({ artworkLater: schema.productRules.artworkLater }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
@@ -482,6 +523,8 @@ export async function requestQuote(
   const current = await view(deps.db, row, access.actor.now);
   if (row.status === "QUOTE_REQUESTED" && current.quote) return { reference: current.quote.reference, status: "PENDING_REVIEW" as const };
   if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  const unavailable = current.garment?.unavailable[0];
+  if (unavailable) throw new AppError("RULE_FAILED", { message: unavailable.message, context: { reason: "CHOICE_UNAVAILABLE", field: unavailable.field } });
   if (!current.price) throw new AppError("VALIDATION_FAILED", { fieldErrors: { quantity: "Choose a quantity before asking for a quote." } });
   const blocking = current.price.reasons.find((reason) => reason.blocking);
   if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });

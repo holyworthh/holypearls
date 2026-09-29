@@ -25,19 +25,32 @@ type Sourcing = NonNullable<NonNullable<Configuration["garment"]>["sourcing"]>;
 type Decoration = NonNullable<NonNullable<Configuration["garment"]>["decoration"]>;
 type Artwork = NonNullable<Configuration["artwork"]>;
 
-const SOURCING: { value: Sourcing; title: string; meta: string }[] = [
-  { value: "SOURCE_CUSTOMIZE", title: "Source & Customize", meta: "We supply the garment and add your branding" },
-  { value: "MAKE_FROM_SCRATCH", title: "Make From Scratch", meta: "Cut and sewn to your fabric, fit and colour" },
-  { value: "CUSTOMER_SUPPLIED", title: "I'll Supply the Garment", meta: "You send garments; we brand them" },
-  { value: "HELP_ME_CHOOSE", title: "Help Me Choose", meta: "Tell us what it's for; we recommend" },
-];
+/*
+ * Copy only. Which choices a product offers comes from the API
+ * (configurator.allowedRoutes, allowedDecorations), which also refuses others.
+ */
+const SOURCING: Record<Sourcing, { title: string; meta: string }> = {
+  SOURCE_CUSTOMIZE: { title: "Source & Customize", meta: "We supply the garment and add your branding" },
+  MAKE_FROM_SCRATCH: { title: "Make From Scratch", meta: "Cut and sewn to your fabric, fit and colour" },
+  CUSTOMER_SUPPLIED: { title: "I'll Supply the Garment", meta: "You send garments; we brand them" },
+  HELP_ME_CHOOSE: { title: "Help Me Choose", meta: "Tell us what it's for; we recommend" },
+};
 
-const DECORATION: { value: Decoration; title: string; meta: string }[] = [
-  { value: "EMBROIDERY", title: "Embroidery", meta: "Raised, textured, premium" },
-  { value: "PRINT", title: "Print", meta: "Bold graphics, bigger areas" },
-  { value: "BOTH", title: "Both", meta: "Embroidered logo, printed back" },
-  { value: "RECOMMEND", title: "Recommend for me", meta: "We'll suggest after seeing your logo" },
-];
+const DECORATION: Record<Decoration, { title: string; meta: string }> = {
+  EMBROIDERY: { title: "Embroidery", meta: "Raised, textured, premium" },
+  PRINT: { title: "Print", meta: "Bold graphics, bigger areas" },
+  BOTH: { title: "Both", meta: "Embroidered logo, printed back" },
+  RECOMMEND: { title: "Recommend for me", meta: "We'll suggest after seeing your logo" },
+};
+
+/**
+ * The choices to show: the ones the product offers, plus a saved answer staff
+ * have since removed, marked and disabled so the customer sees what changed
+ * and picks another (the draft keeps it until they do).
+ */
+function visibleChoices<T extends string>(allowed: T[], saved: T | null) {
+  return [...allowed.map((value) => ({ value, gone: false })), ...(saved && !allowed.includes(saved) ? [{ value: saved, gone: true }] : [])];
+}
 
 const ARTWORK: { value: Artwork; title: string; meta: string }[] = [
   { value: "UPLOAD", title: "Upload ready artwork", meta: "Print-ready PDF or AI works best" },
@@ -119,6 +132,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
   const serverConflicts = garment?.conflicts ?? [];
   const canUpload = signedIn || Boolean(draft?.emailedTo);
   const artworkLaterAllowed = draft?.artworkLaterAllowed ?? true;
+  const unavailable = garment?.unavailable ?? [];
+  const goneMessage = (field: string) => unavailable.find((item) => item.field === field)?.message;
+  const placementMethods = (["EMBROIDERY", "PRINT"] as const).filter((method) => data.allowedDecorations.includes(method));
 
   const setDetail = (key: string, value: string | boolean) => {
     setDetails({ ...details, [key]: value });
@@ -271,7 +287,7 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
           <div>
             <p className={w.eyebrow}>
               Step {current + 1} of {STEPS.length} · {STEPS[current]}
-              {current === 1 && decoration ? ` · ${DECORATION.find((item) => item.value === decoration)?.title}` : ""}
+              {current === 1 && decoration ? ` · ${DECORATION[decoration].title}` : ""}
             </p>
             <h1 className={w.title}>{STEP_TITLES[current]}</h1>
           </div>
@@ -280,21 +296,27 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
             <legend className="hp-visually-hidden">
               {STEPS[0]}
             </legend>
+            {goneMessage("sourcing") ? (
+              <Notice tone="warning" title="Choose another way to make it" live>
+                <p>{goneMessage("sourcing")}</p>
+              </Notice>
+            ) : null}
             <div className={styles.choices}>
-              {SOURCING.map((option) => (
-                <label key={option.value} className={styles.choice} htmlFor={`sourcing-${option.value}`}>
+              {visibleChoices(data.allowedRoutes, garment?.sourcing ?? null).map(({ value, gone }) => (
+                <label key={value} className={styles.choice} htmlFor={`sourcing-${value}`}>
                   <input
-                    id={`sourcing-${option.value}`}
+                    id={`sourcing-${value}`}
                     type="radio"
                     name="sourcing"
-                    checked={sourcing === option.value}
+                    checked={sourcing === value}
+                    disabled={gone}
                     onChange={() => {
-                      setSourcing(option.value);
-                      queue({ sourcing: option.value, step: "product" });
+                      setSourcing(value);
+                      queue({ sourcing: value, step: "product" });
                     }}
                   />
-                  <span className={styles.choiceTitle}>{option.title}</span>
-                  <span className={styles.choiceMeta}>{option.meta}</span>
+                  <span className={styles.choiceTitle}>{SOURCING[value].title}</span>
+                  <span className={styles.choiceMeta}>{gone ? "No longer available for this product" : SOURCING[value].meta}</span>
                 </label>
               ))}
             </div>
@@ -378,21 +400,27 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
             <legend className="hp-visually-hidden">
               {STEPS[1]}
             </legend>
+            {goneMessage("decoration") ? (
+              <Notice tone="warning" title="Choose another decoration" live>
+                <p>{goneMessage("decoration")}</p>
+              </Notice>
+            ) : null}
             <div className={styles.choices}>
-              {DECORATION.map((option) => (
-                <label key={option.value} className={styles.choice} htmlFor={`decoration-${option.value}`}>
+              {visibleChoices(data.allowedDecorations, garment?.decoration ?? null).map(({ value, gone }) => (
+                <label key={value} className={styles.choice} htmlFor={`decoration-${value}`}>
                   <input
-                    id={`decoration-${option.value}`}
+                    id={`decoration-${value}`}
                     type="radio"
                     name="decoration"
-                    checked={decoration === option.value}
+                    checked={decoration === value}
+                    disabled={gone}
                     onChange={() => {
-                      setDecoration(option.value);
-                      queue({ decoration: option.value, step: "customize" });
+                      setDecoration(value);
+                      queue({ decoration: value, step: "customize" });
                     }}
                   />
-                  <span className={styles.choiceTitle}>{option.title}</span>
-                  <span className={styles.choiceMeta}>{option.meta}</span>
+                  <span className={styles.choiceTitle}>{DECORATION[value].title}</span>
+                  <span className={styles.choiceMeta}>{gone ? "No longer available for this product" : DECORATION[value].meta}</span>
                 </label>
               ))}
             </div>
@@ -443,9 +471,10 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
                     </label>
                   ))}
                 </div>
-                {decoration === "BOTH" ? (
+                {goneMessage(`placements.${placement.position}`) ? <p className={styles.stepExtra}>{goneMessage(`placements.${placement.position}`)}</p> : null}
+                {decoration === "BOTH" || goneMessage(`placements.${placement.position}`) ? (
                   <div className={styles.segmented} role="radiogroup" aria-label={`${POSITION_LABEL[placement.position]} method`}>
-                    {(["EMBROIDERY", "PRINT"] as const).map((method) => (
+                    {placementMethods.map((method) => (
                       <label key={method} htmlFor={`method-${placement.position}-${method}`}>
                         <input id={`method-${placement.position}-${method}`} type="radio" name={`method-${placement.position}`} checked={placement.method === method} onChange={() => updatePlacement(placement.position, { method })} />
                         {method === "EMBROIDERY" ? "Embroider" : "Print"}
@@ -639,9 +668,9 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
             <dl className={styles.review}>
               {(
                 [
-                  ["Garment", SOURCING.find((item) => item.value === sourcing)?.title ?? "Not chosen", "step-product"],
+                  ["Garment", sourcing ? `${SOURCING[sourcing].title}${goneMessage("sourcing") ? " · no longer available, choose another" : ""}` : "Not chosen", "step-product"],
                   ...data.options.map((option) => [option.label, option.values.find((value) => value.key === choices[option.key])?.label ?? "Not chosen", "step-product"] as const),
-                  ["Decoration", DECORATION.find((item) => item.value === decoration)?.title ?? "Not chosen", "step-customize"],
+                  ["Decoration", decoration ? `${DECORATION[decoration].title}${goneMessage("decoration") ? " · no longer available, choose another" : ""}` : "Not chosen", "step-customize"],
                   ["Placement", placements.map((placement) => POSITION_LABEL[placement.position]).join(", ") || "Not chosen", "step-customize"],
                   ["Quantity", sizesUnknown ? `${total || 0} (sizes later)` : `${sizeTotal} (${Object.entries(sizes).filter(([, value]) => value).map(([size, value]) => `${size} ${value}`).join(", ") || "no sizes"})`, "step-quantity"],
                   ["Artwork", ARTWORK.find((item) => item.value === artwork)?.title ?? "Not chosen", "step-artwork"],

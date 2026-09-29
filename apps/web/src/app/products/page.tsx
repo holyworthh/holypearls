@@ -1,8 +1,9 @@
-import type { PublicProductCard } from "@holypearls/contracts";
+import { businessDate, type PublicProductCard } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import s from "../../components/catalogue/directory.module.css";
 import { FilterSheet } from "../../components/catalogue/FilterSheet";
+import { LoadMore } from "../../components/catalogue/LoadMore";
 import { priceLine, ProductCard } from "../../components/catalogue/ProductCard";
 import { SortSelect } from "../../components/catalogue/SortSelect";
 import { Icon } from "../../components/pen/Icon";
@@ -32,7 +33,8 @@ const MODES: Record<string, string> = {
   CONSULTATIVE_PROJECT: "Planned with our team",
 };
 
-const KEYS = ["q", "category", "family", "mode", "route", "price", "qty", "decoration", "neededBy", "sort", "page"] as const;
+const KEYS = ["q", "category", "family", "mode", "route", "price", "qty", "decoration", "neededBy", "sort", "page", "limit"] as const;
+const PAGE_SIZE = 24;
 
 /** The query string as the directory understands it; repeated keys (`family=A&family=B`) are kept. */
 function clean(params: Search) {
@@ -133,8 +135,12 @@ function FeatureCard({ product }: { product: PublicProductCard }) {
 /** Product Directory (Pen 17 · bhA8B desktop, 06 · r2L62s mobile; PUB-FR-008, 010). */
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = clean(await searchParams);
+  // "Today" is Lagos's date; an old needed-by link is ignored rather than refused.
+  const today = businessDate(new Date());
+  if ((params.get("neededBy") ?? today) < today) params.delete("neededBy");
+  const pageSize = Math.min(48, Math.max(1, Number(params.get("limit")) || PAGE_SIZE));
   const query = new URLSearchParams(params);
-  if (!query.has("limit")) query.set("limit", "24");
+  query.set("limit", String(pageSize));
   const data = await getProducts(query).catch(() => undefined);
   const category = params.get("category");
   const q = params.get("q") ?? "";
@@ -152,7 +158,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
     ...each("family", (value) => FAMILIES[value] ?? value),
     ...each("mode", (value) => MODES[value] ?? value),
   ];
-  const keep = [...params].filter(([key]) => key !== "sort" && key !== "page");
+  const keep = [...params].filter(([key]) => key !== "sort" && key !== "page" && key !== "limit");
   const sort = params.get("sort") ?? "popular";
   const entries = data?.entries ?? [];
   const firstPage = !params.get("page");
@@ -243,8 +249,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         </div>
       ) : (
         <div className={`${s.body} ${s.pad}`}>
-          <FilterSheet count={`${data.total} products`} sort={<SortSelect id="sort-mobile" value={sort} keep={keep} compact />}>
-            <form action="/products" aria-label="Filter products">
+          <FilterSheet
+            count={`${data.total} products`}
+            total={data.total}
+            formId="directory-filters"
+            clearHref={hrefWith(new URLSearchParams([...params].filter(([key]) => key === "q" || key === "category" || key === "sort")))}
+            sort={<SortSelect id="sort-mobile" value={sort} keep={keep} compact />}
+          >
+            <form id="directory-filters" action="/products" aria-label="Filter products">
               <div className={s.railHead}>
                 <h2 className={s.railTitle}>Filters</h2>
                 <a className={s.link} href={hrefWith(new URLSearchParams([...params].filter(([key]) => key === "q" || key === "category" || key === "sort")))}>
@@ -252,7 +264,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 </a>
               </div>
               {[...params]
-                .filter(([key]) => ["q", "category", "sort", "family", "mode"].includes(key))
+                .filter(([key]) => ["q", "category", "sort", "family", "mode", "limit"].includes(key))
                 .map(([key, value]) => (
                   <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
                 ))}
@@ -284,7 +296,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <RailGroup title="Needed by" collapsible={false}>
                 <label className={s.date}>
                   <Icon name="calendar" size={18} />
-                  <input type="date" name="neededBy" min={new Date().toISOString().slice(0, 10)} defaultValue={params.get("neededBy") ?? ""} aria-label="Needed by" />
+                  <input type="date" name="neededBy" min={today} defaultValue={params.get("neededBy") ?? ""} aria-label="Needed by" />
                 </label>
               </RailGroup>
               <button type="submit" className={`${s.outlineButton} ${s.apply}`}>
@@ -293,7 +305,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             </form>
           </FilterSheet>
 
-          <section className={s.results} aria-labelledby="results-title">
+          <section className={s.results} aria-labelledby="results-title" data-directory-results>
             <h2 id="results-title" className="hp-visually-hidden">
               Results
             </h2>
@@ -397,15 +409,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               </>
             )}
 
-            <nav className={s.pagination} aria-label="Pages">
-              <p className={s.showing}>
-                Showing {entries.length} of {data.total}
-              </p>
-              {data.page < data.pages ? (
-                <a className={s.outlineButton} href={hrefWith(params, { page: String(data.page + 1) })}>
-                  Load {Math.min(24, data.total - data.page * 24)} more
-                </a>
-              ) : null}
+            <LoadMore
+              query={new URLSearchParams([...params].filter(([key]) => key !== "page" && key !== "limit")).toString()}
+              page={data.page}
+              pages={data.pages}
+              total={data.total}
+              shown={entries.length}
+              pageSize={pageSize}
+              nextHref={hrefWith(params, { page: String(data.page + 1) })}
+            >
               {data.pages > 1 ? (
                 <ul className={`${s.list} ${s.pages}`}>
                   {Array.from({ length: data.pages }, (_, index) => index + 1).map((number) => (
@@ -422,7 +434,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   ))}
                 </ul>
               ) : null}
-            </nav>
+            </LoadMore>
           </section>
         </div>
       )}

@@ -68,10 +68,57 @@ test("on a phone the Configure bar appears only after the in-page button scrolls
   await page.goto("/products/polo-shirt");
   const bar = page.getByRole("link", { name: "Configure", exact: true });
   await expect(bar).toBeHidden();
-  await page.getByText("Fabric & fit").scrollIntoViewIfNeeded();
+  await page.locator("summary", { hasText: "Fabric & fit" }).scrollIntoViewIfNeeded();
   await page.mouse.wheel(0, 600);
   await expect(bar).toBeVisible();
+  // The bar says the same price state as the page, from the one shared rule (customerPriceState).
+  await expect(page.getByText("ESTIMATE READY · FROM")).toBeVisible();
   await page.locator("summary", { hasText: "Quantity bands" }).click();
   await expect(page.getByText("Standard minimum 10").last()).toBeVisible();
   await expectNoAxeViolations(page);
+});
+
+/* The product's stored routes and decorations are the rule (COM-FR-020, 024); the pages render what the API allows. */
+
+type ProductData = { configurator: { allowedRoutes: string[]; allowedDecorations: string[] } };
+const SOURCING_LABEL: Record<string, RegExp> = {
+  SOURCE_CUSTOMIZE: /Source & Customize/,
+  MAKE_FROM_SCRATCH: /Make From Scratch/,
+  CUSTOMER_SUPPLIED: /I'll Supply the Garment|Customer Supplied/,
+  HELP_ME_CHOOSE: /Help Me Choose/,
+};
+const DECORATION_LABEL: Record<string, RegExp> = { EMBROIDERY: /^Embroidery/, PRINT: /^Print/, BOTH: /^Both/, RECOMMEND: /^Recommend for me/ };
+
+test("the garment page shows only the routes the product offers", async ({ page }) => {
+  const apron = (await (await page.request.get("/api/v1/catalogue/products/apron")).json()) as ProductData;
+  expect(apron.configurator.allowedRoutes).toEqual(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "HELP_ME_CHOOSE"]);
+  await page.goto("/products/apron");
+  const routes = page.getByRole("group", { name: /How should we make it/ }).getByRole("radio");
+  await expect(routes).toHaveCount(2);
+  await expect(page.getByRole("radio", { name: /Source & Customize/ })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /Make From Scratch/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Customer Supplied/ })).toHaveCount(0);
+});
+
+test("the configurator offers only the product's sourcing and decoration choices", async ({ page }) => {
+  test.setTimeout(120_000);
+  const apron = (await (await page.request.get("/api/v1/catalogue/products/apron")).json()) as ProductData;
+  await page.goto("/products/apron/configure");
+  const sourcing = page.locator('input[name="sourcing"]');
+  await expect(sourcing).toHaveCount(apron.configurator.allowedRoutes.length);
+  for (const route of apron.configurator.allowedRoutes) await expect(page.getByLabel(SOURCING_LABEL[route]!)).toBeVisible();
+  await expect(page.getByLabel(/I'll Supply the Garment/)).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Continue to customize/ }).click();
+  const decoration = page.locator('input[name="decoration"]');
+  await expect(decoration).toHaveCount(apron.configurator.allowedDecorations.length);
+  for (const value of apron.configurator.allowedDecorations) await expect(page.getByLabel(DECORATION_LABEL[value]!)).toBeVisible();
+});
+
+test("the address can't choose a route the product doesn't offer", async ({ page }) => {
+  await page.goto("/products/apron/configure?sourcing=CUSTOMER_SUPPLIED");
+  // Not taken as chosen: the configurator stays on the first step with nothing picked.
+  await expect(page.getByRole("heading", { level: 1, name: "How should we make it?" })).toBeVisible();
+  await expect(page.getByLabel(/I'll Supply the Garment/)).toHaveCount(0);
+  await expect(page.locator('input[name="sourcing"]:checked')).toHaveCount(0);
 });

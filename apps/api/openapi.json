@@ -11651,6 +11651,30 @@
                                 "string",
                                 "null"
                               ]
+                            },
+                            "allowedRoutes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "SOURCE_CUSTOMIZE",
+                                  "MAKE_FROM_SCRATCH",
+                                  "CUSTOMER_SUPPLIED",
+                                  "HELP_ME_CHOOSE"
+                                ]
+                              }
+                            },
+                            "allowedDecorations": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "EMBROIDERY",
+                                  "PRINT",
+                                  "BOTH",
+                                  "RECOMMEND"
+                                ]
+                              }
                             }
                           },
                           "required": [
@@ -11661,7 +11685,9 @@
                             "quantityPresets",
                             "blocked",
                             "currency",
-                            "fromPerUnitMinor"
+                            "fromPerUnitMinor",
+                            "allowedRoutes",
+                            "allowedDecorations"
                           ],
                           "additionalProperties": false
                         },
@@ -11925,6 +11951,13 @@
                         {
                           "type": "null"
                         }
+                      ]
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "EDITORIAL",
+                        "CATALOGUE"
                       ]
                     },
                     "sections": {
@@ -12663,6 +12696,7 @@
                   "required": [
                     "category",
                     "parent",
+                    "layout",
                     "sections",
                     "featured",
                     "products",
@@ -12764,6 +12798,14 @@
                     "draft": {
                       "type": "object",
                       "properties": {
+                        "layout": {
+                          "default": "CATALOGUE",
+                          "type": "string",
+                          "enum": [
+                            "EDITORIAL",
+                            "CATALOGUE"
+                          ]
+                        },
                         "sections": {
                           "minItems": 8,
                           "maxItems": 8,
@@ -13091,6 +13133,7 @@
                         }
                       },
                       "required": [
+                        "layout",
                         "sections"
                       ],
                       "additionalProperties": false
@@ -13100,6 +13143,14 @@
                         {
                           "type": "object",
                           "properties": {
+                            "layout": {
+                              "default": "CATALOGUE",
+                              "type": "string",
+                              "enum": [
+                                "EDITORIAL",
+                                "CATALOGUE"
+                              ]
+                            },
                             "sections": {
                               "minItems": 8,
                               "maxItems": 8,
@@ -13427,6 +13478,7 @@
                             }
                           },
                           "required": [
+                            "layout",
                             "sections"
                           ],
                           "additionalProperties": false
@@ -13517,6 +13569,14 @@
                   "hub": {
                     "type": "object",
                     "properties": {
+                      "layout": {
+                        "default": "CATALOGUE",
+                        "type": "string",
+                        "enum": [
+                          "EDITORIAL",
+                          "CATALOGUE"
+                        ]
+                      },
                       "sections": {
                         "minItems": 8,
                         "maxItems": 8,
@@ -13844,6 +13904,7 @@
                       }
                     },
                     "required": [
+                      "layout",
                       "sections"
                     ],
                     "additionalProperties": false
@@ -13883,6 +13944,14 @@
                     "draft": {
                       "type": "object",
                       "properties": {
+                        "layout": {
+                          "default": "CATALOGUE",
+                          "type": "string",
+                          "enum": [
+                            "EDITORIAL",
+                            "CATALOGUE"
+                          ]
+                        },
                         "sections": {
                           "minItems": 8,
                           "maxItems": 8,
@@ -14210,6 +14279,7 @@
                         }
                       },
                       "required": [
+                        "layout",
                         "sections"
                       ],
                       "additionalProperties": false
@@ -14219,6 +14289,14 @@
                         {
                           "type": "object",
                           "properties": {
+                            "layout": {
+                              "default": "CATALOGUE",
+                              "type": "string",
+                              "enum": [
+                                "EDITORIAL",
+                                "CATALOGUE"
+                              ]
+                            },
                             "sections": {
                               "minItems": 8,
                               "maxItems": 8,
@@ -14546,6 +14624,7 @@
                             }
                           },
                           "required": [
+                            "layout",
                             "sections"
                           ],
                           "additionalProperties": false
@@ -14679,6 +14758,14 @@
                     "draft": {
                       "type": "object",
                       "properties": {
+                        "layout": {
+                          "default": "CATALOGUE",
+                          "type": "string",
+                          "enum": [
+                            "EDITORIAL",
+                            "CATALOGUE"
+                          ]
+                        },
                         "sections": {
                           "minItems": 8,
                           "maxItems": 8,
@@ -15006,6 +15093,7 @@
                         }
                       },
                       "required": [
+                        "layout",
                         "sections"
                       ],
                       "additionalProperties": false
@@ -15015,6 +15103,14 @@
                         {
                           "type": "object",
                           "properties": {
+                            "layout": {
+                              "default": "CATALOGUE",
+                              "type": "string",
+                              "enum": [
+                                "EDITORIAL",
+                                "CATALOGUE"
+                              ]
+                            },
                             "sections": {
                               "minItems": 8,
                               "maxItems": 8,
@@ -15342,6 +15438,7 @@
                             }
                           },
                           "required": [
+                            "layout",
                             "sections"
                           ],
                           "additionalProperties": false
@@ -18698,6 +18795,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -18708,7 +18828,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },
@@ -19809,6 +19930,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -19819,7 +19963,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },
@@ -21379,6 +21524,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -21389,7 +21557,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },
@@ -22629,6 +22798,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -22639,7 +22831,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },
@@ -23749,6 +23942,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -23759,7 +23975,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },
@@ -24883,6 +25100,29 @@
                                 "preview"
                               ],
                               "additionalProperties": false
+                            },
+                            "unavailable": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "field",
+                                  "value",
+                                  "message"
+                                ],
+                                "additionalProperties": false
+                              }
                             }
                           },
                           "required": [
@@ -24893,7 +25133,8 @@
                             "sizes",
                             "placements",
                             "conflicts",
-                            "personalization"
+                            "personalization",
+                            "unavailable"
                           ],
                           "additionalProperties": false
                         },

@@ -1,4 +1,4 @@
-import { and, eq, isNull, schema, type Transaction } from "@holypearls/db";
+import { and, eq, isNull, schema, sql, type Transaction } from "@holypearls/db";
 
 /*
  * Published hub content for the two hubs designed in Pen (18 · Apparel,
@@ -129,14 +129,47 @@ const PRINT: Section[] = [
   empty("grid", "All print and display"),
 ];
 
+/** The embroidery hub: the default sections, laid out like the apparel hub (Pen 18). */
+const EMBROIDERY: Section[] = [
+  {
+    type: "summary",
+    visible: true,
+    heading: "Embroidery & Garment Customization",
+    body: "Embroidery, printing and garment decoration.",
+    primaryLabel: "Browse products",
+    secondaryLabel: "Start a project",
+    secondaryHref: "/contact?topic=project",
+  },
+  { type: "subcategories", visible: true, heading: "What are you looking for?" },
+  { ...empty("featured", "Popular choices"), productSlugs: [] },
+  { ...empty("process", "Choose how it's made"), steps: [] },
+  { ...empty("guidance", "How to choose"), intro: "", columns: [], rows: [], note: "" },
+  { type: "grid", visible: true, heading: "All embroidery & garment customization" },
+  { ...empty("faq", "Questions"), items: [] },
+  { ...empty("related", "Projects and guides"), links: [] },
+];
+
+/** Layout is hub data the editor sets (EDITORIAL · Pen 18, CATALOGUE · Pen 11), never inferred from a slug. */
+const HUBS = [
+  ["apparel-garment-production", "EDITORIAL", APPAREL],
+  ["embroidery-garment-customization", "EDITORIAL", EMBROIDERY],
+  ["print-business-stationery", "CATALOGUE", PRINT],
+] as const;
+
 export async function seedHubs(tx: Transaction): Promise<void> {
-  for (const [slug, sections] of [
-    ["apparel-garment-production", APPAREL],
-    ["print-business-stationery", PRINT],
-  ] as const) {
+  for (const [slug, layout, sections] of HUBS) {
     await tx
       .update(schema.categories)
-      .set({ hub: { sections } })
+      .set({ hub: { layout, sections } })
       .where(and(eq(schema.categories.slug, slug), isNull(schema.categories.hub), isNull(schema.categories.hubDraft)));
+    // Hubs seeded before layouts existed keep the layout they had; a layout staff chose is kept.
+    await tx
+      .update(schema.categories)
+      .set({ hub: sql`${schema.categories.hub} || ${JSON.stringify({ layout })}::jsonb` })
+      .where(and(eq(schema.categories.slug, slug), sql`${schema.categories.hub} is not null and not (${schema.categories.hub} ? 'layout')`));
+    await tx
+      .update(schema.categories)
+      .set({ hubDraft: sql`${schema.categories.hubDraft} || ${JSON.stringify({ layout })}::jsonb` })
+      .where(and(eq(schema.categories.slug, slug), sql`${schema.categories.hubDraft} is not null and not (${schema.categories.hubDraft} ? 'layout')`));
   }
 }

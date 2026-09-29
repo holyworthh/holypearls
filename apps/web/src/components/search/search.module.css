@@ -41,21 +41,19 @@
   font-size: var(--hp-size-11);
 }
 
-.scrim {
-  position: fixed;
-  inset: 0;
-  z-index: calc(var(--hp-z-dialog) - 1);
-  background: var(--hp-scrim);
-  animation: fade var(--hp-motion-dropdown) var(--hp-ease-soft);
-}
-
-/* Pen: 760px panel, radius 10, 1px line, just under the header bar. */
+/* Pen: 760px panel, radius 10, 1px line, just under the header bar. A modal <dialog>: its backdrop is the scrim. */
 .dialog {
   position: fixed;
+  inset: auto;
   top: calc(var(--hp-strip-height) + var(--hp-header-height) - var(--hp-space-12));
   left: 50%;
   z-index: var(--hp-z-dialog);
   width: min(var(--hp-size-760), calc(100vw - var(--hp-space-32)));
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  color: inherit;
   translate: -50% 0;
   border: var(--hp-border-width) solid var(--hp-line);
   border-radius: var(--hp-space-10);
@@ -63,6 +61,11 @@
   box-shadow: var(--hp-shadow-menu);
   overflow: hidden;
   animation: drop var(--hp-motion-card) var(--hp-ease-soft);
+}
+
+.dialog::backdrop {
+  background: var(--hp-scrim);
+  animation: fade var(--hp-motion-dropdown) var(--hp-ease-soft);
 }
 
 .fieldRow {

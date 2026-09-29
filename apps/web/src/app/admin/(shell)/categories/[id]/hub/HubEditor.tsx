@@ -1,6 +1,6 @@
 "use client";
 
-import { type AdminHub, adminHubSchema, ApiError, type HubSection } from "@holypearls/contracts";
+import { type AdminHub, adminHubSchema, ApiError, type HubLayout, type HubSection } from "@holypearls/contracts";
 import { Button, FormField, Notice, StatusChip, TextArea, TextField } from "@holypearls/ui";
 import { useState } from "react";
 import { api } from "../../../../../../lib/api";
@@ -179,11 +179,12 @@ function SectionFields({ section, onChange }: { section: HubSection; onChange: (
 export function HubEditor({ initial }: { initial: AdminHub }) {
   const [hub, setHub] = useState(initial);
   const [sections, setSections] = useState(initial.draft.sections);
+  const [layout, setLayout] = useState<HubLayout>(initial.draft.layout);
   const [selected, setSelected] = useState<HubSection["type"]>("summary");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error" | "warning"; title: string; body: string } | null>(null);
 
-  const dirty = JSON.stringify(sections) !== JSON.stringify(hub.draft.sections);
+  const dirty = JSON.stringify(sections) !== JSON.stringify(hub.draft.sections) || layout !== hub.draft.layout;
   const unpublished = dirty || hub.unpublishedChanges;
   const current = sections.find((section) => section.type === selected)!;
 
@@ -198,11 +199,12 @@ export function HubEditor({ initial }: { initial: AdminHub }) {
   const save = async () => {
     const saved = await api(`/v1/admin/catalogue/categories/${hub.categoryId}/hub`, {
       method: "PUT",
-      body: { hub: { sections }, version: hub.version },
+      body: { hub: { layout, sections }, version: hub.version },
       response: adminHubSchema,
     });
     setHub(saved);
     setSections(saved.draft.sections);
+    setLayout(saved.draft.layout);
     return saved;
   };
 
@@ -219,6 +221,7 @@ export function HubEditor({ initial }: { initial: AdminHub }) {
         });
         setHub(latest);
         setSections(latest.draft.sections);
+        setLayout(latest.draft.layout);
       }
       setNotice(
         publish
@@ -274,6 +277,20 @@ export function HubEditor({ initial }: { initial: AdminHub }) {
       ) : null}
       <div className={styles.columns}>
         <section className={`${styles.panel} ${styles.detailCol}`} aria-labelledby="sections-title">
+          <fieldset className={css.fieldset}>
+            <legend className={styles.panelTitle}>Page layout</legend>
+            {(
+              [
+                ["EDITORIAL", "Editorial", "Photo-led, for garment hubs"],
+                ["CATALOGUE", "Catalogue", "Product-led, with subcategory cards"],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <label key={value} className={css.radio}>
+                <input type="radio" name="hub-layout" value={value} checked={layout === value} onChange={() => setLayout(value)} />
+                {label} · {hint}
+              </label>
+            ))}
+          </fieldset>
           <h2 id="sections-title" className={styles.panelTitle}>
             Sections
           </h2>

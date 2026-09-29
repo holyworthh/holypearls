@@ -10,7 +10,7 @@ import type {
   SearchSuggestions,
 
 } from "@holypearls/contracts";
-import { decorationMethodSchema, hubSchema, listPriceFilterSchema, makingRouteSchema, quantityBandSchema } from "@holypearls/contracts";
+import { BUSINESS_TIME_ZONE, businessDate, decorationMethodSchema, hubSchema, listPriceFilterSchema, makingRouteSchema, quantityBandSchema } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { configuratorFor } from "../configuration/pricing.js";
@@ -80,10 +80,15 @@ function quantityCondition(band: QuantityBand): SQL {
   return max === null ? sql`true` : sql`coalesce(${minimumOrder}, 1) <= ${max}`;
 }
 
-/** Monday–Friday days from tomorrow up to the date (public holidays are handled when quoting). */
-export function workingDaysUntil(date: string, from = new Date()): number {
+/**
+ * Monday–Friday days after today up to the date. "Today" is the business date
+ * in Lagos, not the server's or UTC's. Public holidays are not excluded here:
+ * this is a storefront filter, and the final quote applies the full calendar.
+ */
+export function workingDaysUntil(date: string, { now = new Date(), timeZone = BUSINESS_TIME_ZONE }: { now?: Date; timeZone?: string } = {}): number {
+  // Both ends are calendar dates, so the count itself runs on plain UTC days.
   const end = new Date(`${date}T00:00:00Z`);
-  const day = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  const day = new Date(`${businessDate(now, timeZone)}T00:00:00Z`);
   let days = 0;
   while (day < end) {
     day.setUTCDate(day.getUTCDate() + 1);
@@ -137,7 +142,8 @@ const toCard = (row: CardRow): PublicProductCard => ({
   moq: row.moq ?? null,
 });
 
-const escapeLike = (text: string) => `%${text.replace(/[%_\\]/g, (match) => `\\${match}`)}%`;
+const escapeLikeText = (text: string) => text.replace(/[%_\\]/g, (match) => `\\${match}`);
+const escapeLike = (text: string) => `%${escapeLikeText(text)}%`;
 
 /** Name, summary and staff-added everyday phrases (PUB-FR-007 phrases are used here too). */
 function searchCondition(q: string): SQL {
@@ -307,15 +313,26 @@ export async function searchSuggestions(db: Database, q: string): Promise<Search
     .slice(0, 3)
     .map(({ slug, name, count }) => ({ slug, name, count }));
 
-  // Names that match beat phrase or summary matches; popularity breaks ties.
-  const { entries } = await listPublicProducts(db, { q, sort: "popular", page: 1, limit: 48 });
-  const rank = (name: string) => (name.toLowerCase().startsWith(lower) ? 0 : name.toLowerCase().includes(lower) ? 1 : 2);
-  const products = entries
-    .map((entry, position) => ({ entry, position }))
-    .sort((a, b) => rank(a.entry.name) - rank(b.entry.name) || a.position - b.position)
-    .slice(0, 3)
-    .map(({ entry }) => entry);
-  return { q, searches, categories, products, guides: [] };
+  return { q, searches, categories, products: await suggestedProducts(db, q, 3), guides: [] };
+}
+
+/**
+ * The typeahead's products: one ranked, limited query, without the
+ * directory's count, pages or facets, since it runs as the visitor types.
+ * Names starting with the query come first, then names containing it, then
+ * summary and phrase matches; the "Most ordered" list breaks ties, then name.
+ */
+export async function suggestedProducts(db: Database, q: string, limit = 3): Promise<PublicProductCard[]> {
+  const popular = await listOrder(db, "home.most-ordered");
+  const rank = sql`case when ${schema.products.name} ilike ${`${escapeLikeText(q)}%`} then 0 when ${schema.products.name} ilike ${escapeLike(q)} then 1 else 2 end`;
+  const rows = (await db
+    .select(cardColumns)
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .where(and(visibleProduct(), searchCondition(q)))
+    .orderBy(rank, sql`array_position(${`{${popular.join(",")}}`}::uuid[], ${schema.products.id}) nulls last`, asc(schema.products.name))
+    .limit(limit)) as CardRow[];
+  return rows.map(toCard);
 }
 
 async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
@@ -392,7 +409,7 @@ export function defaultHub(category: { name: string; description: string | null 
     { type: "faq", visible: false, heading: "Questions", items: [] },
     { type: "related", visible: false, heading: "Projects and guides", links: [] },
   ];
-  return { sections };
+  return { layout: "CATALOGUE", sections };
 }
 
 /** A category hub page (PUB-FR-009): the published hub, or the default one if staff haven't published a hub yet. */
@@ -432,6 +449,7 @@ export async function publicHub(db: Database, slug: string) {
   return {
     category,
     parent,
+    layout: hub.layout,
     sections: hub.sections.filter((section) => section.visible),
     featured,
     products: products.map(toCard),

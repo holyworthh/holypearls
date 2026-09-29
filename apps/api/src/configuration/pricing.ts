@@ -3,6 +3,7 @@ import { and, asc, type Database, eq, inArray, lt, schema } from "@holypearls/db
 import { AppError } from "../errors.js";
 import { currentPriceRule, currentTaxSetting } from "../catalogue/rules.js";
 import { type CalculationInput, type CalculationResult, calculatePrice, type Rush } from "./calculate.js";
+import { garmentChoices } from "./capabilities.js";
 
 /*
  * Price calculation service (configuration module, TECH-00 §4). Loads the
@@ -182,10 +183,14 @@ export const defaultChoices = (options: Awaited<ReturnType<typeof productOptions
 
 /**
  * The product page's configurator data (T03-03): options, MOQ, lead time,
- * standard quantities priced at the default choices (COM-FR-043), and the
- * combinations that can't be made, so the page blocks them early (COM-FR-042).
+ * standard quantities priced at the default choices (COM-FR-043), the
+ * combinations that can't be made, so the page blocks them early (COM-FR-042),
+ * and the garment routes and decorations the product offers (COM-FR-020, 024).
  */
 export async function configuratorFor(db: Database, productId: string, at: Date) {
+  const [capabilities] = await db.select({ routes: schema.products.routes, decorations: schema.products.decorations }).from(schema.products).where(eq(schema.products.id, productId));
+  if (!capabilities) throw new AppError("NOT_FOUND");
+  const allowed = garmentChoices(capabilities);
   const options = await productOptions(db, productId);
   const choices = defaultChoices(options);
   const base = await pricingInputs(db, productId, { choices, quantity: 1, rush: "STANDARD", sample: false }, at);
@@ -206,5 +211,7 @@ export async function configuratorFor(db: Database, productId: string, at: Date)
     blocked: base.compatibility.filter((rule) => rule.effect === "NOT_ALLOWED").map(({ ifOption, ifValue, thenOption, thenValues, message }) => ({ ifOption, ifValue, thenOption, thenValues, message })),
     currency: base.price?.currency ?? null,
     fromPerUnitMinor: perUnits.length ? perUnits.reduce((low, value) => (value < low ? value : low)).toString() : null,
+    allowedRoutes: allowed.sourcing,
+    allowedDecorations: allowed.decoration,
   };
 }

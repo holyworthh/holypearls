@@ -49,6 +49,83 @@ test("the header search opens the same suggestions and 'See all results' searche
   await expect(page).toHaveURL(/\/products\?q=polo/);
 });
 
+test("the header search is a modal dialog: focus starts in it, stays in it, and returns to the trigger", async ({ page }) => {
+  test.skip(isPhone(page.viewportSize()?.width), "The header search field is desktop only; phones use the menu search.");
+  await page.goto("/");
+  const trigger = page.getByRole("banner").getByRole("button", { name: "Search products" });
+  await trigger.click();
+  const dialog = page.getByRole("dialog", { name: "Search" });
+  await expect(dialog.getByRole("combobox", { name: "Search products" })).toBeFocused();
+  await dialog.getByRole("combobox").fill("polo");
+  await expect(page.getByRole("listbox", { name: /Suggestions/ })).toBeVisible();
+  // Tab and Shift+Tab never reach the header links or anything else behind it.
+  for (const key of [...Array(8).fill("Tab"), ...Array(8).fill("Shift+Tab")] as string[]) {
+    await page.keyboard.press(key);
+    const inside = await page.evaluate(() => {
+      const active = document.activeElement;
+      return !active || active === document.body || Boolean(active.closest("dialog[open]"));
+    });
+    expect(inside).toBe(true);
+  }
+  // The rest of the page can't be clicked while it's open.
+  const logo = (await page.locator('header a[href="/"]').first().boundingBox())!;
+  const hit = await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest("dialog[open]")), { x: logo.x + logo.width / 2, y: logo.y + logo.height / 2 });
+  expect(hit).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test("on a phone, filters open in a sheet that holds focus, counts results and applies them", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 1440) >= 1024, "The sheet is the phone and tablet layout; desktop has the rail.");
+  await page.goto("/products");
+  const opener = page.getByRole("button", { name: "Filter", exact: true });
+  await opener.click();
+  const sheet = page.getByRole("dialog", { name: "Filter" });
+  await expect(sheet).toBeVisible();
+  const show = sheet.getByRole("button", { name: /^Show \d+ products?$/ });
+  const before = await show.textContent();
+  await sheet.getByRole("checkbox", { name: "Paper print" }).check();
+  // The count follows the ticks before anything is applied.
+  await expect(show).not.toHaveText(before!);
+  expect(page.url()).not.toContain("decoration=");
+  for (let index = 0; index < 12; index += 1) {
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => !document.activeElement || document.activeElement === document.body || Boolean(document.activeElement.closest("dialog[open]")))).toBe(true);
+  }
+  await expectNoAxeViolations(page);
+  // Closing discards; the page behind is unchanged.
+  await sheet.getByRole("button", { name: "Close filters" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(opener).toBeFocused();
+  await opener.click();
+  await sheet.getByRole("checkbox", { name: "Paper print" }).check();
+  await show.click();
+  await expect(page).toHaveURL(/decoration=PAPER_PRINT/);
+});
+
+test("'Load more' adds the next products below the ones shown", async ({ page }) => {
+  await page.goto("/products?limit=4&sort=name");
+  await expect(page.getByText(/Showing 4 of \d+/)).toBeVisible();
+  const cards = page.locator("[data-directory-results] article:visible");
+  const first = await cards.count();
+  const url = page.url();
+  await page.getByRole("link", { name: /^Load 4 more$/ }).click();
+  await expect(page.getByText(/Showing 8 of \d+/)).toBeVisible();
+  await expect(cards).toHaveCount(first + 4);
+  // The first products stay; nothing navigated away.
+  expect(page.url()).toBe(url);
+});
+
+test("the footer doesn't ask for an email it can't keep", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  // The phone footer (Pen 16) has no newsletter slot; the desktop one shows the notice in its place.
+  if ((page.viewportSize()?.width ?? 0) >= 1024) await expect(footer.getByText("Email updates are coming soon.")).toBeVisible();
+  await expect(footer.getByRole("textbox")).toHaveCount(0);
+  await expect(footer.getByRole("button", { name: "Subscribe" })).toHaveCount(0);
+});
+
 test("a search with no suggestions says so and still offers the full search", async ({ page }) => {
   await page.goto("/products");
   const box = page.getByRole("combobox", { name: "Search products" }).last();
@@ -86,10 +163,10 @@ test("several filters of the same kind can be chosen together", async ({ page })
   await page.goto("/products");
   const filters = () => page.getByRole("form", { name: "Filter products" });
   if (sheet) {
-    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("button", { name: "Filter", exact: true }).click();
     await filters().getByRole("checkbox", { name: "Embroidery" }).check();
     await filters().getByRole("checkbox", { name: "Paper print" }).check();
-    await filters().getByRole("button", { name: "Show results" }).click();
+    await page.getByRole("dialog", { name: "Filter" }).getByRole("button", { name: /^Show \d+ products?$/ }).click();
   } else {
     // The desktop rail applies each tick at once (Pen 17 has no apply button).
     await filters().getByRole("checkbox", { name: "Embroidery" }).check();

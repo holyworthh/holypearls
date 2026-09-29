@@ -1,6 +1,6 @@
 # Storefront design fidelity (fix for T02-03, T03-03, T03-05, T03-08)
 
-Status: DONE (pending CI and merge).
+Status: Fidelity implementation complete; documented product and content gaps remain (see "Differences that remain" and "Follow-ups"). PR #29 review fixes applied (fourth pass).
 
 Branch: `fix/t02-03-storefront-design-fidelity`.
 
@@ -25,10 +25,10 @@ The owner found the live site "looks nothing like the design". Earlier tickets b
 | Screen | Pen frames | Result |
 | :---- | :---- | :---- |
 | Header, utility strip | HP/Nav/Header, MobileHeader (R7yPPS) | Spacing to Pen: 30 px nav rhythm, no chevrons, 18 px action gaps. Mobile: 59.5 px bar, 22 px wordmark, search and menu buttons. |
-| Footer | HP/Nav/Footer; Pen 16 accordion | Rebuilt: brand column with newsletter field, four link columns, legal row; mobile accordion. |
+| Footer | HP/Nav/Footer; Pen 16 accordion | Rebuilt: brand column with the newsletter bar (a notice until a mailing list exists, see difference 8), four link columns, legal row; mobile accordion. |
 | Homepage | 15 · FYNoI, 16 · kZf2b | All 10 sections: hero with search and popular chips, "What do you need?", category index, most ordered, Source/Make/Brand/Deliver, event story, how ordering works, how it's made, reorder-in-minutes, final search. |
 | Product directory | 17 · bhA8B, 06 · r2L62s | Bone page, big search, category tabs, filter rail with square checkboxes, feature card with panel, compact rows, "Can't find it?" interrupt, pagination. Mobile: category chips, sticky Filter/Sort bar with a filter sheet, two-up grid. |
-| Category hubs | 18 · jUd9y (editorial), 11 · YBK8S (catalogue) | Two layouts from the same hub sections. Apparel and Embroidery use the editorial one (hero collage, subcategory photos, dark "Choose how it's made", comparison table with thumbnails, projects + guides). Others use the catalogue one (header with category cards, format table, split production band, related rows and FAQ). |
+| Category hubs | 18 · jUd9y (editorial), 11 · YBK8S (catalogue) | Two layouts from the same hub sections, chosen by the hub's `layout` setting (fourth pass). Apparel and Embroidery are set to the editorial one (hero collage, subcategory photos, dark "Choose how it's made", comparison table with thumbnails, projects + guides). Others use the catalogue one (header with category cards, format table, split production band, related rows and FAQ). |
 | Product page | 21 · VSjt2 | Bone band, tall gallery with proof caption and three thumbnails, 48 px title and state chip, numbered compact steps (two-line cards), quantity cards with a "More" card, icon artwork cards, outlined total box with "Add to bag". |
 | Garment product page | 19 · V3j7CP, 20 · XX8rq | Second pass against both frames. Desktop: six-image gallery with zoom, Pen copy, eight colour swatches with "colour range confirmed per route", icon fact rows, "Compare routes" (links to the hub's comparison), route timing, quantity bands worded as Pen ("Standard minimum 10", "e.g. 50 → est. …", "Live estimate", "Production review"), spec table, questions, and "Complete the uniform" (Apron, Baseball Cap, Event Badges, Individual bagging). Phone: full-bleed swipe gallery with position dots, icon chips, six swatches then "+2", "Configure yours" before the routes, two-line route cards, five accordions, and a sticky Configure bar that appears only after the in-page button scrolls away. |
 | Garment configurator | 22 · O2tORo, 40 · PeLav | New route `/products/[slug]/configure`. Own header with the six-step stepper, "Draft saved", "Save & exit". One step at a time beside the preview; "Step 2 of 6 · Customize" and "Place your logo."; live estimate card with "Estimate updated"; Back / "Continue to quantity". |
@@ -67,6 +67,70 @@ Asked for by the owner after the second pass. Tests first for each part.
 - **Hover on everything clickable.** An audit script found about 60 clickable classes with no hover. Each now has one: filled buttons shift colour and press, outline buttons fill bone, text links draw their underline in, rows wash bone, cards and choices take an ink outline, swatches grow, and logos swell their pearl. Form fields darken on hover. Unstyled links and controls get a zero-specificity fallback.
 - **Motion.** The owner chose the site's own motion over Pen 09's motion spec (see difference 17). Staggered scroll reveals of headings, cards and footer blocks. Hero and heading entrances. A scroll-driven unveil on big editorial photos. A slow image push-in and a drawn underline on card hover. Arrows lean on hover. Details open smoothly. Menus, panels and the viewer fade and drop. All of it is off with reduced motion, and nothing is hidden without JavaScript.
 
+## Fourth pass: PR #29 review fixes
+
+From the principal engineer and design review of PR #29 (head 5471abd). Tests were written before each change.
+
+### Product routes and decorations are the rule
+
+- **One domain rule** in `apps/api/src/configuration/capabilities.ts` turns a product's stored `routes` and `decorations` into garment choices:
+  - Routes are exactly the product's routes.
+  - Embroidery needs `EMBROIDERY`.
+  - Print needs a garment print method (`SCREEN_PRINT` or `HEAT_TRANSFER`). Paper and large-format printing never decorate garments.
+  - Both needs embroidery and a garment print method.
+  - Recommend for Me needs at least one of them.
+- **Help Me Choose (decision):** it is an assistance state, not a production route. Every garment offers it, and it is stored as the sourcing answer as before (priced QUOTE_REQUIRED, "We'll recommend…"). COM-FR-020 lists it as one of the four options, so it isn't added to `products.routes`.
+- **API:** `configurator.allowedRoutes` and `configurator.allowedDecorations` are returned with the product page data. `PATCH /v1/configurations/:id` refuses a route, decoration or placement method the product doesn't offer (400 VALIDATION_FAILED on `sourcing`, `decoration` or `placements.<POSITION>`).
+- **Existing drafts:** a saved answer that staff later remove is kept and returned, listed in `garment.unavailable`. The price carries a blocking `CHOICE_UNAVAILABLE` reason, and Request Final Quote is refused (422, reason `CHOICE_UNAVAILABLE`) until the customer picks a replacement. Other answers still save.
+- **Web:** the garment page, configurator and review render choices from the API. Copy stays in label maps. A removed answer shows disabled, marked "No longer available", with a notice. `?sourcing=` only pre-selects a route the product offers.
+
+### Price state
+
+`customerPriceState()` and `CUSTOMER_PRICE_LABEL` in `packages/contracts` are the one rule for cards, the garment page and the phone's sticky bar:
+
+- PRICE READY and ESTIMATE READY only with a list price in that state
+- QUOTE REQUIRED when there is no price (never "estimate ready")
+- PLANNED WITH OUR TEAM for consultative products
+- UNAVAILABLE for temporarily unavailable products
+
+### Autocomplete
+
+`suggestedProducts()` is one ranked query:
+
+1. visible products only, matching the search
+2. names starting with the query, then names containing it, then summary or phrase matches
+3. "Most ordered" breaks ties, then name
+4. `LIMIT 3` in SQL
+
+It uses no count, pagination or facets, and `searchSuggestions` no longer calls `listPublicProducts()`. The SEARCH rate limit (60 per minute per IP) and the 120 ms debounce are unchanged. Normal typing should be measured against the cheaper query before changing either.
+
+### Search dialog
+
+The header search is now a native modal `<dialog>`, the image viewer's pattern:
+
+- Opening it focuses the field.
+- Tab and Shift+Tab stay inside, and the page behind is inert (no focus, clicks or screen-reader access).
+- Esc and the scrim (its backdrop) close it, and focus returns to the trigger.
+
+### Business time zone
+
+`BUSINESS_TIME_ZONE = "Africa/Lagos"` and `businessDate()` in `packages/contracts` use `Intl`, with no new dependency. They are used by:
+
+- the needed-by filter (`workingDaysUntil(date, { now, timeZone })`)
+- the date picker's earliest date
+- the quote timing's start date (`addWorkingDays` in `families.ts`)
+
+The directory query refuses a needed-by before today in Lagos. The page drops an old needed-by from a link instead of failing.
+
+### Design findings
+
+- **Filter sheet (Pen 06 · Screen C):** below 1024 px, filters open in a modal `<dialog>` sheet, 88 px from the top, with 16 px top corners, a scrim and a "Filter" head with a close button. The groups scroll on their own. The bottom bar holds "Clear all" and "Show N products". N is counted from the ticks before applying (`limit=1` request). Closing discards the ticks, and the page behind doesn't scroll. The form moves between the rail and the sheet, so it is never on the page twice.
+- **Load more:** true load more. "Load N more" appends the next page below the products shown, updates "Showing X of Y" and moves focus to the first new product. Without JavaScript it's a link to the next page. The numbered pages stay for jumping ahead. The directory accepts `?limit=` (1–48).
+- **Garment copy from product data:** the "how we brand it" copy follows the product's decorations (embroidery, print, both, or neither). Pen's "from 20" scratch minimum is left out because it isn't product data. "Fabric is chosen with you" became "Fabric & fit" over the product's specifications. The price note says "we'll send you a quote" when there's no price.
+- **Hub layout is data:** hubs have `layout: EDITORIAL | CATALOGUE`, which staff set in the hub editor (Page layout). Older hubs default to CATALOGUE. The seed sets Apparel and Embroidery to EDITORIAL and backfills hubs seeded before the field existed. The slug set is gone.
+- **Subcategory photos are data:** each subcategory's card shows its own `hero_file_id` image. The seed gives each seeded subcategory an image by slug (`packages/testkit/assets/categories`, from Pen's reference photos and product samples). A subcategory without an image shows the plain sand fill, never a photo picked by list position.
+- **Newsletter:** see difference 8.
+
 ## Tests
 
 - **API:** card prices test, written first. "Garment product page data (Pen 19)", written first: summary, eight swatched colours, specifications, questions, four bands and the uniform set. `storefront.test.ts` 12/12 pass; the directory and hub tests were updated for the four new products (the hub test now uses Bags & Packaging, since Apparel has seeded hub content).
@@ -83,6 +147,20 @@ Asked for by the owner after the second pass. Tests first for each part.
   - hover-opened menus that switch in place
   - tooltips
 
+- **Fourth pass (tests first):**
+  - `capabilities.test.ts`: the route and decoration rule (8 tests).
+  - `garment-drafts.test.ts`: the allowed choices in the product data, and accepting or refusing routes, decorations and placement methods. It also covers Both only with embroidery and a garment print method, Recommend only with something to recommend, and Help Me Choose always allowed. A saved route staff later removed still opens, is marked, blocks the quote, and clears when replaced.
+  - `storefront.test.ts`: suggestions capped at three and ranked name-prefix, then name-contains, then phrase. Drafts, unlisted products and products under an unpublished parent never appear. Hub layout comes from the hub and staff can change it. Each subcategory gets its own image, or none.
+  - `working-days.test.ts`: the 23:30 UTC / 00:30 Lagos boundary, Friday to Monday, weekends and same day. `families.test.ts` checks that timing starts from Lagos's date.
+  - `packages/contracts/src/storefront.test.ts`: the five price states and labels, the Lagos business date, and a past needed-by refused.
+  - Browser: the garment page shows only the product's routes, and the configurator only its sourcing and decoration choices. `?sourcing=` can't force a route. The sticky bar shows the same state. The search dialog focuses the field, keeps Tab and Shift+Tab inside, blocks clicks behind, and returns focus on Esc. The phone filter sheet holds focus, counts before applying, discards on close and applies on Show. Load more appends without navigating. The footer asks for no email.
+  - Results:
+    - API: the full run had 272 of 274 passing. The two failures were the committed `openapi.json` (regenerated after the hub `layout` field) and the subcategory-image test (below); both files were rerun and pass, 23/23.
+    - Contracts: 20/20.
+    - Playwright: full suite 144 passed, 10 skipped (viewport-only), 0 failed.
+  - Two tests were corrected during the run. The subcategory-image API test now sets images itself, because the API test seed has no media step. The footer test only expects the notice on desktop, because the phone footer (Pen 16) has no newsletter slot.
+- **Visual check (fourth pass):** the filter sheet was compared with Pen 06 Screen C at 390 px. Head, close button, scrim, 16 px corners, groups and the Clear all / Show bar match; a doubled rule under the head was fixed. The sheet's groups are the Pen 17 rail groups (How it's made, Price, Quantity, Decoration, Needed by), not Pen 06's older Minimum order and Printed / Embroidered groups. Option rows keep the rail's 40 px rhythm rather than Pen 06's 36 px. The search dialog and the apron page were checked at 1440 px.
+
   The axe helper now checks the settled page: it switches motion off and finishes running animations first, because mid-reveal opacity isn't what people read. The design-system and sign-in specs use the shared helper.
 - **Local runs beside a dev server:** `playwright.config.ts` takes `E2E_API_PORT`. Build the web app with `API_URL` on that port, so tests run while `pnpm dev` holds 3001.
 
@@ -92,10 +170,10 @@ Asked for by the owner after the second pass. Tests first for each part.
 2. **Option images** (Pen 21 paper cards with photos): options have no image field yet. The cards show the name and second line only. **Needed:** an image per option value (admin), a small follow-up.
 3. **Dark "Choose your card stock" band** (Pen 21): it needs paper-stock content per product, which doesn't exist. Not built.
 4. **Garment preview:** the front now shows the chosen colour's photo with tappable placement zones and a marigold box around each chosen placement, as in Pen 22. Only navy has a reference photo, so other colours and the back view keep the outline, filled with the colour's swatch. Photos per colour need an image per option value (the follow-up in item 2). Pen's Detail view, zoom and reset controls, logo-size choice and thread colours ("Matched from your file") are not built (T03-05 note).
-5. **Filter groups:** built as Pen 17 in the third pass. "How it's bought" and "Product type" left the rail (Pen doesn't have them); their URLs still work and show chips. Needed-by counts working days only; public holidays are handled when quoting.
+5. **Filter groups:** built as Pen 17 in the third pass. "How it's bought" and "Product type" left the rail (Pen doesn't have them); their URLs still work and show chips. Needed-by counts working days (Monday–Friday) from today's date in Lagos; public holidays are not excluded in this storefront filter, since the final quote applies the full calendar.
 6. **Delivery, timing and Review steps** on the product page (T03-08, PRD COM-FR-070–072) are not in Pen 21. The PRD wins; they use Pen's card and step styles.
 7. **"Add to bag"** is shown but disabled until checkout exists (T04-01). **Bag icon** in the header: left out until the cart exists.
-8. **Newsletter:** there's no mailing list, so the form says "Email updates start soon" and saves nothing.
+8. **Newsletter:** there's no mailing list, so Pen's field and Subscribe button are replaced by the same outlined bar reading "Email updates are coming soon." It asks for nothing. The form returns with the mailing list.
 9. **"Read the full guide →", "Compare routes", "Feel guide ↗", zoom buttons:** no destinations yet; left out.
 10. **Legal line:** Pen's "PROVISIONAL IDENTITY · TEST CONTENT" is a design annotation; the site shows "© 2026 HOLYPEARLS".
 14. **Contrast over design:** Pen's "Not sure yet?" (#FDE8E3 on the accent band) is 3.9:1, below WCAG AA; it's paper-white on the site.
@@ -108,6 +186,24 @@ Asked for by the owner after the second pass. Tests first for each part.
 17. **Motion system:** Pen 09 · lPiWj specifies no hover zoom, 650ms/16px section reveals once per session and a "Production Reveal". The owner preferred the site's own motion ("I liked what you did. do that instead"), so that's kept, with tokens in `inferred-tokens.css`. Pen's curve (.2,.8,.2,1) also differs from tokens.json's `enterEasing` (.2,.8,1,1).
 18. **Header states:** Pen shows no hover or current-page treatment. The owner asked to replace the grey box and red bar, so hover is an ink rule and the current section is a vermilion pearl.
 19. **Search guides group:** empty until content pages exist (T02-06).
+
+## Follow-ups (tracked, not in this pass)
+
+1. **Design tokens.** About 138 exact Pen sizes are global tokens (`pen-scale.css`, `--hp-size-106`…), which are measurements rather than a scale. After this pass:
+   - fold repeated values into the core spacing and layout scale
+   - keep one-off values local to their component
+   - stop adding a global token for every Pen measurement
+
+   The fourth pass added no new tokens.
+2. **Temporary photography.** Pen's reference photos (`apps/web/public/pen/generated-*.webp`) still carry these:
+   - homepage editorial photography
+   - the hub hero collage, route, comparison and related photos (by section position)
+   - garment detail and process photos
+   - the configurator's reference photo
+
+   They should be replaced with real HolyPearls photos. Hub process steps and comparison rows need an image field before their photos can be data.
+3. **Garment story content.** The branding copy now follows the product's decorations. Longer product-specific commercial copy (process sections, scratch minimums per route) needs catalogue fields (for example product story sections and a per-route minimum) so it can vary without code.
+4. **Search rate limit.** Measure typing against the new suggestion query before changing SEARCH's 60 per minute.
 
 ## Process change
 

@@ -6,7 +6,6 @@ import { hasSessionCookie, serverApi } from "../../../../lib/server-api";
 import { getProduct } from "../../../../lib/storefront";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string; sourcing?: string; colour?: string }> };
-const SOURCING = ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED", "HELP_ME_CHOOSE"] as const;
 
 /** Temporary reference photography from the Pen board (Pen 22), by product and colour. */
 const REFERENCE_PHOTOS: Record<string, Record<string, string>> = { "polo-shirt": { navy: "/pen/generated-33.webp" } };
@@ -27,7 +26,8 @@ export default async function ConfigurePage({ params, searchParams }: Params) {
   const query = await searchParams;
   const draft = query.draft && /^[0-9a-f-]{36}$/.test(query.draft) ? await serverApi(`/v1/configurations/${query.draft}`, configurationSchema) : null;
   const initialDraft = draft?.ok && draft.data.productSlug === product.slug ? draft.data : null;
-  const sourcing = SOURCING.find((value) => value === query.sourcing) ?? null;
+  // Only a route this product offers (from the API); the address can't choose another one.
+  const sourcing = product.configurator.allowedRoutes.find((value) => value === query.sourcing) ?? null;
   const colour = product.configurator.options.find((option) => option.key === "colour")?.values.find((value) => value.key === query.colour)?.key;
   return (
     <GarmentConfigurator

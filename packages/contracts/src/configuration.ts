@@ -108,6 +108,13 @@ export const configurationSchema = z.object({
         }),
       ),
       personalization: z.object({ count: z.number().int(), preview: z.array(z.object({ row: z.number().int(), name: z.string().nullable(), number: z.string().nullable(), department: z.string().nullable(), size: z.string().nullable() })) }),
+      /**
+       * Saved answers the product no longer offers (staff removed a route or
+       * decoration after they were chosen). Kept, not discarded; a quote waits
+       * until the customer chooses a replacement. `field` is "sourcing",
+       * "decoration" or "placements.<POSITION>".
+       */
+      unavailable: z.array(z.object({ field: z.string(), value: z.string(), message: z.string() })),
     })
     .nullable(),
   files: z.array(
@@ -181,6 +188,14 @@ export const configuratorSchema = z.object({
   blocked: z.array(z.object({ ifOption: z.string(), ifValue: z.string(), thenOption: z.string(), thenValues: z.array(z.string()), message: z.string() })),
   currency: z.enum(["NGN", "USD"]).nullable(),
   fromPerUnitMinor: z.string().nullable(),
+  /**
+   * Garment sourcing choices this product offers, in display order, from its
+   * stored routes (COM-FR-020). HELP_ME_CHOOSE is an assistance state, not a
+   * production route, so every garment offers it. The API refuses anything else.
+   */
+  allowedRoutes: z.array(sourcingSchema),
+  /** Garment decoration choices this product offers, from its stored decoration methods (COM-FR-024). */
+  allowedDecorations: z.array(decorationSchema),
 });
 export type Configurator = z.infer<typeof configuratorSchema>;
 
