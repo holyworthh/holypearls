@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { buyingModeSchema, productFamilySchema } from "./catalogue.js";
+import { buyingModeSchema, decorationMethodSchema, makingRouteSchema, productFamilySchema } from "./catalogue.js";
 import { configuratorSchema } from "./configuration.js";
 
 /*
@@ -51,12 +51,26 @@ export const publicProductCardSchema = z.object({
 });
 export type PublicProductCard = z.infer<typeof publicProductCardSchema>;
 
+export const listPriceFilterSchema = z.enum(["PRICE_READY", "ESTIMATE_READY", "QUOTE_REQUIRED"]);
+/** "1–9", "10–49", "50+": products that can be ordered in that quantity (their minimum fits). */
+export const quantityBandSchema = z.enum(["1-9", "10-49", "50+"]);
+export type QuantityBand = z.infer<typeof quantityBandSchema>;
 export const productSortSchema = z.enum(["popular", "name", "newest"]);
+/** One or several values of a filter: `?family=A&family=B` (any of them matches). */
+const manyOf = <T extends z.ZodTypeAny>(item: T) =>
+  z.preprocess((value) => (value === undefined || value === "" ? undefined : Array.isArray(value) ? value : [value]), z.array(item).min(1).max(12).optional());
+
 export const publicProductQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
-  category: z.string().max(80).optional(),
-  family: productFamilySchema.optional(),
-  mode: buyingModeSchema.optional(),
+  category: manyOf(z.string().max(80)),
+  family: manyOf(productFamilySchema),
+  mode: manyOf(buyingModeSchema),
+  /** Pen 17 rail: how it's made, price state, quantity band, decoration and a needed-by date. */
+  route: manyOf(makingRouteSchema),
+  price: manyOf(listPriceFilterSchema),
+  qty: quantityBandSchema.optional(),
+  decoration: manyOf(decorationMethodSchema),
+  neededBy: z.iso.date().optional(),
   sort: productSortSchema.default("popular"),
   page: z.coerce.number().int().min(1).max(500).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
@@ -74,6 +88,10 @@ export const publicProductPageSchema = z.object({
     categories: z.array(z.object({ slug: z.string(), name: z.string(), count: z.number().int() })),
     families: z.array(z.object({ value: productFamilySchema, count: z.number().int() })),
     modes: z.array(z.object({ value: buyingModeSchema, count: z.number().int() })),
+    routes: z.array(z.object({ value: makingRouteSchema, count: z.number().int() })),
+    prices: z.array(z.object({ value: listPriceFilterSchema, count: z.number().int() })),
+    quantities: z.array(z.object({ value: quantityBandSchema, count: z.number().int() })),
+    decorations: z.array(z.object({ value: decorationMethodSchema, count: z.number().int() })),
   }),
 });
 export type PublicProductPage = z.infer<typeof publicProductPageSchema>;
@@ -200,3 +218,18 @@ export const publicProductSchema = publicProductCardSchema.extend({
   seoDescription: z.string().nullable(),
 });
 export type PublicProduct = z.infer<typeof publicProductSchema>;
+
+/**
+ * Typeahead for the header and directory search (Pen 09 · R8Aqc, PUB-FR-006/007):
+ * everyday searches, categories, the top products and guides for what's typed so far.
+ */
+export const searchSuggestionQuerySchema = z.object({ q: z.string().trim().min(1).max(100) });
+export const searchSuggestionsSchema = z.object({
+  q: z.string(),
+  searches: z.array(z.string()),
+  categories: z.array(z.object({ slug: z.string(), name: z.string(), count: z.number().int() })),
+  products: z.array(publicProductCardSchema),
+  /** Guides arrive with content pages (T02-06); empty until then. */
+  guides: z.array(z.object({ title: z.string(), href: z.string() })),
+});
+export type SearchSuggestions = z.infer<typeof searchSuggestionsSchema>;

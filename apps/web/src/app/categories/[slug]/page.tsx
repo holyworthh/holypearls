@@ -78,7 +78,7 @@ function Summary({ section, hub, editorial }: { section: Of<"summary">; hub: Pub
     return (
       <section className={`${h.hero} ${h.pad}`} aria-labelledby="hub-title">
         <div className={h.heroText}>
-          <h1 id="hub-title" className={h.h1}>
+          <h1 id="hub-title" className={h.h1} data-enter>
             {lines(section.heading || hub.category.name)}
           </h1>
           {section.body ? <p className={h.intro}>{section.body}</p> : null}
@@ -107,7 +107,7 @@ function Summary({ section, hub, editorial }: { section: Of<"summary">; hub: Pub
     <section className={`${h.catHead} ${h.pad}`} aria-labelledby="hub-title">
       <Breadcrumb hub={hub} />
       <div className={h.catTitleRow}>
-        <h1 id="hub-title" className={h.h1}>
+        <h1 id="hub-title" className={h.h1} data-enter>
           {section.heading || hub.category.name}
         </h1>
         {section.body ? <p className={h.catIntro}>{section.body}</p> : null}
@@ -217,7 +217,7 @@ function Process({ section, editorial }: { section: Of<"process">; editorial: bo
   const note = section.steps.map((step) => step.body).filter(Boolean);
   return (
     <section className={h.band} aria-labelledby="hub-process">
-      <span className={`${h.bandPhoto} ${h.photo}`} style={bg(null, PHOTOS.catalogue.band)} aria-hidden="true" />
+      <span className={`${h.bandPhoto} ${h.photo}`} data-unveil style={bg(null, PHOTOS.catalogue.band)} aria-hidden="true" />
       <div className={h.bandText}>
         <p className={h.bandEyebrow}>PRINTED IN OUR OWN PRODUCTION</p>
         <h2 id="hub-process" className={h.bandTitle}>

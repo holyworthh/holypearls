@@ -60,9 +60,29 @@
   border-radius: var(--hp-space-6);
 }
 
+/* Hover: the photo pushes in slowly and the title underline draws in. */
+.media img,
+.compactMedia img {
+  transition: scale calc(var(--hp-motion-reveal) * 1.2) var(--hp-ease-soft);
+}
+
+.card:hover .media img,
+.compact:hover .compactMedia img {
+  scale: 1.05;
+}
+
+.title,
+.compactTitle {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
 .card:hover .title,
 .compact:hover .compactTitle {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 
 .qualifier {

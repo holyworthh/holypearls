@@ -1,14 +1,17 @@
 import type { PublicProductCard } from "@holypearls/contracts";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import s from "../../components/catalogue/directory.module.css";
 import { FilterSheet } from "../../components/catalogue/FilterSheet";
 import { priceLine, ProductCard } from "../../components/catalogue/ProductCard";
 import { SortSelect } from "../../components/catalogue/SortSelect";
 import { Icon } from "../../components/pen/Icon";
+import { SuggestInput } from "../../components/search/SearchSuggest";
 import { SiteShell } from "../../components/site/SiteShell";
+import { DECORATION_LABELS, PRICE_LABELS, QUANTITY_LABELS, ROUTE_LABELS } from "../../lib/catalogue-labels";
 import { getProducts } from "../../lib/storefront";
 
-type Search = { q?: string; category?: string; family?: string; mode?: string; sort?: string; page?: string };
+type Search = Record<string, string | string[] | undefined>;
 
 const FAMILIES: Record<string, string> = {
   GARMENT: "Garments",
@@ -29,27 +32,32 @@ const MODES: Record<string, string> = {
   CONSULTATIVE_PROJECT: "Planned with our team",
 };
 
-const KEYS = ["q", "category", "family", "mode", "sort", "page"] as const;
+const KEYS = ["q", "category", "family", "mode", "route", "price", "qty", "decoration", "neededBy", "sort", "page"] as const;
 
+/** The query string as the directory understands it; repeated keys (`family=A&family=B`) are kept. */
 function clean(params: Search) {
   const out = new URLSearchParams();
   for (const key of KEYS) {
     const value = params[key];
-    if (typeof value === "string" && value) out.set(key, value);
+    for (const item of Array.isArray(value) ? value : [value]) if (typeof item === "string" && item) out.append(key, item);
   }
   return out;
 }
 
-const hrefWith = (params: URLSearchParams, changes: Record<string, string | null>) => {
+/** A link to the directory with some keys changed (null removes the key; `drop` removes one value of a key). */
+const hrefWith = (params: URLSearchParams, changes: Record<string, string | null> = {}, drop?: [string, string]) => {
   const next = new URLSearchParams(params);
   for (const [key, value] of Object.entries(changes)) {
     if (value === null) next.delete(key);
     else next.set(key, value);
   }
+  if (drop) next.delete(drop[0], drop[1]);
   if (!("page" in changes)) next.delete("page");
   const text = next.toString();
   return text ? `/products?${text}` : "/products";
 };
+
+const shortDate = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
 /** Filtered, searched and later pages are not indexed (PUB-FR-008, PUB-SEO-008); the plain directory is. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Search> }): Promise<Metadata> {
@@ -60,6 +68,39 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
     alternates: { canonical: "/products" },
     robots: params.toString() ? { index: false, follow: true } : undefined,
   };
+}
+
+/** A rail group (Pen 17): title with a chevron, open by default, collapsible. */
+function RailGroup({ title, collapsible = true, children }: { title: string; collapsible?: boolean; children: ReactNode }) {
+  if (!collapsible)
+    return (
+      <fieldset className={s.group}>
+        <legend>{title}</legend>
+        {children}
+      </fieldset>
+    );
+  return (
+    <details className={s.fold} open>
+      <summary className={s.foldHead}>
+        {title}
+        <Icon name="chevron-up" size={18} />
+      </summary>
+      <fieldset className={s.group} aria-label={title}>
+        {children}
+      </fieldset>
+    </details>
+  );
+}
+
+/** Pen's square checkbox row; several in a group combine (any of them matches). */
+function Check({ name, value, label, count, checked }: { name: string; value: string; label: string; count?: number; checked: boolean }) {
+  return (
+    <label className={s.option}>
+      <input type="checkbox" name={name} value={value} defaultChecked={checked} />
+      <span className={s.optionLabel}>{label}</span>
+      {count !== undefined ? <span className={s.optionCount}>{count}</span> : null}
+    </label>
+  );
 }
 
 /** The large photo card that opens the results (Pen 17 "Feature row"). */
@@ -98,11 +139,18 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const category = params.get("category");
   const q = params.get("q") ?? "";
   const all = data?.facets.categories.reduce((sum, item) => sum + item.count, 0) ?? 0;
+  const chip = (key: string, value: string, label: string) => ({ key: `${key}:${value}`, label, remove: hrefWith(params, {}, [key, value]) });
+  const each = (key: string, label: (value: string) => string) => params.getAll(key).map((value) => chip(key, value, label(value)));
   const applied = [
-    ...(q ? [{ label: `“${q}”`, remove: hrefWith(params, { q: null }) }] : []),
-    ...(category ? [{ label: data?.facets.categories.find((item) => item.slug === category)?.name ?? category, remove: hrefWith(params, { category: null }) }] : []),
-    ...(params.get("family") ? [{ label: FAMILIES[params.get("family")!] ?? params.get("family")!, remove: hrefWith(params, { family: null }) }] : []),
-    ...(params.get("mode") ? [{ label: MODES[params.get("mode")!] ?? params.get("mode")!, remove: hrefWith(params, { mode: null }) }] : []),
+    ...(q ? [chip("q", q, `“${q}”`)] : []),
+    ...each("category", (slug) => data?.facets.categories.find((item) => item.slug === slug)?.name ?? slug),
+    ...each("route", (value) => ROUTE_LABELS[value as keyof typeof ROUTE_LABELS] ?? value),
+    ...each("price", (value) => PRICE_LABELS[value as keyof typeof PRICE_LABELS] ?? value),
+    ...each("qty", (value) => `${QUANTITY_LABELS[value as keyof typeof QUANTITY_LABELS] ?? value} pieces`),
+    ...each("decoration", (value) => `${DECORATION_LABELS[value as keyof typeof DECORATION_LABELS] ?? value} available`),
+    ...each("neededBy", (value) => `Needed by ${shortDate(value)}`),
+    ...each("family", (value) => FAMILIES[value] ?? value),
+    ...each("mode", (value) => MODES[value] ?? value),
   ];
   const keep = [...params].filter(([key]) => key !== "sort" && key !== "page");
   const sort = params.get("sort") ?? "popular";
@@ -128,7 +176,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           </ol>
         </nav>
         <div className={s.titleRow}>
-          <h1 className={s.h1}>Everything we make</h1>
+          <h1 className={s.h1} data-enter>Everything we make</h1>
           {data ? (
             <p className={s.intro}>
               {all} products in {data.facets.categories.length} categories. We can brand any of them, or make it from scratch.
@@ -142,10 +190,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             .map(([key, value]) => (
               <input key={key} type="hidden" name={key} value={value} />
             ))}
-          <label className="hp-visually-hidden" htmlFor="directory-q">
-            Search products
-          </label>
-          <input id="directory-q" className={s.searchInput} type="search" name="q" defaultValue={q} placeholder="Search products. Try “polo”, “roll-up” or “paper bag”" />
+          <SuggestInput id="directory-q" className={s.searchInput} defaultValue={q} placeholder="Search products. Try “polo”, “roll-up” or “paper bag”" />
           <button type="submit" className={s.redButton}>
             Search
           </button>
@@ -202,33 +247,46 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
             <form action="/products" aria-label="Filter products">
               <div className={s.railHead}>
                 <h2 className={s.railTitle}>Filters</h2>
-                <a className={s.link} href={category ? `/products?category=${category}` : "/products"}>
+                <a className={s.link} href={hrefWith(new URLSearchParams([...params].filter(([key]) => key === "q" || key === "category" || key === "sort")))}>
                   Clear all
                 </a>
               </div>
-              {q ? <input type="hidden" name="q" value={q} /> : null}
-              {category ? <input type="hidden" name="category" value={category} /> : null}
-              {params.get("sort") ? <input type="hidden" name="sort" value={params.get("sort")!} /> : null}
-              <fieldset className={s.group}>
-                <legend>How it&apos;s bought</legend>
-                {data.facets.modes.map((item) => (
-                  <label key={item.value} className={s.option}>
-                    <input type="radio" name="mode" value={item.value} defaultChecked={params.get("mode") === item.value} />
-                    <span className={s.optionLabel}>{MODES[item.value]}</span>
-                    <span className={s.optionCount}>{item.count}</span>
-                  </label>
+              {[...params]
+                .filter(([key]) => ["q", "category", "sort", "family", "mode"].includes(key))
+                .map(([key, value]) => (
+                  <input key={`${key}:${value}`} type="hidden" name={key} value={value} />
                 ))}
-              </fieldset>
-              <fieldset className={s.group}>
-                <legend>Product type</legend>
-                {data.facets.families.map((item) => (
-                  <label key={item.value} className={s.option}>
-                    <input type="radio" name="family" value={item.value} defaultChecked={params.get("family") === item.value} />
-                    <span className={s.optionLabel}>{FAMILIES[item.value]}</span>
-                    <span className={s.optionCount}>{item.count}</span>
-                  </label>
+              <RailGroup title="How it’s made">
+                {data.facets.routes.map((item) => (
+                  <Check key={item.value} name="route" value={item.value} label={ROUTE_LABELS[item.value]} checked={params.getAll("route").includes(item.value)} />
                 ))}
-              </fieldset>
+              </RailGroup>
+              <RailGroup title="Price">
+                {data.facets.prices.map((item) => (
+                  <Check key={item.value} name="price" value={item.value} label={PRICE_LABELS[item.value]} count={item.count} checked={params.getAll("price").includes(item.value)} />
+                ))}
+              </RailGroup>
+              <RailGroup title="Quantity">
+                <div className={s.qtyChips}>
+                  {data.facets.quantities.map((item) => (
+                    <label key={item.value} className={s.qtyChip}>
+                      <input type="radio" name="qty" value={item.value} defaultChecked={params.get("qty") === item.value} />
+                      <span>{QUANTITY_LABELS[item.value]}</span>
+                    </label>
+                  ))}
+                </div>
+              </RailGroup>
+              <RailGroup title="Decoration">
+                {data.facets.decorations.map((item) => (
+                  <Check key={item.value} name="decoration" value={item.value} label={DECORATION_LABELS[item.value]} checked={params.getAll("decoration").includes(item.value)} />
+                ))}
+              </RailGroup>
+              <RailGroup title="Needed by" collapsible={false}>
+                <label className={s.date}>
+                  <Icon name="calendar" size={18} />
+                  <input type="date" name="neededBy" min={new Date().toISOString().slice(0, 10)} defaultValue={params.get("neededBy") ?? ""} aria-label="Needed by" />
+                </label>
+              </RailGroup>
               <button type="submit" className={`${s.outlineButton} ${s.apply}`}>
                 Show results
               </button>
@@ -243,7 +301,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <ul className={s.applied} aria-label="Applied filters">
                 <li className={s.resultCount}>{data.total} products</li>
                 {applied.map((item) => (
-                  <li key={item.label}>
+                  <li key={item.key}>
                     <a className={s.chip} href={item.remove} aria-label={`Remove filter ${item.label}`}>
                       {item.label}
                       <Icon name="x" size={14} />
@@ -300,7 +358,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                   ))}
                 </ul>
                 <aside className={s.interrupt} aria-labelledby="scratch-title">
-                  <span className={s.interruptPhoto} aria-hidden="true" />
+                  <span className={s.interruptPhoto} aria-hidden="true" data-unveil />
                   <div className={s.interruptText}>
                     <span className={s.ticket}>MAKE FROM SCRATCH</span>
                     <h3 id="scratch-title" className={s.interruptTitle}>

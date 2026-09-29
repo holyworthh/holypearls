@@ -313,3 +313,12 @@
   font-size: var(--hp-text-mono);
   letter-spacing: var(--hp-tracking-mono);
 }
+
+/* Hover (every clickable item has one). */
+.menuButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.menuButton:hover {
+  background: var(--hp-paper-20);
+}

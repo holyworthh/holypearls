@@ -387,3 +387,44 @@
   line-height: var(--hp-leading-body);
   white-space: pre-wrap;
 }
+
+/* Hover (every clickable item has one). */
+.clear {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.clear:hover {
+  text-decoration-color: currentColor;
+}
+
+.item {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.item:hover {
+  background: var(--hp-bone);
+}
+
+.tab {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.tab:hover:not([aria-current="page"], [aria-selected="true"]) {
+  background: var(--hp-bone);
+}
+
+.search:hover {
+  color: var(--hp-ink);
+}
+
+.select select {
+  transition: border-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.select select:hover {
+  border-color: var(--hp-ink);
+}

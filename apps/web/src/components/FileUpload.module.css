@@ -91,3 +91,16 @@
   outline: var(--hp-focus-ring-width) solid var(--hp-ink);
   outline-offset: var(--hp-space-2);
 }
+
+/* Hover (every clickable item has one). */
+.browse {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.browse:hover {
+  background: var(--hp-bone);
+}
+
+.browse:active {
+  transform: scale(0.97);
+}

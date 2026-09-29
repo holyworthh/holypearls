@@ -81,6 +81,7 @@
 }
 
 .search {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--hp-space-14);
@@ -90,6 +91,15 @@
   outline: var(--hp-space-2) solid var(--hp-ink);
   background: var(--hp-paper);
   color: var(--hp-ink);
+  transition:
+    box-shadow var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+/* Soft halo on focus instead of a second hard ring. */
+.search:hover,
+.search:focus-within {
+  box-shadow: 0 0 0 var(--hp-space-6) var(--hp-bone), var(--hp-shadow-lift);
 }
 
 .searchInput {
@@ -124,8 +134,18 @@
   cursor: pointer;
 }
 
+.redButton {
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
 .redButton:hover {
   background: var(--hp-accent-hover);
+}
+
+.redButton:active {
+  transform: scale(0.97);
 }
 
 .redButton:focus-visible,
@@ -138,20 +158,31 @@
   outline-offset: var(--hp-space-2);
 }
 
+/* Scrolls sideways when the categories don't fit, without a scrollbar; the edge fades to hint at more. */
 .tabs {
   display: flex;
   gap: var(--hp-space-32);
   margin: 0;
   padding: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
   border-bottom: var(--hp-size-1) solid var(--hp-line);
   list-style: none;
+  mask-image: linear-gradient(to right, var(--hp-ink) calc(100% - var(--hp-space-48)), transparent);
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--hp-space-8);
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
   padding-bottom: var(--hp-space-14);
   border-bottom: var(--hp-size-3) solid transparent;
   margin-bottom: calc(var(--hp-size-1) * -1);
@@ -171,6 +202,23 @@
 
 .tab:hover {
   color: var(--hp-ink);
+}
+
+/* The underline grows from the centre on hover; the current tab keeps its full rule. */
+.tab::after {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--hp-size-3) * -1);
+  left: 0;
+  height: var(--hp-size-3);
+  background: var(--hp-line-strong);
+  transform: scaleX(0);
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+  content: "";
+}
+
+.tab:hover:not([aria-current="true"])::after {
+  transform: scaleX(1);
 }
 
 .count {
@@ -269,9 +317,30 @@
   cursor: pointer;
 }
 
+.option input {
+  transition:
+    background-color var(--hp-motion-status) var(--hp-ease-soft),
+    outline-color var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.option:hover input:not(:checked) {
+  outline-color: var(--hp-ink);
+}
+
 .option input:checked {
   outline-color: var(--hp-ink);
   background: var(--hp-ink);
+}
+
+.option input:checked::after {
+  animation: tick var(--hp-motion-dropdown) var(--hp-ease-soft);
+}
+
+@keyframes tick {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
 }
 
 .option input:checked::after {
@@ -301,6 +370,143 @@
 
 .apply {
   margin-top: var(--hp-space-8);
+}
+
+/* On desktop the rail applies each change at once (Pen has no apply button); the sheet keeps it. */
+@media (min-width: 1024px) {
+  .apply {
+    display: none;
+  }
+}
+
+/* Collapsible rail group (Pen 17: title 15/700 with a chevron-up). */
+.fold {
+  border-top: var(--hp-size-1) solid var(--hp-line);
+}
+
+.fold > .group {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.foldHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--hp-size-18) 0 var(--hp-space-10);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 700;
+  line-height: var(--hp-size-22);
+  list-style: none;
+  cursor: pointer;
+}
+
+.foldHead::-webkit-details-marker {
+  display: none;
+}
+
+.foldHead svg {
+  transition: transform var(--hp-motion-dropdown) var(--hp-ease-soft);
+}
+
+.fold:not([open]) .foldHead svg {
+  transform: rotate(180deg);
+}
+
+.foldHead:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+/* Quantity chips (Pen: 36px, radius 6, 13/600; the chosen one ink). */
+.qtyChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+}
+
+.qtyChip {
+  position: relative;
+  display: inline-flex;
+}
+
+.qtyChip input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.qtyChip span {
+  display: inline-flex;
+  align-items: center;
+  height: var(--hp-size-36);
+  padding: 0 var(--hp-space-10);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-13);
+  font-weight: 600;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.qtyChip:hover span {
+  outline-color: var(--hp-ink);
+}
+
+.qtyChip input:checked + span {
+  outline-color: var(--hp-ink);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.qtyChip input:focus-visible + span {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+/* Needed by (Pen: 48px field, calendar icon, "Any date"). */
+.date {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  height: var(--hp-space-48);
+  padding: 0 var(--hp-space-14);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.date:hover {
+  outline-color: var(--hp-ink);
+}
+
+.date:focus-within {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+}
+
+.date input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-size-15);
+}
+
+.date input:focus {
+  outline: none;
 }
 
 .results {
@@ -358,9 +564,16 @@
   gap: var(--hp-space-8);
 }
 
+/* Pen: 40px, 12px sides, the label then a 16px chevron with 8px between. */
+.sortBox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .sortSelect {
   height: var(--hp-space-40);
-  padding: 0 var(--hp-space-12);
+  padding: 0 calc(var(--hp-space-12) + var(--hp-space-16) + var(--hp-space-8)) 0 var(--hp-space-12);
   border: 0;
   border-radius: var(--hp-space-6);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -370,6 +583,24 @@
   font: inherit;
   font-size: var(--hp-space-14);
   font-weight: 600;
+  appearance: none;
+  cursor: pointer;
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.sortSelect:hover {
+  outline-color: var(--hp-ink);
+}
+
+.sortSelect:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+}
+
+.sortCaret {
+  position: absolute;
+  right: var(--hp-space-12);
+  pointer-events: none;
+  color: var(--hp-ink);
 }
 
 .list {
@@ -705,7 +936,12 @@
     margin: 0;
     padding: 0 var(--hp-space-20) var(--hp-space-12);
     overflow-x: auto;
+    scrollbar-width: none;
     list-style: none;
+  }
+
+  .chips::-webkit-scrollbar {
+    display: none;
   }
 
   .chips a {
@@ -890,4 +1126,59 @@
   .pages {
     display: none;
   }
+}
+
+/* Hover (every clickable item has one). */
+.chip {
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.chip:hover {
+  outline-color: var(--hp-ink);
+  background: var(--hp-bone);
+}
+
+.chip svg {
+  transition: rotate var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.chip:hover svg {
+  rotate: 90deg;
+}
+
+.feature {
+  transition: box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.feature:hover .featureTitle {
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.filterButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.filterButton:hover {
+  background: var(--hp-bone);
+}
+
+.filterButton:active {
+  transform: scale(0.97);
+}
+
+.foldHead {
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.foldHead:hover {
+  color: var(--hp-ink-70);
+}
+
+.pageLink {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.pageLink:hover:not([aria-current="page"]) {
+  background: var(--hp-bone);
 }

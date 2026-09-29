@@ -77,4 +77,15 @@
   --hp-shadow-menu: 0 18px 48px rgb(27 26 23 / 14%);
   /* Footer dividers on ink (Pen HP/Nav/Footer, #3A3833). */
   --hp-footer-rule: #3a3833;
+  /* Search autocomplete (Pen 09 · R8Aqc): scrim #0C0C0E59, 760px panel, 300px suggestion column. */
+  --hp-scrim: rgb(12 12 14 / 35%);
+  /* Site motion (INFERRED: chosen over Pen 09's motion spec at the owner's request). Soft ease-out for reveals and hovers; all motion is off with prefers-reduced-motion. */
+  --hp-ease-soft: cubic-bezier(.22, 1, .36, 1);
+  --hp-motion-hover: 220ms;
+  --hp-motion-reveal: 700ms;
+  --hp-motion-viewer: 280ms;
+  --hp-reveal-shift: var(--hp-space-24);
+  --hp-reveal-stagger: 70ms;
+  --hp-lift: calc(var(--hp-space-4) * -1);
+  --hp-shadow-lift: 0 14px 32px rgb(12 12 14 / 10%);
 }

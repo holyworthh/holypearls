@@ -4,6 +4,7 @@ import type { Configurator as ConfiguratorData, PublicImage } from "@holypearls/
 import { ArrowRight, Layers, MessageCircleQuestion, ZoomIn } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import styles from "./garment.module.css";
+import { ImageViewer } from "./ImageViewer";
 
 /* Route copy: `meta` from Pen 19 (desktop), `short` from Pen 20 (mobile). */
 const ROUTES = [
@@ -21,6 +22,11 @@ export function GarmentGallery({ images, name, fallback }: { images: PublicImage
   const [index, setIndex] = useState(0);
   const main = sources[index];
   const [shown, setShown] = useState(0);
+  const [viewing, setViewing] = useState(false);
+  const view = (position: number) => {
+    setIndex(position);
+    setViewing(true);
+  };
   const strip = useRef<HTMLDivElement>(null);
   const onStrip = () => {
     const element = strip.current;
@@ -30,8 +36,8 @@ export function GarmentGallery({ images, name, fallback }: { images: PublicImage
     <div className={styles.gallery}>
       <div className={styles.swipe}>
         <div className={styles.strip} ref={strip} onScroll={onStrip} tabIndex={0} aria-label={`${name} images, swipe for more`}>
-          {sources.map((image) => (
-            <img key={image.url} src={image.url} alt={image.alt || name} loading="lazy" />
+          {sources.map((image, position) => (
+            <img key={image.url} src={image.url} alt={image.alt || name} loading="lazy" onClick={() => view(position)} />
           ))}
         </div>
         {sources.length > 1 ? (
@@ -59,19 +65,20 @@ export function GarmentGallery({ images, name, fallback }: { images: PublicImage
         </ul>
       ) : null}
       <div className={styles.main}>
-        {main ? <img className={styles.mainImg} src={main.url} alt={main.alt || name} /> : null}
+        {main ? <img key={main.url} className={styles.mainImg} src={main.url} alt={main.alt || name} onClick={() => view(index)} /> : null}
         <span className={styles.mainTop}>
           <span className={styles.ticket}>COLOUR AND LOGO CONFIRMED IN YOUR PROOF</span>
           {main ? (
-            <a className={styles.zoom} href={main.url} target="_blank" rel="noreferrer" aria-label="Open the full-size image">
+            <button type="button" className={styles.zoom} onClick={() => view(index)} aria-label="View images full size" aria-haspopup="dialog">
               <ZoomIn size={14} aria-hidden="true" />
-            </a>
+            </button>
           ) : null}
         </span>
         <span className={styles.count}>
           {index + 1} / {sources.length}
         </span>
       </div>
+      <ImageViewer images={sources} name={name} open={viewing} index={index} onIndex={setIndex} onClose={() => setViewing(false)} />
     </div>
   );
 }

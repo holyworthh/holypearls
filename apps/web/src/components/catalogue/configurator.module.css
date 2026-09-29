@@ -736,3 +736,41 @@
 .photoZone.zoneConflict {
   outline-color: var(--hp-error);
 }
+
+/* Hover (every clickable item has one). */
+.checkRow {
+  cursor: pointer;
+}
+
+.checkRow:hover input {
+  outline: var(--hp-size-1) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.choice {
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.choice:hover {
+  outline-color: var(--hp-ink);
+}
+
+.linkButton {
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.linkButton:hover {
+  text-decoration-color: currentColor;
+}
+
+.stepExtra {
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.stepExtra:hover {
+  color: var(--hp-ink);
+}

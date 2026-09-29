@@ -5400,6 +5400,30 @@
                               "type": "string"
                             }
                           },
+                          "routes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SOURCE_CUSTOMIZE",
+                                "MAKE_FROM_SCRATCH",
+                                "CUSTOMER_SUPPLIED"
+                              ]
+                            }
+                          },
+                          "decorations": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "EMBROIDERY",
+                                "SCREEN_PRINT",
+                                "HEAT_TRANSFER",
+                                "PAPER_PRINT",
+                                "LARGE_FORMAT_PRINT"
+                              ]
+                            }
+                          },
                           "specifications": {
                             "type": "array",
                             "items": {
@@ -5480,6 +5504,8 @@
                           "summary",
                           "description",
                           "searchPhrases",
+                          "routes",
+                          "decorations",
                           "specifications",
                           "faqs",
                           "seoTitle",
@@ -5608,6 +5634,32 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 80
+                    }
+                  },
+                  "routes": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "SOURCE_CUSTOMIZE",
+                        "MAKE_FROM_SCRATCH",
+                        "CUSTOMER_SUPPLIED"
+                      ]
+                    }
+                  },
+                  "decorations": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "EMBROIDERY",
+                        "SCREEN_PRINT",
+                        "HEAT_TRANSFER",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT_PRINT"
+                      ]
                     }
                   },
                   "specifications": {
@@ -5774,6 +5826,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -5920,6 +5996,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -6061,6 +6139,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -6207,6 +6309,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -6334,6 +6438,32 @@
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 80
+                    }
+                  },
+                  "routes": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "SOURCE_CUSTOMIZE",
+                        "MAKE_FROM_SCRATCH",
+                        "CUSTOMER_SUPPLIED"
+                      ]
+                    }
+                  },
+                  "decorations": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "EMBROIDERY",
+                        "SCREEN_PRINT",
+                        "HEAT_TRANSFER",
+                        "PAPER_PRINT",
+                        "LARGE_FORMAT_PRINT"
+                      ]
                     }
                   },
                   "specifications": {
@@ -6495,6 +6625,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -6641,6 +6795,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -6813,6 +6969,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -6959,6 +7139,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -7245,6 +7427,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -7391,6 +7597,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -7562,6 +7770,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -7708,6 +7940,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -7846,6 +8080,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -7992,6 +8250,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -8159,6 +8419,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -8305,6 +8589,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -8461,6 +8747,30 @@
                         "type": "string"
                       }
                     },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "SOURCE_CUSTOMIZE",
+                          "MAKE_FROM_SCRATCH",
+                          "CUSTOMER_SUPPLIED"
+                        ]
+                      }
+                    },
+                    "decorations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "EMBROIDERY",
+                          "SCREEN_PRINT",
+                          "HEAT_TRANSFER",
+                          "PAPER_PRINT",
+                          "LARGE_FORMAT_PRINT"
+                        ]
+                      }
+                    },
                     "specifications": {
                       "type": "array",
                       "items": {
@@ -8607,6 +8917,8 @@
                     "summary",
                     "description",
                     "searchPhrases",
+                    "routes",
+                    "decorations",
                     "specifications",
                     "faqs",
                     "seoTitle",
@@ -10499,12 +10811,122 @@
                             ],
                             "additionalProperties": false
                           }
+                        },
+                        "routes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "enum": [
+                                  "SOURCE_CUSTOMIZE",
+                                  "MAKE_FROM_SCRATCH",
+                                  "CUSTOMER_SUPPLIED"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "prices": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "enum": [
+                                  "PRICE_READY",
+                                  "ESTIMATE_READY",
+                                  "QUOTE_REQUIRED"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "quantities": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "enum": [
+                                  "1-9",
+                                  "10-49",
+                                  "50+"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "decorations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string",
+                                "enum": [
+                                  "EMBROIDERY",
+                                  "SCREEN_PRINT",
+                                  "HEAT_TRANSFER",
+                                  "PAPER_PRINT",
+                                  "LARGE_FORMAT_PRINT"
+                                ]
+                              },
+                              "count": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "value",
+                              "count"
+                            ],
+                            "additionalProperties": false
+                          }
                         }
                       },
                       "required": [
                         "categories",
                         "families",
-                        "modes"
+                        "modes",
+                        "routes",
+                        "prices",
+                        "quantities",
+                        "decorations"
                       ],
                       "additionalProperties": false
                     }

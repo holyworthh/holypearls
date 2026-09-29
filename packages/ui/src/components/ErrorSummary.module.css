@@ -25,3 +25,16 @@
   color: var(--hp-error);
   font-weight: var(--hp-weight-medium);
 }
+
+/* Hover (every clickable item has one). */
+.link {
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.link:hover {
+  text-decoration-color: currentColor;
+}

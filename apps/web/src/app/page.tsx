@@ -4,6 +4,7 @@ import { ProductCard } from "../components/catalogue/ProductCard";
 import s from "../components/home/home.module.css";
 import { Icon } from "../components/pen/Icon";
 import { categoryHref } from "../components/site/nav";
+import { SuggestInput } from "../components/search/SearchSuggest";
 import { SiteShell } from "../components/site/SiteShell";
 import { getNavigation } from "../lib/storefront";
 
@@ -83,10 +84,12 @@ function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "
     return (
       <form className={s.mIntent} role="search" action="/products">
         <Icon name="search" size={22} />
-        <label className={s.query} htmlFor={id}>
-          <span className={s.mSearchLabel}>WHAT DO YOU NEED MADE?</span>
-          <input id={id} className={s.mSearchInput} type="search" name="q" placeholder="Polos, backdrops, cards…" />
-        </label>
+        <span className={s.query}>
+          <span className={s.mSearchLabel} aria-hidden="true">
+            WHAT DO YOU NEED MADE?
+          </span>
+          <SuggestInput id={id} className={s.mSearchInput} placeholder="Polos, backdrops, cards…" label="What do you need made?" />
+        </span>
       </form>
     );
   }
@@ -94,10 +97,7 @@ function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "
     return (
       <form className={s.mFinalSearch} role="search" action="/products">
         <Icon name="search" size={20} />
-        <label className="hp-visually-hidden" htmlFor={id}>
-          Search products or ideas
-        </label>
-        <input id={id} className={s.mSearchInput} type="search" name="q" placeholder="Search products or ideas" />
+        <SuggestInput id={id} className={s.mSearchInput} placeholder="Search products or ideas" label="Search products or ideas" />
       </form>
     );
   }
@@ -105,16 +105,15 @@ function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "
     <form className={hero ? s.intentSearch : s.finalSearch} role="search" action="/products">
       <Icon name="search" size={24} />
       {hero ? (
-        <label className={s.query} htmlFor={id}>
-          <span className={s.searchLabel}>WHAT DO YOU NEED MADE?</span>
-          <input id={id} className={s.searchInput} type="search" name="q" placeholder="Try “50 embroidered polos” or “event backdrop”" />
-        </label>
+        <span className={s.query}>
+          <span className={s.searchLabel} aria-hidden="true">
+            WHAT DO YOU NEED MADE?
+          </span>
+          <SuggestInput id={id} className={s.searchInput} placeholder="Try “50 embroidered polos” or “event backdrop”" label="What do you need made?" />
+        </span>
       ) : (
         <span className={s.query}>
-          <label className="hp-visually-hidden" htmlFor={id}>
-            Search products, materials or ideas
-          </label>
-          <input id={id} className={s.searchInput} type="search" name="q" placeholder="Search products, materials or ideas" />
+          <SuggestInput id={id} className={s.searchInput} placeholder="Search products, materials or ideas" label="Search products, materials or ideas" />
         </span>
       )}
       <button type="submit" className={`${s.redButton} ${hero ? "" : s.inkSearchButton}`}>
@@ -139,11 +138,11 @@ export default async function HomePage() {
       <div className={s.desk}>
         <section className={`${s.hero} ${s.pad}`} aria-labelledby="hero-title">
           <div className={s.heroTop}>
-            <h1 id="hero-title" className={s.heroHeadline}>
+            <h1 id="hero-title" className={s.heroHeadline} data-enter>
               <span>Branded uniforms,</span>
               <span className={s.heroHeadlineMuted}>print and merch</span>
             </h1>
-            <div className={s.heroAside}>
+            <div className={s.heroAside} data-enter style={{ "--hp-enter-index": 1 } as CSSProperties}>
               <p className={s.heroBody}>
                 Order staff uniforms, event materials, business cards and signage in one place. See the price upfront and approve your design before we make
                 anything.
@@ -172,7 +171,7 @@ export default async function HomePage() {
               </div>
             ) : null}
           </div>
-          <div className={`${s.heroMedia} ${s.photo}`} style={photo(51)} role="img" aria-label="A cutter lays out fabric on a production table" />
+          <div className={`${s.heroMedia} ${s.photo}`} data-enter style={{ ...photo(51), "--hp-enter-index": 2 } as CSSProperties} role="img" aria-label="A cutter lays out fabric on a production table" />
           <p className={s.refNote}>TEMPORARY REFERENCE IMAGERY · NOT HOLYPEARLS PREMISES, EQUIPMENT OR CLIENTS</p>
         </section>
 
@@ -186,7 +185,7 @@ export default async function HomePage() {
             </a>
           </div>
           <div className={s.outcomeGrid}>
-            <div className={`${s.outcomePhoto} ${s.photo}`} style={photo(50)} role="img" aria-label="A team in branded uniforms at work" />
+            <div className={`${s.outcomePhoto} ${s.photo}`} data-unveil style={photo(50)} role="img" aria-label="A team in branded uniforms at work" />
             <div className={s.outcomeSide}>
               <ol className={s.list}>
                 {OUTCOMES.map((outcome, index) => (
@@ -304,7 +303,7 @@ export default async function HomePage() {
               Plan an event order
             </a>
           </div>
-          <div className={`${s.storyPhoto} ${s.photo}`} style={photo(43)}>
+          <div className={`${s.storyPhoto} ${s.photo}`} data-unveil style={photo(43)}>
             <span className={s.ticket}>CONCEPT REFERENCE · NOT A CLIENT CLAIM</span>
             <dl className={s.jobTicket}>
               {JOB.map(([key, value]) => (
@@ -356,7 +355,7 @@ export default async function HomePage() {
               See our production →
             </a>
           </div>
-          <div className={`${s.macroPhoto} ${s.photo}`} style={photo(52)}>
+          <div className={`${s.macroPhoto} ${s.photo}`} data-unveil style={photo(52)}>
             <span className={s.ticket}>EMBROIDERY · SHOWN AT DETAIL SCALE</span>
             <span className={`${s.refFlag} ${s.refFlagMono}`}>TEMPORARY REFERENCE IMAGE · REAL SHOOT REQUIRED</span>
           </div>
@@ -376,7 +375,7 @@ export default async function HomePage() {
                 <p className={s.standard}>Whatever the method, we make it to your approved design, check it and deliver it.</p>
               </div>
             </div>
-            <div className={`${s.largePhoto} ${s.photo}`} style={photo(45)}>
+            <div className={`${s.largePhoto} ${s.photo}`} data-unveil style={photo(45)}>
               <span className={s.squareTicket}>LARGE FORMAT · CORE CAPABILITY</span>
               <span className={`${s.refFlag} ${s.refFlagMono}`}>TEMPORARY REFERENCE IMAGE</span>
             </div>
@@ -455,7 +454,7 @@ export default async function HomePage() {
       {/* ── Mobile (Pen 16) ── */}
       <div className={s.mob}>
         <section className={s.mHero} aria-labelledby="m-hero-title">
-          <h1 id="m-hero-title" className={s.mHeadline}>
+          <h1 id="m-hero-title" className={s.mHeadline} data-enter>
             Branded uniforms, print and merch
           </h1>
           <SearchForm id="m-home-search" variant="mHero" />
@@ -537,7 +536,7 @@ export default async function HomePage() {
             <br />
             We handle the rest.
           </h2>
-          <div className={`${s.mSewing} ${s.photo}`} style={photo(46)} role="img" aria-label="Sewing machinists at work" />
+          <div className={`${s.mSewing} ${s.photo}`} data-unveil style={photo(46)} role="img" aria-label="Sewing machinists at work" />
           <ol className={`${s.list} ${s.mGap24}`}>
             {SMBD.map(([title, , short], index) => (
               <li key={title} className={s.mSmbdRow}>
@@ -552,7 +551,7 @@ export default async function HomePage() {
         </section>
 
         <section className={s.mStory} aria-labelledby="m-story-title">
-          <div className={`${s.mEventPhoto} ${s.photo}`} style={photo(43)}>
+          <div className={`${s.mEventPhoto} ${s.photo}`} data-unveil style={photo(43)}>
             <span className={s.mTicket}>CONCEPT REFERENCE</span>
           </div>
           <h2 id="m-story-title" className={s.mTitle}>
@@ -589,10 +588,10 @@ export default async function HomePage() {
           <h2 id="m-production-title" className={`${s.mTitle} ${s.mTitleLight}`}>
             How it&apos;s made
           </h2>
-          <div className={`${s.mMacro} ${s.photo}`} style={photo(52)}>
+          <div className={`${s.mMacro} ${s.photo}`} data-unveil style={photo(52)}>
             <span className={s.mTicket}>EMBROIDERY · DETAIL SCALE · TEMP REFERENCE</span>
           </div>
-          <div className={`${s.mLarge} ${s.photo}`} style={photo(45)}>
+          <div className={`${s.mLarge} ${s.photo}`} data-unveil style={photo(45)}>
             <span className={s.mTicket}>LARGE FORMAT · CORE CAPABILITY</span>
           </div>
           <div className={s.mCapability}>

@@ -53,6 +53,20 @@ The polo page looked wrong mainly because its data was thin, not because the pag
 
 Seeding is now additive: products new to the seed, missing option values, swatches, specifications, FAQs, relations and gallery images are added to an existing database without touching staff edits.
 
+## Third pass: interactions, filters, search and motion
+
+Asked for by the owner after the second pass. Tests first for each part.
+
+- **Search autocomplete (Pen 09 · R8Aqc).** New `GET /v1/catalogue/suggest?q=` (rate limit SEARCH, public cache) returns up to four everyday searches, three categories, three products and guides. Products whose names match rank first; only visible products and their phrases are used. The header field opens Pen's panel over a scrim ("/" opens it anywhere, Esc closes it). The directory, homepage and menu searches drop the same panel under their box. It's an ARIA combobox (↑↓, Enter, Esc) with loading, empty ("We may still be able to make or source it" plus a custom-request link, PUB-FR-016) and error states. Guides stay empty until content pages exist (T02-06). Seed products gained everyday phrases ("staff shirts", "embroidered polos"…).
+- **Product image viewer.** The zoom button and the main image open a full-size viewer on the same page instead of a new tab. It has previous and next buttons, ← → keys, swipe, a thumbnail strip and Esc, and the gallery follows the image last viewed. Both galleries (garment and Pen 21) use it.
+- **Directory rail = Pen 17.** Collapsible groups: How it's made, Price (with counts), Quantity chips, Decoration and a Needed-by date. Several values of one group combine (`?decoration=EMBROIDERY&decoration=PAPER_PRINT`), each with its own removable chip. On desktop each change applies at once, as in Pen (no button); the phone sheet keeps "Show results". Category tabs scroll without a scrollbar, and their edge fades. The sort select has its own chevron with room (Pen: 12px, 16px chevron, 8px gap).
+- **API and data for the rail.** Every filter takes several values. The new filters are `route`, `price` (PRICE_READY / ESTIMATE_READY / QUOTE_REQUIRED from the current price rule), `qty` (a band the product's minimum fits), `decoration` and `neededBy` (standard lead time in working days, Monday–Friday, up to the date). Each has facet counts, one query per group. New product fields `routes` and `decorations`, with checks on the allowed values (migration 0018), are editable in the admin product editor. Seeded for every product.
+- **Softer search boxes.** They get a soft halo on hover and focus instead of a second hard ring, and a clear button.
+- **Header.** Mega-menus open on hover on desktop, after a short pause (a click right after keeps them open). Moving between menus morphs one panel: its height eases and the content slides the way you moved. Hover draws an ink rule under a nav label. The current section shows a small vermilion pearl, which stretches on hover instead of also getting the rule. The old grey box and red bar are gone.
+- **Tooltips.** Every icon-only link or button in the app shows its name on mouse hover (after 350ms, then instantly while moving between icons) and on keyboard focus, kept on screen. They never show on touch. The bubble is aria-hidden, since the control already has its name.
+- **Hover on everything clickable.** An audit script found about 60 clickable classes with no hover. Each now has one: filled buttons shift colour and press, outline buttons fill bone, text links draw their underline in, rows wash bone, cards and choices take an ink outline, swatches grow, and logos swell their pearl. Form fields darken on hover. Unstyled links and controls get a zero-specificity fallback.
+- **Motion.** The owner chose the site's own motion over Pen 09's motion spec (see difference 17). Staggered scroll reveals of headings, cards and footer blocks. Hero and heading entrances. A scroll-driven unveil on big editorial photos. A slow image push-in and a drawn underline on card hover. Arrows lean on hover. Details open smoothly. Menus, panels and the viewer fade and drop. All of it is off with reduced motion, and nothing is hidden without JavaScript.
+
 ## Tests
 
 - **API:** card prices test, written first. "Garment product page data (Pen 19)", written first: summary, eight swatched colours, specifications, questions, four bands and the uniform set. `storefront.test.ts` 12/12 pass; the directory and hub tests were updated for the four new products (the hub test now uses Bags & Packaging, since Apparel has seeded hub content).
@@ -60,6 +74,16 @@ Seeding is now additive: products new to the seed, missing option values, swatch
   - `garment.spec.ts` rewritten for the new flow: product page → "Configure yours" with the colour and route kept; stepped configurator with the conflict fix and sized pricing; customer-supplied with unknown sizes
   - configurator and families specs open the "More" quantity card before typing a quantity
   - the polo page shows "Complete the uniform"; on a phone the Configure bar appears only after scrolling and the Quantity bands accordion opens
+- **Third pass:** `storefront.test.ts` adds the multi-value filters, the Pen 17 rail filters with counts, and suggestions (queries, categories, products, drafts never leak, empty query refused). `catalogue.test.ts` saves routes and decorations and refuses unknown values. API suite 250/250. New `interactions.spec.ts` covers:
+  - suggestions by keyboard and pointer, the header panel, "See all results" and no suggestions
+  - the image viewer
+  - several filters of one kind, the price, quantity and needed-by filters
+  - the tab scrollbar and sort caret
+  - reveals and reduced motion
+  - hover-opened menus that switch in place
+  - tooltips
+
+  The axe helper now checks the settled page: it switches motion off and finishes running animations first, because mid-reveal opacity isn't what people read. The design-system and sign-in specs use the shared helper.
 - **Local runs beside a dev server:** `playwright.config.ts` takes `E2E_API_PORT`. Build the web app with `API_URL` on that port, so tests run while `pnpm dev` holds 3001.
 
 ## Differences that remain (and why)
@@ -68,7 +92,7 @@ Seeding is now additive: products new to the seed, missing option values, swatch
 2. **Option images** (Pen 21 paper cards with photos): options have no image field yet. The cards show the name and second line only. **Needed:** an image per option value (admin), a small follow-up.
 3. **Dark "Choose your card stock" band** (Pen 21): it needs paper-stock content per product, which doesn't exist. Not built.
 4. **Garment preview:** the front now shows the chosen colour's photo with tappable placement zones and a marigold box around each chosen placement, as in Pen 22. Only navy has a reference photo, so other colours and the back view keep the outline, filled with the colour's swatch. Photos per colour need an image per option value (the follow-up in item 2). Pen's Detail view, zoom and reset controls, logo-size choice and thread colours ("Matched from your file") are not built (T03-05 note).
-5. **Filter groups** (Pen 17: How it's made, Price, Quantity, Decoration, Needed by): the API filters by buying mode and product type only, so the rail shows those two groups in Pen's style. **Needed:** product attributes for sourcing and decoration to filter by (catalogue ticket).
+5. **Filter groups:** built as Pen 17 in the third pass. "How it's bought" and "Product type" left the rail (Pen doesn't have them); their URLs still work and show chips. Needed-by counts working days only; public holidays are handled when quoting.
 6. **Delivery, timing and Review steps** on the product page (T03-08, PRD COM-FR-070–072) are not in Pen 21. The PRD wins; they use Pen's card and step styles.
 7. **"Add to bag"** is shown but disabled until checkout exists (T04-01). **Bag icon** in the header: left out until the cart exists.
 8. **Newsletter:** there's no mailing list, so the form says "Email updates start soon" and saves nothing.
@@ -80,6 +104,10 @@ Seeding is now additive: products new to the seed, missing option values, swatch
 12. **Polo gallery caption:** Pen's "NAVY · LEFT-CHEST EMBROIDERY · TEMP REFERENCE" labels a reference photo; the site keeps "COLOUR AND LOGO CONFIRMED IN YOUR PROOF", which is true for every order.
 13. **Related card SKU:** Pen's "Print or embroidery · HP-APP-050" shows the SKU, but public cards don't expose SKUs (PUB-FR-008 test), so the card shows the qualifier only.
 11. **Product pages below the fold** keep About, Specifications and Questions (PRD COM-FR-004). Pen 21 has no place for them, so they sit in a compact three-column band. The generic "How it works" block was removed (not in Pen).
+
+17. **Motion system:** Pen 09 · lPiWj specifies no hover zoom, 650ms/16px section reveals once per session and a "Production Reveal". The owner preferred the site's own motion ("I liked what you did. do that instead"), so that's kept, with tokens in `inferred-tokens.css`. Pen's curve (.2,.8,.2,1) also differs from tokens.json's `enterEasing` (.2,.8,1,1).
+18. **Header states:** Pen shows no hover or current-page treatment. The owner asked to replace the grey box and red bar, so hover is an ink rule and the current section is a vermilion pearl.
+19. **Search guides group:** empty until content pages exist (T02-06).
 
 ## Process change
 

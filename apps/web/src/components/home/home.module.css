@@ -1289,6 +1289,7 @@
   margin: 0;
   padding: 0 var(--hp-space-20) 0 0;
   overflow-x: auto;
+  scrollbar-width: none;
   list-style: none;
   scroll-snap-type: x mandatory;
 }
@@ -1655,4 +1656,89 @@
 
 .mGap24 {
   gap: var(--hp-space-24);
+}
+
+/* Search boxes: suggestions hang from the form; hover and focus get a soft halo, not a hard jump. */
+.intentSearch,
+.finalSearch,
+.mIntent,
+.mFinalSearch {
+  position: relative;
+  transition:
+    box-shadow var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.intentSearch:hover,
+.intentSearch:focus-within,
+.mIntent:focus-within {
+  box-shadow: 0 0 0 var(--hp-space-6) var(--hp-bone), var(--hp-shadow-lift);
+}
+
+.finalSearch:focus-within,
+.mFinalSearch:focus-within {
+  box-shadow: 0 0 0 var(--hp-space-6) var(--hp-paper-20);
+}
+
+.query > * {
+  flex: none;
+}
+
+/* Linked photo tiles grow a touch on hover. */
+.photo {
+  transition: scale calc(var(--hp-motion-reveal) * 1.2) var(--hp-ease-soft);
+}
+
+a:hover > .photo,
+a:hover .photo {
+  scale: 1.03;
+}
+
+/* Hover (every clickable item has one). */
+.headLinkLight, .mFinalLink, .mMore {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.headLinkLight:hover, .mFinalLink:hover, .mMore:hover {
+  text-decoration-color: currentColor;
+}
+
+.indexRowLead {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.indexRowLead:hover {
+  background: var(--hp-bone);
+}
+
+.mCat {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), padding var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.mCat:hover {
+  background: var(--hp-bone);
+}
+
+.mFullButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.mFullButton:hover {
+  background: var(--hp-ink-80);
+}
+
+.mFullButton:active {
+  transform: scale(0.97);
+}
+
+.mOutcome {
+  transition: opacity var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.mOutcome:hover {
+  opacity: 0.85;
 }

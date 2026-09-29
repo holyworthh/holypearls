@@ -487,3 +487,41 @@
     background: var(--hp-paper);
   }
 }
+
+/* Hover (every clickable item has one). */
+.back,
+.exit,
+.viewButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), outline-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.back:hover,
+.exit:hover,
+.viewButton:hover {
+  background: var(--hp-bone);
+}
+
+.exit:hover {
+  outline-color: var(--hp-ink);
+}
+
+.back:active, .exit:active, .viewButton:active {
+  transform: scale(0.97);
+}
+
+.stepButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.stepButton:hover {
+  background: var(--hp-bone);
+  color: var(--hp-ink);
+}
+
+.logo {
+  transition: opacity var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.logo:hover {
+  opacity: 0.75;
+}

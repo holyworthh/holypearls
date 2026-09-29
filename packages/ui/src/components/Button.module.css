@@ -94,3 +94,16 @@
     transform: rotate(360deg);
   }
 }
+
+/* Hover (every clickable item has one). */
+.button {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), border-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.button:active:not(:disabled, [aria-disabled="true"]) {
+  transform: scale(0.97);
+}
+
+.destructive:hover:not(:disabled, [aria-disabled="true"]) {
+  filter: brightness(0.92);
+}

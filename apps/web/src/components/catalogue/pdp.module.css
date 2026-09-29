@@ -75,6 +75,34 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation: imageIn var(--hp-motion-card) var(--hp-ease-soft);
+  transition: scale calc(var(--hp-motion-reveal) * 1.5) var(--hp-ease-soft);
+}
+
+/* The main image opens the full-size viewer. */
+.mainButton {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.mainButton:hover img {
+  scale: 1.03;
+}
+
+.mainButton:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: calc(var(--hp-focus-ring-width) * -2);
+}
+
+@keyframes imageIn {
+  from {
+    opacity: 0;
+  }
 }
 
 .cap {
@@ -109,6 +137,16 @@
   border-radius: var(--hp-space-6);
   background: var(--hp-sand);
   cursor: pointer;
+}
+
+.thumb {
+  transition:
+    opacity var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.thumb:not([aria-pressed="true"]):hover {
+  opacity: 0.8;
 }
 
 .thumb[aria-pressed="true"] {
@@ -551,4 +589,25 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--hp-space-20) var(--hp-space-12);
   }
+}
+
+/* Hover (every clickable item has one). */
+.add {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.add:hover {
+  background: var(--hp-accent-hover);
+}
+
+.add:active {
+  transform: scale(0.97);
+}
+
+.card {
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.card:hover {
+  outline-color: var(--hp-ink);
 }

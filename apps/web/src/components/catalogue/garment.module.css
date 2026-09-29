@@ -43,6 +43,16 @@
   cursor: pointer;
 }
 
+.thumb {
+  transition:
+    opacity var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.thumb:not([aria-pressed="true"]):hover {
+  opacity: 0.8;
+}
+
 .thumb[aria-pressed="true"] {
   outline: var(--hp-space-2) solid var(--hp-ink);
 }
@@ -70,6 +80,20 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  cursor: zoom-in;
+  animation: imageIn var(--hp-motion-card) var(--hp-ease-soft);
+  transition: scale calc(var(--hp-motion-reveal) * 1.5) var(--hp-ease-soft);
+}
+
+/* A slow, slight push-in on hover invites the zoom. */
+.main:hover .mainImg {
+  scale: 1.03;
+}
+
+@keyframes imageIn {
+  from {
+    opacity: 0;
+  }
 }
 
 .mainTop,
@@ -90,9 +114,22 @@
   place-items: center;
   width: var(--hp-size-44);
   height: var(--hp-size-44);
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: var(--hp-paper);
   color: var(--hp-ink);
+  cursor: pointer;
+  transition:
+    transform var(--hp-motion-hover) var(--hp-ease-soft),
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.zoom:hover {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+  transform: scale(1.08);
 }
 
 .zoom:focus-visible {
@@ -754,6 +791,7 @@
   .thumbs {
     flex-direction: row;
     overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .h1 {
@@ -1059,4 +1097,70 @@
   .stickyBar {
     transition: none;
   }
+}
+
+/* Hover (every clickable item has one). */
+.groupLink {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: var(--hp-size-1);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft), color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.groupLink:hover {
+  text-decoration-color: currentColor;
+}
+
+.moreSwatches {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.moreSwatches:hover {
+  background: var(--hp-bone);
+  transform: scale(1.06);
+}
+
+.outline {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.outline:hover {
+  background: var(--hp-bone);
+}
+
+.quiet {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.quiet:hover {
+  background: var(--hp-bone);
+}
+
+.outline:active, .quiet:active, .stickyCta:active {
+  transform: scale(0.97);
+}
+
+.route {
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.route:hover {
+  outline-color: var(--hp-ink);
+}
+
+.stickyCta {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.stickyCta:hover {
+  background: var(--hp-accent-hover);
+}
+
+.swatch .chip {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.swatch:hover .chip {
+  transform: scale(1.1);
 }

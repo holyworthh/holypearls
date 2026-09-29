@@ -1,5 +1,5 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { expectNoAxeViolations } from "./helpers";
 
 const PAGES = [
   "/design-system",
@@ -12,10 +12,6 @@ const PAGES = [
   "/design-system/states/error",
 ];
 
-async function expectNoAxeViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
-}
 
 for (const path of PAGES) {
   test(`${path} passes the automated accessibility check`, async ({ page }) => {

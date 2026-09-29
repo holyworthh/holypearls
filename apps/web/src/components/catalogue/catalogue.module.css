@@ -311,6 +311,7 @@
 /* Big search (directory head, homepage hero and final band) */
 
 .bigSearch {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--hp-space-14);
@@ -321,9 +322,14 @@
   background: var(--hp-paper);
 }
 
+.bigSearch {
+  transition: box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+/* Soft halo on hover and focus instead of a second hard ring. */
+.bigSearch:hover,
 .bigSearch:focus-within {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-  outline-offset: var(--hp-space-2);
+  box-shadow: 0 0 0 var(--hp-space-6) var(--hp-bone), var(--hp-shadow-lift);
 }
 
 .bigSearch svg {
@@ -368,8 +374,18 @@
   cursor: pointer;
 }
 
+.searchButton {
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
 .searchButton:hover {
   background: var(--hp-accent-hover);
+}
+
+.searchButton:active {
+  transform: scale(0.97);
 }
 
 /* Directory category tabs, filter rail, toolbar and pages */
@@ -382,7 +398,11 @@
   overflow-x: auto;
   list-style: none;
   border-bottom: var(--hp-border-width) solid var(--hp-line);
-  scrollbar-width: thin;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {

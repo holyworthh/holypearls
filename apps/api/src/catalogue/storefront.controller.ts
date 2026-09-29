@@ -3,6 +3,7 @@ import {
   merchandisingListKeySchema,
   publicProductQuerySchema,
   publishHubSchema,
+  searchSuggestionQuerySchema,
   saveHubDraftSchema,
   saveMerchandisingListSchema,
 } from "@holypearls/contracts";
@@ -16,7 +17,7 @@ import { RateLimit } from "../platform/rate-limit.js";
 import { FILE_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { getAdminHub, getMerchandisingLists, publishHub, saveHubDraft, saveMerchandisingList } from "./merchandising.js";
-import { listPublicProducts, publicCategoryTree, publicHub, publicMediaFile, publicProduct, storefrontNavigation } from "./storefront.js";
+import { listPublicProducts, publicCategoryTree, searchSuggestions, publicHub, publicMediaFile, publicProduct, storefrontNavigation } from "./storefront.js";
 
 /** Public reads can sit in shared caches briefly; publishing also refreshes the web app's tagged cache. */
 const PUBLIC_CACHE = "public, max-age=60, stale-while-revalidate=300";
@@ -49,6 +50,17 @@ export class StorefrontController {
   ) {
     response.setHeader("cache-control", PUBLIC_CACHE);
     return listPublicProducts(this.deps.db, query);
+  }
+
+  /** Typeahead (Pen 09): limited as SEARCH, since it runs on every keystroke. */
+  @Get("suggest")
+  @RateLimit("SEARCH")
+  suggest(
+    @Query(new ZodValidationPipe(searchSuggestionQuerySchema)) query: z.infer<typeof searchSuggestionQuerySchema>,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    response.setHeader("cache-control", PUBLIC_CACHE);
+    return searchSuggestions(this.deps.db, query.q);
   }
 
   @Get("products/:slug")

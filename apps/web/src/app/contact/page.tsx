@@ -41,7 +41,7 @@ export default async function ContactPage({ searchParams }: { searchParams: Prom
             </ol>
           </nav>
           <div className={styles.heroText}>
-            <h1 className={styles.h1}>{copy.title}</h1>
+            <h1 className={styles.h1} data-enter>{copy.title}</h1>
             <p className={styles.lead}>{copy.body}</p>
             <div className={styles.actions}>
               <NeedHelp

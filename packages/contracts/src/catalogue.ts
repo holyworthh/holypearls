@@ -13,6 +13,10 @@ export const productFamilySchema = z.enum([
   "CUSTOM_PROJECT",
 ]);
 export const buyingModeSchema = z.enum(["SIMPLE_CONFIGURABLE", "CONFIGURABLE_QUOTE", "CONSULTATIVE_PROJECT"]);
+/** How a product can be made (Pen 17 "How it's made"); the garment routes of PRD-02. */
+export const makingRouteSchema = z.enum(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED"]);
+/** Decoration methods a product offers (Pen 17 "Decoration"). */
+export const decorationMethodSchema = z.enum(["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER", "PAPER_PRINT", "LARGE_FORMAT_PRINT"]);
 export const productStatusSchema = z.enum(["DRAFT", "PUBLISHED", "TEMPORARILY_UNAVAILABLE", "ARCHIVED"]);
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, numbers and hyphens").max(80);
@@ -27,6 +31,8 @@ export const productFieldsSchema = z.object({
   description: z.string().trim().max(10_000).nullable().optional(),
   listed: z.boolean().optional(),
   searchPhrases: z.array(z.string().trim().min(1).max(80)).max(30).optional(),
+  routes: z.array(makingRouteSchema).max(3).optional(),
+  decorations: z.array(decorationMethodSchema).max(5).optional(),
   specifications: z.array(z.object({ label: z.string().max(80), value: z.string().max(300) })).max(40).optional(),
   faqs: z.array(z.object({ question: z.string().max(200), answer: z.string().max(2000) })).max(30).optional(),
   seoTitle: z.string().trim().max(70).nullable().optional(),
@@ -52,6 +58,8 @@ const adminProductBase = z.object({
   summary: z.string().nullable(),
   description: z.string().nullable(),
   searchPhrases: z.array(z.string()),
+  routes: z.array(makingRouteSchema),
+  decorations: z.array(decorationMethodSchema),
   specifications: z.array(z.object({ label: z.string(), value: z.string() })),
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
   seoTitle: z.string().nullable(),

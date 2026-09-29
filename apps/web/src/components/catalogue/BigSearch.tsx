@@ -1,3 +1,4 @@
+import { SuggestInput } from "../search/SearchSuggest";
 import styles from "./catalogue.module.css";
 
 /** The large "What do you need made?" search (PUB-FR-001, directory head, final band). */
@@ -8,10 +9,7 @@ export function BigSearch({ id, defaultValue, placeholder, label = "Search produ
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
       </svg>
-      <label htmlFor={id} className="hp-visually-hidden">
-        {label}
-      </label>
-      <input id={id} name="q" type="search" defaultValue={defaultValue} placeholder={placeholder} autoComplete="off" enterKeyHint="search" />
+      <SuggestInput id={id} defaultValue={defaultValue} placeholder={placeholder} label={label} />
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}

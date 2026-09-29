@@ -73,7 +73,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
             <Gallery images={product.images} name={product.name} />
             <div className={p.side}>
               <div className={p.titleBlock}>
-                <h1 id="product-title" className={p.h1}>
+                <h1 id="product-title" className={p.h1} data-enter>
                   {product.name}
                 </h1>
               </div>
@@ -183,7 +183,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
           <GarmentGallery images={product.images} name={product.name} fallback={[49, 33, 54, 52, 60, 57].map(pen)} />
           <div className={g.panel}>
             <div className={g.titleBlock}>
-              <h1 id="product-title" className={g.h1}>
+              <h1 id="product-title" className={g.h1} data-enter>
                 {product.name}
               </h1>
               {product.summary ? <p className={g.lead}>{product.summary}</p> : null}
@@ -251,7 +251,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
 
       <section className={g.material} aria-label="Material and process">
         <div className={g.materialCol}>
-          <span className={g.materialPhoto} style={{ backgroundImage: `url("${pen(60)}")` }} />
+          <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(60)}")` }} />
           <h2 className={g.mt}>Fabric is chosen with you</h2>
           {product.specifications.length ? (
             <dl className={g.spec}>
@@ -267,7 +267,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
           )}
         </div>
         <div className={g.materialCol}>
-          <span className={g.materialPhoto} style={{ backgroundImage: `url("${pen(58)}")` }} />
+          <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(58)}")` }} />
           <h2 className={g.mt}>We prepare your logo for embroidery</h2>
           <p className={g.pb}>
             Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file.

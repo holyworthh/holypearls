@@ -36,12 +36,20 @@ interface SeedProduct {
   faqs?: { question: string; answer: string }[];
   /** Products shown beside this one, in order ("Complete the uniform", Pen 19). */
   related?: string[];
+  /** Everyday words people search with (PUB-FR-007); staff add more in admin. */
+  phrases?: string[];
+  /** Directory filters (Pen 17): how it can be made and decoration methods. */
+  routes?: ("SOURCE_CUSTOMIZE" | "MAKE_FROM_SCRATCH" | "CUSTOMER_SUPPLIED")[];
+  decorations?: ("EMBROIDERY" | "SCREEN_PRINT" | "HEAT_TRANSFER" | "PAPER_PRINT" | "LARGE_FORMAT_PRINT")[];
 }
 
 export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-APP-007",
     slug: "polo-shirt",
+    routes: ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
+    phrases: ["staff shirts", "company polos", "embroidered polos", "corporate uniform"],
     name: "Polo Shirt",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -70,6 +78,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-CUS-001",
     slug: "heat-transfer-printing",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["HEAT_TRANSFER"],
     name: "Heat Transfer Printing",
     family: "APPAREL_PRINT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -81,6 +91,9 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-EMB-001",
     slug: "flat-embroidery",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY"],
+    phrases: ["embroidered logo", "embroidery on caps", "embroidered patches", "embroidered name badges"],
     name: "Flat Embroidery",
     family: "EMBROIDERY",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -92,6 +105,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRN-011",
     slug: "business-cards",
+    decorations: ["PAPER_PRINT"],
+    phrases: ["complimentary cards", "visiting cards"],
     name: "Business Cards",
     family: "PAPER_PRINT",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -108,6 +123,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-LF-005",
     slug: "roll-up-banner",
+    decorations: ["LARGE_FORMAT_PRINT"],
+    phrases: ["banner", "event banner"],
     name: "Roll-Up Banner",
     family: "LARGE_FORMAT",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -119,6 +136,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PKG-001",
     slug: "small-paper-bag",
+    decorations: ["PAPER_PRINT"],
     name: "Small Paper Bag",
     family: "PACKAGING",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -130,6 +148,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-LBL-001",
     slug: "label-sticker",
+    decorations: ["PAPER_PRINT"],
     name: "Label Sticker",
     family: "STICKER_LABEL",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -141,6 +160,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRO-001",
     slug: "standard-mug",
+    phrases: ["souvenir mugs", "branded mugs"],
     name: "Standard Mug",
     family: "PROMOTIONAL_ITEM",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -152,6 +172,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-WAL-001",
     slug: "landscape-canvas",
+    decorations: ["LARGE_FORMAT_PRINT"],
     name: "Landscape Canvas",
     family: "WALL_ART",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -163,6 +184,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRJ-001",
     slug: "team-staff-branding",
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
     name: "Team & Staff Branding",
     family: "CUSTOM_PROJECT",
     buyingMode: "CONSULTATIVE_PROJECT",
@@ -175,6 +197,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-APP-050",
     slug: "apron",
+    routes: ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH"],
+    decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
     name: "Apron",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -187,6 +211,9 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-APP-117",
     slug: "baseball-cap",
+    routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
+    decorations: ["EMBROIDERY", "HEAT_TRANSFER"],
+    phrases: ["branded caps", "embroidered caps"],
     name: "Baseball Cap",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -199,6 +226,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRN-027",
     slug: "event-badges",
+    decorations: ["PAPER_PRINT"],
     name: "Event Badges",
     family: "PAPER_PRINT",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -261,7 +289,9 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
         status: "PUBLISHED",
         publishedAt: new Date(),
         seoTitle: `${product.name} | HolyPearls`,
-        searchPhrases: [product.name.toLowerCase()],
+        searchPhrases: [product.name.toLowerCase(), ...(product.phrases ?? [])],
+        routes: product.routes ?? [],
+        decorations: product.decorations ?? [],
       })
       .returning({ id: schema.products.id });
     for (const [position, [key, label]] of product.options.entries()) {
@@ -277,12 +307,21 @@ const splitValue = (value: string): [key: string, label: string] =>
 
 /**
  * Fills what product pages show (Pen 19): option values with swatches,
- * specifications, questions and related products. Only adds what's missing, so
+ * specifications, questions, everyday search phrases and related products. Only adds what's missing, so
  * staff edits are kept. The polo's first-seed summary gives way to the Pen copy.
  */
 async function seedProductDetails(tx: Transaction): Promise<void> {
   const products = await tx
-    .select({ id: schema.products.id, slug: schema.products.slug, summary: schema.products.summary, specifications: schema.products.specifications, faqs: schema.products.faqs })
+    .select({
+      id: schema.products.id,
+      slug: schema.products.slug,
+      summary: schema.products.summary,
+      specifications: schema.products.specifications,
+      faqs: schema.products.faqs,
+      searchPhrases: schema.products.searchPhrases,
+      routes: schema.products.routes,
+      decorations: schema.products.decorations,
+    })
     .from(schema.products);
   const idOf = new Map(products.map((row) => [row.slug, row.id]));
   for (const seeded of SEED_PRODUCTS) {
@@ -292,6 +331,10 @@ async function seedProductDetails(tx: Transaction): Promise<void> {
     if (row.summary === OLD_POLO_SUMMARY) updates.summary = seeded.summary;
     if (seeded.specifications && !(row.specifications as unknown[]).length) updates.specifications = seeded.specifications;
     if (seeded.faqs && !(row.faqs as unknown[]).length) updates.faqs = seeded.faqs;
+    const missing = (seeded.phrases ?? []).filter((phrase) => !row.searchPhrases.includes(phrase));
+    if (missing.length) updates.searchPhrases = [...row.searchPhrases, ...missing];
+    if (seeded.routes && !row.routes.length) updates.routes = seeded.routes;
+    if (seeded.decorations && !row.decorations.length) updates.decorations = seeded.decorations;
     if (Object.keys(updates).length) await tx.update(schema.products).set(updates).where(eq(schema.products.id, row.id));
 
     const options = await tx.select({ id: schema.productOptions.id, key: schema.productOptions.key }).from(schema.productOptions).where(eq(schema.productOptions.productId, row.id));

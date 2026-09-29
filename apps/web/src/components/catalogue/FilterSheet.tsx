@@ -23,7 +23,15 @@ export function FilterSheet({ count, sort, children }: { count: string; sort: Re
           {sort}
         </div>
       </div>
-      <aside id={id} className={`${styles.rail} ${open ? styles.railOpen : ""}`} aria-label="Filters">
+      <aside
+        id={id}
+        className={`${styles.rail} ${open ? styles.railOpen : ""}`}
+        aria-label="Filters"
+        onChange={(event) => {
+          // The desktop rail applies each change at once; the phone sheet waits for "Show results".
+          if (window.matchMedia("(min-width: 1024px)").matches) (event.target as HTMLInputElement).form?.requestSubmit();
+        }}
+      >
         {children}
       </aside>
     </>

@@ -1,4 +1,4 @@
-import { adminHubSchema, adminMerchandisingListsSchema, publicHubSchema, publicProductPageSchema, publicProductSchema, storefrontNavigationSchema } from "@holypearls/contracts";
+import { adminHubSchema, adminMerchandisingListsSchema, publicHubSchema, publicProductPageSchema, publicProductSchema, searchSuggestionsSchema, storefrontNavigationSchema } from "@holypearls/contracts";
 import { eq, schema } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -82,6 +82,55 @@ describe("public product directory (PUB-FR-008)", () => {
     expect(consult.entries).toEqual([expect.objectContaining({ slug: "team-staff-branding", priceState: "CONSULTATION_REQUIRED" })]);
   });
 
+  it("combines several values of the same filter (any of them matches), keeping facet counts", async () => {
+    const two = await page("?family=GARMENT&family=EMBROIDERY");
+    expect(two.entries.map((entry) => entry.slug).sort()).toEqual(["apron", "baseball-cap", "flat-embroidery", "polo-shirt"]);
+    expect(two.facets.families.find((facet) => facet.value === "PAPER_PRINT")!.count).toBeGreaterThan(0);
+    const categories = await page("?category=drinkware&category=wall-art-decorative-print");
+    expect(categories.entries.map((entry) => entry.slug).sort()).toEqual(["landscape-canvas", "standard-mug"]);
+    const modes = await page("?mode=CONSULTATIVE_PROJECT&mode=SIMPLE_CONFIGURABLE");
+    expect(modes.entries.every((entry) => entry.priceState !== "QUOTE_REQUIRED")).toBe(true);
+    expect(modes.entries.map((entry) => entry.slug)).toContain("team-staff-branding");
+    expect((await get("/v1/catalogue/products?family=NOT_A_FAMILY")).status).toBe(400);
+  });
+
+  it("filters by the Pen 17 rail groups (how it's made, price, quantity, decoration, needed by), with counts", async () => {
+    const slugs = (result: Awaited<ReturnType<typeof page>>) => result.entries.map((entry) => entry.slug);
+    const scratch = await page("?route=MAKE_FROM_SCRATCH&limit=48");
+    expect(slugs(scratch)).toContain("polo-shirt");
+    expect(slugs(scratch)).not.toContain("business-cards");
+    expect(scratch.facets.routes.map((facet) => facet.value).sort()).toEqual(["CUSTOMER_SUPPLIED", "MAKE_FROM_SCRATCH", "SOURCE_CUSTOMIZE"]);
+
+    const ready = await page("?price=PRICE_READY&limit=48");
+    expect(ready.entries.length).toBeGreaterThan(0);
+    expect(ready.entries.every((entry) => entry.price?.state === "PRICE_READY")).toBe(true);
+    const quote = await page("?price=QUOTE_REQUIRED&limit=48");
+    expect(slugs(quote)).toEqual(expect.arrayContaining(["individual-bagging", "team-staff-branding"]));
+    expect(quote.entries.every((entry) => entry.price === null)).toBe(true);
+    const either = await page("?price=PRICE_READY&price=ESTIMATE_READY&limit=48");
+    expect(either.entries.every((entry) => entry.price !== null)).toBe(true);
+    expect(either.facets.prices.map((facet) => facet.value)).toEqual(["PRICE_READY", "ESTIMATE_READY", "QUOTE_REQUIRED"]);
+
+    const few = await page("?qty=1-9&limit=48");
+    expect(few.entries.every((entry) => (entry.moq ?? 1) <= 9)).toBe(true);
+    expect(slugs(few)).not.toContain("polo-shirt");
+    expect(few.facets.quantities.map((facet) => facet.value)).toEqual(["1-9", "10-49", "50+"]);
+
+    const embroidered = await page("?decoration=EMBROIDERY&limit=48");
+    expect(slugs(embroidered)).toEqual(expect.arrayContaining(["polo-shirt", "flat-embroidery", "baseball-cap"]));
+    expect(slugs(embroidered)).not.toContain("business-cards");
+    expect(embroidered.facets.decorations.find((facet) => facet.value === "EMBROIDERY")!.count).toBe(embroidered.total);
+
+    const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+    const everything = await page("?limit=48");
+    expect((await page(`?neededBy=${day(90)}&limit=48`)).total).toBe(everything.total);
+    const soon = await page(`?neededBy=${day(7)}&limit=48`);
+    expect(slugs(soon)).toContain("individual-bagging");
+    expect(slugs(soon)).not.toContain("team-staff-branding");
+    expect((await get("/v1/catalogue/products?neededBy=next-week")).status).toBe(400);
+    expect((await get("/v1/catalogue/products?qty=5-6")).status).toBe(400);
+  });
+
   it("pages through results and sorts by name", async () => {
     const first = await page("?limit=5&sort=name");
     const second = await page("?limit=5&sort=name&page=2");
@@ -100,6 +149,44 @@ describe("public product directory (PUB-FR-008)", () => {
   it("sets public cache headers and needs no sign-in", async () => {
     const response = await get("/v1/catalogue/products");
     expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toContain("public");
+  });
+});
+
+describe("search suggestions (Pen 09 · R8Aqc; PUB-FR-006, 007)", () => {
+  const suggest = async (q: string) => {
+    const response = await get(`/v1/catalogue/suggest?q=${encodeURIComponent(q)}`);
+    if (response.status !== 200) throw new Error(`${response.status} ${JSON.stringify(response.body)}`);
+    return searchSuggestionsSchema.parse(response.body);
+  };
+
+  it("suggests everyday searches, categories and products for what's typed so far", async () => {
+    const result = await suggest("emb");
+    expect(result.q).toBe("emb");
+    expect(result.searches.length).toBeGreaterThan(0);
+    expect(result.searches.length).toBeLessThanOrEqual(4);
+    expect(result.searches.every((phrase) => phrase.toLowerCase().includes("emb"))).toBe(true);
+    expect(result.searches).toContain("embroidered polos");
+    expect(result.products.length).toBeLessThanOrEqual(3);
+    expect(result.products.map((product) => product.slug)).toContain("flat-embroidery");
+    expect(result.categories.length).toBeLessThanOrEqual(3);
+    expect(result.categories.every((category) => category.count > 0)).toBe(true);
+    expect(result.guides).toEqual([]);
+  });
+
+  it("finds products by staff-added phrases and never suggests hidden products or their phrases", async () => {
+    expect((await suggest("staff shirts")).products.map((product) => product.slug)).toContain("polo-shirt");
+    await insertProduct({ slug: "hidden-embossed-folder", status: "DRAFT", categorySlug: "business-stationery", phrases: ["embossed secret folder"] });
+    const result = await suggest("embossed");
+    expect(result.products.map((product) => product.slug)).not.toContain("hidden-embossed-folder");
+    expect(result.searches).not.toContain("embossed secret folder");
+  });
+
+  it("returns empty groups when nothing matches, rejects an empty query and is rate limited as SEARCH", async () => {
+    const none = await suggest("zzqx");
+    expect(none).toMatchObject({ searches: [], categories: [], products: [], guides: [] });
+    expect((await get("/v1/catalogue/suggest?q=")).status).toBe(400);
+    const response = await get("/v1/catalogue/suggest?q=polo");
     expect(response.headers["cache-control"]).toContain("public");
   });
 });

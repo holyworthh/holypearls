@@ -861,3 +861,13 @@
     flex-basis: var(--hp-size-112);
   }
 }
+
+/* Linked photo tiles grow a touch on hover. */
+.photo {
+  transition: scale calc(var(--hp-motion-reveal) * 1.2) var(--hp-ease-soft);
+}
+
+a:hover > .photo,
+a:hover .photo {
+  scale: 1.03;
+}

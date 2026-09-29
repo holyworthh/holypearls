@@ -244,3 +244,25 @@
     padding-bottom: var(--hp-space-20);
   }
 }
+
+/* Hover (every clickable item has one). */
+.logo .pearl,
+.logo span {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.logo:hover .pearl {
+  transform: scale(1.35);
+}
+
+.newsletterButton {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft), transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.newsletterButton:hover {
+  background: var(--hp-paper);
+}
+
+.newsletterButton:active {
+  transform: scale(0.97);
+}
