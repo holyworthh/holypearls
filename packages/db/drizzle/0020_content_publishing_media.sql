@@ -27,6 +27,8 @@ FROM (
   UNION ALL
   SELECT p.id, g->>'fileId' FROM "content_pages" p, jsonb_array_elements(coalesce(p.published->'data'->'gallery', '[]'::jsonb)) AS g WHERE p.status = 'PUBLISHED'
 ) refs
-JOIN "files" f ON f.id::text = lower(refs.file_id) AND f.purpose IN ('CONTENT_MEDIA', 'PRODUCT_MEDIA') AND f.status = 'READY'
+-- purpose is compared as text: CONTENT_MEDIA is added by 0019, and a deploy applies both in one transaction,
+-- where Postgres refuses to use a new enum value.
+JOIN "files" f ON f.id::text = lower(refs.file_id) AND f.purpose::text IN ('CONTENT_MEDIA', 'PRODUCT_MEDIA') AND f.status = 'READY'
 WHERE refs.file_id IS NOT NULL
 ON CONFLICT DO NOTHING;
