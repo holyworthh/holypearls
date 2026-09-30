@@ -184,17 +184,18 @@ export function createBetterAuthIdentity(options: BetterAuthIdentityOptions): Id
       const current = await auth.api.getSession({ headers });
       if (!current) return [];
       const sessions = await auth.api.listSessions({ headers });
-      return sessions.map(
-        (session): SessionSummary => ({
-          sessionId: session.id,
-          createdAt: new Date(session.createdAt),
-          updatedAt: new Date(session.updatedAt),
-          expiresAt: new Date(session.expiresAt),
-          userAgent: session.userAgent ?? null,
-          ipAddress: session.ipAddress ?? null,
-          current: session.id === current.session.id,
-        }),
-      );
+      const summary = (session: (typeof sessions)[number] | typeof current.session): SessionSummary => ({
+        sessionId: session.id,
+        createdAt: new Date(session.createdAt),
+        updatedAt: new Date(session.updatedAt),
+        expiresAt: new Date(session.expiresAt),
+        userAgent: session.userAgent ?? null,
+        ipAddress: session.ipAddress ?? null,
+        current: session.id === current.session.id,
+      });
+      // Better Auth reads one page of sessions; with many devices the one in use can fall outside it.
+      const listed = sessions.map(summary);
+      return listed.some((session) => session.current) ? listed : [summary(current.session), ...listed];
     },
 
     async revokeAllSessions(headers) {

@@ -280,10 +280,16 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
-                    "sessions"
+                    "sessions",
+                    "total"
                   ],
                   "additionalProperties": false
                 }

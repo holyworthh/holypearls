@@ -3,9 +3,11 @@ import { STAFF_SESSION_SECONDS, TEST_PEOPLE, totpCode } from "@holypearls/auth";
 import { adminMeSchema, apiErrorSchema, meSchema, sessionListSchema } from "@holypearls/contracts";
 import type { Request } from "express";
 import request from "supertest";
+import { eq, schema } from "@holypearls/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
 import { requireRecentMfa } from "./actor.js";
+import { SESSION_LIST_LIMIT } from "./me.controller.js";
 import { StaffGuard } from "./staff.guard.js";
 
 // Test-only routes that exercise the staff guard and the MFA recency helper.
@@ -177,6 +179,30 @@ describe("sessions (TECH-03 §4)", () => {
     expect(revoke.status).toBe(200);
     expect((await http().get("/v1/me").set("cookie", first)).status).toBe(401);
     expect((await http().get("/v1/me").set("cookie", second)).status).toBe(401);
+  });
+
+  it("always lists the current session first, however many others there are", async () => {
+    const cookie = await harness.signInAs("customerChidi");
+    const db = harness.database.db;
+    const [user] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, TEST_PEOPLE.customerChidi.email));
+    // Many other devices, all more recently active than this one.
+    const later = new Date(Date.now() + 60_000);
+    const expires = new Date(Date.now() + 7 * 86_400_000);
+    await db.insert(schema.sessions).values(
+      Array.from({ length: 120 }, (_, index) => ({
+        userId: user!.id,
+        token: `other-device-${Date.now()}-${index}`,
+        expiresAt: expires,
+        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0",
+        createdAt: later,
+        updatedAt: later,
+      })),
+    );
+    const list = sessionListSchema.parse((await http().get("/v1/me/sessions").set("cookie", cookie)).body);
+    expect(list.sessions[0]?.current).toBe(true);
+    expect(list.sessions.filter((session) => session.current)).toHaveLength(1);
+    expect(list.sessions.length).toBeLessThanOrEqual(SESSION_LIST_LIMIT);
+    expect(list.total).toBeGreaterThanOrEqual(121);
   });
 
   it("signs out one session", async () => {

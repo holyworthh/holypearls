@@ -59,7 +59,7 @@ export default async function SecurityPage() {
             </h2>
             <p className={styles.support}>Changing your password signs you out everywhere else.</p>
           </section>
-          <SessionsCard initial={sessions.ok ? sessions.data.sessions : null} />
+          <SessionsCard initial={sessions.ok ? sessions.data.sessions : null} total={sessions.ok ? sessions.data.total : 0} />
           <p className={styles.note}>Sessions last 30 days and extend while you use them.</p>
         </div>
       </div>
