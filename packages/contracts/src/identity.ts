@@ -46,7 +46,8 @@ export const sessionSummarySchema = z.object({
   lastActiveAt: isoDate,
   expiresAt: isoDate,
 });
-export const sessionListSchema = z.object({ sessions: z.array(sessionSummarySchema) });
+/** This device first, then the most recently active others (up to a limit); `total` counts them all. */
+export const sessionListSchema = z.object({ sessions: z.array(sessionSummarySchema), total: z.number().int().nonnegative() });
 export type SessionList = z.infer<typeof sessionListSchema>;
 
 export const revokeAllResultSchema = z.object({ revoked: z.literal(true) });
