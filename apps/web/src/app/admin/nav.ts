@@ -43,7 +43,7 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
       { slug: "merchandising", label: "Menus & homepage", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-03" },
       { slug: "rules", label: "Rules & prices", anyOf: ["PRICING_MANAGE"], ticket: "T03-01" },
       { slug: "content", label: "Content", anyOf: ["CONTENT_MANAGE"], ticket: "T02-06" },
-      { slug: "delivery", label: "Delivery & installation", anyOf: ["PRICING_MANAGE"], ticket: "T13-01" },
+      { slug: "delivery", label: "Delivery & installation", anyOf: ["PRICING_MANAGE"], ticket: "T04-01" },
     ],
   },
   {

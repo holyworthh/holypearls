@@ -21,7 +21,7 @@ import { attachDraftFile, createDraft, type DraftAccess, emailDraftLink, getDraf
 export const DEVICE_COOKIE = "hp.device";
 const DEVICE_COOKIE_DAYS = 90;
 
-function deviceKey(request: Request): string | null {
+export function deviceKey(request: Request): string | null {
   for (const part of (request.header("cookie") ?? "").split(";")) {
     const [name, ...rest] = part.trim().split("=");
     if (name === DEVICE_COOKIE) {

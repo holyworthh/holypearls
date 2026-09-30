@@ -23,6 +23,7 @@ import { ContentAdminController, ContentController } from "./catalogue/content.c
 import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
+import { CartController, CheckoutController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -89,6 +90,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       SeoController,
       PricingAdminController,
       PublicPricingController,
+      CartController,
+      CheckoutController,
+      DeliveryZonesAdminController,
       ConfigurationsController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),

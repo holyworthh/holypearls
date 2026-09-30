@@ -8,6 +8,7 @@ import { api, errorCode, errorReason } from "../../lib/api";
 import styles from "./configurator.module.css";
 import p from "./pdp.module.css";
 import { CircleCheck, Clock, PenTool, Truck, Upload } from "lucide-react";
+import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, FamilyFields, QuoteRequest } from "./FamilyDelivery";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
@@ -458,13 +459,11 @@ export function Configurator({ productSlug, productName, family, data, initialDr
           </Notice>
         ) : null}
         {price?.state === "PRICE_READY" && !blockingReasons.length && !draft?.quote ? (
-          <button type="button" className={p.add} disabled title="Online checkout opens soon">
-            Add to bag
-          </button>
+          <AddToCart draft={draft} ensure={ensure} className={p.add} />
         ) : (
           <QuoteRequest draft={draft} ensure={ensure} onRequested={(reference) => void api(`/v1/configurations/${draftRef.current!.id}`, { response: configurationSchema }).then(setDraft).catch(() => setNotice(`Quote requested: ${reference}.`))} />
         )}
-        <p className={styles.perUnit}>Online checkout opens soon. Save this design now and we&apos;ll email you a link to come back to it.</p>
+        <p className={styles.perUnit}>Your design saves as you go. We can also email you a link to come back to it.</p>
         <div className={styles.saveState}>
           {saveState === "saving" ? <span>Saving…</span> : null}
           {saveState === "saved" ? <span>Saved</span> : null}

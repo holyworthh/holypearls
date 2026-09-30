@@ -41,6 +41,19 @@ import {
   createConfigurationSchema,
   emailDraftSchema,
   quoteRequestResultSchema,
+  addToCartSchema,
+  cartQuoteRequestResultSchema,
+  cartQuoteRequestSchema,
+  cartSchema,
+  checkoutAddressSchema,
+  checkoutBillingSchema,
+  checkoutContactSchema,
+  checkoutDeliverySchema,
+  checkoutSchema,
+  deliveryZoneInputSchema,
+  deliveryZoneListSchema,
+  deliveryZoneSchema,
+  fixedZoneInputSchema,
   quoteRequestSchema,
   updateConfigurationSchema,
   adminProductPageSchema,
@@ -729,6 +742,90 @@ export function buildOpenApiDocument() {
           requestBody: { required: true, content: json(taxSettingInputSchema) },
           responses: { 201: { description: "Saved", content: json(adminTaxSettingListSchema) }, 400: error("Past date"), ...staffOnly },
         },
+      },
+      "/v1/cart": {
+        get: { summary: "The cart: ready and quote groups, saved-for-later designs (owner or browser only)", responses: { 200: { description: "Cart", content: json(cartSchema) } } },
+      },
+      "/v1/cart/items": {
+        post: {
+          summary: "Add a saved design to the cart (COM-FR-080); quote-needing designs join the quote group",
+          requestBody: { required: true, content: json(addToCartSchema) },
+          responses: { 200: { description: "Cart", content: json(cartSchema) }, 400: error("No quantity yet"), 404: error("Not yours"), 409: error("Already has a quote request"), 422: error("A blocking answer must change first") },
+        },
+      },
+      "/v1/cart/items/{id}": {
+        delete: { summary: "Remove an item; its design stays a draft", parameters: [uuidParam("id")], responses: { 200: { description: "Cart", content: json(cartSchema) }, 404: error("Not yours") } },
+      },
+      "/v1/cart/items/{id}/save-for-later": {
+        post: { summary: "Move an item back to the customer's saved designs", parameters: [uuidParam("id")], responses: { 200: { description: "Cart", content: json(cartSchema) }, 404: error("Not yours") } },
+      },
+      "/v1/cart/saved/{configurationId}": {
+        delete: { summary: "Drop a design from the saved-for-later list (the draft stays)", parameters: [uuidParam("configurationId")], responses: { 200: { description: "Cart", content: json(cartSchema) }, 404: error("Not yours") } },
+      },
+      "/v1/cart/quote-request": {
+        post: {
+          summary: "Submit quote items: one quote request per quote item (CONTACT limit)",
+          requestBody: { required: true, content: json(cartQuoteRequestSchema) },
+          responses: { 200: { description: "Quote references", content: json(cartQuoteRequestResultSchema) }, 422: error("No quote items") },
+        },
+      },
+      "/v1/checkouts": {
+        post: {
+          summary: "Start checkout for the cart's ready items; the server reprices and freezes them (TECH-05 §1). Idempotency-Key required; the cart's open checkout is returned when nothing changed",
+          responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 422: error("Nothing ready to check out") },
+        },
+      },
+      "/v1/checkouts/{id}": {
+        get: { summary: "A checkout (owner or browser only)", parameters: [uuidParam("id")], responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 404: error("Not yours") } },
+      },
+      "/v1/checkouts/{id}/contact": {
+        put: {
+          summary: "Contact step (with version)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(z.intersection(checkoutContactSchema, z.object({ version: z.number().int() }))) },
+          responses: { 200: { description: "Checkout, totals recalculated", content: json(checkoutSchema) }, 400: error("Check the fields"), 404: error("Not yours"), 409: error("Changed elsewhere or closed") },
+        },
+      },
+      "/v1/checkouts/{id}/address": {
+        put: {
+          summary: "Delivery address; resolves the delivery zone and copies its rate",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(z.intersection(checkoutAddressSchema, z.object({ version: z.number().int() }))) },
+          responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 400: error("Check the fields"), 404: error("Not yours"), 409: error("Changed elsewhere or closed"), 422: error("Contact first") },
+        },
+      },
+      "/v1/checkouts/{id}/delivery": {
+        put: {
+          summary: "Delivery option",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(z.intersection(checkoutDeliverySchema, z.object({ version: z.number().int() }))) },
+          responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 404: error("Not yours"), 409: error("Changed elsewhere or closed"), 422: error("Address first") },
+        },
+      },
+      "/v1/checkouts/{id}/billing": {
+        put: {
+          summary: "Billing and VAT details",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(z.intersection(checkoutBillingSchema, z.object({ version: z.number().int() }))) },
+          responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 400: error("Check the fields"), 404: error("Not yours"), 409: error("Changed elsewhere or closed"), 422: error("Delivery first") },
+        },
+      },
+      "/v1/admin/delivery-zones": {
+        get: { summary: "Delivery zones (PRICING_MANAGE)", responses: { 200: { description: "Zones", content: json(deliveryZoneListSchema) }, 403: error("Missing PRICING_MANAGE") } },
+        post: {
+          summary: "Add an area zone; overlapping covers are refused (audited)",
+          requestBody: { required: true, content: json(deliveryZoneInputSchema) },
+          responses: { 201: { description: "Zone", content: json(deliveryZoneSchema) }, 400: error("Overlap or invalid"), 403: error("Missing PRICING_MANAGE") },
+        },
+      },
+      "/v1/admin/delivery-zones/{id}": {
+        patch: {
+          summary: "Change a zone; the rest-of-Nigeria and International rows change pricing only (audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(z.union([deliveryZoneInputSchema, fixedZoneInputSchema])) },
+          responses: { 200: { description: "Zone", content: json(deliveryZoneSchema) }, 400: error("Overlap or invalid"), 403: error("Missing PRICING_MANAGE"), 404: error("No such zone"), 409: error("Changed by someone else") },
+        },
+        delete: { summary: "Remove an area zone (audited)", parameters: [uuidParam("id")], responses: { 204: { description: "Removed" }, 403: error("Missing PRICING_MANAGE"), 404: error("No such area zone") } },
       },
       "/v1/configurations": {
         post: {

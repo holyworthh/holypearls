@@ -1,6 +1,7 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
 import { seedCatalogue, seedMerchandising } from "./catalogue.js";
 import { seedContent } from "./content.js";
+import { seedDelivery } from "./delivery.js";
 import { seedHubs } from "./hubs.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
@@ -73,10 +74,14 @@ export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
 /** Product rules, prices and VAT from the Stage 1.4 sheet (T03-01). */
 export const pricingSeedStep: SeedStep = { name: "pricing: product rules, prices and VAT", run: seedPricing };
 
+/** Delivery zones from Pen 108 (T04-01). */
+export const deliverySeedStep: SeedStep = { name: "delivery: zones and rates", run: seedDelivery };
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
   pricingSeedStep,
+  deliverySeedStep,
   contentSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];

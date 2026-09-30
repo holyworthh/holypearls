@@ -19,6 +19,7 @@ import { api } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
 import styles from "./configurator.module.css";
 import w from "./wizard.module.css";
+import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, QuoteRequest } from "./FamilyDelivery";
 import { GarmentPreview, POSITION_LABEL, type Position } from "./GarmentPreview";
 import { useDraft } from "./useDraft";
@@ -735,7 +736,11 @@ export function GarmentConfigurator({ productSlug, productName, data, initialDra
               </Notice>
             ) : null}
             {current === STEPS.length - 1 ? (
-              <QuoteRequest draft={draft} ensure={ensure} onRequested={() => void (draftRef.current ? api(`/v1/configurations/${draftRef.current.id}`, { response: configurationSchema }).then(apply) : null)} />
+              <>
+                <QuoteRequest draft={draft} ensure={ensure} onRequested={() => void (draftRef.current ? api(`/v1/configurations/${draftRef.current.id}`, { response: configurationSchema }).then(apply) : null)} />
+                {/* Quote it together with other items from the cart (Pen 41 "Needs a quote"). */}
+                {draft?.quote ? null : <AddToCart draft={draft} ensure={ensure} label="Add to bag for a quote" disabled={!draft?.price || Boolean(draft.garment?.unavailable.length)} />}
+              </>
             ) : null}
             <div className={w.links}>
               {saveState === "failed" ? (

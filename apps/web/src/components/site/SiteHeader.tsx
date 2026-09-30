@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, CloseIcon, MenuIcon, PackageIcon, SearchIcon, UserIcon } from "./icons";
+import { BagIcon, ChevronDown, ChevronLeft, ChevronRight, CloseIcon, MenuIcon, PackageIcon, SearchIcon, UserIcon } from "./icons";
 import { HeaderSearch, SuggestInput } from "../search/SearchSuggest";
 import type { TopItem } from "./nav";
 import styles from "./site.module.css";
@@ -159,6 +159,9 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </a>
           <a className={styles.iconLink} href="/account/security" aria-label="Your account">
             <UserIcon className={styles.icon} />
+          </a>
+          <a className={`${styles.iconLink} ${styles.bagLink}`} href="/cart" aria-label="Your cart" aria-current={pathname === "/cart" ? "page" : undefined}>
+            <BagIcon className={styles.icon} />
           </a>
           <a className={styles.cta} href="/contact?topic=project">
             Start a Project
