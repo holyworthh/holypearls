@@ -26,15 +26,17 @@ async function runOnServer(serverUrl: string, sql: string): Promise<void> {
 }
 
 /**
- * Creates a new, empty, fully migrated database so tests never share data
+ * Creates a new, empty, fully migrated database so tests never share data. With
+ * `migrations`, it stops after that many, like a database an earlier release left behind
  * (TECH-08 §12). `serverUrl` needs permission to create databases.
  */
-export async function createTestDatabase(serverUrl: string): Promise<TestDatabase> {
+export async function createTestDatabase(serverUrl: string, options: { migrations?: number } = {}): Promise<TestDatabase> {
   const name = `hp_test_${newId().replaceAll("-", "")}`;
   await runOnServer(serverUrl, `CREATE DATABASE "${name}"`);
   const url = withDatabaseName(serverUrl, name);
   try {
-    await runMigrations(url);
+    // `migrations` stops early, to recreate a database an earlier release left behind.
+    await runMigrations(url, options.migrations === undefined ? {} : { count: options.migrations });
   } catch (error) {
     await runOnServer(serverUrl, `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
     throw error;
