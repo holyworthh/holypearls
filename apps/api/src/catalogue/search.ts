@@ -465,10 +465,28 @@ export async function listSearchPhrases(db: Database): Promise<SearchPhrase[]> {
   }));
 }
 
+/** How a phrase is stored and compared: lower case, single spaces, no spaces at the ends. */
+export const normalizePhrase = (phrase: string) => phrase.replace(/\s+/g, " ").trim().toLowerCase();
+
+const alreadyUsed = (label: string | null) =>
+  new AppError("VALIDATION_FAILED", {
+    fieldErrors: { phrase: `This phrase already has a destination${label ? ` (${label})` : ""}. Remove that phrase first to point it somewhere else.` },
+  });
+
+/**
+ * Adds a staff phrase. Each phrase has one destination (it's a shortcut), so a
+ * phrase already in use is refused whatever its case or spacing; the database
+ * enforces the same rule.
+ */
 export async function createSearchPhrase(db: Database, actor: ActorContext, input: { phrase: string; targetType: "PRODUCT" | "CATEGORY" | "PAGE"; targetId: string }) {
   const target = (await describeTargets(db, [input])).get(targetKey(input.targetType, input.targetId));
   if (!target) throw new AppError("VALIDATION_FAILED", { fieldErrors: { targetId: "Choose a product, category or page that exists" } });
-  const phrase = input.phrase.replace(/\s+/g, " ").trim().toLowerCase();
+  const phrase = normalizePhrase(input.phrase);
+  const [existing] = await db
+    .select({ targetType: schema.searchPhrases.targetType, targetId: schema.searchPhrases.targetId })
+    .from(schema.searchPhrases)
+    .where(sql`lower(${schema.searchPhrases.phrase}) = ${phrase}`);
+  if (existing) throw alreadyUsed((await describeTargets(db, [existing])).get(targetKey(existing.targetType, existing.targetId))?.label ?? null);
   try {
     const id = await db.transaction(async (tx) => {
       const [row] = await tx
@@ -487,9 +505,8 @@ export async function createSearchPhrase(db: Database, actor: ActorContext, inpu
     });
     return (await listSearchPhrases(db)).find((entry) => entry.id === id)!;
   } catch (error) {
-    if ((error as { cause?: { code?: string } }).cause?.code === "23505") {
-      throw new AppError("VALIDATION_FAILED", { fieldErrors: { phrase: "This phrase already leads there" } });
-    }
+    // Two staff adding the same phrase at once: the unique index decides.
+    if ((error as { cause?: { code?: string } }).cause?.code === "23505") throw alreadyUsed(null);
     throw error;
   }
 }

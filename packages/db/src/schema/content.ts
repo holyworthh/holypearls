@@ -170,7 +170,11 @@ export const searchPhrases = pgTable(
     createdByStaffId: uuid("created_by_staff_id").references(() => staffProfiles.id, { onDelete: "set null" }),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("search_phrases_phrase_target_unique").on(sql`lower(${table.phrase})`, table.targetType, table.targetId), index("search_phrases_target_idx").on(table.targetType, table.targetId)],
+  (table) => [
+    // One destination per phrase: a staff phrase is a shortcut, so it must lead to exactly one place.
+    uniqueIndex("search_phrases_phrase_unique").on(sql`lower(${table.phrase})`),
+    index("search_phrases_target_idx").on(table.targetType, table.targetId),
+  ],
 );
 
 export const searchEventKind = pgEnum("search_event_kind", ["SEARCH", "NO_RESULTS", "CLICK"]);

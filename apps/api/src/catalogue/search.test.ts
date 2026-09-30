@@ -1,5 +1,5 @@
 import { searchPhraseListSchema, searchResultsSchema, searchSuggestionsSchema, sitemapSchema } from "@holypearls/contracts";
-import { desc, eq, schema } from "@holypearls/db";
+import { desc, eq, schema, sql } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, expectForbidden, expectHidden, signInActors, type Actors } from "../testing/actors.js";
@@ -181,11 +181,61 @@ describe("phrases for targets that aren't public yet (PR #30 review)", () => {
 
   it("lists many phrases with their targets", async () => {
     const products = await harness.database.db.select({ id: schema.products.id, slug: schema.products.slug }).from(schema.products).limit(12);
-    for (const [index, product] of products.entries()) await staffPost("/v1/admin/search/phrases", { phrase: `bulk phrase ${index}`, targetType: "PRODUCT", targetId: product.id });
+    // This checks the listing (one lookup per target type), so the rows go straight in.
+    await harness.database.db.insert(schema.searchPhrases).values(products.map((product, index) => ({ phrase: `bulk phrase ${index}`, targetType: "PRODUCT" as const, targetId: product.id })));
     const list = searchPhraseListSchema.parse((await request(harness.url).get("/v1/admin/search/phrases").set("cookie", staff)).body);
     for (const [index, product] of products.entries()) {
       expect(list.entries.find((entry) => entry.phrase === `bulk phrase ${index}`)?.target.href).toBe(`/products/${product.slug}`);
     }
+  });
+});
+
+describe("one destination per staff phrase (PR #30 re-review)", () => {
+  it("refuses a phrase that already leads somewhere, whatever the target, case or spacing", async () => {
+    const db = harness.database.db;
+    const [polo, mug] = await db.select({ id: schema.products.id, slug: schema.products.slug }).from(schema.products).limit(2);
+    const [category] = await db.select({ id: schema.categories.id }).from(schema.categories).limit(1);
+    const [guide] = await db.select({ id: schema.contentPages.id }).from(schema.contentPages).where(eq(schema.contentPages.type, "GUIDE")).limit(1);
+    const first = await staffPost("/v1/admin/search/phrases", { phrase: "company shirts", targetType: "PRODUCT", targetId: polo!.id });
+    expect(first.status).toBe(201);
+
+    const attempts = [
+      { phrase: "company shirts", targetType: "PRODUCT", targetId: mug!.id },
+      { phrase: "company shirts", targetType: "CATEGORY", targetId: category!.id },
+      { phrase: "company shirts", targetType: "PAGE", targetId: guide!.id },
+      { phrase: "Company Shirts", targetType: "PRODUCT", targetId: mug!.id },
+      { phrase: " company shirts ", targetType: "PRODUCT", targetId: mug!.id },
+      { phrase: "company   shirts", targetType: "PRODUCT", targetId: mug!.id },
+      // The same destination again is still one phrase too many.
+      { phrase: "COMPANY shirts", targetType: "PRODUCT", targetId: polo!.id },
+    ];
+    for (const attempt of attempts) {
+      const refused = await staffPost("/v1/admin/search/phrases", attempt);
+      expect(refused.status).toBe(400);
+      expect(refused.body.fieldErrors.phrase).toMatch(/already has a destination/);
+    }
+    const list = searchPhraseListSchema.parse((await request(harness.url).get("/v1/admin/search/phrases").set("cookie", staff)).body);
+    expect(list.entries.filter((entry) => entry.phrase === "company shirts")).toHaveLength(1);
+
+    // Removing it frees the phrase for a new destination.
+    const removed = await request(harness.url).delete(`/v1/admin/search/phrases/${first.body.id}`).set("origin", TEST_WEB_ORIGIN).set("cookie", staff);
+    expect(removed.status).toBe(204);
+    const again = await staffPost("/v1/admin/search/phrases", { phrase: "Company  Shirts", targetType: "PRODUCT", targetId: mug!.id });
+    expect(again.status).toBe(201);
+    expect(again.body).toMatchObject({ phrase: "company shirts", target: { href: `/products/${mug!.slug}` } });
+  });
+
+  it("stores one row per phrase even if two requests race", async () => {
+    const db = harness.database.db;
+    const [product] = await db.select({ id: schema.products.id }).from(schema.products).limit(1);
+    const [category] = await db.select({ id: schema.categories.id }).from(schema.categories).limit(1);
+    const results = await Promise.all([
+      staffPost("/v1/admin/search/phrases", { phrase: "race phrase", targetType: "PRODUCT", targetId: product!.id }),
+      staffPost("/v1/admin/search/phrases", { phrase: "Race Phrase", targetType: "CATEGORY", targetId: category!.id }),
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual([201, 400]);
+    const rows = await db.select().from(schema.searchPhrases).where(sql`lower(${schema.searchPhrases.phrase}) = 'race phrase'`);
+    expect(rows).toHaveLength(1);
   });
 });
 

@@ -102,7 +102,7 @@ export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
         {summary.length ? <ErrorSummary errors={summary} /> : null}
         <form noValidate onSubmit={add} className={c.editorCol}>
           <div className={c.phraseForm}>
-            <FormField label="Phrase" id="phrase-text" error={errors.phrase} hint="e.g. staff uniforms">
+            <FormField label="Phrase" id="phrase-text" error={errors.phrase} hint="e.g. staff uniforms. Each phrase leads to one place.">
               <TextField value={phrase} maxLength={60} onChange={(event) => setPhrase(event.target.value)} />
             </FormField>
             <FormField label="Leads to" id="phrase-target" error={errors.targetId ?? errors.targetType} hint={target ? `${KIND[target.type]} · ${target.detail}` : "Type a product, category or page name."}>
