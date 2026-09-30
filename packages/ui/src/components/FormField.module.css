@@ -74,3 +74,14 @@
   line-height: var(--hp-leading-body);
   resize: vertical;
 }
+
+/* Hover: the border darkens to ink (every clickable item has a hover). */
+.control {
+  transition:
+    border-color var(--hp-motion-hover) var(--hp-ease-soft),
+    box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.control:hover:not(:disabled, [aria-invalid="true"]) {
+  border-color: var(--hp-ink);
+}

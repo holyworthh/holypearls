@@ -40,7 +40,7 @@ Flow:
 
 ## Environment variables
 
-**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled), `DATABASE_DIRECT_URL` (Neon direct), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, later `SENTRY_DSN` and the `S3_*` values.
+**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled), `DATABASE_DIRECT_URL` (Neon direct), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, `SENTRY_DSN` (set 2026-09-28; one Sentry project, events tagged by `HP_ENV`; the worker in the same container reports too), and later the `S3_*` values.
 
 **web (Vercel)**: `API_URL` (that environment's Render URL; written into the build), `HP_DEMO_SLICE`, `WEB_REVALIDATE_SECRET`. Staging values are scoped to the `dev` branch; production values to Production.
 

@@ -1,0 +1,79 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+
+/**
+ * Runs before first paint (in <head>): turns motion on unless the visitor
+ * asked for reduced motion. If the reveal script never starts, everything is
+ * shown after a moment, so content can't stay hidden.
+ */
+export const MOTION_BOOT = `(function(){try{if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;var d=document.documentElement;d.dataset.motion='on';setTimeout(function(){if(!window.__hpMotion)delete d.dataset.motion},3000)}catch(e){}})();`;
+
+/*
+ * What rises into view as you scroll: section headings, cards in lists and
+ * grids, articles, asides, figures and footer blocks. Anything already on
+ * screen when the page loads is left alone (it would flicker), as is anything
+ * inside a dialog, form, header or navigation.
+ */
+const CANDIDATES = [
+  "main h2",
+  "main :is(ul, ol) > li:has(:is(img, article, h3, [style*='background-image']))",
+  "main :is(article, aside, figure, details)",
+  "main [data-reveal-auto]",
+  "footer > div > *",
+].join(", ");
+const SKIP = "[role='dialog'], dialog, form, header, nav, [data-no-reveal]";
+
+export function Motion() {
+  const pathname = usePathname();
+  useEffect(() => {
+    const root = document.documentElement;
+    (window as unknown as { __hpMotion?: boolean }).__hpMotion = true;
+    if (root.dataset.motion !== "on" || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Siblings that arrive together cascade, a beat apart.
+        const shown = entries.filter((entry) => entry.isIntersecting).map((entry) => entry.target as HTMLElement);
+        const byParent = new Map<Element | null, HTMLElement[]>();
+        for (const element of shown) byParent.set(element.parentElement, [...(byParent.get(element.parentElement) ?? []), element]);
+        for (const group of byParent.values())
+          group.forEach((element, index) => {
+            element.style.setProperty("--hp-reveal-index", String(Math.min(index, 6)));
+            element.dataset.revealed = "true";
+            observer.unobserve(element);
+          });
+      },
+      // A little below the fold, so things at the very end of the page (shifted down while hidden) still arrive.
+      { rootMargin: "0px 0px 32px 0px", threshold: 0 },
+    );
+
+    const tag = () => {
+      const fold = window.innerHeight;
+      for (const element of document.querySelectorAll<HTMLElement>(`${CANDIDATES}, [data-reveal]`)) {
+        if (element.dataset.revealed || element.closest(SKIP)) continue;
+        if (!element.hasAttribute("data-reveal")) {
+          if (element.parentElement?.closest("[data-reveal]")) continue;
+          if (element.getBoundingClientRect().top < fold) continue;
+          element.setAttribute("data-reveal", "");
+        }
+        observer.observe(element);
+      }
+    };
+    tag();
+    // Content that arrives later (client updates) is picked up too.
+    let pending = 0;
+    const mutations = new MutationObserver(() => {
+      cancelAnimationFrame(pending);
+      pending = requestAnimationFrame(tag);
+    });
+    mutations.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      mutations.disconnect();
+      cancelAnimationFrame(pending);
+    };
+  }, [pathname]);
+  return null;
+}

@@ -6,6 +6,7 @@ import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { api } from "../../../../../lib/api";
 import styles from "../../admin-list.module.css";
 import css from "../catalogue.module.css";
+import { DECORATION_LABELS, ROUTE_LABELS } from "../../../../../lib/catalogue-labels";
 import { FAMILY_LABELS, MODE_LABELS, STATUS_TONE } from "../labels";
 import { MediaPanel } from "./MediaPanel";
 import { RelatedPanel } from "./RelatedPanel";
@@ -48,6 +49,8 @@ const FIELDS: Record<string, { id: string; tab: Tab }> = {
   summary: { id: "product-summary", tab: "details" },
   description: { id: "product-description", tab: "details" },
   searchPhrases: { id: "product-search", tab: "details" },
+  routes: { id: "product-routes", tab: "details" },
+  decorations: { id: "product-decorations", tab: "details" },
   media: { id: "product-media-upload", tab: "media" },
   seoTitle: { id: "product-seo-title", tab: "seo" },
   seoDescription: { id: "product-seo-description", tab: "seo" },
@@ -68,6 +71,8 @@ interface Draft {
   categoryId: string;
   buyingMode: AdminProduct["buyingMode"];
   phrases: string;
+  routes: AdminProduct["routes"];
+  decorations: AdminProduct["decorations"];
   summary: string;
   description: string;
   specifications: Pair<"label", "value">[];
@@ -83,6 +88,8 @@ const draftOf = (product: AdminProduct): Draft => ({
   categoryId: product.categoryId,
   buyingMode: product.buyingMode,
   phrases: joinPhrases(product.searchPhrases),
+  routes: product.routes,
+  decorations: product.decorations,
   summary: product.summary ?? "",
   description: product.description ?? "",
   specifications: product.specifications,
@@ -138,6 +145,8 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
           categoryId: draft.categoryId,
           buyingMode: draft.buyingMode,
           searchPhrases: splitPhrases(draft.phrases),
+          routes: draft.routes,
+          decorations: draft.decorations,
           summary: draft.summary || null,
           description: draft.description || null,
           specifications: draft.specifications.filter((row) => row.label.trim() || row.value.trim()),
@@ -277,6 +286,34 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
                   </label>
                 ))}
               </fieldset>
+              {(
+                [
+                  ["routes", "How it's made", ROUTE_LABELS, "product-routes"],
+                  ["decorations", "Decoration", DECORATION_LABELS, "product-decorations"],
+                ] as const
+              ).map(([key, title, labels, id]) => (
+                <fieldset key={key} className={css.fieldset} id={id}>
+                  <legend className={styles.panelTitle}>{title}</legend>
+                  <p className={css.hint}>Directory filters. Leave empty if it doesn&apos;t apply.</p>
+                  {Object.entries(labels).map(([value, label]) => {
+                    const list = draft[key] as string[];
+                    return (
+                      <label key={value} className={css.radio}>
+                        <input
+                          type="checkbox"
+                          value={value}
+                          checked={list.includes(value)}
+                          onChange={(event) =>
+                            set(key, (event.target.checked ? [...list, value] : list.filter((item) => item !== value)) as never)
+                          }
+                        />
+                        {label}
+                      </label>
+                    );
+                  })}
+                  {errors[key] ? <p className={css.error}>{errors[key]}</p> : null}
+                </fieldset>
+              ))}
               <FormField label="Search phrases" id="product-search" hint="Comma-separated. Used by site search." error={errors.searchPhrases}>
                 <TextField value={draft.phrases} onChange={(event) => set("phrases", event.target.value)} />
               </FormField>

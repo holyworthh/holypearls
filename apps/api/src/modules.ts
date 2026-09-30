@@ -6,3 +6,5 @@ export { flushMonitoring, initMonitoring, reportError } from "./monitoring.js";
 export { inspectFile, markFileNeedsReview } from "./files/files.js";
 export { previewFile } from "./files/processing.js";
 export { runDailyCleanup } from "./platform/cleanup.js";
+export { refreshSearchIndex } from "./catalogue/search.js";
+export { submitIndexNow } from "./catalogue/indexnow.js";

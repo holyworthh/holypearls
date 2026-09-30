@@ -3,7 +3,8 @@ import { defineConfig } from "@playwright/test";
 const port = 3100;
 const origin = `http://localhost:${port}`;
 // The web build forwards /api/* to API_URL, which CI and .env set to port 3001.
-const apiPort = 3001;
+// E2E_API_PORT runs the tests beside a dev API (build the web with API_URL on that port).
+const apiPort = Number(process.env.E2E_API_PORT ?? 3001);
 // Cloud sandboxes ship Chromium at a fixed path; CI installs Playwright's own.
 const executablePath = process.env.PW_CHROMIUM_PATH || undefined;
 
@@ -43,7 +44,7 @@ export default defineConfig({
       command: `next start --port ${port}`,
       port,
       reuseExistingServer: !process.env.CI,
-      env: { ...(process.env as Record<string, string>), HP_DESIGN_SYSTEM_DEMO: "on", HP_DEMO_SLICE: "on" },
+      env: { ...(process.env as Record<string, string>), API_URL: `http://localhost:${apiPort}`, HP_DESIGN_SYSTEM_DEMO: "on", HP_DEMO_SLICE: "on" },
     },
   ],
 });

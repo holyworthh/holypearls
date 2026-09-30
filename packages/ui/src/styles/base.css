@@ -69,3 +69,8 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The hidden attribute always wins over component display rules (stepped forms). */
+[hidden] {
+  display: none !important;
+}

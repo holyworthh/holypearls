@@ -58,4 +58,41 @@
   /* T01-01 audit viewer (Pen frame 101). */
   --hp-space-14: 14px;
   --hp-audit-detail-width: 400px;
+
+  /* Public site chrome and catalogue pages (T02-03), exact values from Pen frames 15–18, HP/Nav/* and HP/Commerce/ProductCard. */
+  --hp-text-wordmark: 27px;
+  --hp-pearl-header: 14px;
+  --hp-text-menu: 22px;
+  --hp-text-section: 38px;
+  --hp-text-hero: 70px;
+  --hp-strip-height: 36px;
+  --hp-header-height: 76px;
+  --hp-header-search-width: 220px;
+  --hp-megamenu-feature-width: 400px;
+  --hp-footer-brand-width: 420px;
+  --hp-card-min-width: 240px;
+  --hp-filter-rail-width: 260px;
+  /* Configurator choice cards (Pen 21 · paper, sides, finish options). */
+  --hp-choice-min-width: 140px;
+  --hp-shadow-menu: 0 18px 48px rgb(27 26 23 / 14%);
+  /* Footer dividers on ink (Pen HP/Nav/Footer, #3A3833). */
+  --hp-footer-rule: #3a3833;
+  /* Footer secondary text (Pen footer: column heads, legal line, newsletter notice). Same value as --hp-line-strong, but a text role. */
+  --hp-footer-text-muted: #8a8a93;
+  /* Press feedback: every button and icon control shrinks to the same 0.96 when pressed. */
+  --hp-press-scale: 0.96;
+  /* Pen 59 "How every order is made": step outlines on ink (#FFFFFF33). */
+  --hp-on-dark-line: #ffffff33;
+  /* Search autocomplete (Pen 09 · R8Aqc): scrim #0C0C0E59, 760px panel, 300px suggestion column. */
+  --hp-scrim: rgb(12 12 14 / 35%);
+  /* Site motion (INFERRED: chosen over Pen 09's motion spec at the owner's request). Soft ease-out for reveals and hovers; all motion is off with prefers-reduced-motion. */
+  --hp-ease-soft: cubic-bezier(.22, 1, .36, 1);
+  --hp-motion-hover: 220ms;
+  --hp-motion-underline: 320ms;
+  --hp-motion-reveal: 700ms;
+  --hp-motion-viewer: 280ms;
+  --hp-reveal-shift: var(--hp-space-24);
+  --hp-reveal-stagger: 70ms;
+  --hp-lift: calc(var(--hp-space-4) * -1);
+  --hp-shadow-lift: 0 14px 32px rgb(12 12 14 / 10%);
 }

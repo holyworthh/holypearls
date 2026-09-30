@@ -33,10 +33,12 @@ import {
   updateProduct,
 } from "./products.js";
 
+import { publicChange } from "./public-change.js";
+
 const uuid = new ParseUUIDPipe();
 
-/** Public pages refresh through cache tags (TECH-02 §6). */
-const revalidate = (deps: FileDeps, actor: ActorContext, tags: string[]) => deps.jobs.send("cache.revalidate", { v: 1, requestId: actor.requestId, tags });
+/** Public pages refresh through cache tags (TECH-02 §6); the search index and IndexNow follow. */
+const revalidate = (deps: FileDeps, actor: ActorContext, tags: string[]) => publicChange(deps.jobs, actor, tags);
 
 /** Catalogue admin (OPS-FR-001–004, Pen frames 96, 98 and 104). Staff without CATALOGUE_MANAGE get 403. */
 @Controller("admin/catalogue/products")

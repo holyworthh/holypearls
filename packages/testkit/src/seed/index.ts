@@ -1,6 +1,9 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
-import { seedCatalogue } from "./catalogue.js";
+import { seedCatalogue, seedMerchandising } from "./catalogue.js";
+import { seedContent } from "./content.js";
+import { seedHubs } from "./hubs.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
+import { seedPricing } from "./pricing.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
 
@@ -50,16 +53,31 @@ export const identitySeedStep = (options: SeedOptions): SeedStep => ({
  * arrive (for example the ACME organization or the Business Cards purchase).
  */
 /** The nine categories and one product per family (T02-01). */
-export const catalogueSeedStep: SeedStep = { name: "catalogue: categories and one product per family", run: seedCatalogue };
+export const catalogueSeedStep: SeedStep = {
+  name: "catalogue: categories, one product per family, the menu and homepage lists and two designed hubs",
+  async run(tx) {
+    await seedCatalogue(tx);
+    await seedMerchandising(tx);
+    await seedHubs(tx);
+  },
+};
+
+/** Project pages, demo case studies, guides and About (T02-06). */
+export const contentSeedStep: SeedStep = { name: "content: projects, demo case studies, guides and About", run: seedContent };
 
 export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
   name: "catalogue: one sample image per product",
   run: (tx) => seedCatalogueMedia(tx, media),
 });
 
+/** Product rules, prices and VAT from the Stage 1.4 sheet (T03-01). */
+export const pricingSeedStep: SeedStep = { name: "pricing: product rules, prices and VAT", run: seedPricing };
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
+  pricingSeedStep,
+  contentSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 

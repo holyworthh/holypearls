@@ -167,6 +167,11 @@
   font-size: var(--hp-text-support);
 }
 
+.moreSessions {
+  margin: 0;
+  padding-top: var(--hp-space-12);
+}
+
 .sessionActions {
   padding-top: var(--hp-space-16);
 }

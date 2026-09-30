@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const filePurposeSchema = z.enum(["ARTWORK", "PROJECT_ATTACHMENT", "PROOF", "PROBLEM_PHOTO", "CSV_IMPORT", "PRODUCT_MEDIA"]);
+export const filePurposeSchema = z.enum(["ARTWORK", "PROJECT_ATTACHMENT", "PROOF", "PROBLEM_PHOTO", "CSV_IMPORT", "PRODUCT_MEDIA", "CONTENT_MEDIA"]);
 export const fileStatusSchema = z.enum(["PENDING_UPLOAD", "PROCESSING", "READY", "NEEDS_REVIEW", "REJECTED"]);
 
 /** Step 1 (TECH-04 §3): what the browser says about the file. Never trusted; checked again after upload. */

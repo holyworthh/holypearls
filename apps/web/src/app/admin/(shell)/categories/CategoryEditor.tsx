@@ -132,6 +132,11 @@ export function CategoryEditor({ category, parents }: Props) {
         {current ? current.name : "New category"}
       </h2>
       {current ? (
+        <a className={styles.action} href={`/admin/categories/${current.id}/hub`}>
+          Edit hub page sections →
+        </a>
+      ) : null}
+      {current ? (
         <p className={styles.chips}>
           <StatusChip tone={TONE[current.status]}>{current.status}</StatusChip>
           <span>

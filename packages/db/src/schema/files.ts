@@ -13,6 +13,7 @@ export const filePurpose = pgEnum("file_purpose", [
   "PROBLEM_PHOTO",
   "CSV_IMPORT",
   "PRODUCT_MEDIA",
+  "CONTENT_MEDIA",
 ]);
 
 /** TECH-01 §4: PENDING_UPLOAD → PROCESSING → READY | NEEDS_REVIEW | REJECTED. */

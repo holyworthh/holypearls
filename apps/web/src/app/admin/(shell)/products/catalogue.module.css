@@ -65,6 +65,18 @@
   border: 0;
 }
 
+.hint {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.error {
+  margin: 0;
+  color: var(--hp-error);
+  font-size: var(--hp-text-support);
+}
+
 .radio {
   display: flex;
   align-items: center;
@@ -201,4 +213,15 @@
   min-height: var(--hp-touch-target);
   border-top: var(--hp-border-width) solid var(--hp-line);
   font-size: var(--hp-text-label);
+}
+
+/* Hover (every clickable item has one). */
+.radio {
+  cursor: pointer;
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.radio:hover input {
+  outline: var(--hp-size-1) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
 }

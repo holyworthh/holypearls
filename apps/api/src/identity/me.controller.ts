@@ -2,7 +2,7 @@ import { Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, 
 import type { IdentityAdapter } from "@holypearls/auth";
 import type { Me, SessionList } from "@holypearls/contracts";
 import type { Request } from "express";
-import type { Database } from "@holypearls/db";
+import { and, type Database, eq, gt, schema, sql } from "@holypearls/db";
 import { recordAudit } from "../platform/audit.js";
 import { enforce, findOrHide } from "../platform/policy.js";
 import { DATABASE, IDENTITY } from "../tokens.js";
@@ -36,6 +36,9 @@ export function describeDevice(userAgent: string | null): string {
 }
 
 /** The signed-in person's own sign-in details (TECH-03 §3). */
+/** How many sessions the security page lists: this device plus the most recently active others. */
+export const SESSION_LIST_LIMIT = 10;
+
 @Controller("me")
 export class MeController {
   constructor(
@@ -59,11 +62,19 @@ export class MeController {
 
   @Get("sessions")
   async sessions(@Req() request: Request): Promise<SessionList> {
-    requireUser(await request.getActor!());
+    const actor = requireUser(await request.getActor!());
     const sessions = await this.identity.listSessions(toHeaders(request));
+    // Better Auth returns at most one page of sessions, so the total is counted here.
+    const [count] = await this.db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(schema.sessions)
+      .where(and(eq(schema.sessions.userId, actor.session.userId), gt(schema.sessions.expiresAt, new Date())));
     return {
+      total: Math.max(count?.total ?? 0, sessions.length),
       sessions: sessions
         .sort((a, b) => Number(b.current) - Number(a.current) || b.updatedAt.getTime() - a.updatedAt.getTime())
+        // This device always comes first, so the limit never hides it.
+        .slice(0, SESSION_LIST_LIMIT)
         .map((session) => ({
           sessionId: session.sessionId,
           current: session.current,

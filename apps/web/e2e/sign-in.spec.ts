@@ -1,6 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
 import { TEST_PEOPLE, totpCode } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
+import { expectNoAxeViolations } from "./helpers";
 
 /*
  * TECH-03 §3 checks in a real browser: a signed-in server-rendered page, a
@@ -8,10 +8,6 @@ import { expect, test, type Page } from "@playwright/test";
  * browser storage. Runs against the seeded TEST DATA people.
  */
 
-async function expectNoAxeViolations(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
-}
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

@@ -1,0 +1,240 @@
+/* Footer (Pen HP/Nav/Footer desktop; Pen 16 mobile accordion footer). */
+
+.footer {
+  padding: var(--hp-size-72) max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2)) var(--hp-space-32);
+  background: var(--hp-ink);
+  color: var(--hp-bone);
+}
+
+.top {
+  display: flex;
+  gap: var(--hp-space-40);
+}
+
+.brand {
+  display: flex;
+  flex: 0 0 var(--hp-size-420);
+  flex-direction: column;
+  gap: var(--hp-space-20);
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  color: var(--hp-bone);
+  font-size: var(--hp-size-30);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_5);
+  line-height: var(--hp-size-30);
+  text-decoration: none;
+}
+
+.pearl {
+  width: var(--hp-space-14);
+  height: var(--hp-space-14);
+  border-radius: 50%;
+  background: var(--hp-accent);
+}
+
+.blurb {
+  margin: 0;
+  color: var(--hp-mid);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+}
+
+/* Pen's newsletter bar, as a notice until there's a mailing list (no field, no button). */
+.newsletter {
+  display: flex;
+  align-items: center;
+  height: var(--hp-size-52);
+  margin: 0;
+  padding: 0 var(--hp-space-6) 0 var(--hp-space-16);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-graphite);
+  outline-offset: var(--hp-size--0_5);
+  color: var(--hp-footer-text-muted);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+}
+
+.note {
+  margin: 0;
+  color: var(--hp-mid);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.head {
+  margin: 0;
+  color: var(--hp-footer-text-muted);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+}
+
+.column a,
+.legalLinks a {
+  color: var(--hp-bone);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.footer a:focus-visible,
+.footer button:focus-visible,
+.footer summary:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-bone);
+  outline-offset: var(--hp-space-2);
+}
+
+.bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--hp-space-24);
+  margin-top: var(--hp-size-56);
+  padding-top: var(--hp-space-24);
+  border-top: var(--hp-size-1) solid var(--hp-footer-rule);
+}
+
+.legal {
+  margin: 0;
+  color: var(--hp-footer-text-muted);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-space-12);
+  font-weight: 500;
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+}
+
+.legalLinks {
+  display: flex;
+  gap: var(--hp-space-24);
+}
+
+.legalLinks a {
+  color: var(--hp-mid);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.mobile {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .footer {
+    padding: var(--hp-space-40) var(--hp-space-20) var(--hp-space-28);
+  }
+
+  .top,
+  .bottom {
+    display: none;
+  }
+
+  .mobile {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile .logo {
+    padding-bottom: var(--hp-space-20);
+    font-size: var(--hp-space-24);
+    letter-spacing: var(--hp-size--0_4);
+    line-height: var(--hp-space-24);
+  }
+
+  .mobile .pearl {
+    width: var(--hp-size-11);
+    height: var(--hp-size-11);
+  }
+
+  .accordion {
+    border-top: var(--hp-size-1) solid var(--hp-footer-rule);
+  }
+
+  .accordion summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--hp-size-55_5);
+    color: var(--hp-bone);
+    font-size: var(--hp-size-17);
+    font-weight: 600;
+    line-height: var(--hp-size-25);
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .accordion summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .accordion[open] .plus {
+    transform: rotate(45deg);
+  }
+
+  .accordion .column {
+    padding-bottom: var(--hp-space-20);
+  }
+
+  .mobileLegal {
+    margin: 0;
+    padding-top: var(--hp-space-20);
+    border-top: var(--hp-size-1) solid var(--hp-footer-rule);
+    color: var(--hp-footer-text-muted);
+    font-family: var(--hp-font-mono);
+    font-size: var(--hp-space-10);
+    font-weight: 500;
+    letter-spacing: var(--hp-size-0_6);
+    line-height: var(--hp-size-13);
+  }
+
+  .mobile .note {
+    padding-bottom: var(--hp-space-20);
+  }
+}
+
+/* Hover (every clickable item has one). */
+.logo .pearl,
+.logo span {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.logo:hover .pearl {
+  transform: scale(1.35);
+}
+
+/* Drawn underline: grows left to right on hover, retracts to the right after. */
+.column a, .legalLinks a {
+  text-decoration: none;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0 var(--hp-size-1);
+  background-position: 100% 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition:
+    background-size var(--hp-motion-underline) var(--hp-ease-soft),
+    color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.column a:hover, .legalLinks a:hover {
+  text-decoration: none;
+  background-size: 100% var(--hp-size-1);
+  background-position: 0 100%;
+}

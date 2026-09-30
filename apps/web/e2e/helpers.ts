@@ -2,7 +2,23 @@ import AxeBuilder from "@axe-core/playwright";
 import { totpCode } from "@holypearls/auth";
 import { expect, type Page } from "@playwright/test";
 
+/**
+ * Axe checks the settled page: scroll reveals and photo unveils are switched
+ * off first, since mid-animation opacity isn't what people end up reading.
+ */
 export async function expectNoAxeViolations(page: Page) {
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.motion;
+    // Reveals already running keep going (their end value is unchanged), so finish them.
+    for (const animation of document.getAnimations()) {
+      try {
+        animation.finish();
+      } catch {
+        // Infinite animations (spinners) can't finish; they don't hide anything.
+      }
+    }
+    return new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }

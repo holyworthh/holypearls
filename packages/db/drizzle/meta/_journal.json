@@ -71,6 +71,90 @@
       "when": 1790597498221,
       "tag": "0009_session_email_code",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790605503726,
+      "tag": "0010_catalogue_hubs_lists",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790608330519,
+      "tag": "0011_product_rules_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790608337733,
+      "tag": "0012_price_history_insert_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790614719505,
+      "tag": "0013_configurations",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790617395339,
+      "tag": "0014_garment_configuration",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790619851788,
+      "tag": "0015_quotes",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790619859314,
+      "tag": "0016_quote_reference_sequence",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790634367063,
+      "tag": "0017_option_value_swatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790674005839,
+      "tag": "0018_product_filter_attributes",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790696506495,
+      "tag": "0019_content_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790721547572,
+      "tag": "0020_content_publishing_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790758796837,
+      "tag": "0021_search_phrase_one_destination",
+      "breakpoints": true
     }
   ]
 }
