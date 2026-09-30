@@ -2,12 +2,12 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-28 (after T03-05).
+Last updated: 2026-09-30 (after T02-06 and release #33).
 
 ## Decisions and actions needed
 
-### 1. Release to production (PR #21)
-Merging `dev` into `main` deploys production (holypearls.vercel.app and holypearls-api.onrender.com) on an empty database. Nothing breaks if you wait.
+### 1. ~~Release to production~~ RESOLVED
+Released through PR #21 and again through PR #33 (2026-09-30, commit 2683b36); production is live and healthy. **Keep merging release PRs with a merge commit, not a squash.** Squashing #21 made `dev` and `main` conflict on the next release (fixed by PR #34).
 
 ### 2. First production staff admin
 Production has no staff accounts, and test people are never seeded there. A one-off bootstrap command is needed: create one STAFF_ADMIN by email, who then sets a password and authenticator. **Question:** should I build it now as a small ops task (`pnpm bootstrap:admin --email you@…`), or leave it for T13-05 (staff administration)?
@@ -71,9 +71,22 @@ Extra placements currently keep the price an estimate. **Needed:** per-placement
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
 - **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header (planned for T15-01 unless you want it sooner).
+- **T02-06, anonymous attachments:** visitors who aren't signed in can attach files only after sending a contact enquiry (uploads need a session, TECH-04). Fine, or should guests get an upload session earlier?
 - **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?
 - **T03-08, custom sizes:** Pen says custom large-format sizes are priced by area and only very large ones need a quote. Without per-m² prices, every custom size is a quote for now (PRD COM-FR-060). **Needed:** per-m² prices per material and a "very large" threshold.
 - **T03-08, transit days:** working values of Lagos 1–2 and the rest of Nigeria 2–5 working days until delivery zones arrive in T04-01. Please confirm.
 - **T03-08, impossible deadlines:** a date we can't meet even with priority rush keeps the price an estimate with "we'll review it with you". Should it instead block checkout until staff confirm?
 - **Process:** from T04-01 on, every ticket starts with failing tests written from the PRD and plan (your rule of 2026-09-28).
 - **Design fidelity (2026-09-28):** the public pages were rebuilt from the Pen exports; see [DESIGN-FIDELITY.md](DESIGN-FIDELITY.md). To match Pen exactly you may want to: rename categories and option values in admin to the Pen labels ("Apparel & garment production", "Standard Matte · Smooth and practical"); approve adding an **image per option value** (paper cards) and **product attributes for filters** (sourcing, decoration); supply the **card-stock band** content. Garments now configure on their own stepped page (`/products/polo-shirt/configure`), as Pen 19 → 22 shows.
+
+### 18. SEO settings on Render (T02-06)
+Staging and production have no `SITE_URL` or `INDEXNOW_KEY`, so canonical URLs and the sitemap fall back to the default origin and IndexNow pings are skipped. **Needed:** the public site URL (holypearls.vercel.app for now, or the real domain), and say yes and I'll generate an IndexNow key and set both.
+
+### 19. Content on staging and production (T02-06)
+About, guides, project pages and case studies exist only in the development seed. Production has none, so /about and /guides show empty states. **Needed:** the real texts, or permission to copy the seed pages to staging for review.
+
+### 20. Contact details (T02-06)
+The Contact page shows placeholder email, phone, WhatsApp and address (PUB-SEO-006 wants verified details). **Needed:** the real ones.
+
+### 21. Draft preview (T02-06)
+Staff can preview a content page only after it's published. **Decide:** whether staff-only draft preview links are wanted (small follow-up), or leave it.
