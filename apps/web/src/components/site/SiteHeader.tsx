@@ -10,9 +10,9 @@ import styles from "./site.module.css";
 /** The menu's search box, with suggestions underneath (Pen 09). */
 function SearchForm({ id, placeholder, large = false }: { id: string; placeholder: string; large?: boolean }) {
   return (
-    <form className={styles.search} action="/products" role="search" aria-label="Search products">
+    <form className={styles.search} action="/search" role="search" aria-label="Search">
       <SearchIcon className={styles.icon} />
-      <SuggestInput id={id} placeholder={placeholder} autoFocus={large} />
+      <SuggestInput id={id} placeholder={placeholder} autoFocus={large} label="Search" />
     </form>
   );
 }
@@ -34,6 +34,8 @@ export function Logo() {
  */
 export function SiteHeader({ items }: { items: TopItem[] }) {
   const pathname = usePathname();
+  // "Popular right now" in the empty search (Pen 08 A): the admin-managed popular products.
+  const popular = (items[0]?.menu?.columns.find((column) => column.heading === "POPULAR PRODUCTS")?.links ?? []).slice(0, 4).map((link) => link.label);
   const [open, setOpen] = useState<number | null>(null);
   const [mobile, setMobile] = useState(false);
   const [drill, setDrill] = useState<number | null>(null);
@@ -151,7 +153,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           </ul>
         </nav>
         <div className={styles.actions}>
-          <HeaderSearch id={`${panelId}-search`} fieldClassName={`${styles.search} ${styles.searchTrigger}`} iconClassName={styles.icon} />
+          <HeaderSearch id={`${panelId}-search`} fieldClassName={`${styles.search} ${styles.searchTrigger}`} iconClassName={styles.icon} popular={popular} />
           <a className={styles.iconLink} href="/contact?topic=order" aria-label="Track an order">
             <PackageIcon className={styles.icon} />
           </a>
@@ -161,9 +163,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           <a className={styles.cta} href="/contact?topic=project">
             Start a Project
           </a>
-          <a className={styles.mobileSearch} href="/products#directory-search" aria-label="Search products">
-            <SearchIcon className={styles.icon} />
-          </a>
+          <HeaderSearch id={`${panelId}-phone-search`} fieldClassName={styles.phoneSearch} iconClassName={styles.icon} popular={popular} iconOnly />
           <button
             ref={menuButton}
             type="button"

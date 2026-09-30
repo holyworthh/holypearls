@@ -134,6 +134,27 @@
       "when": 1790674005839,
       "tag": "0018_product_filter_attributes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790696506495,
+      "tag": "0019_content_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790721547572,
+      "tag": "0020_content_publishing_media",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1790758796837,
+      "tag": "0021_search_phrase_one_destination",
+      "breakpoints": true
     }
   ]
 }

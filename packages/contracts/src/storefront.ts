@@ -261,7 +261,10 @@ export type PublicProduct = z.infer<typeof publicProductSchema>;
 export const searchSuggestionQuerySchema = z.object({ q: z.string().trim().min(1).max(100) });
 export const searchSuggestionsSchema = z.object({
   q: z.string(),
+  /** Searches to run (a product's own phrases, category and product names). */
   searches: z.array(z.string()),
+  /** Staff phrases (PUB-FR-007): each goes straight to its product, category or page. */
+  shortcuts: z.array(z.object({ phrase: z.string(), href: z.string(), label: z.string() })).default([]),
   categories: z.array(z.object({ slug: z.string(), name: z.string(), count: z.number().int() })),
   products: z.array(publicProductCardSchema),
   /** Guides arrive with content pages (T02-06); empty until then. */

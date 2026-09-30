@@ -1,7 +1,7 @@
 "use client";
 
 import { type SearchSuggestions, searchSuggestionsSchema } from "@holypearls/contracts";
-import { ArrowRight, BookOpen, Folder, Search, X } from "lucide-react";
+import { ArrowRight, ArrowUpLeft, ArrowUpRight, BookOpen, Folder, History, Search, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { priceLine } from "../catalogue/ProductCard";
 import styles from "./search.module.css";
@@ -49,6 +49,33 @@ function useSuggestions(q: string) {
   return state;
 }
 
+/* Recent searches (Pen 08 A): kept on this device only, never sent anywhere. */
+const RECENT_KEY = "hp.recentSearches";
+function readRecent(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+export function rememberSearch(term: string) {
+  const clean = term.trim().slice(0, 100);
+  if (!clean) return;
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify([clean, ...readRecent().filter((item) => item.toLowerCase() !== clean.toLowerCase())].slice(0, 5)));
+  } catch {
+    // Private browsing or storage turned off: recent searches just aren't kept.
+  }
+}
+function forgetSearches() {
+  try {
+    localStorage.removeItem(RECENT_KEY);
+  } catch {
+    // Nothing to clear.
+  }
+}
+
 /** "emb" + "roidered polos": the typed part bold, as in the Pen suggestion rows. */
 function Highlight({ text, q }: { text: string; q: string }) {
   const at = text.toLowerCase().indexOf(q.trim().toLowerCase());
@@ -65,11 +92,27 @@ function Highlight({ text, q }: { text: string; q: string }) {
 
 type Item = { key: string; href: string; group: "searches" | "categories" | "products" | "guides"; label: string; body: ReactNode };
 
-function itemsFor(data: SearchSuggestions, q: string): Item[] {
+function itemsFor(data: SearchSuggestions, q: string, searchPath: string): Item[] {
   return [
+    // Staff phrases (PUB-FR-007) go straight to what they point at.
+    ...(data.shortcuts ?? []).map((shortcut) => ({
+      key: `x-${shortcut.phrase}`,
+      href: shortcut.href,
+      group: "searches" as const,
+      label: `${shortcut.phrase}, go to ${shortcut.label}`,
+      body: (
+        <>
+          <ArrowUpRight className={styles.rowIcon} size={16} aria-hidden="true" />
+          <span className={styles.rowText}>
+            <Highlight text={shortcut.phrase} q={q} />
+            <span className={styles.shortcutTarget}> · {shortcut.label}</span>
+          </span>
+        </>
+      ),
+    })),
     ...data.searches.map((phrase) => ({
       key: `s-${phrase}`,
-      href: `/products?q=${encodeURIComponent(phrase)}`,
+      href: `${searchPath}?q=${encodeURIComponent(phrase)}`,
       group: "searches" as const,
       label: phrase,
       body: (
@@ -147,6 +190,8 @@ export function SuggestInput({
   variant = "dropdown",
   onClose,
   label = "Search products",
+  searchPath = "/search",
+  popular = [],
 }: {
   id: string;
   defaultValue?: string;
@@ -156,6 +201,10 @@ export function SuggestInput({
   variant?: "dropdown" | "attached";
   onClose?: () => void;
   label?: string;
+  /** Where "See all results" and everyday searches go: site search, or the directory's own. */
+  searchPath?: string;
+  /** "Popular right now" chips for the empty full-screen search (Pen 08 A). */
+  popular?: string[];
 }) {
   const [q, setQ] = useState(defaultValue);
   const [open, setOpen] = useState(variant === "attached");
@@ -164,7 +213,9 @@ export function SuggestInput({
   const root = useRef<HTMLDivElement>(null);
   const listId = useId();
   const { data, status, term } = useSuggestions(q);
-  const items = useMemo(() => (data ? itemsFor(data, term) : []), [data, term]);
+  const items = useMemo(() => (data ? itemsFor(data, term, searchPath) : []), [data, term, searchPath]);
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => setRecent(readRecent()), []);
   const shown = open && q.trim().length > 0 && (status !== "idle" || data !== null);
   const optionId = (index: number) => `${listId}-o${index}`;
 
@@ -178,8 +229,11 @@ export function SuggestInput({
     return () => document.removeEventListener("pointerdown", away);
   }, [open, variant]);
 
-  const go = (href: string) => window.location.assign(href);
-  const all = `/products?q=${encodeURIComponent(q.trim())}`;
+  const go = (href: string) => {
+    rememberSearch(q);
+    window.location.assign(href);
+  };
+  const all = `${searchPath}?q=${encodeURIComponent(q.trim())}`;
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -279,7 +333,8 @@ export function SuggestInput({
             </button>
           ) : null}
           <button type="button" className={styles.escHint} onClick={onClose}>
-            Esc to close
+            <span className={styles.escDesktop}>Esc to close</span>
+            <span className={styles.escPhone}>Cancel</span>
           </button>
         </div>
       ) : (
@@ -313,12 +368,54 @@ export function SuggestInput({
             <span />
             <span />
           </div>
+        ) : variant === "attached" && (recent.length || popular.length) ? (
+          <div className={styles.starters}>
+            {recent.length ? (
+              <section aria-labelledby={`${listId}-recent`}>
+                <div className={styles.startersHead}>
+                  <h2 id={`${listId}-recent`} className={styles.groupLabel}>
+                    Recent
+                  </h2>
+                  <button type="button" className={styles.clearRecent} onClick={() => (forgetSearches(), setRecent([]))}>
+                    Clear
+                  </button>
+                </div>
+                <ul className={styles.recentList}>
+                  {recent.map((item) => (
+                    <li key={item}>
+                      <a className={styles.recentRow} href={`${searchPath}?q=${encodeURIComponent(item)}`} onClick={() => rememberSearch(item)}>
+                        <History className={styles.rowIcon} size={16} aria-hidden="true" />
+                        <span className={styles.rowText}>{item}</span>
+                        <ArrowUpLeft className={styles.rowIcon} size={16} aria-hidden="true" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {popular.length ? (
+              <section aria-labelledby={`${listId}-popular`}>
+                <h2 id={`${listId}-popular`} className={styles.groupLabel}>
+                  Popular right now
+                </h2>
+                <ul className={styles.popularChips}>
+                  {popular.map((item) => (
+                    <li key={item}>
+                      <a className={styles.popularChip} href={`${searchPath}?q=${encodeURIComponent(item)}`} onClick={() => rememberSearch(item)}>
+                        {item}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </div>
         ) : (
           <p className={styles.note}>Try “polo”, “roll-up” or “paper bag”.</p>
         )}
         {q.trim() ? (
           <div className={styles.footer}>
-            <a className={styles.all} href={all}>
+            <a className={styles.all} href={all} onClick={() => rememberSearch(q)}>
               See all results for ‘{q.trim()}’
               <ArrowRight size={16} aria-hidden="true" />
             </a>
@@ -341,7 +438,20 @@ export function SuggestInput({
  * A native modal <dialog>, as the image viewer is: the page behind is inert
  * (no focus, clicks or screen-reader access) and focus returns to the trigger.
  */
-export function HeaderSearch({ id, fieldClassName, iconClassName }: { id: string; fieldClassName?: string; iconClassName?: string }) {
+export function HeaderSearch({
+  id,
+  fieldClassName,
+  iconClassName,
+  popular = [],
+  iconOnly = false,
+}: {
+  id: string;
+  fieldClassName?: string;
+  iconClassName?: string;
+  popular?: string[];
+  /** The phone header's search icon (Pen 08): opens the same search, full screen. */
+  iconOnly?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -371,12 +481,16 @@ export function HeaderSearch({ id, fieldClassName, iconClassName }: { id: string
   }, [open]);
   return (
     <>
-      <button ref={trigger} type="button" className={fieldClassName} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open} aria-label="Search products">
+      <button ref={trigger} type="button" className={fieldClassName} onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open} aria-label="Search">
         <Search className={iconClassName} aria-hidden="true" />
-        <span className={styles.triggerText}>Search</span>
-        <kbd className={styles.slash} aria-hidden="true">
-          /
-        </kbd>
+        {iconOnly ? null : (
+          <>
+            <span className={styles.triggerText}>Search</span>
+            <kbd className={styles.slash} aria-hidden="true">
+              /
+            </kbd>
+          </>
+        )}
       </button>
       <dialog
         ref={dialog}
@@ -393,8 +507,8 @@ export function HeaderSearch({ id, fieldClassName, iconClassName }: { id: string
         }}
       >
         {open ? (
-          <form action="/products" role="search" aria-label="Search products">
-            <SuggestInput id={id} placeholder="What do you need made?" variant="attached" onClose={close} className={styles.fieldInput} />
+          <form action="/search" role="search" aria-label="Search" onSubmit={(event) => rememberSearch(new FormData(event.currentTarget).get("q")?.toString() ?? "")}>
+            <SuggestInput id={id} placeholder="Search products, projects, guides" label="Search" variant="attached" onClose={close} className={styles.fieldInput} popular={popular} />
           </form>
         ) : null}
       </dialog>

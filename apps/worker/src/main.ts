@@ -8,7 +8,9 @@ import {
   markFileNeedsReview,
   previewFile,
   processDemoSlice,
+  refreshSearchIndex,
   runDailyCleanup,
+  submitIndexNow,
   sendNotification,
   reportError,
 } from "@holypearls/api/modules";
@@ -71,7 +73,7 @@ await jobs.work(
   "cleanup.daily",
   track("cleanup.daily", async () => {
     const result = await runDailyCleanup(files);
-    logger.info({ queue: "cleanup.daily", removedFiles: result.files }, "daily clean-up finished");
+    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents }, "daily clean-up finished");
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
@@ -90,6 +92,22 @@ await jobs.work(
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Revalidation failed (${response.status})`);
+  }),
+);
+// Search index (T02-06): rebuilt from published records after changes, and once at start so it's never empty.
+await jobs.work(
+  "search.refresh",
+  track("search.refresh", async () => {
+    const documents = await refreshSearchIndex(database.db);
+    logger.info({ queue: "search.refresh", documents }, "search index rebuilt");
+  }),
+);
+await jobs.send("search.refresh", { v: 1, requestId: "startup" });
+await jobs.work(
+  "seo.indexnow",
+  track("seo.indexnow", async (payload) => {
+    const result = await submitIndexNow(payload.paths, { siteUrl: env.SITE_URL, key: env.INDEXNOW_KEY });
+    logger.info({ queue: "seo.indexnow", submitted: result.submitted }, result.submitted ? "changed pages sent to IndexNow" : "IndexNow not set up here");
   }),
 );
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));

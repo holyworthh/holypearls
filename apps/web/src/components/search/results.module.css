@@ -1,0 +1,944 @@
+/*
+ * Search results (Pen 07 · S82uZc desktop 1440, Pen 10 · ZW64K no results,
+ * Pen 08 · qxLIy on phones). Values from the Pen html-css exports, mapped to tokens.
+ */
+
+.head,
+.body {
+  padding-inline: max(var(--hp-size-56), calc((100% - var(--hp-size-1328)) / 2));
+}
+
+/* Pen 07 "Search head": bone band, 40 / 24 padding, 18 gap. */
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-size-18);
+  padding-top: var(--hp-space-40);
+  padding-bottom: var(--hp-space-24);
+  background: var(--hp-bone);
+}
+
+/* "Search field (active)": paper, radius 8, 64 tall, 2px ink outline. */
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-14);
+  height: var(--hp-space-64);
+  padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
+  border-radius: var(--hp-space-8);
+  outline: var(--hp-space-2) solid var(--hp-ink);
+  outline-offset: var(--hp-size--1);
+  background: var(--hp-paper);
+}
+
+.fieldIcon {
+  flex: none;
+  width: var(--hp-size-22);
+  height: var(--hp-size-22);
+  color: var(--hp-ink);
+}
+
+.fieldInput {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-space-20);
+  line-height: var(--hp-size-29);
+}
+
+.fieldInput::placeholder {
+  color: var(--hp-graphite);
+  opacity: 1;
+}
+
+.fieldButton,
+.redButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hp-space-8);
+  height: var(--hp-space-48);
+  padding: 0 var(--hp-size-18);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+  font: inherit;
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    transform var(--hp-motion-status) var(--hp-ease-soft);
+}
+
+.fieldButton:hover,
+.redButton:hover {
+  background: var(--hp-accent-hover);
+}
+
+.fieldButton:active,
+.redButton:active {
+  transform: scale(var(--hp-press-scale));
+}
+
+.redButton svg {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.redButton:hover svg {
+  transform: translateX(var(--hp-space-4));
+}
+
+.prompt {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-24);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_5);
+  line-height: var(--hp-size-35);
+}
+
+/* "Correction": 16 graphite + 600 ink; the second line 14 with the way back. */
+.correction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+}
+
+.correction p {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+}
+
+.correction strong {
+  color: var(--hp-ink);
+  font-weight: 600;
+}
+
+.correction .typed {
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-space-20);
+}
+
+.typed a {
+  color: var(--hp-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--hp-line-strong);
+  text-underline-offset: var(--hp-space-4);
+  transition: text-decoration-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.typed a:hover {
+  text-decoration-color: currentColor;
+}
+
+/* "Scopes": 40px pills, radius 20; the current one ink. */
+.scopes ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scope {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  height: var(--hp-space-40);
+  padding: 0 var(--hp-space-16);
+  border-radius: var(--hp-space-20);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  font-weight: 600;
+  line-height: var(--hp-space-20);
+  text-decoration: none;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.scope:hover {
+  outline-color: var(--hp-ink);
+}
+
+.scope:active {
+  transform: scale(var(--hp-press-scale));
+}
+
+.scopeCount {
+  color: var(--hp-graphite);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.scope[aria-current="page"] {
+  outline-color: var(--hp-ink);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.scope[aria-current="page"] .scopeCount {
+  color: var(--hp-mid);
+}
+
+/* "Body": results beside a 340px rail, 48 apart. */
+.body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hp-space-48);
+  padding-top: var(--hp-space-40);
+  padding-bottom: var(--hp-size-72);
+}
+
+.results {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--hp-space-48);
+  min-width: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+}
+
+.group:has(.projectRow) {
+  gap: var(--hp-space-16);
+}
+
+.guides {
+  gap: 0;
+}
+
+.groupHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--hp-space-16);
+  padding-bottom: var(--hp-space-12);
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+}
+
+.groupTitle {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--hp-space-10);
+}
+
+.groupTitle h2 {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-24);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--0_5);
+  line-height: var(--hp-size-35);
+}
+
+.groupTitle span {
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+  font-variant-numeric: tabular-nums;
+}
+
+.groupMore {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.groupMore svg,
+.guideArrow {
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.groupMore:hover svg {
+  transform: translateX(var(--hp-space-4));
+}
+
+.productRow,
+.productGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hp-space-16);
+}
+
+.productGrid {
+  row-gap: var(--hp-space-32);
+}
+
+/* Project rows: 120 × 96 image, eyebrow, 18/600 title, 14 summary; outlined, radius 10. */
+.projectRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hp-space-16);
+}
+
+.project {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-16);
+  padding: var(--hp-space-12);
+  border-radius: var(--hp-space-10);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.project:hover {
+  outline-color: var(--hp-line-strong);
+}
+
+.project:has(a:focus-visible),
+.guide:has(a:focus-visible),
+.option:has(a:focus-visible) {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.projectImage {
+  flex: none;
+  width: var(--hp-size-120);
+  height: var(--hp-space-96);
+  border-radius: var(--hp-space-6);
+  background: var(--hp-sand) center / cover no-repeat;
+  transition: transform var(--hp-motion-card) var(--hp-ease-soft);
+}
+
+.project:hover .projectImage {
+  transform: scale(1.03);
+}
+
+.projectText {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-size-11);
+  letter-spacing: var(--hp-size-0_6);
+  line-height: var(--hp-space-16);
+}
+
+.projectText h3 {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-18);
+  font-weight: 600;
+  line-height: var(--hp-size-26);
+}
+
+.projectSummary {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-space-20);
+}
+
+/* The whole row is the link target; the heading keeps the accessible name. */
+.stretch {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stretch::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.stretch:focus-visible {
+  outline: none;
+}
+
+/* Guide rows: book icon, 17/600 title, 14 summary, arrow; hairline below. */
+.guideList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-16);
+  padding: var(--hp-space-16) 0;
+  border-bottom: var(--hp-size-1) solid var(--hp-line);
+}
+
+.guideIcon,
+.guideArrow {
+  flex: none;
+  color: var(--hp-ink);
+}
+
+.guide:hover .guideArrow {
+  transform: translateX(var(--hp-space-4));
+}
+
+.guideText {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+  min-width: 0;
+}
+
+.guideText h3 {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+  line-height: var(--hp-size-25);
+}
+
+.guide:hover h3 {
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+.guideText p {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-space-20);
+}
+
+.pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--hp-space-16);
+}
+
+.pageNow {
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-15);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageLink {
+  display: inline-flex;
+  align-items: center;
+  height: var(--hp-size-44);
+  padding: 0 var(--hp-space-16);
+  border-radius: var(--hp-space-6);
+  outline: var(--hp-size-1) solid var(--hp-line-strong);
+  outline-offset: var(--hp-size--0_5);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pageLink:hover {
+  outline-color: var(--hp-ink);
+}
+
+/* "Rail": 340 wide, 20 gap. */
+.rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+  width: var(--hp-size-340);
+}
+
+.narrow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+  padding: var(--hp-space-20);
+  border-radius: var(--hp-space-10);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+}
+
+.narrow h2,
+.notSure h2 {
+  margin: 0;
+}
+
+.narrow h2 {
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+}
+
+.narrow ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.narrow a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-8);
+  min-height: var(--hp-size-36);
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+  text-decoration: none;
+}
+
+.narrow a:hover {
+  text-decoration: underline;
+  text-underline-offset: var(--hp-space-4);
+}
+
+/* "Not sure": ink panel, radius 10, padding 24. */
+.notSure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-24);
+  border-radius: var(--hp-space-10);
+  background: var(--hp-ink);
+}
+
+.notSure h2 {
+  color: var(--hp-paper);
+  font-size: var(--hp-space-20);
+  font-weight: 600;
+  line-height: var(--hp-size-29);
+}
+
+.notSure p {
+  margin: 0;
+  color: var(--hp-mid);
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+}
+
+.notSure .redButton {
+  width: 100%;
+}
+
+.notSure .redButton:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
+  outline-offset: var(--hp-space-2);
+}
+
+/* No results (Pen 10): 48 / 80 padding, main column beside the 400px "Tell us" panel, 64 apart. */
+.emptyBody {
+  gap: var(--hp-space-64);
+  padding-top: var(--hp-space-48);
+  padding-bottom: var(--hp-space-80);
+}
+
+.empty {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--hp-space-24);
+  min-width: 0;
+}
+
+.emptyIcon {
+  display: grid;
+  width: var(--hp-space-64);
+  height: var(--hp-space-64);
+  place-items: center;
+  border-radius: var(--hp-space-32);
+  background: var(--hp-bone);
+  color: var(--hp-ink);
+}
+
+.emptyTitle {
+  max-width: var(--hp-size-760);
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-40);
+  font-weight: 600;
+  letter-spacing: var(--hp-size--1_2);
+  line-height: var(--hp-size-44);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
+.emptyLead {
+  max-width: var(--hp-size-760);
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-18);
+  line-height: var(--hp-size-26);
+  text-wrap: pretty;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--hp-size-200), 1fr));
+  gap: var(--hp-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--hp-space-10);
+  outline: var(--hp-size-1) solid var(--hp-line);
+  outline-offset: var(--hp-size--0_5);
+  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.option:hover {
+  outline-color: var(--hp-line-strong);
+}
+
+.optionImage {
+  height: var(--hp-size-200);
+  background: var(--hp-sand) center / cover no-repeat;
+  transition: transform var(--hp-motion-card) var(--hp-ease-soft);
+}
+
+.option:hover .optionImage {
+  transform: scale(1.03);
+}
+
+.optionIcon,
+.optionArrow {
+  display: none;
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-20);
+  background: var(--hp-paper);
+}
+
+.optionText h2 {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-19);
+  font-weight: 600;
+  line-height: var(--hp-space-28);
+}
+
+.optionDetail {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-space-20);
+}
+
+/* "Tell us": ink panel, 400 wide, radius 10, padding 28. */
+.tellUs {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--hp-space-14);
+  width: var(--hp-size-400);
+  padding: var(--hp-space-28);
+  border-radius: var(--hp-space-10);
+  background: var(--hp-ink);
+}
+
+.tellUs h2 {
+  margin: 0;
+  color: var(--hp-paper);
+  font-size: var(--hp-space-24);
+  font-weight: 600;
+  line-height: var(--hp-size-35);
+}
+
+.tellUs p {
+  margin: 0;
+  color: var(--hp-mid);
+  font-size: var(--hp-space-16);
+  line-height: var(--hp-size-23);
+}
+
+.tellUsText {
+  height: var(--hp-size-110);
+  padding: var(--hp-space-14);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-size-15);
+  line-height: var(--hp-size-22);
+  resize: vertical;
+}
+
+.tellUsText::placeholder {
+  color: var(--hp-graphite);
+  opacity: 1;
+}
+
+.tellUsText:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-accent);
+  outline-offset: var(--hp-space-2);
+}
+
+.tellUsButton {
+  composes: fieldButton;
+  width: 100%;
+}
+
+.tellUsButton:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
+  outline-offset: var(--hp-space-2);
+}
+
+.onlyPhone {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .head,
+  .body {
+    padding-inline: var(--hp-space-20);
+  }
+
+  .body {
+    flex-direction: column;
+    gap: var(--hp-space-40);
+  }
+
+  .rail,
+  .tellUs {
+    width: 100%;
+  }
+}
+
+/*
+ * Phones (Pen 08 · qxLIy): a 48px outlined field (Enter searches), results
+ * stacked; no results become compact rows and a bone "Still want it?" box.
+ */
+@media (max-width: 767px) {
+  .head {
+    gap: var(--hp-space-12);
+    padding: var(--hp-space-10) var(--hp-space-12) var(--hp-space-16);
+    background: var(--hp-paper);
+    border-bottom: var(--hp-size-1) solid var(--hp-line);
+  }
+
+  .field {
+    gap: var(--hp-space-10);
+    height: var(--hp-space-48);
+    padding: 0 var(--hp-space-4) 0 var(--hp-space-12);
+    border-radius: var(--hp-space-6);
+  }
+
+  .fieldIcon {
+    width: var(--hp-space-20);
+    height: var(--hp-space-20);
+  }
+
+  .fieldInput {
+    font-size: var(--hp-space-16);
+    line-height: var(--hp-size-23);
+  }
+
+  .fieldButton {
+    height: var(--hp-space-40);
+    padding: 0 var(--hp-space-12);
+  }
+
+  .correction,
+  .scopes {
+    padding-inline: var(--hp-space-8);
+  }
+
+  .scopes ul {
+    flex-wrap: nowrap;
+    margin-inline: calc(var(--hp-space-20) * -1);
+    padding-inline: var(--hp-space-20);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .scope {
+    flex: none;
+  }
+
+  .body {
+    padding-top: var(--hp-space-24);
+  }
+
+  .productRow,
+  .productGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--hp-space-12);
+  }
+
+  .productRow > :nth-child(3) {
+    display: none;
+  }
+
+  .projectRow {
+    grid-template-columns: 1fr;
+  }
+
+  .projectImage {
+    width: var(--hp-space-96);
+    height: var(--hp-size-76);
+  }
+
+  .groupTitle h2 {
+    font-size: var(--hp-space-20);
+    line-height: var(--hp-size-29);
+  }
+
+  .onlyDesktop {
+    display: none;
+  }
+
+  .onlyPhone {
+    display: inline;
+  }
+
+  /* Pen 08 C: padding 24 / 20, gap 14. */
+  .emptyBody {
+    gap: var(--hp-space-14);
+    padding: var(--hp-space-24) var(--hp-space-20) var(--hp-space-40);
+  }
+
+  .empty {
+    gap: var(--hp-space-14);
+  }
+
+  .emptyIcon {
+    display: none;
+  }
+
+  .emptyTitle {
+    font-size: var(--hp-size-22);
+    letter-spacing: 0;
+    line-height: var(--hp-space-28);
+  }
+
+  .emptyLead {
+    font-size: var(--hp-space-16);
+    line-height: var(--hp-size-23);
+  }
+
+  .options {
+    grid-template-columns: 1fr;
+    gap: var(--hp-space-14);
+  }
+
+  .option {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--hp-space-12);
+    min-height: var(--hp-space-64);
+    padding: 0 var(--hp-space-14);
+    border-radius: var(--hp-space-8);
+  }
+
+  .optionImage,
+  .option .eyebrow {
+    display: none;
+  }
+
+  .optionIcon,
+  .optionArrow {
+    display: flex;
+    flex: none;
+    color: var(--hp-ink);
+  }
+
+  .optionText {
+    flex: 1 1 0;
+    gap: 0;
+    min-width: 0;
+    padding: var(--hp-space-10) 0;
+    background: transparent;
+  }
+
+  .optionText h2 {
+    font-size: var(--hp-size-15);
+    line-height: var(--hp-size-22);
+  }
+
+  .optionDetail {
+    font-size: var(--hp-size-13);
+    line-height: var(--hp-size-19);
+  }
+
+  /* "Still want it?": bone box, outlined ink button. */
+  .tellUs {
+    gap: var(--hp-space-10);
+    padding: var(--hp-size-18);
+    border-radius: var(--hp-space-8);
+    background: var(--hp-bone);
+  }
+
+  .tellUs h2 {
+    color: var(--hp-ink);
+    font-size: var(--hp-size-17);
+    line-height: var(--hp-size-25);
+  }
+
+  .tellUs p {
+    color: var(--hp-graphite);
+    font-size: var(--hp-size-15);
+    line-height: var(--hp-size-22);
+  }
+
+  /* Pen 08 C has no text box; the search text still goes to the contact form. */
+  .tellUsText {
+    display: none;
+  }
+
+  .tellUsButton {
+    width: fit-content;
+    padding: 0 var(--hp-space-16);
+    outline: var(--hp-size-1_5) solid var(--hp-ink);
+    outline-offset: var(--hp-size--0_75);
+    background: transparent;
+    color: var(--hp-ink);
+  }
+
+  .tellUsButton:hover {
+    background: var(--hp-paper);
+  }
+
+  .tellUsButton:focus-visible {
+    outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  }
+}

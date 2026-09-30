@@ -36,6 +36,8 @@ const storageFor = (deps: Pick<FileDeps, "storage" | "publicStorage">, row: { bu
  * permissions.
  */
 export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, ownerId: string) => Promise<boolean>> = {
+  /** Content-page images are public once shown; in admin, content staff manage them. */
+  CONTENT_PAGE: async (_db, actor) => actor.type === "user" && Boolean(actor.staff?.permissions.has("CONTENT_MANAGE")),
   HELP_REQUEST: async (db, actor, ownerId) => {
     const [row] = await db.select().from(schema.helpRequests).where(eq(schema.helpRequests.id, ownerId));
     return Boolean(row) && canViewHelpRequest(actor, row!).outcome === "allow";

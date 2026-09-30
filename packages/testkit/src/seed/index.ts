@@ -1,5 +1,6 @@
 import { insertTestPerson, TEST_PEOPLE } from "@holypearls/auth";
 import { seedCatalogue, seedMerchandising } from "./catalogue.js";
+import { seedContent } from "./content.js";
 import { seedHubs } from "./hubs.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
@@ -61,6 +62,9 @@ export const catalogueSeedStep: SeedStep = {
   },
 };
 
+/** Project pages, demo case studies, guides and About (T02-06). */
+export const contentSeedStep: SeedStep = { name: "content: projects, demo case studies, guides and About", run: seedContent };
+
 export const catalogueMediaSeedStep = (media: SeedMediaStore): SeedStep => ({
   name: "catalogue: one sample image per product",
   run: (tx) => seedCatalogueMedia(tx, media),
@@ -73,6 +77,7 @@ export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
   pricingSeedStep,
+  contentSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 

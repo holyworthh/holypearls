@@ -31,11 +31,11 @@ const PRICE_STATE: Record<string, PriceState> = {
 
 export const mediaUrl = (fileId: string, kind: "preview" | "thumbnail") => `/api/v1/media/${fileId}/${kind}`;
 
-const image = (fileId: string | null, alt: string | null, width: number | null, height: number | null): PublicImage | null =>
+export const image = (fileId: string | null, alt: string | null, width: number | null, height: number | null): PublicImage | null =>
   fileId ? { url: mediaUrl(fileId, "preview"), thumbnailUrl: mediaUrl(fileId, "thumbnail"), alt: alt ?? "", width, height } : null;
 
 /** Visible product, in a published category (and a published parent, if it has one). */
-function visibleProduct(): SQL {
+export function visibleProduct(): SQL {
   return sql`${schema.products.status} in ('PUBLISHED', 'TEMPORARILY_UNAVAILABLE')
     and ${schema.products.listed}
     and exists (
@@ -100,7 +100,7 @@ export function workingDaysUntil(date: string, { now = new Date(), timeZone = BU
 
 const textArray = (values: readonly string[]) => sql`${`{${values.join(",")}}`}::text[]`;
 
-const cardColumns = {
+export const cardColumns = {
   slug: schema.products.slug,
   name: schema.products.name,
   summary: schema.products.summary,
@@ -128,7 +128,7 @@ type CardRow = {
   moq: number | null;
 };
 
-const toCard = (row: CardRow): PublicProductCard => ({
+export const toCard = (row: CardRow): PublicProductCard => ({
   slug: row.slug,
   name: row.name,
   summary: row.summary,
@@ -161,7 +161,7 @@ function categoryCondition(slugs: string[]): SQL {
   )`;
 }
 
-async function listOrder(db: Database, key: string): Promise<string[]> {
+export async function listOrder(db: Database, key: string): Promise<string[]> {
   const [row] = await db.select({ ids: schema.merchandisingLists.productIds }).from(schema.merchandisingLists).where(eq(schema.merchandisingLists.key, key));
   return row?.ids ?? [];
 }
@@ -313,7 +313,7 @@ export async function searchSuggestions(db: Database, q: string): Promise<Search
     .slice(0, 3)
     .map(({ slug, name, count }) => ({ slug, name, count }));
 
-  return { q, searches, categories, products: await suggestedProducts(db, q, 3), guides: [] };
+  return { q, searches, shortcuts: [], categories, products: await suggestedProducts(db, q, 3), guides: [] };
 }
 
 /**
@@ -335,7 +335,7 @@ export async function suggestedProducts(db: Database, q: string, limit = 3): Pro
   return rows.map(toCard);
 }
 
-async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
+export async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProductCard[]> {
   if (!slugs.length) return [];
   const rows = (await db
     .select(cardColumns)
@@ -345,7 +345,7 @@ async function cardsBySlugs(db: Database, slugs: string[]): Promise<PublicProduc
   return slugs.flatMap((slug) => rows.filter((row) => row.slug === slug)).map(toCard);
 }
 
-async function cardsByIds(db: Database, ids: string[]): Promise<PublicProductCard[]> {
+export async function cardsByIds(db: Database, ids: string[]): Promise<PublicProductCard[]> {
   if (!ids.length) return [];
   const rows = (await db
     .select({ ...cardColumns, id: schema.products.id })
@@ -458,16 +458,33 @@ export async function publicHub(db: Database, slug: string) {
   };
 }
 
+/** A content image is public only while the live copy of a PUBLISHED page uses it (T02-06). Drafts never count. */
+export async function isContentMediaPublic(db: Database, fileId: string): Promise<boolean> {
+  const [onPage] = await db
+    .select({ id: schema.contentPages.id })
+    .from(schema.contentPagePublishedMedia)
+    .innerJoin(schema.contentPages, eq(schema.contentPages.id, schema.contentPagePublishedMedia.pageId))
+    .where(and(eq(schema.contentPagePublishedMedia.fileId, fileId), eq(schema.contentPages.status, "PUBLISHED")))
+    .limit(1);
+  return Boolean(onPage);
+}
+
 /**
- * Public images: a READY product-media file that belongs to a visible product
- * or a published category. Anything else is 404, so drafts' images stay private.
+ * Public images: a READY media file that belongs to a visible product, a
+ * published category or a published content page's live copy. Anything else
+ * is 404, so drafts' images stay private. `content` says the file is public
+ * because of a content page, which can be unpublished at any time.
  */
 export async function publicMediaFile(db: Database, fileId: string) {
   const [file] = await db
     .select()
     .from(schema.files)
-    .where(and(eq(schema.files.id, fileId), eq(schema.files.purpose, "PRODUCT_MEDIA"), eq(schema.files.status, "READY")));
+    .where(and(eq(schema.files.id, fileId), inArray(schema.files.purpose, ["PRODUCT_MEDIA", "CONTENT_MEDIA"]), eq(schema.files.status, "READY")));
   if (!file) throw new AppError("NOT_FOUND");
+  if (file.purpose === "CONTENT_MEDIA") {
+    if (await isContentMediaPublic(db, fileId)) return { file, content: true };
+    throw new AppError("NOT_FOUND");
+  }
   const [onProduct] = await db
     .select({ id: schema.products.id })
     .from(schema.productMedia)
@@ -481,8 +498,10 @@ export async function publicMediaFile(db: Database, fileId: string) {
         .from(schema.categories)
         .where(and(eq(schema.categories.heroFileId, fileId), eq(schema.categories.status, "PUBLISHED")))
         .limit(1);
-  if (!onCategory) throw new AppError("NOT_FOUND");
-  return file;
+  if (onCategory) return { file, content: false };
+  // A product photo reused on a content page is public while that page is.
+  if (await isContentMediaPublic(db, fileId)) return { file, content: true };
+  throw new AppError("NOT_FOUND");
 }
 
 /** One visible product for its public page (images, specifications, FAQ, related). */

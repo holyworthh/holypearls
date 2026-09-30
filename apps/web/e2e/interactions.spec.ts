@@ -36,26 +36,26 @@ test("search suggests searches, categories and products as you type, by keyboard
   await expect(page).toHaveURL(/\/products\/flat-embroidery/);
 });
 
-test("the header search opens the same suggestions and 'See all results' searches the directory", async ({ page }) => {
+test("the header search opens the same suggestions and 'See all results' searches the whole site", async ({ page }) => {
   test.skip(isPhone(page.viewportSize()?.width), "The header search field is desktop only; phones use the menu search.");
   await page.goto("/");
-  await page.getByRole("banner").getByRole("button", { name: "Search products" }).click();
-  const box = page.getByRole("dialog", { name: "Search" }).getByRole("combobox", { name: "Search products" });
+  await page.getByRole("banner").getByRole("button", { name: "Search", exact: true }).click();
+  const box = page.getByRole("dialog", { name: "Search" }).getByRole("combobox", { name: "Search", exact: true });
   await expect(box).toBeFocused();
   await box.fill("polo");
   await expect(page.getByRole("listbox", { name: /Suggestions/ })).toBeVisible();
   await expectNoAxeViolations(page);
   await page.getByRole("link", { name: /See all results for ‘polo’/ }).click();
-  await expect(page).toHaveURL(/\/products\?q=polo/);
+  await expect(page).toHaveURL(/\/search\?q=polo/);
 });
 
 test("the header search is a modal dialog: focus starts in it, stays in it, and returns to the trigger", async ({ page }) => {
   test.skip(isPhone(page.viewportSize()?.width), "The header search field is desktop only; phones use the menu search.");
   await page.goto("/");
-  const trigger = page.getByRole("banner").getByRole("button", { name: "Search products" });
+  const trigger = page.getByRole("banner").getByRole("button", { name: "Search", exact: true });
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "Search" });
-  await expect(dialog.getByRole("combobox", { name: "Search products" })).toBeFocused();
+  await expect(dialog.getByRole("combobox", { name: "Search", exact: true })).toBeFocused();
   await dialog.getByRole("combobox").fill("polo");
   await expect(page.getByRole("listbox", { name: /Suggestions/ })).toBeVisible();
   // Tab and Shift+Tab never reach the header links or anything else behind it.

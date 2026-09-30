@@ -63,11 +63,31 @@ export const helpContextSchema = z
   .strict();
 export type HelpContext = z.infer<typeof helpContextSchema>;
 
+/** What a contact-page enquiry is about (Pen 60 · Czozq). */
+export const helpTopicSchema = z.enum(["NEW_ORDER", "EXISTING_ORDER", "COMPANY_ACCOUNT", "SOMETHING_ELSE"]);
+export type HelpTopic = z.infer<typeof helpTopicSchema>;
+export const HELP_TOPIC_LABEL: Record<HelpTopic, string> = {
+  NEW_ORDER: "New order",
+  EXISTING_ORDER: "An existing order",
+  COMPANY_ACCOUNT: "Company account",
+  SOMETHING_ELSE: "Something else",
+};
+
 export const createHelpRequestSchema = z.object({
   message: z.string().trim().min(1, "Tell us what you need help with").max(4000, "Use 4,000 characters or fewer"),
   /** Guests give an email so HolyPearls can reply; signed-in customers use their account's. */
   email: z.email("Enter an email like name@example.com").optional(),
   name: z.string().trim().max(120).optional(),
+  topic: helpTopicSchema.optional(),
+  company: z.string().trim().max(120, "Use 120 characters or fewer").optional(),
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .regex(/^\+?[0-9 ()-]{7,30}$/, "Enter a phone number like +234 800 000 0000")
+    .optional(),
+  /** Uploaded files to attach (logo, references, brief); they join the request when it's sent. */
+  fileIds: z.array(z.uuid()).max(5, "Attach up to 5 files").optional(),
   context: helpContextSchema,
 });
 
@@ -80,6 +100,9 @@ export const helpRequestSchema = z.object({
   reference: z.string(),
   status: helpStatusSchema,
   message: z.string(),
+  topic: helpTopicSchema.nullable(),
+  company: z.string().nullable(),
+  phone: z.string().nullable(),
   context: helpContextSchema,
   createdAt: isoDate,
   replies: z.array(helpReplySchema),

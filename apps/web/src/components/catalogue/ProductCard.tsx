@@ -38,12 +38,15 @@ export function ProductCard({
   variant = "standard",
   tight = false,
   short = false,
+  square = false,
 }: {
   product: PublicProductCard;
   headingLevel?: 2 | 3;
   variant?: "standard" | "compact";
   tight?: boolean;
   short?: boolean;
+  /** Square image, as on the search results page (Pen 07: 300 × 302). */
+  square?: boolean;
 }) {
   const Heading = `h${headingLevel}` as "h2" | "h3";
   const full = priceLine(product);
@@ -68,7 +71,7 @@ export function ProductCard({
   }
   return (
     <article className={`${styles.card} ${tight ? styles.tight : ""}`}>
-      <div className={styles.media}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" /> : null}</div>
+      <div className={`${styles.media} ${square ? styles.square : ""}`}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" /> : null}</div>
       <div className={styles.text}>
         <Heading className={styles.title}>
           <a className={styles.cardLink} href={`/products/${product.slug}`}>

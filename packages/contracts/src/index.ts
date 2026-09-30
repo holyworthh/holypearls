@@ -13,3 +13,5 @@ export * from "./platform.js";
 export * from "./storefront.js";
 export * from "./pricing.js";
 export * from "./configuration.js";
+export * from "./content.js";
+export * from "./search.js";

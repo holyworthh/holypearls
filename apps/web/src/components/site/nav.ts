@@ -20,17 +20,19 @@ export interface TopItem {
 
 export const categoryHref = (slug: string) => `/categories/${slug}`;
 
+export const projectHref = (slug: string) => `/projects/${slug}`;
+
 /**
  * Goals for "Shop by need" (Pen HP/Nav/MegaMenu) and the homepage's "What do you
- * need?". Each goes to the category hub that serves it until the project pages
- * arrive (T02-06, T05-01).
+ * need?". Each goes to its project page (T02-06); packaging has no project
+ * page, so it goes to its category hub.
  */
 export const GOALS: { label: string; body: string; href: string }[] = [
-  { label: "Staff & uniforms", body: "Polos, aprons and workwear for your whole team", href: categoryHref("apparel-garment-production") },
-  { label: "Events", body: "Backdrops, roll-ups, name badges and crew shirts", href: categoryHref("large-format-signage-displays") },
-  { label: "Business launch", body: "Business cards, stationery, labels and signs", href: categoryHref("print-business-stationery") },
+  { label: "Staff & uniforms", body: "Polos, aprons and workwear for your whole team", href: projectHref("staff-team-branding") },
+  { label: "Events", body: "Backdrops, roll-ups, name badges and crew shirts", href: projectHref("event-branding") },
+  { label: "Business launch", body: "Business cards, stationery, labels and signs", href: projectHref("business-launch") },
   { label: "Packaging", body: "Paper bags, mailers and presentation boxes", href: categoryHref("bags-packaging") },
-  { label: "Gifts & merchandise", body: "Mugs, bottles and welcome packs for staff or clients", href: categoryHref("promotional-products-corporate-gifts") },
+  { label: "Gifts & merchandise", body: "Mugs, bottles and welcome packs for staff or clients", href: projectHref("corporate-gifts") },
 ];
 
 /**
@@ -66,15 +68,20 @@ export function buildNavigation(data: StorefrontNavigation): TopItem[] {
     },
     {
       label: "Projects",
-      href: "/products",
+      href: "/projects",
       menu: {
         columns: [
-          { heading: "PLAN A PROJECT", links: GOALS.map((goal) => ({ href: goal.href, label: goal.label })) },
+          {
+            heading: "PLAN A PROJECT",
+            links: GOALS.filter((goal) => goal.href.startsWith("/projects/")).map((goal) => ({ href: goal.href, label: goal.label })),
+            all: { href: "/projects", label: "View all projects →" },
+          },
           {
             heading: "HOW IT WORKS",
             links: [
-              { href: "/#how-it-works", label: "How ordering works" },
-              { href: "/#how-its-made", label: "How it's made" },
+              { href: "/resources/after-you-accept-a-quote", label: "How ordering works" },
+              { href: "/resources/how-proofs-work", label: "How proofs work" },
+              { href: "/our-work", label: "Work we've made" },
             ],
           },
         ],
@@ -87,7 +94,7 @@ export function buildNavigation(data: StorefrontNavigation): TopItem[] {
     },
     { label: "Apparel", href: categoryHref("apparel-garment-production") },
     { label: "Print & Display", href: categoryHref("print-business-stationery") },
-    { label: "Our Work", href: "/#how-its-made" },
-    { label: "Resources", href: "/#how-it-works" },
+    { label: "Our Work", href: "/our-work" },
+    { label: "Resources", href: "/resources" },
   ];
 }

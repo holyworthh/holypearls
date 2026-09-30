@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { getNavigation } from "../../lib/storefront";
 import { Icon } from "../pen/Icon";
 import footer from "./footer.module.css";
-import { buildNavigation, categoryHref } from "./nav";
+import { buildNavigation, categoryHref, projectHref } from "./nav";
 import { Newsletter } from "./Newsletter";
 import { SiteHeader } from "./SiteHeader";
 import styles from "./site.module.css";
@@ -49,20 +49,20 @@ const FOOTER_COLUMNS: { id: string; head: string; links: [string, string][] }[] 
     head: "PROJECTS",
     links: [
       ["Start a Project", "/contact?topic=project"],
-      ["Staff uniforms", categoryHref("apparel-garment-production")],
-      ["Events", categoryHref("large-format-signage-displays")],
-      ["Brand launches", categoryHref("print-business-stationery")],
-      ["Gifts & kits", categoryHref("promotional-products-corporate-gifts")],
+      ["Staff uniforms", projectHref("staff-team-branding")],
+      ["Events", projectHref("event-branding")],
+      ["Brand launches", projectHref("business-launch")],
+      ["Gifts & kits", projectHref("corporate-gifts")],
     ],
   },
   {
     id: "company",
     head: "COMPANY",
     links: [
-      ["Our Work", "/#how-its-made"],
-      ["How it works", "/#how-it-works"],
-      ["Production studio", "/#how-its-made"],
-      ["Resources", "/help"],
+      ["Our Work", "/our-work"],
+      ["How it works", "/about#how-we-work"],
+      ["Production studio", "/about"],
+      ["Resources", "/resources"],
       ["Contact", "/contact"],
     ],
   },

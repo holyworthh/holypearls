@@ -12,6 +12,8 @@ import { categoryHref } from "../../../components/site/nav";
 import { DELIVERY_COVERAGE, SiteShell } from "../../../components/site/SiteShell";
 import { serverApi } from "../../../lib/server-api";
 import { getProduct } from "../../../lib/storefront";
+import { JsonLd } from "../../../components/seo/JsonLd";
+import { breadcrumbLd, productLd } from "../../../lib/seo";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string }> };
 const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
@@ -74,9 +76,11 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const initialDraft = draft?.ok && draft.data.productSlug === product.slug ? draft.data : null;
 
   const garment = product.family === "GARMENT" && product.configurator && product.available;
+  const ld = <JsonLd data={[productLd(product), breadcrumbLd([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: product.name, path: `/products/${product.slug}` }])]} />;
   if (!garment) {
     return (
       <SiteShell>
+        {ld}
         <section className={p.top} aria-labelledby="product-title">
           <nav className={p.breadcrumb} aria-label="Breadcrumb">
             <ol>
@@ -185,6 +189,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
   const branding = brandingCopy(config.allowedDecorations);
   return (
     <SiteShell>
+      {ld}
       <section className={g.top} aria-labelledby="product-title">
         <nav className={`${p.breadcrumb} ${g.crumbs}`} aria-label="Breadcrumb">
           <ol>

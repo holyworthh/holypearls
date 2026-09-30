@@ -75,6 +75,23 @@ import {
   meSchema,
   revokeAllResultSchema,
   sessionListSchema,
+  searchSuggestionsSchema,
+  searchResultsSchema,
+  searchClickSchema,
+  searchPhraseListSchema,
+  createSearchPhraseSchema,
+  searchPhraseSchema,
+  searchTargetOptionsSchema,
+  searchReportSchema,
+  sitemapSchema,
+  contentIndexSchema,
+  publicContentPageSchema,
+  adminContentListSchema,
+  createContentPageSchema,
+  adminContentPageSchema,
+  updateContentPageSchema,
+  publishContentPageSchema,
+  changeContentStatusSchema,
 } from "@holypearls/contracts";
 import { z } from "zod";
 
@@ -517,9 +534,120 @@ export function buildOpenApiDocument() {
           responses: { 200: { description: "The hub", content: json(publicHubSchema) }, 404: error("Not published or unknown") },
         },
       },
+      "/v1/catalogue/suggest": {
+        get: {
+          summary: "Typeahead: everyday searches (including staff phrases), categories, products and a guide for what's typed (public, SEARCH limit)",
+          parameters: [{ name: "q", in: "query", required: true, schema: { type: "string", maxLength: 100 } }],
+          responses: { 200: { description: "Suggestions", content: json(searchSuggestionsSchema) }, 429: error("SEARCH limit (RATE_LIMITED)") },
+        },
+      },
+      "/v1/search": {
+        get: {
+          summary: "Search results grouped by products, projects and guides, with spelling correction, 'narrow it down' and closest matches when nothing is found. Never cached; results pages are noindex (PUB-FR-006, 007, 016)",
+          parameters: [
+            { name: "q", in: "query", required: true, schema: { type: "string", maxLength: 100 } },
+            { name: "scope", in: "query", schema: { type: "string", enum: ["all", "products", "projects", "guides"] } },
+            { name: "page", in: "query", schema: { type: "integer", minimum: 1, maximum: 50 } },
+            { name: "exact", in: "query", description: "1 searches exactly what was typed, without correction", schema: { type: "string", enum: ["0", "1"] } },
+          ],
+          responses: { 200: { description: "Results", content: json(searchResultsSchema) }, 400: error("Bad query"), 429: error("SEARCH limit (RATE_LIMITED)") },
+        },
+      },
+      "/v1/search/clicks": {
+        post: {
+          summary: "Record which result was chosen, for search analytics; no personal details are kept",
+          requestBody: { required: true, content: json(searchClickSchema) },
+          responses: { 204: { description: "Recorded" }, 400: error("Bad input"), 429: error("SEARCH limit (RATE_LIMITED)") },
+        },
+      },
+      "/v1/admin/search/phrases": {
+        get: { summary: "Everyday search phrases and where they lead (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Phrases", content: json(searchPhraseListSchema) }, ...staffOnly } },
+        post: {
+          summary: "Add an everyday phrase leading to a product, category or page (audited); the index refreshes",
+          requestBody: { required: true, content: json(createSearchPhraseSchema) },
+          responses: { 201: { description: "Added", content: json(searchPhraseSchema) }, 400: error("Bad phrase or unknown target"), ...staffOnly },
+        },
+      },
+      "/v1/admin/search/phrases/{id}": {
+        delete: { summary: "Remove a phrase (audited)", parameters: [uuidParam("id")], responses: { 204: { description: "Removed" }, ...staffOnly } },
+      },
+      "/v1/admin/search/targets": {
+        get: {
+          summary: "Products, categories and pages a phrase can lead to",
+          parameters: [{ name: "q", in: "query", required: true, schema: { type: "string", maxLength: 60 } }],
+          responses: { 200: { description: "Targets", content: json(searchTargetOptionsSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/search/report": {
+        get: { summary: "Last 30 days: searches, searches with no results and the most common of each", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
+      },
+      "/v1/seo/sitemap": {
+        get: { summary: "Published, indexable public pages for the XML sitemap (PUB-SEO-009)", responses: { 200: { description: "Pages", content: json(sitemapSchema) } } },
+      },
+      "/v1/content": {
+        get: {
+          summary: "Published project pages, guides or case studies, lead items first (public, cached)",
+          parameters: [{ name: "type", in: "query", required: true, schema: { type: "string", enum: ["PROJECT", "GUIDE", "CASE_STUDY"] } }],
+          responses: { 200: { description: "Cards", content: json(contentIndexSchema) }, 400: error("Bad type") },
+        },
+      },
+      "/v1/content/{type}/{slug}": {
+        get: {
+          summary: "One published content page: the last published copy only (public, cached)",
+          parameters: [
+            { name: "type", in: "path", required: true, schema: { type: "string", enum: ["PROJECT", "GUIDE", "CASE_STUDY", "ABOUT"] } },
+            { name: "slug", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: { 200: { description: "The page", content: json(publicContentPageSchema) }, 404: error("Not published or unknown") },
+        },
+      },
+      "/v1/admin/content": {
+        get: {
+          summary: "Content pages for the editor, optionally one type (CONTENT_MANAGE)",
+          parameters: [{ name: "type", in: "query", schema: { type: "string", enum: ["PROJECT", "GUIDE", "CASE_STUDY", "ABOUT"] } }],
+          responses: { 200: { description: "Pages", content: json(adminContentListSchema) }, ...staffOnly },
+        },
+        post: {
+          summary: "Create a draft page (CONTENT_MANAGE, audited)",
+          requestBody: { required: true, content: json(createContentPageSchema) },
+          responses: { 201: { description: "Created", content: json(adminContentPageSchema) }, 400: error("Bad input or address taken"), ...staffOnly },
+        },
+      },
+      "/v1/admin/content/{id}": {
+        get: { summary: "One page's working copy (CONTENT_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "The page", content: json(adminContentPageSchema) }, ...staffOnly } },
+        put: {
+          summary: "Save the working copy; rich text is cleaned and what was removed is reported. The public page doesn't change (CONTENT_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(updateContentPageSchema) },
+          responses: { 200: { description: "Saved", content: json(adminContentPageSchema) }, 400: error("Bad input"), 409: error("VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/content/{id}/publish": {
+        post: {
+          summary: "Publish the working copy; pages, search and the sitemap refresh (CONTENT_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(publishContentPageSchema) },
+          responses: { 200: { description: "Published", content: json(adminContentPageSchema) }, 409: error("Archived or VERSION_CONFLICT"), 422: error("Missing summary or text, or an image that is missing, still being checked or without alt text (RULE_FAILED, keyed by field)"), ...staffOnly },
+        },
+      },
+      "/v1/admin/content/{id}/status": {
+        post: {
+          summary: "Unpublish (PUBLISHED → DRAFT), archive, or restore (ARCHIVED → DRAFT) a page; unpublishing and archiving make its images private (CONTENT_MANAGE, audited)",
+          parameters: [uuidParam("id")],
+          requestBody: { required: true, content: json(changeContentStatusSchema) },
+          responses: { 200: { description: "Changed", content: json(adminContentPageSchema) }, 409: error("Not allowed or VERSION_CONFLICT"), ...staffOnly },
+        },
+      },
+      "/v1/admin/content/media/{fileId}/{kind}": {
+        get: {
+          summary: "A media-library image for the content editor, including draft pages' images (CONTENT_MANAGE). Never cached publicly.",
+          parameters: [uuidParam("fileId"), { name: "kind", in: "path", required: true, schema: { type: "string", enum: ["preview", "thumbnail"] } }],
+          responses: { 200: { description: "Image bytes" }, ...staffOnly },
+        },
+      },
       "/v1/media/{fileId}/{kind}": {
         get: {
-          summary: "A product or category image (preview or thumbnail); only for visible products and published categories. Cached for a year.",
+          summary: "A product, category or content-page image (preview or thumbnail); only for visible products, published categories and images the live copy of a published page uses. Product images cache for a year, content images for five minutes.",
           parameters: [uuidParam("fileId"), { name: "kind", in: "path", required: true, schema: { type: "string", enum: ["preview", "thumbnail"] } }],
           responses: { 200: { description: "Image bytes" }, 404: error("Not public") },
         },

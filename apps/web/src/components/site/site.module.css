@@ -617,14 +617,19 @@ button:focus-visible {
 }
 
 /* Pen HP/Nav/MobileHeader (390): 59.5px bar, 22px wordmark, 11px pearl, 44px taps, 8px right inset. */
-.mobileSearch {
+/* The phone header's search icon: opens the full-screen search (Pen 08). */
+.phoneSearch {
   display: flex;
   align-items: center;
   justify-content: center;
   width: var(--hp-touch-target);
   height: var(--hp-touch-target);
+  padding: 0;
+  border: 0;
   border-radius: var(--hp-r-control);
+  background: transparent;
   color: var(--hp-ink);
+  cursor: pointer;
 }
 
 @media (max-width: 1023px) {
@@ -651,14 +656,14 @@ button:focus-visible {
   }
 }
 
-.mobileSearch .icon,
+.phoneSearch .icon,
 .menuButton .icon {
   width: var(--hp-size-22);
   height: var(--hp-size-22);
 }
 
 @media (min-width: 1024px) {
-  .mobileSearch {
+  .phoneSearch {
     display: none;
   }
 }
@@ -696,8 +701,16 @@ button:focus-visible {
   translate: var(--hp-space-4) 0;
 }
 
-a.mobileSearch:hover {
+.phoneSearch {
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.phoneSearch:hover {
   background: var(--hp-bone);
+}
+
+.phoneSearch:active {
+  transform: scale(var(--hp-press-scale));
 }
 
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
