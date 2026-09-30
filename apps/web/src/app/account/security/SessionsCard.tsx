@@ -20,7 +20,7 @@ const relative = (iso: string, now = Date.now()) => {
 };
 
 /** "Where you're signed in" with sign out everywhere (Pen frame 90 and its states EQyq6). */
-export function SessionsCard({ initial }: { initial: Session[] | null }) {
+export function SessionsCard({ initial, total }: { initial: Session[] | null; total: number }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,7 +69,9 @@ export function SessionsCard({ initial }: { initial: Session[] | null }) {
     }
   };
 
-  const count = initial.length;
+  // The list shows this device and the most recent others; sign out everywhere ends them all.
+  const count = Math.max(total, initial.length);
+  const hidden = count - initial.length;
   return (
     <section className={`${styles.card} ${styles.sessionsCard}`} aria-labelledby="sessions-title">
       <h2 id="sessions-title" className={styles.cardTitle}>
@@ -88,6 +90,11 @@ export function SessionsCard({ initial }: { initial: Session[] | null }) {
           </li>
         ))}
       </ul>
+      {hidden > 0 ? (
+        <p className={`${styles.meta} ${styles.moreSessions}`}>
+          And {hidden} more {hidden === 1 ? "device" : "devices"} not active recently.
+        </p>
+      ) : null}
       <div className={styles.sessionActions}>
         <Button variant="destructive" onClick={() => setConfirming(true)}>
           Sign out everywhere
