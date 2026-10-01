@@ -8,3 +8,4 @@ export { previewFile } from "./files/processing.js";
 export { runDailyCleanup } from "./platform/cleanup.js";
 export { refreshSearchIndex } from "./catalogue/search.js";
 export { submitIndexNow } from "./catalogue/indexnow.js";
+export { checkPaymentAttempt, processPaystackEvent } from "./payments/payments.js";

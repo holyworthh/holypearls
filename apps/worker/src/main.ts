@@ -13,12 +13,15 @@ import {
   submitIndexNow,
   sendNotification,
   reportError,
+  checkPaymentAttempt,
+  processPaystackEvent,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
 import { createEmailSender } from "@holypearls/email";
 import { createStorage } from "@holypearls/storage";
 import { deadLetterName, Jobs, QUEUES, type QueueName } from "@holypearls/jobs";
+import { createPaymentGateway } from "@holypearls/payments";
 
 const env = loadWorkerEnv();
 const logger = createLogger({ service: "worker", environment: env.HP_ENV });
@@ -115,6 +118,29 @@ await jobs.work(
     logger.info({ queue: "seo.indexnow", submitted: result.submitted }, result.submitted ? "changed pages sent to IndexNow" : "IndexNow not set up here");
   }),
 );
+// Payments (T04-03): webhook follow-ups and the scheduled checks both confirm with Paystack's verify API.
+const payments = { db: database.db, gateway: createPaymentGateway(env) };
+await jobs.work(
+  "payment.verify",
+  track("payment.verify", async (payload) => {
+    const outcome = await processPaystackEvent(payments, payload.eventId);
+    logger.info({ queue: "payment.verify", requestId: payload.requestId, outcome }, "paystack event processed");
+  }),
+);
+await jobs.work(
+  "payment.check",
+  track("payment.check", async (payload) => {
+    const outcome = await checkPaymentAttempt(payments, payload.attemptId, payload.check);
+    logger.info({ queue: "payment.check", requestId: payload.requestId, check: payload.check, outcome }, "payment checked");
+  }),
+);
+for (const queue of ["payment.verify", "payment.check"] as const) {
+  await jobs.workDeadLetters(queue, async (payload) => {
+    // The 48-hour check still settles the attempt; staff see it on the Jobs page.
+    logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "payment job moved to dead-letter queue");
+    reportError(new Error("Payment job moved to the dead-letter queue"), { queue, requestId: payload.requestId });
+  });
+}
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");

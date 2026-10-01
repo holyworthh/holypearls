@@ -2,7 +2,8 @@ import type { Type } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { createBetterAuthIdentity, MemoryOutbox, signInAs, type TestPersonKey } from "@holypearls/auth";
 import { loadTestDatabaseEnv } from "@holypearls/config";
-import { buildSeedSteps, createTestDatabase, runSeed, type TestDatabase } from "@holypearls/testkit";
+import { buildSeedSteps, createTestDatabase, FakeGateway, runSeed, type TestDatabase } from "@holypearls/testkit";
+import type { PaymentGateway } from "@holypearls/payments";
 import type { AddressInfo } from "node:net";
 import { Writable } from "node:stream";
 import { Jobs } from "@holypearls/jobs";
@@ -26,6 +27,8 @@ export interface Harness {
   jobs: Jobs;
   database: TestDatabase;
   outbox: MemoryOutbox;
+  /** The payment provider the API uses: a FakeGateway unless the test passed another (or none). */
+  payments: PaymentGateway | null;
   logs: string[];
   /** Base URL of the listening API. */
   url: string;
@@ -48,6 +51,8 @@ export async function createHarness(
     seed?: boolean;
     /** Serve the demo slice routes. */
     jobs?: boolean;
+    /** The payment provider; a FakeGateway by default, null for "not set up". */
+    payments?: PaymentGateway | null;
     /** Share another harness's database, for example to run two API instances. */
     database?: TestDatabase;
   } = {},
@@ -89,7 +94,9 @@ export async function createHarness(
   const storageDir = await mkdtemp(join(tmpdir(), "hp-files-"));
   const storage = new LocalDiskStorage(join(storageDir, "private"), `${TEST_WEB_ORIGIN}/api`, TEST_SEAL_KEY);
   const publicStorage = new LocalDiskStorage(join(storageDir, "public-media"), `${TEST_WEB_ORIGIN}/api`, TEST_SEAL_KEY);
+  const payments = options.payments === undefined ? new FakeGateway() : options.payments;
   const app = await createApp({
+    payments,
     storage,
     publicStorage,
     db: database.db,
@@ -116,6 +123,7 @@ export async function createHarness(
     jobs,
     database,
     outbox,
+    payments,
     logs,
     url,
     authUrl,

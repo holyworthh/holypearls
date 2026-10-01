@@ -6,6 +6,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
+import { cancelCheckoutPayments, checkoutsWithActivePayment, paymentInProgress } from "../payments/payments.js";
 import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
 import { type Capabilities, garmentChoices, unavailableGarmentChoices } from "./capabilities.js";
@@ -36,11 +37,13 @@ export interface DraftAccess {
  * copy is closed, so the customer can never pay for something other than
  * what they now have (TECH-05 §1). The next "Check out" starts afresh.
  */
-export async function closeCheckoutsWith(db: Pick<Database, "update">, configurationId: string) {
-  await db
-    .update(schema.checkouts)
-    .set({ status: "ABANDONED" })
-    .where(and(eq(schema.checkouts.status, "OPEN"), sql`${configurationId}::uuid = any(${schema.checkouts.configurationIds})`));
+export async function closeCheckoutsWith(db: Database | Tx, configurationId: string) {
+  const holding = and(eq(schema.checkouts.status, "OPEN"), sql`${configurationId}::uuid = any(${schema.checkouts.configurationIds})`);
+  const open = await db.select({ id: schema.checkouts.id }).from(schema.checkouts).where(holding);
+  // A design being paid for can't change until the payment finishes (T04-03).
+  if ((await checkoutsWithActivePayment(db, open.map((row) => row.id))).length) throw paymentInProgress();
+  const closed = await db.update(schema.checkouts).set({ status: "ABANDONED" }).where(holding).returning({ id: schema.checkouts.id });
+  await cancelCheckoutPayments(db, closed.map((row) => row.id));
 }
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];

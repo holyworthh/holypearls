@@ -9,6 +9,7 @@ import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from 
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
 import { checkoutExpiry } from "./retention.js";
 import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snapshot.js";
+import { cancelCheckoutPayments, checkoutPayment, checkoutsWithActivePayment, type PaymentDeps, paymentInProgress, paymentSettings, paymentsBlocker, startCheckoutPayment } from "../payments/payments.js";
 
 /*
  * Checkout (T04-01, COM-FR-083–084, TECH-05 §1, Pen 43/44/45).
@@ -23,10 +24,13 @@ import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snap
  * One cart has at most one OPEN checkout (a partial unique index). Asking
  * again with the same items returns it, so a double submit makes one checkout;
  * with different items, or after a day, the old one is abandoned and a new
- * one starts with the customer's earlier answers.
+ * one starts with the customer's earlier answers. Once a payment is under way
+ * (T04-03) the checkout can't change or be replaced until it finishes.
  */
 
 type Db = Database;
+/** The database and the payment provider (null when payments aren't set up). */
+export type CheckoutDeps = Pick<PaymentDeps, "db" | "gateway">;
 type Row = typeof schema.checkouts.$inferSelect;
 
 /** An open checkout older than this is repriced on the next "Check out". */
@@ -82,7 +86,7 @@ function totalsOf(row: Pick<Row, "items" | "delivery" | "vatRateBps" | "vatOnDel
   );
 }
 
-export function checkoutView(row: Row): Checkout {
+function checkoutView(row: Row): Omit<Checkout, "payment"> {
   const items = row.items as FrozenItem[];
   const delivery = row.delivery as Delivery | null;
   const address = row.address as Checkout["address"];
@@ -95,7 +99,6 @@ export function checkoutView(row: Row): Checkout {
       message: address?.country === "NG" ? "Delivery to this address needs a quote. We'll send the delivery price before you pay." : "International freight is quoted by our team. We'll send the freight price before you pay.",
     });
   }
-  blockers.push({ code: "PAYMENTS_NOT_AVAILABLE", message: "Online payment isn't switched on yet." });
   const leads = items.flatMap((item) => (item.leadDays ? [item.leadDays] : []));
   return {
     id: row.id,
@@ -121,8 +124,11 @@ export function checkoutView(row: Row): Checkout {
   };
 }
 
-async function withCartState(db: Db, row: Row): Promise<Checkout> {
-  const view = checkoutView(row);
+async function withCartState(deps: CheckoutDeps, row: Row): Promise<Checkout> {
+  const db = deps.db;
+  const view: Checkout = { ...checkoutView(row), payment: await checkoutPayment(deps, row) };
+  const off = row.status === "OPEN" ? paymentsBlocker(deps.gateway, await paymentSettings(db)) : null;
+  if (off) view.blockers.push(off);
   if (row.cartId) {
     const [quote] = await db.select({ id: schema.cartItems.id }).from(schema.cartItems).where(and(eq(schema.cartItems.cartId, row.cartId), eq(schema.cartItems.group, "QUOTE"))).limit(1);
     view.quoteItemsLeftInCart = Boolean(quote);
@@ -130,21 +136,30 @@ async function withCartState(db: Db, row: Row): Promise<Checkout> {
   return view;
 }
 
-export async function getCheckout(db: Db, access: CartAccess, id: string) {
-  return withCartState(db, await load(db, access, id));
+export async function getCheckout(deps: CheckoutDeps, access: CartAccess, id: string) {
+  return withCartState(deps, await load(deps.db, access, id));
+}
+
+/** "Pay" (TECH-05 §5): the amount is the checkout's own total, worked out by the server. */
+export async function payCheckout(deps: PaymentDeps, access: CartAccess, id: string) {
+  const row = await load(deps.db, access, id);
+  return startCheckoutPayment(deps, access.actor, { row, blockers: checkoutView(row).blockers });
 }
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
 /** "Check out ready items" (Pen 41). Returns the cart's open checkout when nothing changed. */
-export async function startCheckout(db: Db, access: CartAccess): Promise<Checkout> {
+export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Promise<Checkout> {
+  const db = deps.db;
   const now = access.actor.now;
   const { cart, items } = await readyItems(db, access);
   if (!cart || !items.length) throw new AppError("RULE_FAILED", { message: "Nothing in your cart is ready to check out.", context: { reason: "NOTHING_READY" } });
 
   const [open] = await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "OPEN")));
   const ids = items.map((item) => item.configurationId);
-  if (open && sameSet(open.configurationIds, ids) && now.getTime() - open.createdAt.getTime() < FRESH_FOR_MS) return withCartState(db, open);
+  if (open && sameSet(open.configurationIds, ids) && now.getTime() - open.createdAt.getTime() < FRESH_FOR_MS) return withCartState(deps, open);
+  // A payment under way keeps its checkout: the customer finishes or waits for it first.
+  if (open && (await checkoutsWithActivePayment(db, [open.id])).length) return withCartState(deps, open);
 
   const tax = await currentTaxSetting(db, now);
   const vat = { vatRateBps: tax?.vatRateBps ?? 0, vatOnDelivery: tax?.vatOnDelivery ?? false };
@@ -188,7 +203,10 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
     // when nothing is ready any more, the old checkout still closes.
     const created = await db.transaction(async (tx) => {
       if (nowQuote.length) await tx.update(schema.cartItems).set({ group: "QUOTE" }).where(inArray(schema.cartItems.id, nowQuote));
-      if (open) await tx.update(schema.checkouts).set({ status: "ABANDONED" }).where(and(eq(schema.checkouts.id, open.id), eq(schema.checkouts.status, "OPEN")));
+      if (open) {
+        await tx.update(schema.checkouts).set({ status: "ABANDONED" }).where(and(eq(schema.checkouts.id, open.id), eq(schema.checkouts.status, "OPEN")));
+        await cancelCheckoutPayments(tx, [open.id]);
+      }
       if (!frozen.length) return null;
       const base = {
         cartId: cart.id,
@@ -213,20 +231,23 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
       return row!;
     });
     if (!created) throw new AppError("RULE_FAILED", { message: "Prices changed and your items now need a quote. They're in the quote group in your cart.", context: { reason: "NOTHING_READY" } });
-    return withCartState(db, created);
+    return withCartState(deps, created);
   } catch (error) {
     // Two "Check out" clicks at once: the index lets one through, and both get it.
     if ((error as { cause?: { code?: string } }).cause?.code === "23505") {
       const [winner] = await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "OPEN")));
-      if (winner) return withCartState(db, winner);
+      if (winner) return withCartState(deps, winner);
     }
     throw error;
   }
 }
 
-async function save(db: Db, row: Row, version: number, patch: Partial<typeof schema.checkouts.$inferInsert>) {
+async function save(deps: CheckoutDeps, row: Row, version: number, patch: Partial<typeof schema.checkouts.$inferInsert>) {
+  const db = deps.db;
   const expired = row.expiresAt !== null && row.expiresAt.getTime() <= Date.now();
   if (row.status !== "OPEN" || expired) throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
+  // The amount being paid can't change under the customer's payment (TECH-05 §1).
+  if ((await checkoutsWithActivePayment(db, [row.id])).length) throw paymentInProgress();
   const next = { ...row, ...patch } as Row;
   const totals = totalsOf(next);
   const [updated] = await db
@@ -235,7 +256,7 @@ async function save(db: Db, row: Row, version: number, patch: Partial<typeof sch
     .where(and(eq(schema.checkouts.id, row.id), eq(schema.checkouts.version, version), eq(schema.checkouts.status, "OPEN")))
     .returning();
   if (!updated) throw new AppError("CONFLICT", { message: "This checkout changed in another tab. Reload to continue.", context: { reason: "STALE_VERSION" } });
-  return withCartState(db, updated);
+  return withCartState(deps, updated);
 }
 
 /** The step after `step`, unless the customer already got further. */
@@ -245,17 +266,18 @@ const advance = (current: string, step: Step): Step => {
 };
 
 /** One transaction: a stale version leaves no customer record behind (review P2-01). */
-export async function setContact(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutContactSchema> & { version: number }) {
-  return db.transaction(async (transaction) => {
+export async function setContact(deps: CheckoutDeps, access: CartAccess, id: string, input: z.infer<typeof checkoutContactSchema> & { version: number }) {
+  return deps.db.transaction(async (transaction) => {
     const tx = transaction as unknown as Db;
     const row = await load(tx, access, id);
     // Signed in, the checkout belongs to the account's customer; the typed email is only where we write to.
     const owner = access.actor.type === "user" ? await ensureAccountCustomer(tx, access.actor.session, access.actor.now) : await ensureGuestCustomer(tx, input);
-    return save(tx, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
+    return save({ ...deps, db: tx }, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
   });
 }
 
-export async function setAddress(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutAddressSchema> & { version: number }) {
+export async function setAddress(deps: CheckoutDeps, access: CartAccess, id: string, input: z.infer<typeof checkoutAddressSchema> & { version: number }) {
+  const db = deps.db;
   const row = await load(db, access, id);
   if (!row.contact) throw new AppError("RULE_FAILED", { message: "Add your contact details first.", context: { reason: "STEP_ORDER" } });
   const zones = await loadZones(db);
@@ -275,7 +297,7 @@ export async function setAddress(db: Db, access: CartAccess, id: string, input: 
   void _version;
   // A new address means choosing delivery again (the rate may differ).
   const step: Step = STEPS.indexOf(row.step as Step) > STEPS.indexOf("delivery") ? "delivery" : advance(row.step, "address");
-  return save(db, row, input.version, {
+  return save(deps, row, input.version, {
     address: { ...address, landmark: address.landmark ?? null, postcode: address.postcode ?? null },
     deliveryZoneId: zone?.id ?? null,
     delivery,
@@ -283,18 +305,18 @@ export async function setAddress(db: Db, access: CartAccess, id: string, input: 
   });
 }
 
-export async function setDelivery(db: Db, access: CartAccess, id: string, input: { option: "STANDARD"; version: number }) {
-  const row = await load(db, access, id);
+export async function setDelivery(deps: CheckoutDeps, access: CartAccess, id: string, input: { option: "STANDARD"; version: number }) {
+  const row = await load(deps.db, access, id);
   const delivery = row.delivery as Delivery | null;
   if (!delivery) throw new AppError("RULE_FAILED", { message: "Add the delivery address first.", context: { reason: "STEP_ORDER" } });
-  return save(db, row, input.version, { delivery: { ...delivery, chosen: true }, step: advance(row.step, "delivery") });
+  return save(deps, row, input.version, { delivery: { ...delivery, chosen: true }, step: advance(row.step, "delivery") });
 }
 
-export async function setBilling(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutBillingSchema> & { version: number }) {
-  const row = await load(db, access, id);
+export async function setBilling(deps: CheckoutDeps, access: CartAccess, id: string, input: z.infer<typeof checkoutBillingSchema> & { version: number }) {
+  const row = await load(deps.db, access, id);
   if (!(row.delivery as Delivery | null)?.chosen) throw new AppError("RULE_FAILED", { message: "Choose delivery first.", context: { reason: "STEP_ORDER" } });
   if (!input.sameAsDelivery && !input.address) throw new AppError("VALIDATION_FAILED", { fieldErrors: { address: "Enter the billing address, or use the delivery address" } });
   const { version: _version, ...billing } = input;
   void _version;
-  return save(db, row, input.version, { billing, step: advance(row.step, "billing") });
+  return save(deps, row, input.version, { billing, step: advance(row.step, "billing") });
 }

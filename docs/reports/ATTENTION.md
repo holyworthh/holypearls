@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-10-01 (engineering review fixes).
+Last updated: 2026-10-01 (T04-03 payments).
 
 ## Decisions and actions needed
 
@@ -72,14 +72,24 @@ Extra placements currently keep the price an estimate. **Needed:** per-placement
 ### 22. Real delivery rates (T04-01)
 Checkout uses Pen 108's TEST DATA zones: Lagos Mainland ₦5,000, Lagos Island ₦6,500, Abuja FCT ₦12,000, other states "quote required", international "freight by quote", with transit Lagos 1–2 and elsewhere 2–5 working days. **Needed:** real zones, rates (before VAT) and transit days. You can enter them yourself in Admin → Delivery & installation.
 
-### 23. Paystack test keys (for T04-03, next)
-**Needed:** the Paystack **test** secret and public keys from the Paystack dashboard (Settings → API Keys & Webhooks). Until they arrive, payments are built and tested against a fake gateway, and checkout's Pay button stays off.
+### 23. ~~Paystack test keys~~ RESOLVED
+The test keys are in your local `.env` and on staging Render (`PAYSTACK_SECRET_KEY`, 2026-10-01).
+
+### 24. Paystack webhook URL (T04-03)
+Payments are confirmed by Paystack's webhook (then the verify API), with scheduled checks as the fallback. Without the webhook, a payment still settles, but only at the first check two minutes later. **In the Paystack dashboard** (Settings → API Keys & Webhooks), in **test mode**, set the webhook URL to `https://holypearls-api-staging.onrender.com/v1/webhooks/paystack`. Set the live-mode URL only when production takes payments (item 25).
+
+### 25. Before production takes payments (T04-03)
+Production accepts only a live key (`sk_live_`) and stays "payment not available" without one. Before launch:
+- Complete the Paystack setup checklist (TECH-05 §14): verified business, international payments, American Express and Apple Pay if wanted, USD and a Zenith Bank USD account if USD quotes are wanted.
+- Add the live secret key to production Render, and set the live webhook URL to `https://holypearls-api.onrender.com/v1/webhooks/paystack`, or the real API domain.
+- Online payments start **off** in every environment. Staff switch them on in Payment settings (T04-05). Until then I can switch staging on for testing if you say so.
 
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
 - **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header (planned for T15-01 unless you want it sooner).
 - **T04-01, delivery by quote:** when an address is in a "Quote required" zone (or abroad), checkout completes but payment waits for the delivery price. How should that price reach the customer: a delivery-only quote, or staff setting the price on the checkout?
+- **T04-03, closed popup:** Paystack reports an opened but unpaid transaction as "abandoned" straight away, even while the customer may still be choosing a method. The 2-minute and 10-minute checks therefore treat "abandoned" as still in progress, and only the 30-minute check settles it as not paid. The customer sees "Confirming your payment" in that time and can start a new payment after 10 minutes (TECH-05 §6). Fine, or should "abandoned" count from the first check?
 - **T04-01, several quote items:** "Submit quote items" makes one quote request (and email) per item. Fine for now, or should they become one request?
 - **T02-06, anonymous attachments:** visitors who aren't signed in can attach files only after sending a contact enquiry (uploads need a session, TECH-04). Fine, or should guests get an upload session earlier?
 - **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?

@@ -22,5 +22,8 @@ export const JOBS = Symbol("JOBS");
 export const HELP_DEPS = Symbol("HELP_DEPS");
 export type HelpDepsToken = HelpDeps;
 
+/** Database, jobs, the payment provider and the web origin, for payments (T04-03). */
+export const PAYMENT_DEPS = Symbol("PAYMENT_DEPS");
+
 /** Database, jobs and the private and public-media storage, for the files module. */
 export const FILE_DEPS = Symbol("FILE_DEPS");

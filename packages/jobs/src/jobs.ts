@@ -70,11 +70,16 @@ export class Jobs {
 
   /**
    * Queues a job. Pass the business change's transaction so the job exists
-   * only if the change commits (TECH-00 §5, TECH-02 §8).
+   * only if the change commits (TECH-00 §5, TECH-02 §8), and `startAfterSeconds`
+   * to run it later.
    */
-  async send<Q extends QueueName>(queue: Q, payload: JobPayload<Q>, options: { tx?: Transaction } = {}): Promise<string> {
+  async send<Q extends QueueName>(queue: Q, payload: JobPayload<Q>, options: { tx?: Transaction; startAfterSeconds?: number } = {}): Promise<string> {
     const data = QUEUES[queue].payload.parse(payload);
-    const id = await this.boss.send(queue, data, options.tx ? { db: executorFor(options.tx) } : {});
+    const id = await this.boss.send(queue, data, {
+      ...(options.tx ? { db: executorFor(options.tx) } : {}),
+      // A business deadline gets its own job, created when the deadline is set (TECH-02 §8).
+      ...(options.startAfterSeconds ? { startAfter: options.startAfterSeconds } : {}),
+    });
     if (!id) throw new Error(`Job was not queued: ${queue}`);
     return id;
   }

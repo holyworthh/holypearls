@@ -16,10 +16,11 @@ import { deviceKey } from "../configuration/drafts.controller.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
-import { DATABASE, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
+import type { PaymentDeps } from "../payments/payments.js";
+import { DATABASE, HELP_DEPS, type HelpDepsToken, PAYMENT_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, requestCartQuotes } from "./cart.js";
-import { getCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
+import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
 import { claimDeviceCommerce } from "./claim.js";
 import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
 
@@ -82,43 +83,60 @@ export class CartController {
 /** Checkout (COM-FR-083–084). The server works out every amount (TECH-05 §1). */
 @Controller("checkouts")
 export class CheckoutController {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  private readonly db: Database;
+
+  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {
+    this.db = deps.db;
+  }
 
   @Post()
   @HttpCode(200)
   @Idempotent()
   @RateLimit("COMMERCIAL_WRITE")
   async start(@Req() request: Request) {
-    return startCheckout(this.db, await access(this.db, request));
+    return startCheckout(this.deps, await access(this.db, request));
   }
 
   @Get(":id")
   async get(@Req() request: Request, @Param("id", uuid) id: string) {
-    return getCheckout(this.db, await access(this.db, request), id);
+    return getCheckout(this.deps, await access(this.db, request), id);
+  }
+
+  /**
+   * "Pay" (TECH-05 §5): starts a payment attempt for the checkout's own total
+   * and returns what Paystack's checkout needs. The same Idempotency-Key
+   * returns the same attempt.
+   */
+  @Post(":id/payments")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async pay(@Req() request: Request, @Param("id", uuid) id: string) {
+    return payCheckout(this.deps, await access(this.db, request), id);
   }
 
   @Put(":id/contact")
   @RateLimit("COMMERCIAL_WRITE")
   async contact(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutContactSchema)) body: z.infer<typeof checkoutContactSchema> & { version: number }) {
-    return setContact(this.db, await access(this.db, request), id, body);
+    return setContact(this.deps, await access(this.db, request), id, body);
   }
 
   @Put(":id/address")
   @RateLimit("COMMERCIAL_WRITE")
   async address(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutAddressSchema)) body: z.infer<typeof checkoutAddressSchema> & { version: number }) {
-    return setAddress(this.db, await access(this.db, request), id, body);
+    return setAddress(this.deps, await access(this.db, request), id, body);
   }
 
   @Put(":id/delivery")
   @RateLimit("COMMERCIAL_WRITE")
   async delivery(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutDeliverySchema)) body: z.infer<typeof checkoutDeliverySchema> & { version: number }) {
-    return setDelivery(this.db, await access(this.db, request), id, body);
+    return setDelivery(this.deps, await access(this.db, request), id, body);
   }
 
   @Put(":id/billing")
   @RateLimit("COMMERCIAL_WRITE")
   async billing(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutBillingSchema)) body: z.infer<typeof checkoutBillingSchema> & { version: number }) {
-    return setBilling(this.db, await access(this.db, request), id, body);
+    return setBilling(this.deps, await access(this.db, request), id, body);
   }
 }
 

@@ -41,6 +41,13 @@ export const QUEUES = {
   "search.refresh": { payload: payload({}), settings: { retryLimit: 3 } },
   /** Tells search engines which public addresses changed (IndexNow, PUB-SEO-009). */
   "seo.indexnow": { payload: payload({ paths: z.array(z.string().startsWith("/").max(300)).min(1).max(100) }), settings: { retryLimit: 3 } },
+  /**
+   * Asks Paystack for the final result of an unclear attempt. One job per check in the TECH-05 §6
+   * schedule, queued when the attempt starts; `check` is its place in that schedule.
+   */
+  "payment.check": { payload: payload({ attemptId: z.string().uuid(), check: z.number().int().min(1).max(20) }), settings: {} },
+  /** Follows up a saved Paystack webhook: confirms with the verify API before changing anything (TECH-02 §9). */
+  "payment.verify": { payload: payload({ eventId: z.string().uuid() }), settings: {} },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;

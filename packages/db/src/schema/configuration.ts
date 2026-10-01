@@ -13,7 +13,7 @@ import { priceResults } from "./pricing.js";
  * draft link (a guest link targeting the configuration).
  */
 
-export const configurationStatus = pgEnum("configuration_status", ["DRAFT", "IN_CART", "QUOTE_REQUESTED", "ABANDONED"]);
+export const configurationStatus = pgEnum("configuration_status", ["DRAFT", "IN_CART", "QUOTE_REQUESTED", "ORDERED", "ABANDONED"]);
 /** UPLOAD = ready artwork; LOGO and REFERENCE are files staff build from (COM-FR-050). */
 export const artworkChoice = pgEnum("artwork_choice", ["UPLOAD", "DESIGN_HELP", "LATER", "LOGO", "REFERENCE"]);
 /** How the garment is sourced (COM-FR-020). */

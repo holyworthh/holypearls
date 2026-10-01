@@ -99,7 +99,7 @@ export const configurationSchema = z.object({
   productSlug: z.string(),
   productName: z.string(),
   family: z.string(),
-  status: z.enum(["DRAFT", "IN_CART", "QUOTE_REQUESTED", "ABANDONED"]),
+  status: z.enum(["DRAFT", "IN_CART", "QUOTE_REQUESTED", "ORDERED", "ABANDONED"]),
   choices: z.record(z.string(), z.string()),
   quantity: z.number().int().nullable(),
   rush: z.enum(["STANDARD", "RUSH", "PRIORITY"]),
