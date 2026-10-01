@@ -36,9 +36,9 @@ export const GOALS: { label: string; body: string; href: string }[] = [
 ];
 
 /**
- * Main navigation (PUB-FR-003): Products, Projects, Apparel, Print & Display,
- * Our Work and Resources. The Products mega-menu groups categories, the
- * admin-managed popular products and goals (PUB-FR-004).
+ * Main navigation (PUB-FR-003, PRD-01 v2.1): Products, Projects, Our Work and Help. Apparel and Print & Display are reached through
+ * the Products mega-menu, which groups categories, the admin-managed popular
+ * products and goals (PUB-FR-004). Help goes to the buying guides.
  */
 export function buildNavigation(data: StorefrontNavigation): TopItem[] {
   return [
@@ -92,9 +92,7 @@ export function buildNavigation(data: StorefrontNavigation): TopItem[] {
         },
       },
     },
-    { label: "Apparel", href: categoryHref("apparel-garment-production") },
-    { label: "Print & Display", href: categoryHref("print-business-stationery") },
     { label: "Our Work", href: "/our-work" },
-    { label: "Resources", href: "/resources" },
+    { label: "Help", href: "/resources" },
   ];
 }

@@ -6,7 +6,7 @@
 
 .page {
   min-height: 100vh;
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 .header {
@@ -372,7 +372,7 @@
   flex-shrink: 0;
   width: var(--hp-space-64);
   height: var(--hp-space-64);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   background: var(--hp-sand);
 }
 

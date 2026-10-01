@@ -10,7 +10,7 @@ test("Business Cards go in the bag, check out as a guest, and the server's total
   await page.goto("/products/business-cards");
   await page.getByLabel(/^500/).check();
   await expect(page.getByText("₦69,875").first()).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Add to bag" }).click();
+  await page.getByRole("button", { name: "Add to cart", exact: true }).click();
 
   // Cart: the ready group and "Pay today" (Pen 41).
   await expect(page).toHaveURL(/\/cart$/, { timeout: 30_000 });
@@ -65,7 +65,7 @@ test("the phone checkout keeps the total visible and the summary one tap away (P
   await page.goto("/products/business-cards");
   await page.getByLabel(/^100/).check();
   await expect(page.getByText("Saved")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Add to bag" }).click();
+  await page.getByRole("button", { name: "Add to cart", exact: true }).click();
   await expect(page).toHaveURL(/\/cart$/, { timeout: 30_000 });
   await expectNoHorizontalScroll(page);
   await page.getByRole("button", { name: "Check out", exact: true }).click();

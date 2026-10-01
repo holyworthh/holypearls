@@ -124,12 +124,12 @@ test("interactive controls meet the 44 px touch target", async ({ page }) => {
   expect(sizes.filter((size) => size.height < 44)).toEqual([]);
 });
 
-test("body text uses Geist at 16 px or more", async ({ page }) => {
+test("body text uses Instrument Sans (Ledger UI face) at 16 px or more", async ({ page }) => {
   await page.goto("/design-system");
   const style = await page.evaluate(() => {
     const body = getComputedStyle(document.body);
     return { size: Number.parseFloat(body.fontSize), family: body.fontFamily };
   });
   expect(style.size).toBeGreaterThanOrEqual(16);
-  expect(style.family).toMatch(/Geist/);
+  expect(style.family).toMatch(/Instrument Sans/);
 });

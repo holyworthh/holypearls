@@ -24,7 +24,7 @@
     width: var(--hp-sidebar-width);
     min-height: 100vh;
     padding: var(--hp-space-20) var(--hp-space-12);
-    background: var(--hp-ink);
+    background: var(--hp-brand-deep);
   }
 
   .sidebar .brand {
@@ -91,7 +91,7 @@
 
 .item:hover,
 .item[aria-current="page"] {
-  background: var(--hp-ink-2);
+  background: var(--hp-brand);
 }
 
 .item[aria-current="page"] {
@@ -107,7 +107,7 @@
 }
 
 .mobileBar {
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 @media (min-width: 1024px) {
@@ -223,7 +223,7 @@
   width: var(--hp-avatar);
   height: var(--hp-avatar);
   border-radius: 50%;
-  background: var(--hp-ink);
+  background: var(--hp-brand);
   color: var(--hp-paper);
   font-size: var(--hp-text-caption);
   font-weight: var(--hp-weight-semibold);

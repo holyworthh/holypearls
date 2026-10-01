@@ -1,0 +1,177 @@
+# Workshop Ledger design system (no ticket)
+
+**Status:** IN REVIEW · **Branch:** `feature/ledger-design-system` (from `dev`) · **Date:** 1 October 2026
+
+## What the owner asked for
+
+Bring the design system from the owner's design canvas (claude.ai artifact `QAkhvXN2eBJJBt5QoaZvbh`) into the Pen file, including the new homepage with its header, footer and brand logo, and the canvas's motion. Research site interactions and motion that people like and add to them. Owner decisions (1 October 2026):
+
+- Pen: add a `ledger` value to the `hp-direction` theme axis, switch the active board to it, restyle the `HP/*` shapes and add new frames. Signal stays on file.
+- Scope: Pen and design docs first, then code (tokens, fonts, header, footer, homepage, motion) on a new branch.
+- Motion: the canvas set, commerce feedback, page transitions, and header/loading motion.
+- Logo: use the canvas's vector redraw until the master file arrives.
+
+## Pen (untitled.pen)
+
+- **Variables.** `ledger` added to `hp-direction` for every themed `hp-*` variable, with the canvas's exact values. Previously unthemed status colours and radii are now themed, so Signal keeps its old values. New variables: `hp-brand`, `hp-brand-hover`, `hp-brand-deep`, `hp-brand-tint`, `hp-brand-mid`, `hp-text-3`, `hp-on-brand-2`, `hp-on-deep-2`, `hp-on-sun-2`, `hp-cat-coral`, `hp-cat-sage`, `hp-cat-lilac`, `hp-r-pill`, `hp-r-tag`, `hp-r-button`, `hp-r-hero` and `hp-r-band`.
+- **Active theme.** `C9q8v3` (Application map) and `b3vRp` (file map) now use `ledger`. The archive zone (`P8kmN6`) stays on Signal.
+- **Components.** 135 corner radii across `HP/*` were changed to tokens:
+  - buttons → `hp-r-button`
+  - inputs → `hp-r-control`
+  - cards → `hp-r-card`
+  - panels → `hp-r-panel`
+  - tags → `hp-r-tag`
+- **Rebuilt in place.** `HP/Nav/Header` (`nO6TF`), `HP/Nav/MobileHeader` (`ED2Si`) and `HP/Nav/Footer` (`F64bQ`). `HP/Nav/UtilityStrip` (`BoplJ`) is disabled.
+- **New components** (`sNAL0`): `HP/Brand/Mark`, `HP/Brand/Lockup`, `HP/Brand/Logo` (210), `HP/Brand/Logo/130`, `HP/Brand/Stamp`, `HP/Brand/WovenStrip`, `HP/Nav/MobileFooter` and `HP/Button/Brand`. `HP/Ledger/TicketCard` is in Foundations.
+- **New board `MW5h2`** (Stage 4.3):
+  - homepage desktop 1440 `ZqhyZ`
+  - homepage mobile 390 `Y0ftk8`
+  - Brand `YI1UU`
+  - Foundations `k1aon`
+  - Components `BfHwp`
+  - Motion `nGctt`
+- **Photos.** The canvas's 18 stand-in photos are in `holypeals-design/ledger/`.
+- **Fidelity to the canvas.** Each Pen frame was compared with a local render of the canvas source at the same width. Desktop section heights match within 10 px. The mobile hero is 775 px in Pen against 734 px in the canvas: the canvas's fixed 8200 px root shrinks its overflow-hidden hero and clips the swatches, and Pen keeps the intended height. The same squeeze shortens the canvas's mobile CTA photo and buttons (182 / 48 px against 200 / 52 px).
+- **Pen limits.** The logo's curved wordmark can't use text-on-path in Pen, so each letter is placed and rotated along the same Bézier. Open Sans Bold advances are approximated. Dashed lines are drawn as rows of dashes, since Pen has no stroke dash.
+
+## Code
+
+- **Tokens.**
+  - `packages/ui/tokens/tokens.json` now carries the Pen variables with `activeTheme: ledger` and updated documented specs (type, radii, layout 80/1280/20, motion).
+  - `build-tokens.mjs` now uses the Ledger fonts and adds motion tokens (`hp-motion-press`, `hp-ease-ui`) and `hp-layout-gutter`.
+  - `inferred-tokens.css` gains a Ledger block: exact homepage type sizes, logo sizes, shadows, the woven strip and motion durations.
+  - `pen-scale.css` gains 8 exact sizes.
+- **Fonts.** Geist is replaced through `next/font/google` with Young Serif, Instrument Sans, IBM Plex Mono, and Open Sans 700 for the wordmark only.
+- **Logo.** `components/site/Logo.tsx` adds the mark, the header lockup, and the full logo with a real SVG `textPath`, in colour, reversed and ink tones.
+- **Header.**
+  - Ledger lockup, graphite labels with a drawn underline, chevrons on menu items, a pill search, round icon buttons and a Brick 10 px Start a Project.
+  - The Sun reading-progress line is driven by a scroll timeline.
+  - The header is sticky and hides on scroll down. The utility strip is removed.
+- **Footer.** Woven strip, full logo, Blue Deep call-to-action panel, four link columns, a bottom bar with a back-to-top button, the giant wordmark, mobile accordions and a "Photo credits" link.
+- **Homepage.** `app/page.tsx` is rebuilt as one responsive page (desktop from 1024 px). It uses `HeroSearch` (the rotating example placeholder) and `PoloPicker`.
+- **Photo credits page.** `/photo-credits` lists the Creative Commons credits (noindex).
+- **Motion** (`packages/ui/src/styles/motion.css`, `Motion.tsx`, `home.module.css`):
+  - from the canvas: marquee, floating swatches, scroll parallax, stamp spin, stitch underline, thread clip-reveal, card lift and zoom, arrow nudge, press scale, accordion turn, polo colour cross-fade
+  - new: cross-document View Transitions with the product card photo morphing into the product gallery; hide-on-scroll header; skeleton shimmer (`data-skeleton` on PageState bars); a check on fields that are filled in correctly
+  - all of it is off with `prefers-reduced-motion`
+- **Icons.** Lucide at a 1.6 px stroke (Foundations · icons), with `arrow-up`, `list`, `tag`, `circle-check` and `truck` added.
+
+## Owner review, 1 October 2026
+
+- **Header.** The logo and nav sit together on the left (32 px apart, plus the items' 10 px padding); the actions stay on the right. The Pen header groups them the same way (48 px).
+- **Underlines reduced.**
+  - Removed the hover underline from the header nav items (it ran under the chevron and padding), the mega-menu lists (now a Holy Blue colour change) and product card titles (the photo zoom is the hover).
+  - Every remaining drawn underline is `width: fit-content`, so it stops at the end of the text. Block links such as "View all products →" no longer underline the whole column.
+  - The faint resting underline on plain inline links in body copy stays, so links remain distinguishable from text.
+- **Our work.**
+  - "See all projects" sat off-centre because `.deskOnly` used `display: revert`, which turned the button back into an inline link. `.deskOnly` and `.mobOnly` now only hide, so components keep their own display.
+  - The rail is a size container with a `--work-edge` margin on both sides, so it starts on the left content edge and, scrolled to the end, the last card lines up with the right content edge (1345 px at 1440; 359 px at 375).
+- **Hero swatches.** On load each swatch flies in from the nearest screen edge (left ones from the left, right ones from the right, the middle phone swatch from below), staggered 80 ms, over 1.3 s with the enter easing, then starts its float. New tokens `--hp-motion-swatch-in` and `--hp-swatch-in-tilt`. Off with reduced motion.
+- **Tests.** Added a check that the rail ends on the content edge and the button isn't inline (375 and 1440). Storefront, interactions and design-system specs: 95 passed, 9 skipped.
+
+## Product pages (Pen first), 1 October 2026
+
+- **Pen.** Three new frames on the Stage 4.3 screens board: Business Cards 1440 `gb4rz` (fixed-price template), Polo Shirt 1440 `mfOQO` (estimate and garment template) and Polo Shirt 390 `Q7ml3`. They are drawn from the canvas F02 boards and are templates for every product page, not one-off pages.
+- **White, not beige (owner).** The canvas's cream card faces (`#FBF9F4`, `#F3EEE3`), the striped warm-grey thumbnail placeholders and the Mist timing boxes are white with a rule border in Pen. The preview stages keep their tints (Holy Blue tint for garments, Brick tint for print), and the amber "Quote needed" tint stays as a status colour.
+- **Pen limits.** Dashed borders (logo mark, "I don't know the sizes yet", upload drop zone) are solid in Pen; the code uses dashes as in the canvas.
+
+### Code (owner decisions, 1 October 2026)
+
+The owner chose: garment steps on the product page, a live preview followed by real photos, and white for full-width bands across the site.
+
+- **Two templates for every product page** (`app/products/[slug]/page.tsx`, `ledger-pdp.module.css`):
+  - **Fixed-price / short flow** (`gb4rz`): every non-garment product. 7 / 5 columns; framed gallery (Brick tint for print and large format, white for others); state pill, title, summary and facts; numbered groups (`01 Paper`…) as tiles, with spec-style options as a list; Delivery and Review; a price ticket with goods, VAT at the stored rate, delivery, a perforation, total and per-unit, Production / Delivery boxes, then Checkout now and Add to cart (or Request Final Quote for quote-led products).
+  - **Estimate / garment** (`mfOQO`, `Q7ml3`): every garment. The garment map (Holy Blue stage, Front / Back, the canvas polo outline in the chosen colour, LOGO marks on chosen zones) beside six steady steps that expand in place: Garment, Decoration, Placement, Sizes & quantity, Artwork, Review. Each step shows a done / current badge and a one-line summary; "Continue to …" opens the next. Sizes use − / + steppers and still accept typing. The price ticket shows the estimate caption, total, per piece, timing and Request Final Quote, with Save for later and Ask Holypearls. Phones get the six-bar step strip and a sticky price bar.
+  - Below both: three columns (What happens next or the branding note, Specifications or Fabric & fit, Questions), then related products.
+- **`/products/[slug]/configure`** now redirects (308) to the product page, keeping `draft`, `sourcing` and `colour`; the product page re-checks them against the product's allowed routes and colours.
+- **Behaviour kept:** autosave and the "Not saved — retrying" state, version conflicts, the remove-later-answers dialog, placement conflict fixes, CSV personalisation, low-resolution choices, email-a-link, quote requests, blocked combinations, the API's allowed routes and decorations. The draft's stored `step` values are unchanged (the API names: product, customize, quantity, artwork, delivery, review).
+- **Gallery** (`PdpGallery.tsx`): the live preview first (garments), then up to four photos as thumbnails; photos open the existing full-size viewer. Phones show a small scrolling thumbnail row and a `1 / N` count.
+- **Removed:** `GarmentStart.tsx`, `Gallery.tsx`, `garment.module.css`, `wizard.module.css`, `pdp.module.css` (replaced by the templates).
+- **White, site-wide:** full-width Mist bands are now white with hairline rules between sections: sign-in and account shells, the Product Directory, category hub hero / featured / compare, project and case-study heroes, and the search results head. Small panels (fact boxes, guide cards, the homepage "Try it" panel), chips and inputs keep their pale fill. The staff admin shell is unchanged.
+- **Tokens added:** PDP type sizes (49 / 35 / 30 / 24 / 34 / 30 / 19), option radii 12 / 14, stage heights 720 / 620 / 380, thumbnail 88 / 92, step row 64, badge 26, corner 18, spec key 140, garment map 480 / 280, the sticky bar shadow, `hp-paper-92`, `hp-leading-none`, map dash and opacities.
+
+**Tests (product pages).** `garment.spec.ts` rewritten for the on-page flow (address route and colour, the `/configure` redirect, placement conflict fix and live estimate, steppers, customer-supplied and unknown sizes, phone price bar and step strip, allowed routes and decorations). `families.spec.ts` now reads the new state pills; the image-viewer test opens a photo after the map. Full Playwright suite at 375 and 1440: 178 passed, 12 skipped (viewport-specific), 0 failed. `tsc`, ESLint and `next build` pass.
+
+### Deviations from the canvas (product pages)
+
+1. **No SKU code** next to the state pill (`HP-APP-007`): products have no code field yet.
+2. **Checkout and Add to cart are disabled** ("Online checkout opens soon") until the cart and checkout (T04-01) merge; quote-led products use Request Final Quote, as before.
+3. **Delivery sits in the Review step** of the garment flow. The canvas has no delivery step, but COM-FR-070–072 need needed-by, rush and destination; keeping six steps follows COM-FR-010.
+4. **Placement uses the product's nine positions** (left / right / centre chest, full front, upper / full back, both sleeves, custom), not the canvas's five.
+5. **Sizes follow the catalogue** (XS–4XL, eight boxes) rather than the canvas's six; desktop wraps to two rows.
+6. **Group Collection** is described as "soon" (no feature yet), so there's no set-up link.
+7. **"Names on every shirt" and "Order it again" columns** are replaced by the product's own specifications and FAQs: the canvas copy promises a CSV template download and saved templates that don't exist yet. The CSV upload is inside Sizes & quantity.
+8. **Phone sticky bar** links to the price ticket rather than opening the quote form itself, so there's one form on the page.
+9. **Card mock-up preview** for Business Cards isn't built: only garments have a live preview; other products show their photos.
+10. **Map zones** show only on hover / focus on desktop (faintly on touch) to keep the garment clean; chosen zones carry the LOGO mark.
+
+## Consistency pass before merge, 1 October 2026
+
+The owner asked for every page built so far to follow Ledger before the PR merges. Audit at 1440 and 375 of every public route, plus the account and admin shells, against the canvas F01 boards (Directory, both hubs, search results, no results, autocomplete and the phone variants). Their structure already matched (the earlier Pen frames used the same layouts), so this pass is styling:
+
+- **Dark panels are Blue Deep, not Signal ink:** the Directory "Can't find it?" panel, hub "Choose how it's made" routes band and format band, the Our Work feature, the case-study ticket and CTA band, About "How every order is made", the search "Not sure what you need?" and "Tell us" panels, and the staff admin sidebar and phone bar. Ink stays for buttons, selected chips and segmented controls, as in the canvas.
+- **Search buttons are Holy Blue** (Directory and search results), as on the F01 boards; Start a Project stays Brick.
+- **Radii:** Signal's 6 px on buttons, inputs and product images moved to the Ledger tokens (`hp-r-button` 10, `hp-r-control` 11, `hp-r-option` 12). Chips stay pills; the homepage swatches keep their Pen values.
+- **Shells:** sign-in, link redeem, account security, help request and 404 now use the Ledger site header and footer. The shared `PublicShell` (error page, demos) and the staff admin shell carry the Ledger lockup (`BrandLockup` in `packages/ui`) instead of the Signal pearl wordmark; the admin lockup is reversed on Blue Deep with an ADMIN tag. The `PublicShell` footer is light with a rule.
+- **Sign-in tabs** (Password / Email me a link) are the Ledger segmented pill: ink on white.
+- **White surfaces in Pen:** 79 full-width Mist frames in the customer flows (Flows 01–07, desktop and phone) are now `hp-paper`; the no-results "Tell us" panel is `hp-brand-deep`. Staff and organisation flows are unchanged.
+- **Not changed (recorded):** the staff admin content area keeps Mist behind its white cards for contrast; small panels (fact boxes, guide cards, the homepage "Try it" panel) keep their pale fill; Our Work cards without photos still show placeholders until the shoot.
+
+## Research behind the added motion
+
+- NN/g timing guidance: about 100 ms reads as instant, and anything past roughly 400 ms feels slow. Hover and press feedback stay at 120–200 ms, and only entrances and ambient loops run longer. Sources: [Val Head](https://valhead.com/?p=2978), [Fronteers](https://www.fronteers.nl/en/blog/2024/12/microanimations).
+- Add-to-cart confirmation (button to check, count bump, drawer) running alongside the request in under 400 ms; reported to lift add-to-cart and cut abandonment. Sources: [Xictron](https://www.xictron.com/en/blog/micro-interactions-ecommerce-ux-conversion-2026/), [Wildnet Edge](https://www.wildnetedge.com/blogs/enhancing-e-commerce-ux-microinteractions-for-better-engagement).
+- Cross-document View Transitions (`@view-transition { navigation: auto }`) for a thumbnail-to-product image morph; supported in Chrome and Edge 126+ and Safari 18.2+. Source: [Chrome for Developers](https://developer.chrome.com/docs/web-platform/view-transitions).
+
+## Conflicts and deviations (recorded, not silent)
+
+1. **Main navigation (owner decision).** PUB-FR-003 lists Products, Projects, Apparel, Print & Display, Our Work and Resources. The canvas header shows Products, Projects, Our Work and Help.
+   - First pass kept the six PRD items. On 1 October 2026 the owner chose the canvas's four, because Apparel and Print & Display are already linked from the Products mega-menu.
+   - The site now shows Products, Projects, Our Work and Help. Help goes to the buying guides (`/resources`).
+   - With four items, the search pill is back to the canvas's 300 px and shows with the main nav from 1280 px; below that, the search icon and menu button.
+   - Projects keeps its existing menu (code only; the Pen header shows a chevron on Products alone).
+   - **PRD amended at the owner's request:** PRD-01 is now v2.1, and PUB-FR-003 reads "Products, Projects, Our Work and Help", with Apparel and Print & Display reached from the Products mega-menu.
+2. **Header cart icon.** The canvas shows a cart. The cart ships with T04-01 (PR #36, not merged into `dev`), so the code keeps "Track an order" in that slot for now. Swap it for the cart once T04-01 lands.
+3. **Unsourced prices and colours.**
+   - "Tees from ₦7,500" has no catalogue source and is replaced by "Tees, hoodies and caps". "Polos from ₦8,500" is the seeded polo price.
+   - The polo picker uses the catalogue polo colours (Navy, Black, White, Olive, Wine, Royal). The canvas's Maroon, Bottle green and Sun yellow are not offered.
+4. **Placeholders not shipped.**
+   - The footer's [BUSINESS ADDRESS], [PHONE] and [EMAIL] are omitted, as are the social icons (no real URLs).
+   - "Our work" cards read "Concept reference" instead of "[Client project]". No client is named or claimed.
+   - The newsletter field stays a "coming soon" notice (no mailing list, as before).
+5. **Mobile "Three ways to order".** The canvas's mobile third card is "Quote needed / Request a quote" and its second card reads "Price updates as you choose", while desktop shows "Let's talk / Start a project". The site uses the desktop set at both widths, so the same page doesn't change its offer at different widths.
+6. **Buttons: 10 px or pill.** Foundations says pill. The later Home, Motion and Product boards use 10 px. The later boards win (`hp-r-button` 10).
+7. **`hp-mid`.** Existing pages use `hp-mid` as light grey text on dark surfaces. The canvas defines no Ledger value for that role.
+   - `hp-mid` is set to `#B5AFA3`, derived from Signal's `#B4B4BB`.
+   - A new `hp-text-3` carries Ink 3 `#6B6456` for captions.
+   - New Pen frames and new CSS use `hp-text-3`.
+8. **Decorative text.** The giant footer wordmark and the "Made & checked" stamp words are drawn with CSS `content`, so screen readers and contrast checks skip them. The Sun stamp text on Holy Blue is about 3.6:1, which passes only as decoration.
+9. **Field-valid tick.** The check icon is a data-URI SVG with the success colour (`#2E6B3F`) written in, because a CSS variable can't reach inside a data URI.
+10. **Hero swatch coordinates.** The canvas frame's exact pixel positions are kept as local custom properties on each `.swatchN` class, not global tokens.
+11. **Motion from the Pen 09 spec.** As before (DESIGN-FIDELITY.md, difference 17), the site's motion follows the owner's choice. That choice is now the Ledger Motion board, which keeps the 700 ms / 24 px reveal.
+
+## Not in this pass (suggestions)
+
+- Ledger restyle of the Directory, category hubs, search states, and the Business Cards and Polo product pages, which are already designed in the owner canvas (F01/F02 boards). They currently pick up Ledger colour and type through tokens but keep Signal layouts.
+- Add-to-cart confirmation, upload thread, proof-approved stamp, directional configurator steps and the tracking stitch fill. These are designed on the Motion board and belong with T04-01 (cart), the configurator and proof/tracking tickets.
+- Replace the stand-in photography with the Holypearls shoot. Until then, the BY and BY-SA licences need the `/photo-credits` page.
+- Swap the vector redraw for the master logo file when it arrives.
+- Account and admin shells (`packages/ui/src/shells`) still use the pearl-dot wordmark.
+- Re-export the Stage 4.2 PDF if a Ledger PDF is needed.
+
+## Tests
+
+- `tsc --noEmit` (web, ui), ESLint and `tokens:check`: pass.
+- `next build`: pass.
+- Playwright, `storefront.spec.ts` and `interactions.spec.ts`, on 375 and 1440: 38 passed, 8 skipped (viewport-specific).
+  - Added: the main nav shows the four Ledger items and Help goes to `/resources` (1440).
+  - Updated: the home h1 and the three-click path (now tile → category → product), and the mega-menu hover threshold (1280).
+  - Added: PUB-FR-001/002 home routes, the polo picker state and accessible name, and reduced motion stopping the marquee.
+  - The first run caught colour-contrast regressions from the token change (`hp-mid` on dark, the footer wordmark and the stamp). All are fixed, as above.
+- Full suite: see the PR.
+- Visual: the live homepage was screenshotted at 1440 and 375 and compared with Pen `ZqhyZ` / `Y0ftk8`. Desktop section heights are within about 10 px. The remaining differences are items 1–5 above.
+
+## Follow-ups to docs outside `docs/design`
+
+- PRD-01 PUB-FR-003 (navigation items): done in PRD-01 v2.1.
+- TECH or ADR: record Workshop Ledger as the active visual direction, superseding the Signal visual lock (Stage 4.2 `lyo0w`).

@@ -1,642 +1,430 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
-import { ProductCard } from "../components/catalogue/ProductCard";
 import s from "../components/home/home.module.css";
-import { Icon } from "../components/pen/Icon";
-import { categoryHref, projectHref } from "../components/site/nav";
-import { SuggestInput } from "../components/search/SearchSuggest";
-import { SiteShell } from "../components/site/SiteShell";
+import { HeroSearch } from "../components/home/HeroSearch";
+import { PoloPicker } from "../components/home/PoloPicker";
+import { Icon, type IconName } from "../components/pen/Icon";
 import { JsonLd } from "../components/seo/JsonLd";
+import { categoryHref, projectHref } from "../components/site/nav";
+import { SiteShell } from "../components/site/SiteShell";
 import { organizationLd, websiteLd } from "../lib/seo";
-import { getNavigation } from "../lib/storefront";
 
-// Rendered per request so a build without the API never freezes empty menus; the API data itself is cached under tags.
+// Rendered per request so a build without the API never freezes empty menus (the shell reads the catalogue navigation).
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { absolute: "HolyPearls · Branded uniforms, print and merch" },
-  description: "Order staff uniforms, event materials, business cards and signage in one place. See the price upfront and approve your design before we make anything.",
+  title: { absolute: "Custom Uniforms, Merch & Printing in Nigeria | Holypearls" },
+  description: "Branded polos, event banners, business cards and packaging for businesses across Nigeria. Get a price in minutes and approve your proof before anything is made.",
   alternates: { canonical: "/" },
 };
 
-/** Temporary reference photography from the Pen board (labelled on the page, as in the design). */
-const photo = (n: number): CSSProperties => ({ backgroundImage: `url("/pen/generated-${n}.webp")` });
+const PROJECT_HREF = "/contact?topic=project";
+const img = (name: string) => `/ledger/${name}.jpg`;
+const index = (i: number) => ({ "--hp-reveal-index": i }) as CSSProperties;
 
-const OUTCOMES = [
-  { title: "Staff uniforms", meta: "Polos, aprons and workwear for your whole team", href: projectHref("staff-team-branding"), photo: 50 },
-  { title: "An event or conference", meta: "Backdrops, name badges, crew shirts", href: projectHref("event-branding"), photo: 48 },
-  { title: "A product launch", meta: "Packaging, labels and launch kits", href: projectHref("business-launch"), photo: 47 },
-  { title: "Office or shop branding", meta: "Signs, wall graphics and displays", href: projectHref("retail-branding"), photo: 45 },
-  { title: "Gifts for staff or clients", meta: "Corporate gifts and welcome packs", href: projectHref("corporate-gifts"), photo: 47 },
+/* Fabric swatches floating in the hero (desktop shows six, mobile three). */
+const SWATCHES = [
+  { name: "Kente weave", code: "HP·271", photo: "swatch-kente", mobile: true },
+  { name: "Fabric library", code: "HP·572", photo: "swatch-fabric-library", mobile: false },
+  { name: "Thread", code: "HP·700", photo: "swatch-thread", mobile: true },
+  { name: "Colourways", code: "HP·280", photo: "swatch-colourways", mobile: true },
+  { name: "Embroidery", code: "HP·242", photo: "swatch-embroidery", mobile: false },
+  { name: "Prints", code: "HP·740", photo: "swatch-prints", mobile: false },
 ];
 
-/** Category photos from the Pen board (desktop lead row and mobile thumbnails). */
-const CATEGORY_PHOTO: Record<string, number> = {
-  "apparel-garment-production": 44,
-  "print-business-stationery": 37,
-  "large-format-signage-displays": 34,
-  "embroidery-garment-customization": 38,
-  "bags-packaging": 47,
-};
+const MAKES = ["Polo shirts", "Chef jackets", "Business cards", "Roll-up banners", "Event badges", "Hoodies", "Tote bags", "Custom boxes", "Caps", "Front-desk uniforms", "Notebooks", "Backdrops"];
 
-const SMBD = [
-  ["source", "We find the right shirts, fabric or paper for your budget and deadline.", "The right shirts, fabric or paper."],
-  ["make", "We cut and sew garments and print large-format graphics in our own production.", "We cut and sew garments ourselves."],
-  ["brand", "Embroidery, screen printing, transfers or print, done exactly to the design you approved.", "Branded exactly to your approved design."],
-  ["deliver", "Packed, labelled and delivered to one address or split across your branches.", "Delivered to one address or several."],
-] as const;
+/*
+ * Goal routes (PUB-FR-002): uniforms, events, business launch, merchandise,
+ * packaging and custom projects. Tiles and chips go to the real project pages
+ * and category hubs.
+ */
+const TILES = [
+  { title: "Custom uniforms", sub: "Polos from ₦8,500", href: projectHref("staff-team-branding"), photo: "tile-uniforms", tone: s.toneSun, wide: true },
+  { title: "T-shirts & hoodies", sub: "Tees, hoodies and caps", href: categoryHref("apparel-garment-production"), photo: "tile-tees", tone: s.toneCoral },
+  { title: "Event branding", sub: "Backdrops to badges", href: projectHref("event-branding"), photo: "tile-events", tone: s.toneSage },
+  { title: "Custom packaging", sub: "Standard or bespoke", href: categoryHref("bags-packaging"), photo: "tile-packaging", tone: s.toneLilac },
+  { title: "Branded merch", sub: "Caps, totes, gifts", href: projectHref("corporate-gifts"), photo: "tile-merch", tone: s.toneBlue },
+  { title: "Something custom", sub: "Describe it", href: "/contact?topic=custom-request", photo: "tile-custom", tone: s.toneInk, wide: true },
+];
 
-const KIT = [
-  ["×30", "Crew polos", "PROOF V2 APPROVED · IN PRODUCTION", "IN PRODUCTION", s.toneSuccess],
-  ["×250", "Name badges", "PROOF V2 · AWAITING YOU", "PROOF V2 · AWAITING YOU", s.toneWarning],
-  ["×1", "Main backdrop", "READY — AWAITING RELEASE", "READY — AWAITING RELEASE", s.toneInfo],
-  ["×2", "Roll-up banners", "QUALITY CHECK", "QUALITY CHECK", s.toneMuted],
-] as const;
+const CHIPS: [string, string][] = [
+  ["staff uniforms", projectHref("staff-team-branding")],
+  ["event banners", projectHref("event-branding")],
+  ["souvenirs", projectHref("corporate-gifts")],
+  ["business cards", projectHref("business-launch")],
+];
 
-const JOB = [
-  ["PROJECT", "HP-P-2026-0142"],
-  ["TYPE", "EVENT BRANDING"],
-  ["SCALE", "250 GUESTS · 30 CREW"],
-  ["QUOTE", "V2 · ACCEPTED"],
-  ["ORDER", "HP-2026-0142"],
-] as const;
+/* Price states (PRD 00 §8): each card carries its status word and icon, never colour alone. */
+const WAYS = [
+  { badge: "✓ Fixed price", tone: s.badgeReady, title: "Buy it now", body: "See the exact price and pay.", examples: "Business cards, roll-up banners" },
+  { badge: "≈ Estimate", tone: s.badgeEstimate, title: "Get an estimate", body: "Live estimate, final quote before you pay.", examples: "Embroidered polos, caps" },
+  { badge: "Let’s talk", tone: s.badgeTalk, title: "Start a project", body: "Tell us the goal. We quote it all.", examples: "Events, uniform rollouts" },
+];
 
-const STEPS = [
-  ["Plan", "Choose a product, or tell us what you need."],
-  ["Configure", "Pick colours, quantities, artwork and your deadline."],
-  ["Quote or pay", "See the price right away, or get a quote."],
-  ["Proof", "Approve your design before anything is made."],
-  ["Make and check", "Every item is checked before it leaves us."],
-  ["Deliver", "To one address or several."],
-] as const;
+const STEPS: [IconName, string, string][] = [
+  ["list", "Choose", "Pick a product or describe your project."],
+  ["tag", "Price", "Pay a fixed price or get a quote."],
+  ["circle-check", "Approve", "See your proof before we start."],
+  ["truck", "Delivered", "Made, checked and sent to your door."],
+];
 
-const FEATURES = [
-  ["stamp", "Saved designs", "Logo fixed, quantities flexible"],
-  ["users-round", "Size collection", "Staff enter their own sizes"],
-  ["store", "Company store", "A private shop for your people"],
-  ["badge-check", "Approvals", "Spending limits and sign-off"],
-] as const;
+const INDUSTRIES = ["Schools", "Hotels", "Restaurants", "Churches", "Hospitals", "Banks", "Security", "Events", "Startups", "Salons", "Logistics", "NGOs"];
 
-const pad = (index: number) => String(index + 1).padStart(2, "0");
-const PROJECT_HREF = "/contact?topic=project";
+/* Concept references until real client work is photographed (shoot deferred); no client is named or claimed. */
+const WORK = [
+  { photo: "work-staff-uniforms", detail: "Staff uniforms · 3 branches" },
+  { photo: "tile-events", detail: "Conference branding · 250 guests" },
+  { photo: "tile-uniforms", detail: "Embroidered polos · retail team" },
+  { photo: "tile-packaging", detail: "Custom gift boxes · launch" },
+  { photo: "tile-tees", detail: "Event tees · 5k run" },
+];
 
-function SearchForm({ id, variant }: { id: string; variant: "hero" | "final" | "mHero" | "mFinal" }) {
-  const hero = variant === "hero";
-  if (variant === "mHero") {
-    return (
-      <form className={s.mIntent} role="search" action="/search">
-        <Icon name="search" size={22} />
-        <span className={s.query}>
-          <span className={s.mSearchLabel} aria-hidden="true">
-            WHAT DO YOU NEED MADE?
-          </span>
-          <SuggestInput id={id} className={s.mSearchInput} placeholder="Polos, backdrops, cards…" label="What do you need made?" />
-        </span>
-      </form>
-    );
-  }
-  if (variant === "mFinal") {
-    return (
-      <form className={s.mFinalSearch} role="search" action="/search">
-        <Icon name="search" size={20} />
-        <SuggestInput id={id} className={s.mSearchInput} placeholder="Search products or ideas" label="Search products or ideas" />
-      </form>
-    );
-  }
+const CITIES = ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano", "Enugu", "Benin City", "Kaduna"];
+
+const FAQS: [string, string][] = [
+  ["How much do custom polo shirts cost?", "Embroidered polos start from ₦8,500 each. Your exact estimate updates as you choose."],
+  ["What is the minimum order?", "It depends on the product. Polos start at 10, business cards at 100."],
+  ["How long does production take?", "Most items take 3–7 working days after you approve your proof. Delivery time is shown separately."],
+  ["Can I see my design before it’s made?", "Yes. Every order gets a production proof to approve first."],
+  ["Do I need an account to order?", "No. You can order as a guest and track everything by email link."],
+];
+
+function Arrow() {
+  return <Icon name="arrow-right" size={18} className={s.arrow} />;
+}
+
+function Stamp({ className }: { className?: string }) {
   return (
-    <form className={hero ? s.intentSearch : s.finalSearch} role="search" action="/search">
-      <Icon name="search" size={24} />
-      {hero ? (
-        <span className={s.query}>
-          <span className={s.searchLabel} aria-hidden="true">
-            WHAT DO YOU NEED MADE?
-          </span>
-          <SuggestInput id={id} className={s.searchInput} placeholder="Try “50 embroidered polos” or “event backdrop”" label="What do you need made?" />
-        </span>
-      ) : (
-        <span className={s.query}>
-          <SuggestInput id={id} className={s.searchInput} placeholder="Search products, materials or ideas" label="Search products, materials or ideas" />
-        </span>
-      )}
-      <button type="submit" className={`${s.redButton} ${hero ? "" : s.inkSearchButton}`}>
-        Search
-      </button>
-    </form>
+    <span className={`${s.stamp} ${className ?? ""}`} aria-hidden="true">
+      <svg viewBox="0 0 26 26" className={s.stampMark}>
+        <circle cx="13" cy="13" r="7" />
+        <path d="M13 2v22M2 13h22" />
+      </svg>
+      <span className={s.stampLine} data-line="MADE &" />
+      <span className={s.stampLine} data-line="CHECKED" />
+    </span>
   );
 }
 
 /**
- * Homepage (Pen 15 · FYNoI desktop, 16 · kZf2b mobile; PUB-FR-001, 002, 014).
- * Categories, "Popular" and "Most ordered" come from the catalogue (admin
- * managed); editorial photos are the design's labelled reference imagery.
+ * Homepage (Pen Stage 4.3 · F01 Homepage desktop 1440 ZqhyZ and mobile 390
+ * Y0ftk8, from the owner's Ledger canvas; PUB-FR-001, 002, 014).
  */
-export default async function HomePage() {
-  const navigation = await getNavigation();
-  const categories = navigation.categories;
-  const [lead, ...rest] = categories;
+export default function HomePage() {
   return (
     <SiteShell>
       <JsonLd data={[organizationLd(), websiteLd()]} />
-      {/* ── Desktop (Pen 15) ── */}
-      <div className={s.desk}>
-        <section className={`${s.hero} ${s.pad}`} aria-labelledby="hero-title">
-          <div className={s.heroTop}>
-            <h1 id="hero-title" className={s.heroHeadline} data-enter>
-              <span>Branded uniforms,</span>
-              <span className={s.heroHeadlineMuted}>print and merch</span>
-            </h1>
-            <div className={s.heroAside} data-enter style={{ "--hp-enter-index": 1 } as CSSProperties}>
-              <p className={s.heroBody}>
-                Order staff uniforms, event materials, business cards and signage in one place. See the price upfront and approve your design before we make
-                anything.
-              </p>
-              <div className={s.heroActions}>
-                <a className={s.inkButton} href={PROJECT_HREF}>
-                  Start a project
-                  <Icon name="arrow-right" size={18} />
-                </a>
-                <a className={s.textLink} href="#how-it-works">
-                  How it works
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className={s.intentRow}>
-            <SearchForm id="home-search" variant="hero" />
-            {navigation.popular.length ? (
-              <div className={s.popular}>
-                <span className={s.popularLabel}>POPULAR</span>
-                {navigation.popular.slice(0, 3).map((product) => (
-                  <a key={product.slug} className={s.chip} href={`/products/${product.slug}`}>
-                    {product.name}
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div className={`${s.heroMedia} ${s.photo}`} data-enter style={{ ...photo(51), "--hp-enter-index": 2 } as CSSProperties} role="img" aria-label="A cutter lays out fabric on a production table" />
-          <p className={s.refNote}>TEMPORARY REFERENCE IMAGERY · NOT HOLYPEARLS PREMISES, EQUIPMENT OR CLIENTS</p>
-        </section>
 
-        <section className={`${s.outcomes} ${s.pad}`} aria-labelledby="needs-title">
-          <div className={s.sectionHead}>
-            <h2 id="needs-title" className={s.sectionTitle}>
-              What do you need?
-            </h2>
-            <a className={s.headLink} href={PROJECT_HREF}>
-              All projects →
-            </a>
-          </div>
-          <div className={s.outcomeGrid}>
-            <div className={`${s.outcomePhoto} ${s.photo}`} data-unveil style={photo(50)} role="img" aria-label="A team in branded uniforms at work" />
-            <div className={s.outcomeSide}>
-              <ol className={s.list}>
-                {OUTCOMES.map((outcome, index) => (
-                  <li key={outcome.title}>
-                    <a className={s.outcomeRow} href={outcome.href}>
-                      <span className={s.outcomeNo}>{pad(index)}</span>
-                      <span className={s.outcomeText}>
-                        <span className={s.outcomeTitle}>{outcome.title}</span>
-                        <span className={s.outcomeMeta}>{outcome.meta}</span>
-                      </span>
-                      <Icon name="arrow-up-right" size={22} />
-                    </a>
-                  </li>
-                ))}
-              </ol>
-              <p className={s.conceptNote}>Concept reference · not a client claim</p>
-            </div>
-          </div>
-        </section>
-
-        <section className={`${s.families} ${s.pad}`} aria-labelledby="categories-title">
-          <div className={s.sectionHead}>
-            <h2 id="categories-title" className={s.sectionTitle}>
-              Shop by category
-            </h2>
-            <a className={s.headLink} href="/products">
-              Browse all {navigation.totalProducts} products →
-            </a>
-          </div>
-          <ol className={s.list}>
-            {categories.map((category, index) => {
-              const isLead = category === lead;
-              return (
-                <li key={category.slug}>
-                  <a className={`${s.indexRow} ${isLead ? s.indexRowLead : ""}`} href={categoryHref(category.slug)}>
-                    <span className={s.indexNum}>{pad(index)}</span>
-                    <span className={s.indexText}>
-                      <span className={`${s.indexTitle} ${isLead ? s.indexTitleLead : ""}`}>{category.name}</span>
-                      {category.description ? <span className={`${s.indexSub} ${isLead ? s.indexSubLead : ""}`}>{category.description}</span> : null}
-                    </span>
-                    <span className={s.indexCount}>
-                      {category.productCount} {category.productCount === 1 ? "product" : "products"}
-                    </span>
-                    {isLead ? <span className={`${s.indexPhoto} ${s.photo}`} style={photo(CATEGORY_PHOTO[category.slug] ?? 44)} aria-hidden="true" /> : null}
-                    <span className={`${s.roundArrow} ${isLead ? s.roundArrowLead : ""}`} aria-hidden="true">
-                      <Icon name="arrow-right" size={20} />
-                    </span>
-                  </a>
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-
-        {navigation.mostOrdered.length ? (
-          <section className={`${s.popularProducts} ${s.pad}`} aria-labelledby="popular-title">
-            <div className={s.sectionHead}>
-              <h2 id="popular-title" className={s.sectionTitle}>
-                Most ordered
-              </h2>
-              <a className={s.headLink} href="/products?sort=popular">
-                See all →
-              </a>
-            </div>
-            <ul className={`${s.list} ${s.productRow}`}>
-              {navigation.mostOrdered.slice(0, 4).map((product) => (
-                <li key={product.slug}>
-                  <ProductCard product={product} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <section id="how-its-made" className={s.smbd} aria-labelledby="made-title">
-          <div className={`${s.immersive} ${s.pad}`}>
-            <p className={s.refFlag}>Temporary reference image · not holypearls premises</p>
-            <h2 id="made-title" className={s.immersiveTitle}>
-              You brief us once.
-              <br />
-              We handle the rest.
-            </h2>
-          </div>
-          <ol className={`${s.list} ${s.smbdColumns} ${s.pad}`}>
-            {SMBD.map(([title, body], index) => (
-              <li key={title} className={s.smbdColumn}>
-                <span className={s.smbdNum}>
-                  {pad(index)} · {title}
-                </span>
-                <p className={s.smbdBody}>{body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className={`${s.story} ${s.pad}`} aria-labelledby="story-title">
-          <div className={s.storyText}>
-            <p className={s.eyebrow}>PROJECT STORY · ANNUAL BUSINESS CONFERENCE · 250 ATTENDEES</p>
-            <h2 id="story-title" className={s.storyTitle}>
-              One event,
-              <br />
-              one order
-            </h2>
-            <p className={s.storyBody}>Crew shirts, name badges, a backdrop and roll-ups. Put them in one project, get one quote, and approve each item before it&apos;s made.</p>
-            <ul className={s.list}>
-              {KIT.map(([qty, name, state, , tone]) => (
-                <li key={name} className={s.kitRow}>
-                  <span className={s.kitQty}>{qty}</span>
-                  <span className={s.kitName}>{name}</span>
-                  <span className={`${s.kitState} ${tone}`}>{state}</span>
-                </li>
-              ))}
-            </ul>
-            <a className={s.outlineButton} href={PROJECT_HREF}>
-              Plan an event order
-            </a>
-          </div>
-          <div className={`${s.storyPhoto} ${s.photo}`} data-unveil style={photo(43)}>
-            <span className={s.ticket}>CONCEPT REFERENCE · NOT A CLIENT CLAIM</span>
-            <dl className={s.jobTicket}>
-              {JOB.map(([key, value]) => (
-                <div key={key} className={s.jobLine}>
-                  <dt className={s.jobKey}>{key}</dt>
-                  <dd className={s.jobValue}>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </section>
-
-        <section id="how-it-works" className={`${s.how} ${s.pad}`} aria-labelledby="steps-title">
-          <div className={s.sectionHead}>
-            <h2 id="steps-title" className={`${s.sectionTitle} ${s.howTitle}`}>
-              How ordering works
-            </h2>
-            <a className={s.headLink} href="/help">
-              How it works →
-            </a>
-          </div>
-          <ol className={`${s.list} ${s.steps}`}>
-            {STEPS.map(([title, body], index) => (
-              <li key={title} className={s.step}>
-                <span className={s.bar} aria-hidden="true">
-                  <span className={`${s.node} ${title === "Proof" ? s.nodeAccent : ""}`} />
-                  <span className={s.barLine} />
-                </span>
-                <span className={s.stepNum}>{pad(index)}</span>
-                <h3 className={s.stepTitle}>{title}</h3>
-                <p className={s.stepBody}>{body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className={`${s.made} ${s.pad}`} aria-labelledby="production-title">
-          <div className={s.registration} aria-hidden="true">
-            <Icon name="crosshair" size={14} />
-            <span>PRODUCTION EVIDENCE</span>
-            <span className={s.registrationLine} />
-            <span>CORE + MANAGED METHODS</span>
-          </div>
-          <div className={s.sectionHead}>
-            <h2 id="production-title" className={s.madeTitle}>
-              How it&apos;s made
-            </h2>
-            <a className={`${s.headLink} ${s.headLinkLight}`} href="#how-its-made">
-              See our production →
-            </a>
-          </div>
-          <div className={`${s.macroPhoto} ${s.photo}`} data-unveil style={photo(52)}>
-            <span className={s.ticket}>EMBROIDERY · SHOWN AT DETAIL SCALE</span>
-            <span className={`${s.refFlag} ${s.refFlagMono}`}>TEMPORARY REFERENCE IMAGE · REAL SHOOT REQUIRED</span>
-          </div>
-          <div className={s.register}>
-            <div className={s.registerText}>
-              <div className={s.core}>
-                <p className={s.coreLabel}>OUR CORE PRODUCTION</p>
-                <p className={s.coreItem}>Garments cut and sewn from scratch</p>
-                <p className={s.coreItem}>Large-format printing</p>
-              </div>
-              <div className={s.methodsBlock}>
-                <p className={s.methodsLabel}>EVERY METHOD, ONE STANDARD</p>
-                <p className={s.methods}>
-                  Embroidery · Screen printing · Heat transfer · Paper print &amp; business cards · Specialist finishing · Packaging · Promotional objects · Signage
-                  fabrication &amp; installation
-                </p>
-                <p className={s.standard}>Whatever the method, we make it to your approved design, check it and deliver it.</p>
-              </div>
-            </div>
-            <div className={`${s.largePhoto} ${s.photo}`} data-unveil style={photo(45)}>
-              <span className={s.squareTicket}>LARGE FORMAT · CORE CAPABILITY</span>
-              <span className={`${s.refFlag} ${s.refFlagMono}`}>TEMPORARY REFERENCE IMAGE</span>
-            </div>
-          </div>
-        </section>
-
-        <section className={`${s.b2b} ${s.pad}`} aria-labelledby="b2b-title">
-          <div className={s.b2bText}>
-            <p className={s.eyebrow}>FOR TEAMS THAT ORDER AGAIN</p>
-            <h2 id="b2b-title" className={s.b2bTitle}>
-              Reorder in
-              <br />
-              minutes
-            </h2>
-            <p className={s.storyBody}>
-              Give your company its own HolyPearls account. Save approved designs, collect staff sizes online, set spending limits and run a staff store. Your
-              next order takes minutes instead of weeks of emails.
-            </p>
-            <ul className={s.list}>
-              {FEATURES.map(([icon, title, meta]) => (
-                <li key={title} className={s.feature}>
-                  <Icon name={icon} size={22} />
-                  <span className={s.featureTitle}>{title}</span>
-                  <span className={s.featureMeta}>{meta}</span>
-                </li>
-              ))}
-            </ul>
-            <div className={s.b2bActions}>
-              <a className={s.inkButton} href="/contact?topic=business">
-                Set up a company account
-              </a>
-              <a className={s.textLink} href="/contact?topic=business">
-                Talk to our business team
-              </a>
-            </div>
-          </div>
-          <div className={s.workspace} aria-label="Example company workspace" role="img">
-            <div className={s.org}>
-              <span className={s.orgMark}>AC</span>
-              <div>
-                <p className={s.orgName}>ACME Hospitality Group · Workspace</p>
-                <p className={s.orgMeta}>TEMPLATES · 5 APPROVED</p>
-              </div>
-            </div>
-            <div className={s.templates}>
-              {[
-                ["Staff Polo — Navy", "ACME logo V4 · left chest", 49],
-                ["Apron — ACME template", "ACME logo V4 · embroidered", 44],
-              ].map(([title, lock, n]) => (
-                <div key={title} className={s.template}>
-                  <span className={`${s.templatePhoto} ${s.photo}`} style={photo(n as number)} />
-                  <p className={s.templateTitle}>{title}</p>
-                  <span className={s.locked}>
-                    <Icon name="lock" size={14} />
-                    {lock}
-                  </span>
-                  <span className={s.templateButton}>Order again</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className={`${s.final} ${s.pad}`} aria-labelledby="final-title">
-          <h2 id="final-title" className={s.finalTitle}>
-            What do you need made?
-          </h2>
-          <SearchForm id="final-search" variant="final" />
-          <a className={s.finalAlt} href={PROJECT_HREF}>
-            <span className={s.finalAltQ}>Not sure yet?</span>
-            Start a project and we&apos;ll help →
-          </a>
-        </section>
-      </div>
-
-      {/* ── Mobile (Pen 16) ── */}
-      <div className={s.mob}>
-        <section className={s.mHero} aria-labelledby="m-hero-title">
-          <h1 id="m-hero-title" className={s.mHeadline} data-enter>
-            Branded uniforms, print and merch
+      <section className={s.hero} aria-labelledby="hero-title">
+        <div className={s.swatches} aria-hidden="true">
+          {SWATCHES.map((swatch, i) => (
+            <figure key={swatch.name} className={`${s.swatchCard} ${s[`swatch${i + 1}`]} ${swatch.mobile ? "" : s.deskOnly}`}>
+              <span className={s.swatchPhoto} style={{ backgroundImage: `url("${img(swatch.photo)}")` }} />
+              <figcaption className={s.swatchCaption}>
+                <span>{swatch.name}</span>
+                <span className={s.swatchCode}>{swatch.code}</span>
+              </figcaption>
+            </figure>
+          ))}
+          <Stamp className={s.heroStamp} />
+        </div>
+        <div className={s.heroCopy}>
+          <p className={s.heroBadge}>
+            <span className={s.dot} />
+            <span className={s.deskOnly}>CUSTOM APPAREL, EMBROIDERY &amp; PRINTING IN NIGERIA</span>
+            <span className={s.mobOnly}>CUSTOM APPAREL &amp; PRINTING IN NIGERIA</span>
+          </p>
+          <h1 id="hero-title" className={s.heroTitle} data-enter>
+            Custom uniforms, merch &amp; print,{" "}
+            <span className={s.highlight}>
+              made for you.
+              <svg className={s.stitch} viewBox="0 0 420 18" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M4 12 C 120 2, 300 2, 416 10" />
+              </svg>
+            </span>
           </h1>
-          <SearchForm id="m-home-search" variant="mHero" />
-          <a className={s.mFullButton} href={PROJECT_HREF}>
-            Start a project
-            <Icon name="arrow-right" size={18} />
-          </a>
-        </section>
-        <div className={s.mHeroMedia}>
-          <div className={`${s.mHeroPhoto} ${s.photo}`} style={photo(51)} role="img" aria-label="A cutter lays out fabric on a production table">
-            <span className={s.mCap}>Temporary reference image · poster frame</span>
+          <p className={s.heroLede} data-enter style={{ "--hp-enter-index": 1 } as CSSProperties}>
+            <span className={s.deskOnly}>Branded polos, event banners, business cards and packaging. Get a price in minutes.</span>
+            <span className={s.mobOnly}>Branded polos, banners, business cards and packaging. Get a price in minutes.</span>
+          </p>
+          <form className={s.heroSearch} role="search" action="/search" data-enter style={{ "--hp-enter-index": 2 } as CSSProperties}>
+            <label className={s.heroSearchLabel} htmlFor="home-search">
+              What do you need made?
+            </label>
+            <div className={s.heroField}>
+              <Icon name="search" size={20} className={s.heroFieldIcon} />
+              <HeroSearch id="home-search" inputClassName={s.heroInput} />
+              <button type="submit" className={`${s.searchButton} ${s.deskOnly}`}>
+                Search
+              </button>
+            </div>
+          </form>
+          <div className={s.heroActions} data-enter style={{ "--hp-enter-index": 3 } as CSSProperties}>
+            <a className={`${s.button} ${s.whiteButton}`} href={PROJECT_HREF}>
+              Start a Project
+              <Arrow />
+            </a>
+            <a className={s.heroLink} href="#how">
+              How it works
+            </a>
           </div>
         </div>
+      </section>
+      <div className={s.woven} aria-hidden="true" />
 
-        <section className={s.mOutcomes} aria-labelledby="m-needs-title">
-          <h2 id="m-needs-title" className={s.mTitle}>
-            What do you need?
-          </h2>
-          <ul className={s.mSwipe}>
-            {OUTCOMES.slice(0, 3).map((outcome) => (
-              <li key={outcome.title} style={{ display: "contents" }}>
-                <a className={s.mOutcome} href={outcome.href}>
-                  <span className={`${s.mOutcomePhoto} ${s.photo}`} style={photo(outcome.photo)} />
-                  <span className={s.mRow}>
-                    {outcome.title}
-                    <Icon name="arrow-right" size={20} />
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={s.mFamilies} aria-labelledby="m-categories-title">
-          <h2 id="m-categories-title" className={s.mTitle}>
-            Shop by category
-          </h2>
-          <ul className={s.list}>
-            {categories.slice(0, 4).map((category, index) => (
-              <li key={category.slug}>
-                <a className={s.mCat} href={categoryHref(category.slug)}>
-                  <span className={`${s.mCatPhoto} ${s.photo}`} style={CATEGORY_PHOTO[category.slug] ? photo(CATEGORY_PHOTO[category.slug]!) : undefined} />
-                  <span className={s.mCatText}>
-                    <span className={s.mCatTitle}>{category.name}</span>
-                    <span className={s.mCatMeta}>
-                      {pad(index)} · {category.productCount} {category.productCount === 1 ? "product" : "products"}
-                    </span>
-                  </span>
-                  <Icon name="chevron-right" size={20} />
-                </a>
-              </li>
-            ))}
-          </ul>
-          {rest.length > 3 ? (
-            <a className={s.mMore} href="/products">
-              + {categories.slice(4).map((category) => category.name.split(" ")[0]).join(", ")}. See all {navigation.totalProducts} products →
-            </a>
-          ) : null}
-        </section>
-
-        {navigation.mostOrdered.length ? (
-          <section className={s.mPopular} aria-labelledby="m-popular-title">
-            <h2 id="m-popular-title" className={s.mTitle}>
-              Most ordered
-            </h2>
-            <ul className={`${s.list} ${s.mPairs}`}>
-              {navigation.mostOrdered.slice(0, 4).map((product) => (
-                <li key={product.slug}>
-                  <ProductCard product={product} tight />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <section className={s.mSmbd} aria-labelledby="m-made-title">
-          <h2 id="m-made-title" className={`${s.mTitle} ${s.mTitleLight}`}>
-            You brief us once.
-            <br />
-            We handle the rest.
-          </h2>
-          <div className={`${s.mSewing} ${s.photo}`} data-unveil style={photo(46)} role="img" aria-label="Sewing machinists at work" />
-          <ol className={`${s.list} ${s.mGap24}`}>
-            {SMBD.map(([title, , short], index) => (
-              <li key={title} className={s.mSmbdRow}>
-                <span className={s.mSmbdHead}>
-                  <span className={s.mSmbdNum}>{pad(index)}</span>
-                  <h3 className={s.mSmbdTitle}>{title[0]!.toUpperCase() + title.slice(1)}</h3>
-                </span>
-                <p className={s.mSmbdBody}>{short}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className={s.mStory} aria-labelledby="m-story-title">
-          <div className={`${s.mEventPhoto} ${s.photo}`} data-unveil style={photo(43)}>
-            <span className={s.mTicket}>CONCEPT REFERENCE</span>
-          </div>
-          <h2 id="m-story-title" className={s.mTitle}>
-            One event,
-            <br />
-            one order
-          </h2>
-          <ul className={`${s.list} ${s.mGap18}`}>
-            {KIT.map(([qty, name, , short, tone]) => (
-              <li key={name} className={s.mKit}>
-                <span className={s.mKitQty}>{qty}</span>
-                <span className={s.kitName}>{name === "Roll-up banners" ? "Roll-ups" : name}</span>
-                <span className={`${s.mKitState} ${tone}`}>{short}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className={s.mHow} aria-labelledby="m-steps-title">
-          <h2 id="m-steps-title" className={s.mTitle}>
-            How ordering works
-          </h2>
-          <ol className={`${s.list} ${s.mGap20}`}>
-            {STEPS.map(([title], index) => (
-              <li key={title} className={s.mStep}>
-                <span className={`${s.mNode} ${title === "Proof" ? s.mNodeAccent : ""}`}>{pad(index)}</span>
-                {title}
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className={s.mMade} aria-labelledby="m-production-title">
-          <h2 id="m-production-title" className={`${s.mTitle} ${s.mTitleLight}`}>
-            How it&apos;s made
-          </h2>
-          <div className={`${s.mMacro} ${s.photo}`} data-unveil style={photo(52)}>
-            <span className={s.mTicket}>EMBROIDERY · DETAIL SCALE · TEMP REFERENCE</span>
-          </div>
-          <div className={`${s.mLarge} ${s.photo}`} data-unveil style={photo(45)}>
-            <span className={s.mTicket}>LARGE FORMAT · CORE CAPABILITY</span>
-          </div>
-          <div className={s.mCapability}>
-            <p className={s.coreLabel}>OUR CORE PRODUCTION</p>
-            <p className={s.mCore}>We cut and sew garments and print large-format graphics ourselves</p>
-            <p className={s.mMethods}>
-              We also handle embroidery, screen printing, transfers, business cards, packaging, gifts and signage. Everything is made to your approved design and
-              checked before it leaves us.
-            </p>
-          </div>
-        </section>
-
-        <section className={s.mB2b} aria-labelledby="m-b2b-title">
-          <h2 id="m-b2b-title" className={s.mTitle}>
-            Reorder in
-            <br />
-            minutes
-          </h2>
-          <p className={s.mB2bBody}>Save approved designs, collect staff sizes online and run a staff store.</p>
-          <ul className={`${s.list} ${s.mGap18}`}>
-            {FEATURES.map(([icon, title]) => (
-              <li key={title} className={s.mFeature}>
-                <Icon name={icon} size={20} />
-                {title}
-              </li>
-            ))}
-          </ul>
-          <a className={s.mFullButton} href="/contact?topic=business">
-            Set up a company account
-          </a>
-        </section>
-
-        <section className={s.mFinal} aria-labelledby="m-final-title">
-          <h2 id="m-final-title" className={s.mFinalTitle}>
-            What do you need made?
-          </h2>
-          <SearchForm id="m-final-search" variant="mFinal" />
-          <a className={s.mFinalLink} href={PROJECT_HREF}>
-            Not sure yet? Start a project →
-          </a>
-        </section>
+      <div className={s.marquee} aria-label="Things we make">
+        <ul className={s.marqueeTrack}>
+          {[...MAKES, ...MAKES].map((make, i) => (
+            <li key={`${make}-${i}`} className={s.marqueeItem} aria-hidden={i >= MAKES.length || undefined}>
+              {make}
+              <span className={s.star} aria-hidden="true">
+                ✺
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
+
+      <section className={s.section} aria-labelledby="shop-title">
+        <div className={s.headRow} data-reveal>
+          <div className={s.heading}>
+            <p className={s.eyebrow}>Shop by category</p>
+            <h2 id="shop-title" className={s.sectionTitle}>
+              Custom apparel, print &amp; packaging
+            </h2>
+          </div>
+          <ul className={s.chips}>
+            {CHIPS.map(([label, href]) => (
+              <li key={label}>
+                <a className={s.chip} href={href}>
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <ul className={s.tiles}>
+          {TILES.map((tile, i) => (
+            <li key={tile.title} className={`${tile.wide ? s.tileWide : ""} ${i === 5 ? s.tileLast : ""}`} data-reveal style={index(i % 3)}>
+              <a className={`${s.tile} ${tile.tone}`} href={tile.href}>
+                <span className={s.tileTop}>
+                  <span className={s.tileText}>
+                    <span className={s.tileTitle}>{tile.title}</span>
+                    <span className={s.tileSub}>{tile.sub}</span>
+                  </span>
+                  <span className={s.tileArrow} aria-hidden="true">
+                    <Arrow />
+                  </span>
+                </span>
+                <span className={s.tilePhoto}>
+                  <span className={s.zoomImage} style={{ backgroundImage: `url("${img(tile.photo)}")` }} />
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={s.section} aria-labelledby="try-title">
+        <PoloPicker />
+      </section>
+
+      <section className={s.section} aria-labelledby="ways-title">
+        <div className={s.heading} data-reveal>
+          <p className={s.eyebrow}>Pricing, simply</p>
+          <h2 id="ways-title" className={s.sectionTitle}>
+            Three ways to order
+          </h2>
+        </div>
+        <ul className={s.ways}>
+          {WAYS.map((way, i) => (
+            <li key={way.title} className={s.way} data-reveal style={index(i)}>
+              <span className={`${s.badge} ${way.tone}`}>{way.badge}</span>
+              <h3 className={s.wayTitle}>{way.title}</h3>
+              <p className={s.wayBody}>{way.body}</p>
+              <p className={s.wayExamples}>{way.examples}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="how" className={s.section} aria-labelledby="how-title">
+        <div className={s.headRow} data-reveal>
+          <div className={s.heading}>
+            <p className={s.eyebrow}>How custom orders work</p>
+            <h2 id="how-title" className={s.sectionTitle}>
+              From idea to doorstep in four steps
+            </h2>
+          </div>
+          <a className={`${s.button} ${s.inkButton} ${s.buttonSm} ${s.deskOnly}`} href={PROJECT_HREF}>
+            Start a Project
+            <Arrow />
+          </a>
+        </div>
+        <div className={s.stepsWrap}>
+          <span className={s.thread} data-reveal="clip" aria-hidden="true" />
+          <ol className={s.steps}>
+            {STEPS.map(([icon, title, body], i) => (
+              <li key={title} className={s.step} data-reveal style={index(i)}>
+                <span className={s.stepIcon}>
+                  <Icon name={icon} size={26} />
+                </span>
+                <span className={s.stepText}>
+                  <span className={s.stepNo}>STEP {i + 1}</span>
+                  <span className={s.stepTitle}>{title}</span>
+                  <span className={s.stepBody}>{body}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <a className={`${s.button} ${s.brickButton} ${s.mobOnly} ${s.fullMobile}`} href={PROJECT_HREF}>
+          Start a Project
+          <Arrow />
+        </a>
+      </section>
+
+      <section className={`${s.section} ${s.split}`} aria-labelledby="made-title">
+        <div className={s.splitCopy} data-reveal>
+          <p className={s.eyebrow}>Made by people</p>
+          <h2 id="made-title" className={s.splitTitle}>
+            Real workshops. Your approval first.
+          </h2>
+          <p className={s.bodyPlus}>Every order gets a production proof. Nothing is stitched or printed until you say yes.</p>
+          <a className={`${s.button} ${s.outlineButton} ${s.fullMobile}`} href="/about">
+            See how it’s made
+            <Arrow />
+          </a>
+        </div>
+        <div className={s.workshops}>
+          {[
+            ["workshop-cut-sew", "Cut & sew"],
+            ["workshop-screen-print", "Screen print"],
+            ["workshop-checked-packed", "Checked & packed"],
+          ].map(([photo, label], i) => (
+            <figure key={label} className={`${s.workshop} ${i === 0 ? s.workshopTall : ""}`} data-reveal style={index(i)}>
+              <span className={s.zoomImage} style={{ backgroundImage: `url("${img(photo!)}")` }} role="img" aria-label={label} />
+              <figcaption className={s.photoLabel}>{label}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      <section className={`${s.section} ${s.corporate}`} aria-labelledby="corporate-title">
+        <div className={s.corporatePhoto} data-reveal>
+          <span className={s.zoomImage} style={{ backgroundImage: `url("${img("corporate-kitchen")}")` }} role="img" aria-label="Kitchen team in matching chef uniforms" />
+          <span className={s.cropsLight} aria-hidden="true" />
+        </div>
+        <div className={s.splitCopy} data-reveal style={index(1)}>
+          <p className={s.eyebrow}>Corporate uniforms</p>
+          <h2 id="corporate-title" className={s.splitTitle}>
+            Branded uniforms for every team
+          </h2>
+          <p className={s.bodyPlus}>One look across every branch. Reorder in two clicks.</p>
+          <ul className={s.industries}>
+            {INDUSTRIES.map((industry) => (
+              <li key={industry}>
+                <a className={`${s.chip} ${s.chipLg}`} href={projectHref("staff-team-branding")}>
+                  {industry}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <a className={`${s.button} ${s.blueButton} ${s.fullMobile}`} href="/contact?topic=business">
+            Set up a Brand Workspace
+            <Arrow />
+          </a>
+        </div>
+      </section>
+
+      <section className={`${s.section} ${s.work}`} aria-labelledby="work-title">
+        <div className={`${s.headRow} ${s.workHead}`} data-reveal>
+          <div className={s.heading}>
+            <p className={s.eyebrow}>Our work</p>
+            <h2 id="work-title" className={s.sectionTitle}>
+              Made for teams like yours
+            </h2>
+          </div>
+          <a className={`${s.button} ${s.outlineButton} ${s.buttonSm} ${s.deskOnly}`} href="/our-work">
+            See all projects
+            <Arrow />
+          </a>
+          <a className={`${s.heroLink} ${s.inkLink} ${s.mobOnly}`} href="/our-work">
+            See all
+          </a>
+        </div>
+        <ul className={s.rail} tabIndex={0} aria-label="Recent projects">
+          {WORK.map((item, i) => (
+            <li key={item.detail} data-reveal style={index(i)}>
+              <a className={s.project} href="/our-work">
+                <span className={s.projectPhoto}>
+                  <span className={s.zoomImage} style={{ backgroundImage: `url("${img(item.photo)}")` }} />
+                </span>
+                <span className={s.projectTitle}>{item.detail}</span>
+                <span className={s.projectMeta}>Concept reference</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={`${s.section} ${s.help}`} aria-label="Delivery and questions">
+        <div className={s.delivery} data-reveal>
+          <p className={s.eyebrow}>Delivery</p>
+          <h2 className={s.deliveryTitle}>Custom printing, delivered across Nigeria</h2>
+          <p className={s.deliveryBody}>
+            Nationwide delivery, rates shown at checkout.<span className={s.deskOnly}> International freight is confirmed in your quote.</span>
+          </p>
+          <ul className={s.cities}>
+            {CITIES.map((city) => (
+              <li key={city} className={s.city}>
+                {city}
+              </li>
+            ))}
+            <li className={`${s.city} ${s.cityMore}`}>+ everywhere else</li>
+          </ul>
+        </div>
+        <div className={s.faq}>
+          <h2 className={s.faqTitle} data-reveal>
+            Frequently asked questions
+          </h2>
+          <div className={s.faqList} data-reveal style={index(1)}>
+            {FAQS.map(([question, answer], i) => (
+              <details key={question} className={s.faqItem} open={i === 0}>
+                <summary className={s.faqQuestion}>
+                  <span>{question}</span>
+                  <span className={s.plus} aria-hidden="true">
+                    <Icon name="plus" size={16} />
+                  </span>
+                </summary>
+                <p className={s.faqAnswer}>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={s.describe} aria-labelledby="describe-title">
+        <div className={s.describeCopy} data-reveal>
+          <h2 id="describe-title" className={s.describeTitle}>
+            Not sure what to call it? Describe it.
+          </h2>
+          <p className={s.describeBody}>We’ll recommend products and send one clear quote.</p>
+        </div>
+        <div className={s.describePhoto} data-reveal style={index(1)}>
+          <span className={s.zoomImage} style={{ backgroundImage: `url("${img("cta-describe")}")` }} role="img" aria-label="Designer in a bold printed outfit" />
+        </div>
+        <div className={s.describeActions}>
+          <a className={`${s.button} ${s.inkButton}`} href={PROJECT_HREF}>
+            Start a Project
+            <Arrow />
+          </a>
+          <a className={`${s.button} ${s.lineButton}`} href="/contact">
+            Chat with us
+          </a>
+        </div>
+      </section>
     </SiteShell>
   );
 }

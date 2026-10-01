@@ -32,7 +32,7 @@
 }
 
 .dark {
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
   color: var(--hp-paper);
 }
 
@@ -361,8 +361,8 @@
   min-height: calc(var(--hp-space-48) + var(--hp-space-4));
   padding: 0 var(--hp-space-20);
   border: 0;
-  border-radius: var(--hp-r-control);
-  background: var(--hp-accent);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-brand);
   color: var(--hp-paper);
   font-family: var(--hp-font-ui);
   font-size: var(--hp-text-body);
@@ -377,7 +377,7 @@
 }
 
 .searchButton:hover {
-  background: var(--hp-accent-hover);
+  background: var(--hp-brand-hover);
 }
 
 .searchButton:active {
@@ -654,7 +654,7 @@
   gap: var(--hp-space-16);
   padding: var(--hp-space-40);
   border-radius: var(--hp-r-card);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
   color: var(--hp-paper);
 }
 
@@ -949,6 +949,7 @@
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .headLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

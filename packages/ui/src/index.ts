@@ -1,4 +1,5 @@
 export * from "./components/AuthControls";
+export * from "./components/BrandMark";
 export * from "./components/Button";
 export * from "./components/Card";
 export * from "./components/Checkbox";

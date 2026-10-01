@@ -1,0 +1,98 @@
+/* Holypearls logo (Pen Stage 4.3 · HP/Brand/Mark, Lockup, Logo). */
+
+.brick {
+  fill: var(--hp-accent);
+}
+
+.blue {
+  fill: var(--hp-brand);
+}
+
+.mark {
+  display: block;
+  width: var(--hp-logo-mark-width);
+  height: var(--hp-logo-mark-height);
+  flex: none;
+}
+
+.lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-10);
+  color: var(--hp-brand);
+  text-decoration: none;
+}
+
+.wordmark {
+  font-family: var(--hp-font-wordmark);
+  font-size: var(--hp-text-wordmark-sm);
+  font-weight: var(--hp-weight-bold);
+  letter-spacing: var(--hp-tracking-eyebrow);
+}
+
+@media (min-width: 1024px) {
+  .wordmark {
+    font-size: var(--hp-text-wordmark-ledger);
+  }
+
+  .lockup .mark {
+    width: var(--hp-logo-mark-width-lg);
+    height: var(--hp-logo-mark-height-lg);
+  }
+}
+
+/* A small sway on hover: the thread moves (Motion board · logo). */
+@media (prefers-reduced-motion: no-preference) {
+  .lockup:hover .mark {
+    animation: hp-sway calc(var(--hp-motion-card) * 3) var(--hp-ease-ui) 1;
+  }
+}
+
+@keyframes hp-sway {
+  50% {
+    rotate: -4deg;
+  }
+}
+
+.full {
+  display: block;
+  width: var(--hp-logo-full-width-sm);
+  height: auto;
+}
+
+@media (min-width: 1024px) {
+  .full {
+    width: var(--hp-logo-full-width);
+  }
+}
+
+.arcText {
+  fill: var(--hp-brand);
+  font-family: var(--hp-font-wordmark);
+  font-size: var(--hp-logo-arc-size);
+  font-weight: var(--hp-weight-bold);
+  letter-spacing: var(--hp-logo-arc-tracking);
+}
+
+/* Reversed: one colour, white, on Blue Deep or dark photos. Never both colours on a dark ground. */
+.reversed,
+.reversed .arcText {
+  color: var(--hp-paper);
+}
+
+.reversed .brick,
+.reversed .blue,
+.reversed .arcText {
+  fill: var(--hp-paper);
+}
+
+.ink,
+.ink .arcText {
+  color: var(--hp-ink);
+}
+
+.ink .brick,
+.ink .blue,
+.ink .arcText {
+  fill: var(--hp-ink);
+}
