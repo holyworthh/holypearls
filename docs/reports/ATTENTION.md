@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-30 (after T04-01).
+Last updated: 2026-10-01 (engineering review fixes).
 
 ## Decisions and actions needed
 
@@ -12,10 +12,12 @@ Released through PR #21 and again through PR #33 (2026-09-30, commit 2683b36); p
 ### 2. First production staff admin
 Production has no staff accounts, and test people are never seeded there. A one-off bootstrap command is needed: create one STAFF_ADMIN by email, who then sets a password and authenticator. **Question:** should I build it now as a small ops task (`pnpm bootstrap:admin --email you@…`), or leave it for T13-05 (staff administration)?
 
-### 3. Cloudflare R2 keys
-Uploaded files and seeded images on staging and production live on the Render container's disk and disappear on every restart or deploy. The Cloudflare connector can create buckets but not API keys. **Needed:**
-- An R2 API token (Object Read & Write) from the Cloudflare dashboard.
-- Tell me when it exists; I'll create the buckets, set `STORAGE_DRIVER=s3` and the `S3_*` values, and add the CORS rule.
+### 3. Cloudflare R2 for staging and production (review P0-01)
+Development now uses R2 (`holypearls-dev`, your key; the persistence test passes). Production now **refuses to start** without R2, so this blocks the next release to `main`. The Cloudflare connector can't choose a bucket location or create keys, so **in the Cloudflare dashboard**:
+1. Create four buckets with location **Western Europe**: `holypearls-staging-private`, `holypearls-staging-public`, `holypearls-prod-private`, `holypearls-prod-public`.
+2. Create two R2 API tokens (Object Read & Write), one limited to the two staging buckets and one to the two prod buckets.
+3. Add the CORS rule from `docs/ops/ENVIRONMENTS.md` (Files) to each private bucket.
+4. Tell me when they exist and add the token values to Render yourself, or paste them into `.env.staging` / `.env.production` locally (not committed). I'll set `STORAGE_DRIVER=s3` and the `S3_*` values on Render.
 
 ### 4. Email sending domain
 Resend can only send from `onboarding@resend.dev` to your own address until a domain is verified. **Needed:** buy the domain, or allow a subdomain of a domain you already own. `lumina.akhigbe.xyz` is verified in your Resend account, so `holypearls.akhigbe.xyz` would work for staging if you add its DNS records.
@@ -29,8 +31,8 @@ This is fine for now. Before taking real orders, move to Vercel Pro or another h
 ### 7. Shared staging secret
 Staging uses the same `BETTER_AUTH_SECRET` as your local `.env`, because staging's test data is a copy of development's and the test staff's authenticator secrets are encrypted with it. Production has its own secrets. Say if you'd rather I re-seed staging with its own secret.
 
-### 8. Neon database role
-Staging, development and production share one Neon role and password. Before real customers, production should get its own role. I can do this through the Neon connector; **say yes** and I'll rotate the credentials.
+### 8. ~~Neon database role~~ IN PROGRESS
+Migration `0023` adds the row-only app role; each Neon branch gets its own `holypearls_app` login and owner password (`docs/ops/ENVIRONMENTS.md`, Database roles). Staging switches over when this reaches `dev`; production at the next release, which also needs item 3.
 
 ### 9. Pen design file clean-up
 Pen frames 96, 98 and 104 still show "Unpublish"; products are now archived instead. The upload hint in Pen should read "PDF, AI, SVG, PNG or JPEG". I haven't edited the design file.
@@ -98,3 +100,9 @@ The Contact page shows placeholder email, phone, WhatsApp and address (PUB-SEO-0
 
 ### 21. Draft preview (T02-06)
 Staff can preview a content page only after it's published. **Decide:** whether staff-only draft preview links are wanted (small follow-up), or leave it.
+
+### 11. Branch protection (review P1-01): skipped for now
+GitHub refuses branch rules on a private repository on the Free plan. You chose to skip it for now, so `dev` and `main` still accept direct and force pushes. With GitHub Pro ($4/month) I can add: pull requests only, the `checks` job required, no force pushes, no deletion, on both branches.
+
+### 12. Before the next release to `main`
+Production now checks its own settings on start (review P0-01, P1-02, P2-05). Before merging `dev` into `main`, production needs: R2 (item 3), the `holypearls_app` login in `DATABASE_URL` and `DATABASE_DIRECT_URL`, `DATABASE_MIGRATION_URL` for the owner, and `WEB_REVALIDATE=on`. I'll set these on Render once item 3 is done.

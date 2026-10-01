@@ -26,7 +26,7 @@ Flow:
 | api + worker | Render free web service, Frankfurt, Docker, branch `dev` | same, branch `main` |
 | database | Neon project `holypearls`, branch `staging` | Neon branch `production` |
 | email | Resend, from `onboarding@resend.dev` (can only send to the account owner's address until a domain is verified) | Resend, own domain once bought |
-| files | local disk inside the container (lost on restart) until R2 keys exist, then R2 | R2 |
+| files | local disk inside the container (lost on restart) until its R2 keys exist, then R2 | R2 (required: the api and worker refuse to start without it) |
 | errors | logs only until a Sentry DSN is added | Sentry |
 
 ## Free-tier trade-offs (deviations from TECH-07)
@@ -40,16 +40,39 @@ Flow:
 
 ## Environment variables
 
-**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled), `DATABASE_DIRECT_URL` (Neon direct), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, `SENTRY_DSN` (set 2026-09-28; one Sentry project, events tagged by `HP_ENV`; the worker in the same container reports too), and later the `S3_*` values.
+**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled, app role), `DATABASE_DIRECT_URL` (Neon direct, app role), `DATABASE_MIGRATION_URL` (Neon direct, schema owner; migrations only), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE` (`on` in production, `off` in staging), `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, `SENTRY_DSN` (set 2026-09-28; one Sentry project, events tagged by `HP_ENV`; the worker in the same container reports too), `STORAGE_DRIVER=s3` and the `S3_*` values.
+
+**Production fails closed.** With `HP_ENV=production` the api and worker refuse to start when files would go to the container's disk, an `S3_*` value is missing, the private and public buckets are the same, email isn't Resend, page refresh is off, the demo routes are on, an address is `localhost` or `.test`, or `DATABASE_URL` logs in as a role that can change the schema (`packages/config`, `runtimePrivilegeProblems`).
 
 **web (Vercel)**: `API_URL` (that environment's Render URL; written into the build), `HP_DEMO_SLICE`, `WEB_REVALIDATE_SECRET`. Staging values are scoped to the `dev` branch; production values to Production.
 
 Secrets are generated per environment and never shared between staging and production.
 
+## Database roles (review P1-02)
+
+Migration `0023_runtime_role` creates `holypearls_runtime`: rows only (read, add, change, delete), no create, alter or drop anywhere, no changes to the audit log, and ownership of the `pgboss` job-queue schema. Each environment has its own login for the app, made once on that Neon branch by the schema owner after `0023` has run there:
+
+```sql
+CREATE ROLE holypearls_app LOGIN PASSWORD '<generated, per environment>' IN ROLE holypearls_runtime;
+ALTER ROLE holypearls_app SET role = 'holypearls_runtime';
+```
+
+`DATABASE_URL` and `DATABASE_DIRECT_URL` use `holypearls_app`; `DATABASE_MIGRATION_URL` uses the owner (`neondb_owner`, with its own password per branch). `apps/api/src/platform/runtime-role.test.ts` checks the role's limits in CI.
+
+## Files (review P0-01)
+
+Each environment has two private R2 buckets in Western Europe (the api serves public images itself, so neither bucket is public): `holypearls-staging-private` and `holypearls-staging-public`, `holypearls-prod-private` and `holypearls-prod-public`. Local development uses `holypearls-dev`. Each environment has its own R2 API token (Object Read & Write) limited to its two buckets. The private bucket needs a CORS rule so browsers can upload to it directly:
+
+```json
+[{ "AllowedOrigins": ["<that environment's web URL>"], "AllowedMethods": ["PUT", "GET", "HEAD"], "AllowedHeaders": ["content-type"], "MaxAgeSeconds": 3600 }]
+```
+
+Turn on R2's object lifecycle or versioning settings where available. `packages/storage/src/r2.test.ts` checks that an upload is still readable by a new process; it runs whenever the `S3_*` values are set.
+
 ## When there's money or a domain
 
 1. Buy the domain; add it to Vercel (web) and Resend (email DNS, see `EMAIL-DNS.md`), and point `api.` at Render.
-2. Create R2 API keys and set `STORAGE_DRIVER=s3` and the `S3_*` values.
+2. ~~Create R2 API keys~~ Required before the next production release (see Files above).
 3. Upgrade Render to a paid plan, split the worker into its own service and use a pre-deploy step.
 
 ## Addresses (set up 2026-09-28)
@@ -66,6 +89,6 @@ Local development uses the Neon branch `development`.
 Notes:
 
 - Staging's data started as a copy of development's TEST DATA, so staging shares development's `BETTER_AUTH_SECRET` (the seeded authenticator secrets are encrypted with it). Production has its own secrets.
-- All three Neon branches use the same database role. Give production its own role before real customers arrive.
+- Each Neon branch gets its own app login and owner password (see Database roles above).
 - Production has no staff yet. A first STAFF_ADMIN needs a one-off bootstrap command (not built yet; suggested for T13-05).
-- Page refresh (`WEB_REVALIDATE_URL`) is set for production only; Vercel's login in front of staging would refuse the worker's calls.
+- Page refresh is on for production only (`WEB_REVALIDATE=on`); staging sets `WEB_REVALIDATE=off` because Vercel's login in front of it would refuse the worker's calls.
