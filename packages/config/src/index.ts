@@ -64,6 +64,7 @@ type Deployed = {
   HELP_INBOX_EMAIL?: string;
   BETTER_AUTH_URL?: string;
   HP_DEMO_SLICE?: "on" | "off";
+  WEB_PROXY_SECRET?: string;
   WEB_REVALIDATE?: "on" | "off";
   WEB_REVALIDATE_URL?: string;
   WEB_REVALIDATE_SECRET?: string;
@@ -101,8 +102,15 @@ function deployedRules(env: Deployed, ctx: z.RefinementCtx) {
   }
 }
 
+/** The api also needs the web proxy's secret in production, or every visitor shares one address. */
+function apiRules(env: Deployed, ctx: z.RefinementCtx) {
+  deployedRules(env, ctx);
+  if (env.HP_ENV === "production" && !env.WEB_PROXY_SECRET) ctx.addIssue({ code: "custom", path: ["WEB_PROXY_SECRET"], message: "required in production" });
+}
+
 const webSchema = z.object({
   API_URL: z.url(),
+  WEB_PROXY_SECRET: z.string().min(32).optional(),
   SITE_URL: z.url().optional(),
   INDEXNOW_KEY: z.string().optional(),
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
@@ -126,9 +134,11 @@ const apiSchema = z
     ...encryption,
     /** Where new help requests are announced to staff (PRD-00 §18). */
     HELP_INBOX_EMAIL: z.email().default("help@holypearls.test"),
+    /** Shared with the web app: proves its proxy sent the visitor's address (review P1-08). */
+    WEB_PROXY_SECRET: z.string().min(32).optional(),
     ...storage,
   })
-  .superRefine(deployedRules);
+  .superRefine(apiRules);
 
 /** IndexNow (PUB-SEO-009): production only. SITE_URL is the public web address; the key is also served at /indexnow-key.txt. */
 const seo = {

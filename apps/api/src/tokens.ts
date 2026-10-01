@@ -9,6 +9,8 @@ declare global {
   namespace Express {
     interface Request {
       requestId?: string;
+      /** The visitor's address, as trusted by clientIpFrom (review P1-08). */
+      clientIp?: string;
     }
   }
 }

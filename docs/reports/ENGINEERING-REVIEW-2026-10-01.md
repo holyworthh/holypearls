@@ -8,6 +8,17 @@ Fixes for the principal-engineer review of `dev` at `1331bf9`. They land as five
 | P1-01 Branch protection | Not possible on GitHub Free for a private repository; skipped by the owner (ATTENTION 11) | — |
 | P1-02 Database privileges | Code done; Neon logins per branch as each environment picks up `0023` | PR A |
 | P2-05 Page refresh switch | Done | PR A |
+| P1-03 Typed email linking an account | Done | PR B |
+| P1-04 Sign-in claim of cart, designs and checkout | Done | PR B |
+| P1-05 Every design change closes the checkout | Done | PR C |
+| P1-06 Frozen order snapshot | Done | PR C |
+| P1-07 Stale checkout when nothing is ready | Done | PR C |
+| P2-01 Atomic contact step | Done | PR C |
+| P2-04 Cart and checkout database rules | Done | PR C |
+| P1-08 Anonymous write limits and the visitor's address | Done; `WEB_PROXY_SECRET` on staging, production at release | PR D |
+| P2-02 Quote items all or nothing | Done | PR D |
+| P2-03 Checkout and draft retention | Done with the owner's starting values; to confirm with accountant and lawyer | PR D |
+| P2-09 Personal data in the audit log | Done | PR D |
 
 ## PR A: infrastructure safety
 
@@ -49,3 +60,87 @@ The migration owner is a member of the runtime role, so one login still does eve
 
 ### Questions
 - The review asks for versioning or recovery on R2. R2 has no object versioning; its lifecycle rules and bucket locks are dashboard settings, listed in ENVIRONMENTS.md.
+
+### Infrastructure done after PR A merged
+- Staging ran `0023` on deploy. On the Neon `staging` branch I created `holypearls_app`: a generated password, a member of `holypearls_runtime`, acting as it. Staging's `DATABASE_URL` and `DATABASE_DIRECT_URL` now use it, `DATABASE_MIGRATION_URL` uses the owner, and `WEB_REVALIDATE=off`. After the redeploy, staging reads and writes as the app role. The login can't create in `public` or change the audit log.
+- Production changes wait for the release (ATTENTION 12).
+
+## PR B: customer identity and cart claim (P1-03, P1-04)
+
+- **Customer helpers.**
+  - `ensureGuestCustomer` never writes `user_id`.
+  - `ensureAccountCustomer` takes the email from the session and finds the account's record first. It links an email's record only when the account's email is verified (TECH-03 §6).
+  - `customersForContact` separates the record's owner from the person a typed email reaches.
+- **Signed-in flows.** Checkout contact, emailed design links, quote requests and help requests use the account's customer. A typed email is contact data and the link recipient only. Quotes now store the contact email.
+- **Sign-in claim.** `claimDeviceCommerce` (`apps/api/src/sales/claim.ts`) runs in one transaction on any draft, cart or checkout request that has a session and the device cookie. It:
+  1. locks both carts
+  2. moves every browser design to the account
+  3. moves or merges the cart (items are unique per design)
+  4. abandons the browser's open checkout and moves its checkouts to the account
+
+  Once claimed, it does nothing. The old inline merge in `findCart` is gone.
+- **Tests** (`claim.test.ts`, 6):
+  - each P1-03 case from the review's list
+  - verified-only linking
+  - the sign-in claim, with another device opening, editing and quoting
+  - merging into an existing account cart under two parallel claims
+
+## PR C: checkout integrity (P1-05, P1-06, P1-07, P2-01, P2-04)
+
+- **Every change closes the checkout.** `touchOrderableConfiguration` raises the version and change time and closes an open checkout. All of these use it:
+  - answers, sizes and placements
+  - artwork added or removed
+  - the low-resolution choice
+  - the personalisation import
+
+  A step change doesn't.
+- **Frozen snapshot.** `OrderableConfigurationSnapshotV1` (`apps/api/src/sales/snapshot.ts`) is frozen per item at checkout. It holds:
+  - product id, slug, name and family
+  - answers with the labels shown
+  - quantity, rush and artwork choice
+  - garment details
+  - every personalisation row
+  - files with storage keys
+  - the whole price result, including lines and rule versions
+  - the VAT setting and rate
+- **Stale checkouts.** Moving items to the quote group, abandoning the old checkout and opening the new one share one transaction. With nothing ready, the old checkout still closes.
+- **Contact step.** It runs in one transaction.
+- **Database rules** (migration `0024`, which repairs older rows first):
+  - one owner per cart
+  - one owner per open checkout; a closed one may have none
+  - step and currency checks
+  - a foreign key to `tax_settings`
+- **Tests** (`checkout-integrity.test.ts`, 7):
+  - each mutation closes the checkout
+  - the snapshot is unchanged after catalogue, price, VAT and design changes
+  - the zero-ready case
+  - the atomic contact step
+  - the database rules
+
+Not in scope: keeping files that a paid order references is T04-05's job. Until then, removing a file closes the checkout that held it, so nothing payable points at a file the clean-up can delete.
+
+## PR D: quotes, retention, audit and limits (P2-02, P2-03, P2-09, P1-08)
+
+- **Quotes.** `quotable` checks a design, and `quoteIn` makes its quote inside a given transaction. "Submit quote items" checks every item first, then quotes them all in one transaction.
+- **Retention** (`apps/api/src/sales/retention.ts`, part of `cleanup.daily`):
+  - New checkouts get `expires_at`, 72 hours after creation; answers after it are refused, and the clean-up closes expired open checkouts.
+  - Checkouts abandoned for 90 days lose their contact, address and billing details. Amounts and frozen items stay, and `personal_data_purged_at` records when the details were erased.
+  - Drafts untouched for 90 days close and lose their personalisation rows. Their files are let go, and the file clean-up removes them after 7 days.
+  - The job logs each count. Migration `0025` adds the two columns.
+- **Audit.** Customers appear in the audit log as "Customer" and are identified by ID only; staff stay named. Emails, phone numbers, addresses, contact blocks and billing blocks are removed from `before` and `after`, and emails and phone numbers are masked in record labels.
+- **Limits.**
+  - `COMMERCIAL_WRITE` now also allows 60 per minute per address. An anonymous browser's device cookie is its subject.
+  - `X-Forwarded-For` is never trusted. The web app's proxy, where Vercel guarantees the address, sends it in `x-hp-client-ip` along with `WEB_PROXY_SECRET`; any other request counts as the address that connected.
+  - Server-rendered API calls send the same headers, and idempotency for anonymous requests uses the same address.
+- **Tests** (`abuse-quotes-retention.test.ts`, 6):
+  - 62 anonymous drafts in one minute with forged headers: the 61st and 62nd get 429
+  - a visitor vouched for by the proxy still gets through
+  - bulk quotes, all or nothing
+  - retention at 73 hours and at 91 days
+  - an expired checkout is refused
+  - an untouched draft closes
+  - the audit filter
+
+### Questions
+- The retention values are the owner's starting values (2026-10-01). Confirm them with the accountant and lawyer; they live in one place (`RETENTION`).
+- Personal details are erased from every abandoned checkout, signed-in or guest. The review suggested guest checkouts only; erasing both keeps less.

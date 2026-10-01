@@ -47,6 +47,7 @@ describe("environment configuration", () => {
       BETTER_AUTH_URL: "https://holypearls.example.com",
       DATA_ENCRYPTION_KEY: "k".repeat(32),
       HELP_INBOX_EMAIL: "help@holypearls.example.com",
+      WEB_PROXY_SECRET: "p".repeat(32),
       HP_ENV: "production",
     };
     const r2 = {
@@ -95,6 +96,7 @@ describe("environment configuration", () => {
       expect(() => loadApiEnv({ ...api, ...r2, BETTER_AUTH_URL: "http://localhost:3000" })).toThrow("BETTER_AUTH_URL");
       expect(() => loadApiEnv({ ...api, ...r2, HELP_INBOX_EMAIL: undefined })).toThrow("HELP_INBOX_EMAIL");
       expect(() => loadApiEnv({ ...api, ...r2, HP_DEMO_SLICE: "on" })).toThrow("HP_DEMO_SLICE");
+      expect(() => loadApiEnv({ ...api, ...r2, WEB_PROXY_SECRET: undefined })).toThrow("WEB_PROXY_SECRET");
       expect(() => loadWorkerEnv({ ...worker, WEB_REVALIDATE: "off" })).toThrow("WEB_REVALIDATE");
       expect(() => loadWorkerEnv({ ...worker, WEB_REVALIDATE_SECRET: undefined })).toThrow("WEB_REVALIDATE_SECRET");
     });

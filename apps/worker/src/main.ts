@@ -78,7 +78,7 @@ await jobs.work(
   "cleanup.daily",
   track("cleanup.daily", async () => {
     const result = await runDailyCleanup(files);
-    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents }, "daily clean-up finished");
+    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents, expiredCheckouts: result.expiredCheckouts, purgedCheckouts: result.purgedCheckouts, closedDrafts: result.closedDrafts }, "daily clean-up finished");
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });

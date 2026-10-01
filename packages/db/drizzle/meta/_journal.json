@@ -176,6 +176,13 @@
       "when": 1790859382704,
       "tag": "0024_cart_checkout_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790862348415,
+      "tag": "0025_checkout_retention",
+      "breakpoints": true
     }
   ]
 }
