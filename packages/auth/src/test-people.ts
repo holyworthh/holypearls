@@ -24,7 +24,7 @@ export const TEST_PEOPLE = {
     name: "Ada Okafor (TEST DATA)",
     email: "ada.staff@holypearls.test",
     password: "test-password-ada-staff",
-    staff: { permissions: ["STAFF_ADMIN", "SECURITY_ADMIN", "AUDIT_VIEW", "PAYMENT_VIEW", "CUSTOMER_SUPPORT", "CATALOGUE_MANAGE", "PRICING_MANAGE", "CONTENT_MANAGE"] },
+    staff: { permissions: ["STAFF_ADMIN", "SECURITY_ADMIN", "AUDIT_VIEW", "PAYMENT_VIEW", "PAYMENT_MANAGE", "CUSTOMER_SUPPORT", "CATALOGUE_MANAGE", "PRICING_MANAGE", "CONTENT_MANAGE"] },
     totpSecret: "hp-test-totp-secret-ada-0001",
   },
   adminTunde: {
@@ -34,6 +34,15 @@ export const TEST_PEOPLE = {
     password: "test-password-tunde-staff",
     staff: { permissions: ["STAFF_ADMIN"] },
     totpSecret: "hp-test-totp-secret-tunde-0001",
+  },
+  /** Finance staff who can see payments but not change them (PAYMENT_VIEW only). */
+  financeFolake: {
+    key: "financeFolake",
+    name: "Folake Adebayo (TEST DATA)",
+    email: "folake.staff@holypearls.test",
+    password: "test-password-folake-staff",
+    staff: { permissions: ["PAYMENT_VIEW"] },
+    totpSecret: "hp-test-totp-secret-folake-0001",
   },
   catalogueNoMfa: {
     key: "catalogueNoMfa",

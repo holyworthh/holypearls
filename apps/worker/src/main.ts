@@ -119,7 +119,12 @@ await jobs.work(
   }),
 );
 // Payments (T04-03): webhook follow-ups and the scheduled checks both confirm with Paystack's verify API.
-const payments = { db: database.db, gateway: createPaymentGateway(env) };
+const payments = {
+  db: database.db,
+  gateway: createPaymentGateway(env),
+  // Order confirmations carry the order's secure link on the customer site (T04-05).
+  notify: { db: database.db, jobs, sealKey: env.DATA_ENCRYPTION_KEY, webOrigin: env.BETTER_AUTH_URL },
+};
 await jobs.work(
   "payment.verify",
   track("payment.verify", async (payload) => {

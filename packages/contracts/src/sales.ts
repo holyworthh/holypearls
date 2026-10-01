@@ -189,6 +189,8 @@ export const checkoutSchema = z.object({
   blockers: z.array(z.object({ code: z.enum(["STEPS_INCOMPLETE", "DELIVERY_QUOTE_REQUIRED", "PAYMENTS_NOT_AVAILABLE", "PAYMENTS_PAUSED"]), message: z.string() })),
   /** The payment for this checkout (T04-03): what can be used to pay, and the latest attempt. */
   payment: checkoutPaymentSchema,
+  /** The order this checkout became once paid (T04-05). */
+  order: z.object({ id: z.string(), number: z.string() }).nullable(),
   /** True when the quote items stayed in the cart. */
   quoteItemsLeftInCart: z.boolean(),
 });

@@ -199,6 +199,8 @@ const seo = {
 const workerSchema = z
   .object({
     DATABASE_URL: databaseUrl,
+    /** The customer site's origin, for links in emails the worker sends (order links, T04-05). */
+    BETTER_AUTH_URL: z.url(),
     ...seo,
     ...directUrl,
     ...monitoring,

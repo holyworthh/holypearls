@@ -9,3 +9,4 @@ export * from "./configuration.js";
 export * from "./sales.js";
 export * from "./content.js";
 export * from "./payments.js";
+export * from "./orders.js";
