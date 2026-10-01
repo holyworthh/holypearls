@@ -30,7 +30,7 @@ jobs:
       DATA_ENCRYPTION_KEY: ci-only-data-key-${{ github.run_id }}-0123456789abcdef
       DATABASE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_ci
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 11.15.1
