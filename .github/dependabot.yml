@@ -37,6 +37,7 @@ updates:
     commit-message:
       prefix: chore
     ignore:
-      # Same Node major as CI and Vercel's build; patch and minor updates still come weekly.
+      # Same Node major as CI (22); patch and minor updates still come weekly. Vercel builds the web
+      # apps on Node 24: aligning the versions is its own task.
       - dependency-name: node
         update-types: ["version-update:semver-major"]
