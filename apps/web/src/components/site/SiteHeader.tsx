@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, CloseIcon, MenuIcon, PackageIcon, SearchIcon, UserIcon } from "./icons";
 import { HeaderSearch, SuggestInput } from "../search/SearchSuggest";
+import { LogoLockup } from "./Logo";
 import type { TopItem } from "./nav";
 import styles from "./site.module.css";
 
@@ -18,16 +19,11 @@ function SearchForm({ id, placeholder, large = false }: { id: string; placeholde
 }
 
 export function Logo() {
-  return (
-    <a className={styles.logo} href="/" aria-label="HolyPearls home">
-      <span className={styles.pearl} aria-hidden="true" />
-      HolyPearls
-    </a>
-  );
+  return <LogoLockup className={styles.logo} />;
 }
 
 /**
- * Site header (Pen HP/Nav/Header) with keyboard-friendly mega-menus (Pen
+ * Site header (Pen HP/Nav/Header, Ledger restyle in Stage 4.3) with keyboard-friendly mega-menus (Pen
  * HP/Nav/MegaMenu, PUB-FR-004) and the mobile drill-down menu (Pen
  * HP/Nav/MobileMenu, PUB-FR-005). Mega-menus follow the disclosure pattern:
  * a button with aria-expanded, Escape closes and returns focus.
@@ -154,11 +150,11 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
         </nav>
         <div className={styles.actions}>
           <HeaderSearch id={`${panelId}-search`} fieldClassName={`${styles.search} ${styles.searchTrigger}`} iconClassName={styles.icon} popular={popular} />
-          <a className={styles.iconLink} href="/contact?topic=order" aria-label="Track an order">
-            <PackageIcon className={styles.icon} />
-          </a>
           <a className={styles.iconLink} href="/account/security" aria-label="Your account">
             <UserIcon className={styles.icon} />
+          </a>
+          <a className={styles.iconLink} href="/contact?topic=order" aria-label="Track an order">
+            <PackageIcon className={styles.icon} />
           </a>
           <a className={styles.cta} href="/contact?topic=project">
             Start a Project
@@ -179,6 +175,8 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
             <MenuIcon className={styles.icon} />
           </button>
         </div>
+        {/* Reading progress: a thin Sun line under the header (Motion board · scroll progress). */}
+        <span className={styles.progress} aria-hidden="true" />
       </div>
 
       {/* One shell for every mega-menu: moving between them morphs its height and slides the content across. */}

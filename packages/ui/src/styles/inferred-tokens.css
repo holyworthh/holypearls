@@ -66,8 +66,9 @@
   --hp-text-section: 38px;
   --hp-text-hero: 70px;
   --hp-strip-height: 36px;
-  --hp-header-height: 76px;
-  --hp-header-search-width: 220px;
+  --hp-header-height: 72px; /* Ledger header (Pen Stage 4.3). */
+  --hp-header-search-width: 300px; /* Ledger header search pill. */
+  --hp-header-search-width-prd: 200px; /* Narrower so the six PRD nav items (PUB-FR-003) fit at 1440. */
   --hp-megamenu-feature-width: 400px;
   --hp-footer-brand-width: 420px;
   --hp-card-min-width: 240px;
@@ -86,13 +87,116 @@
   /* Search autocomplete (Pen 09 · R8Aqc): scrim #0C0C0E59, 760px panel, 300px suggestion column. */
   --hp-scrim: rgb(12 12 14 / 35%);
   /* Site motion (INFERRED: chosen over Pen 09's motion spec at the owner's request). Soft ease-out for reveals and hovers; all motion is off with prefers-reduced-motion. */
-  --hp-ease-soft: cubic-bezier(.22, 1, .36, 1);
-  --hp-motion-hover: 220ms;
+  --hp-ease-soft: cubic-bezier(.16, 1, .3, 1); /* Ledger Motion board: ease-out for entrances. */
+  --hp-motion-hover: 200ms;
   --hp-motion-underline: 320ms;
   --hp-motion-reveal: 700ms;
   --hp-motion-viewer: 280ms;
   --hp-reveal-shift: var(--hp-space-24);
-  --hp-reveal-stagger: 70ms;
+  --hp-reveal-stagger: 80ms;
   --hp-lift: calc(var(--hp-space-4) * -1);
-  --hp-shadow-lift: 0 14px 32px rgb(12 12 14 / 10%);
+  --hp-shadow-lift: 0 20px 40px -24px rgb(23 21 15 / 35%); /* Ledger .lift */
+
+  /*
+   * Workshop Ledger (Pen Stage 4.3 · MW5h2, from the owner's design canvas, 1 Oct 2026).
+   * Exact values from the Brand, Foundations, Motion and Home boards that have no Pen variable.
+   */
+  --hp-font-wordmark: var(--font-wordmark), "Open Sans", system-ui, sans-serif;
+  --hp-weight-bold: 700;
+  --hp-tracking-eyebrow: 0.08em;
+  --hp-tracking-badge: 0.06em;
+  --hp-tracking-hero: -0.03em;
+  --hp-tracking-title: -0.02em;
+  --hp-text-wordmark-ledger: 20px;
+  --hp-text-wordmark-sm: 18px;
+  --hp-logo-mark-width: 32px;
+  --hp-logo-mark-height: 30px;
+  --hp-logo-mark-width-lg: 36px;
+  --hp-logo-mark-height-lg: 33px;
+  --hp-logo-full-width: 210px;
+  --hp-logo-full-width-sm: 130px;
+  --hp-logo-arc-size: 44px;
+  --hp-logo-arc-tracking: 21px;
+  /* Home type (desktop / mobile). */
+  --hp-text-hero-xl: 88px;
+  --hp-text-hero-m: 44px;
+  --hp-text-cta-title: 60px;
+  --hp-text-section-lg: 52px;
+  --hp-text-split-title: 48px;
+  --hp-text-tile-lg: 40px;
+  --hp-text-faq-title: 40px;
+  --hp-text-panel-title: 36px;
+  --hp-text-card-display: 32px;
+  --hp-text-tile: 28px;
+  --hp-text-marquee: 28px;
+  --hp-text-marquee-m: 20px;
+  --hp-text-tile-m: 18px;
+  --hp-text-step-m: 22px;
+  --hp-text-lede: 19px;
+  --hp-text-body-plus: 17px;
+  --hp-text-question: 18px;
+  --hp-text-giant: 300px;
+  --hp-leading-hero: 1.02;
+  --hp-leading-hero-m: 1.04;
+  --hp-leading-title-m: 1.08;
+  --hp-leading-body-plus: 1.55;
+  --hp-leading-giant: 0.8;
+  --hp-hero-height: 820px;
+  --hp-hero-copy-width: 800px;
+  --hp-hero-search-width: 680px;
+  --hp-hero-field-height: 60px;
+  --hp-woven-height: 10px;
+  --hp-woven-height-m: 8px;
+  --hp-marquee-height: 88px;
+  --hp-marquee-height-m: 58px;
+  --hp-stamp-size: 128px;
+  --hp-stamp-size-m: 76px;
+  --hp-swatch-caption: 12px;
+  --hp-swatch-caption-m: 11px;
+  --hp-dot: 8px;
+  --hp-chip-height: 36px;
+  --hp-chip-height-lg: 40px;
+  --hp-badge-height: 24px;
+  --hp-badge-height-lg: 28px;
+  --hp-badge-height-xl: 32px;
+  --hp-step-icon: 64px;
+  --hp-step-icon-m: 48px;
+  --hp-faq-row: 64px;
+  --hp-faq-row-m: 60px;
+  --hp-plus: 32px;
+  --hp-plus-m: 28px;
+  --hp-polo-width: 340px;
+  --hp-polo-width-m: 180px;
+  --hp-woven: repeating-linear-gradient(90deg, var(--hp-brand) 0 28px, var(--hp-brand-hover) 28px 34px, var(--hp-brand) 34px 62px, var(--hp-paper) 62px 66px, var(--hp-brand-mid) 66px 94px, var(--hp-paper) 94px 98px);
+  --hp-shadow-swatch: 0 18px 40px -18px rgb(0 0 0 / 55%);
+  --hp-shadow-field: 0 16px 40px -16px rgb(0 0 0 / 50%);
+  --hp-shadow-ticket: 0 24px 48px -24px rgb(23 21 15 / 35%);
+  --hp-shadow-hard: 0 6px 0 -2px var(--hp-ink);
+  --hp-ring-selected: 0 0 0 3px var(--hp-paper), 0 0 0 5px var(--hp-ink);
+  --hp-on-brand-line: rgb(255 255 255 / 40%);
+  --hp-on-deep-line: rgb(255 255 255 / 30%);
+  /* Ledger motion (Motion board). */
+  --hp-motion-slow: 400ms;
+  --hp-motion-colour: 500ms;
+  --hp-motion-zoom: 800ms;
+  --hp-motion-clip: 1.4s;
+  --hp-motion-stitch: 1.6s;
+  --hp-motion-typing: 2.6s;
+  --hp-motion-float: 6s;
+  --hp-motion-spin: 24s;
+  --hp-motion-marquee: 40s;
+  --hp-motion-shimmer: 1.4s;
+  --hp-float-shift: -10px;
+  --hp-zoom: 1.05;
+  --hp-nudge: 4px;
+  --hp-press-scale-ledger: 0.97;
+  --hp-leading-snug: 1.1;
+  --hp-leading-compact: 1.45;
+  --hp-opacity-sub: 0.85;
+  --hp-tracking-stamp: 0.14em;
+  --hp-tracking-footer-head: 0.12em;
+  --hp-tracking-giant: -0.04em;
+  --hp-swatch-hover-scale: 1.1;
+  --hp-icon-stroke: 1.6;
+  --hp-thread-dash: repeating-linear-gradient(90deg, var(--hp-brand) 0 10px, transparent 10px 18px);
 }

@@ -1,4 +1,5 @@
 import { customerPriceState, type PublicProductCard } from "@holypearls/contracts";
+import { productTransition } from "./transition";
 import styles from "./card.module.css";
 
 const naira = (minor: string, currency: string) => {
@@ -71,7 +72,7 @@ export function ProductCard({
   }
   return (
     <article className={`${styles.card} ${tight ? styles.tight : ""}`}>
-      <div className={`${styles.media} ${square ? styles.square : ""}`}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" /> : null}</div>
+      <div className={`${styles.media} ${square ? styles.square : ""}`}>{product.image ? <img src={product.image.thumbnailUrl} alt={product.image.alt} loading="lazy" style={{ viewTransitionName: productTransition(product.slug) }} /> : null}</div>
       <div className={styles.text}>
         <Heading className={styles.title}>
           <a className={styles.cardLink} href={`/products/${product.slug}`}>

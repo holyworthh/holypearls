@@ -94,7 +94,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
             </ol>
           </nav>
           <div className={p.split}>
-            <Gallery images={product.images} name={product.name} />
+            <Gallery images={product.images} name={product.name} slug={product.slug} />
             <div className={p.side}>
               <div className={p.titleBlock}>
                 <h1 id="product-title" className={p.h1} data-enter>

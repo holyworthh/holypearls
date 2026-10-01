@@ -1,11 +1,16 @@
 import "@holypearls/ui/styles.css";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
+import { IBM_Plex_Mono, Instrument_Sans, Open_Sans, Young_Serif } from "next/font/google";
 import type { ReactNode } from "react";
 import { Motion, MOTION_BOOT } from "../components/motion/Motion";
 import { Tooltips } from "../components/tooltip/Tooltips";
 import { Providers } from "./providers";
+
+/* Ledger type (Pen Stage 4.3 · Foundations): Young Serif headlines, Instrument Sans UI, IBM Plex Mono records; Open Sans 700 is the logo wordmark only. */
+const display = Young_Serif({ subsets: ["latin"], weight: "400", variable: "--font-young-serif", display: "swap" });
+const ui = Instrument_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-instrument-sans", display: "swap" });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono", display: "swap" });
+const wordmark = Open_Sans({ subsets: ["latin"], weight: "700", variable: "--font-wordmark", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "HolyPearls", template: "%s · HolyPearls" },
@@ -13,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${display.variable} ${ui.variable} ${mono.variable} ${wordmark.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: MOTION_BOOT }} />
       </head>

@@ -2,13 +2,87 @@
 
 ## Authority and scope
 
-The active direction is **Signal**. The Application map board (Pen frame `C9q8v3`, which now holds all Stage 4 frames) selects `hp-direction: signal`; Stage 4.2 frame `lyo0w` records the Stage 4.1 visual lock. Use the `hp-*` values resolved for Signal as the current design direction.
+The active direction is **Workshop Ledger** (owner decision, 1 October 2026). It comes from the owner's design canvas (claude.ai artifact `QAkhvXN2eBJJBt5QoaZvbh`: Brand, Foundations, Components, Motion and the v2 homepage at 1440 and 390) and is now in Pen:
 
-The Pen file also retains `current`, `workshop`, and `cobalt` theme values, plus the older `hf-*` palette and earlier `HF/*` and `WF/*` libraries. Those values remain in the inventory for traceability. They are not current Signal tokens. The 4.2 board records the earlier warm direction as superseded after owner approval of Signal on 26 September 2026.
+- **Theme value `ledger`** on the `hp-direction` axis. The Application map board (`C9q8v3`) and the file map cover (`b3vRp`) select `hp-direction: ledger`, so every `HP/*` component and screen that uses `hp-*` variables resolves to Ledger.
+- **Stage 4.3 board `MW5h2`** ("STAGE 4.3 — WORKSHOP LEDGER") holds the Ledger brand components (`sNAL0`), the system boards (Brand `YI1UU`, Foundations `k1aon`, Components `BfHwp`, Motion `nGctt`) and the new homepage frames (desktop 1440 `ZqhyZ`, mobile 390 `Y0ftk8`).
+- `HP/Nav/Header` (`nO6TF`), `HP/Nav/MobileHeader` (`ED2Si`) and `HP/Nav/Footer` (`F64bQ`) were rebuilt in place with the logo lockup. `HP/Nav/UtilityStrip` (`BoplJ`) is disabled: the Ledger header has no utility strip.
+
+Signal (`signal`) and the older `current`, `workshop` and `cobalt` values stay on the axis for traceability. They are not current tokens. Screens drawn before Stage 4.3 keep their layouts and pick up Ledger colour and type through the variables; their literal corner radii are unchanged until each screen is rebuilt.
 
 The document and JSON preserve values read through Pen MCP. Values marked **INFERRED** are not Pen tokens.
 
-## Exact Pen variables
+## Workshop Ledger (Stage 4.3)
+
+**Type.** Young Serif (400) for headlines, Instrument Sans (400–700) for everything people read and tap, IBM Plex Mono for records (specs, quantities, record numbers, labels; 12 px+, uppercase, 0.08em). The logo wordmark alone uses Open Sans 700, tracked 0.08em. Foundations scale: display 80/1.04, H1 48/1.04, H2 34/1.04, H3 24/1.25 600, body L 20/1.5, body 16/1.55, small 14/1.45, mono 13. Homepage exact sizes (in `inferred-tokens.css`): hero 88/1.02 (−0.03em), section 52, split 48, CTA 60, tile 40/28, mobile hero 44/1.04, mobile section 32/1.08.
+
+**Colour.** Holy Blue `#415F85` (`hp-brand`, links, focus, estimates, hero band), Blue Deep `#1E2E44` (`hp-brand-deep`, CTA panels), Pearl Brick `#9A4036` (`hp-accent`, Start a Project, step numbers, stitch lines), Sun `#F2C94C` (`hp-marigold`, sparing highlight; never text on light), Ink `#17150F`, Ink 2 `#4A453B` (`hp-graphite`), Ink 3 `#6B6456` (`hp-text-3`, captions), Rule `#E6E6E1`, Mist `#F5F5F3` (`hp-bone`), Blue Tint `#E6ECF3`, Brick Tint `#F5E4E1`. Category tile colours: coral `#E8604C`, sage `#9DC3A5`, lilac `#E9E4F5`. Status: ready `#2E6B3F`/`#E1EEDF`, in progress `#415F85`/`#E6ECF3`, needs you `#8A5A00`/`#F6EAD0`, problem `#A8261B`/`#F6DEDA`, let's talk `#9A4036`/`#F5E4E1`; always with an icon and a word. `hp-mid` stays a light grey for text on dark surfaces (`#B5AFA3`, derived from Signal's `#B4B4BB` because the canvas defines no Ledger value for that role).
+
+**Shape and depth.** Radii: tag 6, control (inputs) 11, button 10, card 16, panel 20, hero 24, band 32, pill 999 (chips, badges). Elevation: 0 = 1 px Rule; 1 = hard ink shadow (`0 6px 0 -2px` Ink, the one hero input); 2 = lifted (`0 24px 48px -24px` Ink 35%). The production ticket (crop marks, perforation, mono stub, registration mark) and the rotated "Made & checked" stamp are the signature devices. Icons: Lucide at a 1.6 px stroke.
+
+**Layout.** Desktop 12 columns, 80 px margins, 20 px gutters, 1280 content. Mobile 4 columns, 16 px margins. Touch targets 44 px.
+
+**Motion.** Tokens: press 120 ms, hover 200 ms, card/accordion 400 ms, reveal 700 ms (24 px rise, 80 ms stagger), ease `cubic-bezier(.2,.7,.2,1)`, entrance `cubic-bezier(.16,1,.3,1)`. Patterns on the Motion board (`nGctt`): button press and arrow nudge, card lift with photo zoom, scroll reveal, stitch underline, stitch progress line, floating swatches with parallax, stamp spin, product marquee, rotating search hint, polo colour cross-fade, accordion, scroll progress line. New patterns from research, marked on the board: add-to-cart confirmation, field-valid tick, upload thread, proof-approved stamp, product image morph (View Transitions), directional configurator steps, hide-on-scroll header, skeleton shimmer, tracking stitch fill. Rules: never animate prices, errors or status labels; one moving thing at a time; feedback within 400 ms and alongside the request; everything off for `prefers-reduced-motion`.
+
+**Owner-canvas conflicts resolved.** Foundations calls buttons "pill"; the later Home, Motion and Product boards draw them at 10 px. The later boards win (`hp-r-button` = 10); chips and badges stay pills.
+
+### Ledger variable values
+
+| Name | Type | Ledger value | Signal value (superseded) |
+| --- | --- | --- | --- |
+| hp-bone | color | "#F5F5F3" | "#F4F4F5" |
+| hp-paper | color | "#FFFFFF" | "#FFFFFF" |
+| hp-sand | color | "#E6E6E1" | "#E8E8EA" |
+| hp-ink | color | "#17150F" | "#0C0C0E" |
+| hp-ink-2 | color | "#2E2A22" | "#1C1C1F" |
+| hp-graphite | color | "#4A453B" | "#5C5C63" |
+| hp-line | color | "#E6E6E1" | "#E4E4E7" |
+| hp-line-strong | color | "#6B6456" | "#8A8A93" |
+| hp-accent | color | "#9A4036" | "#D2311A" |
+| hp-accent-hover | color | "#7E3229" | "#B02810" |
+| hp-accent-tint | color | "#F5E4E1" | "#FDE8E3" |
+| hp-marigold | color | "#F2C94C" | "#FFC21A" |
+| hp-marigold-tint | color | "#F6EAD0" | "#FFF1C7" |
+| hp-success | color | "#2E6B3F" | "#1E6B4A" |
+| hp-success-tint | color | "#E1EEDF" | "#E0EDE5" |
+| hp-warning | color | "#8A5A00" | "#8A5A00" |
+| hp-warning-tint | color | "#F6EAD0" | "#F7EBCF" |
+| hp-error | color | "#A8261B" | "#B42318" |
+| hp-error-tint | color | "#F6DEDA" | "#F8E0DC" |
+| hp-info | color | "#415F85" | "#2F5B8A" |
+| hp-info-tint | color | "#E6ECF3" | "#E0E8F2" |
+| hp-font-display | string | "Young Serif" | "Geist" |
+| hp-font-ui | string | "Instrument Sans" | "Geist" |
+| hp-font-mono | string | "IBM Plex Mono" | "Geist Mono" |
+| hp-r-control | number | 11 | 6 |
+| hp-r-card | number | 16 | 10 |
+| hp-r-panel | number | 20 | 18 |
+| hp-mid | color | "#B5AFA3" | "#B4B4BB" |
+| hp-ink-80 | color | "#17150FCC" | "#0C0C0ECC" |
+| hp-ink-70 | color | "#17150FB3" | "#0C0C0EB3" |
+| hp-paper-20 | color | "#FFFFFF33" | "#FFFFFF33" |
+| hp-paper-70 | color | "#FFFFFFB3" | "#FFFFFFB3" |
+| hp-weight-display | string | "400" | "600" |
+| hp-style-display | string | "normal" | "normal" |
+| hp-brand | color | "#415F85" | "#2F5B8A" |
+| hp-brand-hover | color | "#2F4766" | "#244A73" |
+| hp-brand-deep | color | "#1E2E44" | "#1C1C1F" |
+| hp-brand-tint | color | "#E6ECF3" | "#E0E8F2" |
+| hp-r-pill | number | 999 | 6 |
+| hp-r-tag | number | 6 | 6 |
+| hp-r-button | number | 10 | 6 |
+| hp-r-hero | number | 24 | 18 |
+| hp-r-band | number | 32 | 18 |
+| hp-cat-coral | color | "#E8604C" | "#FDE8E3" |
+| hp-cat-sage | color | "#9DC3A5" | "#E0EDE5" |
+| hp-cat-lilac | color | "#E9E4F5" | "#E0E8F2" |
+| hp-brand-mid | color | "#5A7AA3" | "#5C5C63" |
+| hp-on-brand-2 | color | "#D9E2EE" | "#E4E4E7" |
+| hp-on-deep-2 | color | "#C9D5E4" | "#E4E4E7" |
+| hp-on-sun-2 | color | "#3A3522" | "#1C1C1F" |
+| hp-text-3 | color | "#6B6456" | "#5C5C63" |
+
+## Exact Pen variables (Signal, superseded; kept for traceability)
 
 There are 45 variables. The JSON file preserves each raw Pen value, including theme variants. The table below shows the value resolved for the active Signal direction when the variable has a `hp-direction` theme.
 

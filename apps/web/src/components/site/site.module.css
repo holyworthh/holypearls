@@ -68,7 +68,13 @@
   text-decoration: none;
 }
 
-/* Header */
+/* Header (Ledger): sticky, and it slides away on scroll down (motion.css · data-sticky-header). */
+
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
 
 .header {
   position: relative;
@@ -85,20 +91,9 @@
   min-height: var(--hp-header-height);
 }
 
+/* Ledger lockup (Logo.tsx): mark + tracked Open Sans wordmark in Holy Blue. */
 .logo {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--hp-space-10);
-  color: var(--hp-ink);
-  font-size: var(--hp-text-dialog-title);
-  font-weight: var(--hp-weight-semibold);
-  text-decoration: none;
-}
-
-@media (min-width: 1024px) {
-  .logo {
-    font-size: var(--hp-text-wordmark);
-  }
+  flex: none;
 }
 
 .pearl {
@@ -112,16 +107,16 @@
   display: none;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .primaryNav {
     display: block;
   }
 }
 
-/* Pen HP/Nav/Header: 30px between labels (12px padding each side + 6px). */
+/* Ledger header: 32px between labels (12px padding each side + 8px). */
 .primaryList {
   display: flex;
-  gap: var(--hp-space-6);
+  gap: var(--hp-space-8);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -132,15 +127,16 @@
   align-items: center;
   gap: var(--hp-space-4);
   min-height: var(--hp-touch-target);
-  padding: 0 var(--hp-space-12);
+  padding: 0 var(--hp-space-10);
   border: 0;
   border-radius: var(--hp-r-control);
   background: transparent;
-  color: var(--hp-ink);
+  color: var(--hp-graphite);
   font-family: var(--hp-font-ui);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-medium);
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -154,21 +150,27 @@
 
 .navItem::after {
   position: absolute;
-  right: var(--hp-space-12);
+  right: var(--hp-space-10);
   bottom: var(--hp-space-8);
-  left: var(--hp-space-12);
-  height: var(--hp-space-2);
+  left: var(--hp-space-10);
+  height: var(--hp-size-1_5);
   border-radius: var(--hp-space-2);
-  background: var(--hp-ink);
+  background: currentColor;
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+  transition: transform var(--hp-motion-slow) var(--hp-ease-ui);
   content: "";
 }
 
 .navItem:hover::after,
 .navItem[aria-expanded="true"]::after {
   transform: scaleX(1);
+}
+
+.navItem:hover,
+.navItem[aria-expanded="true"],
+.navItem[aria-current="page"] {
+  color: var(--hp-ink);
 }
 
 .navItem[aria-current="page"]::before {
@@ -197,11 +199,11 @@
   color: var(--hp-ink-70);
 }
 
-/* Pen shows no chevrons; aria-expanded carries the open state. */
+/* Ledger header: a small chevron marks the items that open a menu. */
 .chevron {
-  display: none;
-  width: var(--hp-space-12);
-  height: var(--hp-space-12);
+  width: var(--hp-space-16);
+  height: var(--hp-space-16);
+  color: var(--hp-text-3);
   transition: transform var(--hp-motion-dropdown) var(--hp-ease-enter);
 }
 
@@ -220,16 +222,17 @@
   display: none;
   align-items: center;
   gap: var(--hp-space-8);
-  width: var(--hp-header-search-width);
+  width: var(--hp-header-search-width-prd);
   margin-right: var(--hp-space-8);
-  height: var(--hp-space-40);
-  padding: 0 var(--hp-space-12);
-  border-radius: var(--hp-r-control);
+  height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-16);
+  border-radius: var(--hp-r-pill);
   background: var(--hp-bone);
-  color: var(--hp-graphite);
+  color: var(--hp-text-3);
 }
 
-@media (min-width: 1024px) {
+/* The field shows from 1440; below that the header keeps the icon (six PRD nav items need the room). */
+@media (min-width: 1440px) {
   .search {
     display: flex;
   }
@@ -258,7 +261,7 @@
 .searchTrigger:focus-visible {
   outline: none;
   background: var(--hp-paper);
-  box-shadow: 0 0 0 var(--hp-focus-ring-width) var(--hp-ink);
+  box-shadow: 0 0 0 var(--hp-focus-ring-width) var(--hp-brand);
 }
 
 .search input {
@@ -284,9 +287,9 @@
 .iconLink {
   display: none;
   place-items: center;
-  width: var(--hp-size-38);
+  width: var(--hp-touch-target);
   height: var(--hp-touch-target);
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-pill);
   color: var(--hp-ink);
 }
 
@@ -315,9 +318,10 @@
   display: none;
   align-items: center;
   min-height: var(--hp-touch-target);
-  margin-left: var(--hp-space-8);
+  gap: var(--hp-space-8);
+  margin-left: var(--hp-space-12);
   padding: 0 var(--hp-size-18);
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-button);
   background: var(--hp-accent);
   color: var(--hp-paper);
   font-size: var(--hp-text-label);
@@ -337,7 +341,7 @@
 }
 
 .cta:active {
-  transform: scale(var(--hp-press-scale));
+  transform: scale(var(--hp-press-scale-ledger));
 }
 
 @media (min-width: 768px) {
@@ -352,13 +356,13 @@
   width: var(--hp-touch-target);
   height: var(--hp-touch-target);
   border: 0;
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-button);
   background: transparent;
   color: var(--hp-ink);
   cursor: pointer;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .menuButton {
     display: none;
   }
@@ -366,8 +370,34 @@
 
 a:focus-visible,
 button:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-  outline-offset: var(--hp-space-2);
+  outline: var(--hp-focus-ring-width) solid var(--hp-brand);
+  outline-offset: var(--hp-size-3);
+}
+
+/* Reading progress under the header (Motion board): drawn by the page scroll where CSS scroll timelines exist. */
+.progress {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--hp-border-width) * -1);
+  left: 0;
+  height: var(--hp-size-3);
+  background: var(--hp-marigold);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  :root[data-motion="on"] .progress {
+    animation: hp-grow linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes hp-grow {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Mega-menu (HP/Nav/MegaMenu) */
@@ -635,8 +665,8 @@ button:focus-visible {
 @media (max-width: 1023px) {
   .headerInner {
     gap: 0;
-    min-height: var(--hp-size-59_5);
-    padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
+    min-height: var(--hp-space-64);
+    padding: 0 var(--hp-space-8) 0 var(--hp-space-16);
   }
 
   .logo {
@@ -662,7 +692,7 @@ button:focus-visible {
   height: var(--hp-size-22);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1440px) {
   .phoneSearch {
     display: none;
   }

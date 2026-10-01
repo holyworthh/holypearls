@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  ArrowUp,
   ArrowUpRight,
   BadgeCheck,
   BookOpen,
@@ -8,8 +9,10 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  CircleCheck,
   Clock3,
   Crosshair,
+  List,
   Lock,
   type LucideIcon,
   Menu,
@@ -19,15 +22,18 @@ import {
   ShoppingBag,
   Stamp,
   Store,
+  Tag,
+  Truck,
   UserRound,
   UsersRound,
   X,
   ZoomIn,
 } from "lucide-react";
 
-/* The Pen design uses Lucide icons by name (data-icon-name in its exports). */
+/* The Pen design uses Lucide icons by name (data-icon-name in its exports). Ledger draws them at a 1.6 px stroke (Foundations · icons). */
 const ICONS = {
   "arrow-right": ArrowRight,
+  "arrow-up": ArrowUp,
   "arrow-up-right": ArrowUpRight,
   "badge-check": BadgeCheck,
   "book-open": BookOpen,
@@ -36,8 +42,10 @@ const ICONS = {
   "chevron-down": ChevronDown,
   "chevron-right": ChevronRight,
   "chevron-up": ChevronUp,
+  "circle-check": CircleCheck,
   "clock-3": Clock3,
   crosshair: Crosshair,
+  list: List,
   lock: Lock,
   menu: Menu,
   "package-search": PackageSearch,
@@ -46,6 +54,8 @@ const ICONS = {
   "shopping-bag": ShoppingBag,
   stamp: Stamp,
   store: Store,
+  tag: Tag,
+  truck: Truck,
   "user-round": UserRound,
   "users-round": UsersRound,
   x: X,
@@ -56,5 +66,5 @@ export type IconName = keyof typeof ICONS;
 
 export function Icon({ name, size, className }: { name: IconName; size: number; className?: string }) {
   const Glyph = ICONS[name];
-  return <Glyph size={size} strokeWidth={2} className={className} aria-hidden="true" focusable="false" />;
+  return <Glyph size={size} strokeWidth={1.6} className={className} aria-hidden="true" focusable="false" />;
 }
