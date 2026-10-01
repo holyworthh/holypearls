@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoAxeViolations, signInStaff } from "./helpers";
+import { expectNoAxeViolations, signInStaff, ADMIN } from "./helpers";
 
 /*
  * T01-02: "Need help" carries the page's context to staff; a guest sees only
@@ -36,7 +36,7 @@ test("a guest asks for help with context, sees their own request, and staff repl
 
   const staff = await (await browser.newContext()).newPage();
   await signInAda(staff);
-  await staff.goto("/admin/help");
+  await staff.goto(`${ADMIN}/help`);
   await expect(staff.getByRole("heading", { name: "Help inbox" })).toBeVisible();
   await staff.getByRole("link", { name: /Bisi · guest/ }).first().click();
   await expect(staff.getByText("Context attached automatically")).toBeVisible();
@@ -54,7 +54,7 @@ test("a guest asks for help with context, sees their own request, and staff repl
 test("the notification log lists emails for support staff", async ({ page }) => {
   test.setTimeout(150_000);
   await signInAda(page);
-  await page.goto("/admin/notifications");
+  await page.goto(`${ADMIN}/notifications`);
   await expect(page.getByRole("heading", { name: "Notification log" })).toBeVisible();
   await expectNoAxeViolations(page);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

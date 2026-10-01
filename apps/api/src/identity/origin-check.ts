@@ -1,19 +1,21 @@
 import { ERROR_CODES } from "@holypearls/contracts";
 import type { NextFunction, Request, Response } from "express";
+import { type FrontEnds, originFor } from "./front-ends.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const SESSION_COOKIE = /(?:^|;\s*)(?:__Secure-)?hp\./;
 
 /**
- * TECH-03 §13: a state-changing request must come from the HolyPearls web
- * origin. A foreign Origin is refused. A request with no Origin is refused
+ * TECH-03 §13: a state-changing request must come from the origin of the
+ * front end it came through (the customer site or the admin, ADR-017). A
+ * foreign Origin is refused. A request with no Origin is refused
  * when it carries a session cookie; requests without cookies (webhooks,
  * server-to-server) are not browser requests and have their own checks.
  */
-export function originCheck(webOrigin: string) {
-  const allowed = new URL(webOrigin).origin;
+export function originCheck(fronts: FrontEnds) {
   return (request: Request, response: Response, next: NextFunction) => {
     if (SAFE_METHODS.has(request.method)) return next();
+    const allowed = new URL(originFor(request.surface ?? "web", fronts)).origin;
     const origin = request.header("origin");
     const hasSession = SESSION_COOKIE.test(request.header("cookie") ?? "");
     if ((origin && origin !== allowed) || (!origin && hasSession)) {

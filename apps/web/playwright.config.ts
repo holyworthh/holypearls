@@ -2,6 +2,9 @@ import { defineConfig } from "@playwright/test";
 
 const port = 3100;
 const origin = `http://localhost:${port}`;
+// The staff admin, its own app on its own origin (ADR-017).
+const adminPort = 3200;
+const adminOrigin = `http://localhost:${adminPort}`;
 // The web build forwards /api/* to API_URL, which CI and .env set to port 3001.
 // E2E_API_PORT runs the tests beside a dev API (build the web with API_URL on that port).
 const apiPort = Number(process.env.E2E_API_PORT ?? 3001);
@@ -35,6 +38,7 @@ export default defineConfig({
         ...(process.env as Record<string, string>),
         API_PORT: String(apiPort),
         BETTER_AUTH_URL: origin,
+        ADMIN_ORIGIN: adminOrigin,
         AUTH_RATE_LIMIT: "off",
         HP_DEMO_SLICE: "on",
         EMAIL_FILE_DIR: "../../.outbox/e2e-emails",
@@ -45,6 +49,12 @@ export default defineConfig({
       port,
       reuseExistingServer: !process.env.CI,
       env: { ...(process.env as Record<string, string>), API_URL: `http://localhost:${apiPort}`, HP_DESIGN_SYSTEM_DEMO: "on", HP_DEMO_SLICE: "on" },
+    },
+    {
+      command: `next start ../admin --port ${adminPort}`,
+      port: adminPort,
+      reuseExistingServer: !process.env.CI,
+      env: { ...(process.env as Record<string, string>), API_URL: `http://localhost:${apiPort}`, SITE_URL: origin },
     },
   ],
 });

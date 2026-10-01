@@ -36,6 +36,7 @@ import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
+import { type FrontEnds, frontEndBoundary, separated, surfaceOf } from "./identity/front-ends.js";
 import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER, PAYMENT_DEPS } from "./tokens.js";
 import { LocalDiskStorage, type StorageAdapter } from "@holypearls/storage";
 
@@ -62,6 +63,10 @@ export interface CreateAppOptions {
   rateLimit?: boolean;
   /** WEB_PROXY_SECRET: proves the web app's proxy sent the visitor's address (review P1-08). */
   proxySecret?: string | null;
+  /** The admin app's origin (ADR-017). Null: one front end serves everything (local and older tests). */
+  adminOrigin?: string | null;
+  /** ADMIN_PROXY_SECRET: proves a request came through the admin app's proxy. */
+  adminProxySecret?: string | null;
   /** Clock, for tests. */
   now?: () => Date;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
@@ -92,6 +97,12 @@ function rawBody(limit: number) {
 
 export async function createApp(options: CreateAppOptions): Promise<NestExpressApplication> {
   const now = options.now ?? (() => new Date());
+  const fronts: FrontEnds = {
+    webOrigin: options.webOrigin,
+    adminOrigin: options.adminOrigin ?? null,
+    webProxySecret: options.proxySecret ?? null,
+    adminProxySecret: options.adminProxySecret ?? null,
+  };
   const limiter = new RateLimiter(options.db, now, options.rateLimit ?? true);
   @Module({
     controllers: [
@@ -139,6 +150,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
           jobs: options.jobs,
           sealKey: options.sealKey,
           webOrigin: options.webOrigin,
+          adminOrigin: options.adminOrigin ?? options.webOrigin,
           helpInboxEmail: options.helpInboxEmail,
         },
       },
@@ -179,16 +191,19 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
     next();
   });
   app.use((request: Request, _response: Response, next: NextFunction) => {
-    request.clientIp = clientIpFrom(request, options.proxySecret ?? null);
+    request.clientIp = clientIpFrom(request, [fronts.webProxySecret, fronts.adminProxySecret]);
+    request.surface = surfaceOf(request, fronts);
+    request.frontEndsSeparated = separated(fronts);
     next();
   });
-  app.use(originCheck(options.webOrigin));
+  app.use(frontEndBoundary(fronts));
+  app.use(originCheck(fronts));
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.getActor = () => getActor(request);
     next();
   });
   app.use(
-    authRoutes({ identity: options.identity, webOrigin: options.webOrigin, logger: options.logger, db: options.db, limiter }),
+    authRoutes({ identity: options.identity, webOrigin: options.webOrigin, fronts, logger: options.logger, db: options.db, limiter }),
   );
   const localStores = [...new Set([options.storage, options.publicStorage])].filter((store) => store instanceof LocalDiskStorage);
   for (const store of localStores) app.use(localStorageRoute(store));

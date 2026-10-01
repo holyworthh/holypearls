@@ -1,13 +1,13 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff, ADMIN } from "./helpers";
 
 /* T02-01: catalogue staff list products, use bulk select, edit a product and manage categories (Pen frames 96, 98 and 104). */
 
 test("catalogue staff list products, select in bulk and open the editor tabs", async ({ page }) => {
   test.setTimeout(150_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await page.goto("/admin/products");
+  await page.goto(`${ADMIN}/products`);
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
@@ -33,7 +33,7 @@ test("catalogue staff list products, select in bulk and open the editor tabs", a
 test("catalogue staff see categories with their products and editor", async ({ page }) => {
   test.setTimeout(150_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await page.goto("/admin/categories");
+  await page.goto(`${ADMIN}/categories`);
   await expect(page.getByRole("heading", { name: "Categories", level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Print & Business Stationery" })).toBeVisible();
   await expect(page.getByLabel("Name")).toBeVisible();

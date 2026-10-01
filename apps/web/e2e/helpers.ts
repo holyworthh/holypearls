@@ -28,9 +28,12 @@ export async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
+/** The staff admin app (ADR-017), started beside the customer site by playwright.config.ts. */
+export const ADMIN = "http://localhost:3200";
+
 /** Staff sign-in with the authenticator step. Codes can't be reused, so a rejected code waits for the next one. */
 export async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {
-  await page.goto("/admin/sign-in");
+  await page.goto(`${ADMIN}/sign-in`);
   await page.locator("#staff-email").fill(person.email);
   await page.locator("#staff-password").fill(person.password);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -41,11 +44,11 @@ export async function signInStaff(page: Page, person: { email: string; password:
     await page.getByRole("button", { name: "Verify" }).click();
     // Either the admin home opens (it can take a while against a hosted database) or the code is refused.
     const done = await page
-      .waitForURL(/\/admin$/, { timeout: 20_000, waitUntil: "commit" })
+      .waitForURL(`${ADMIN}/`, { timeout: 20_000, waitUntil: "commit" })
       .then(() => true)
       .catch(() => false);
     if (done || !(await code.isVisible())) return;
     await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 500);
   }
-  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page).toHaveURL(`${ADMIN}/`);
 }

@@ -1,6 +1,6 @@
 import type { Type } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
-import { createBetterAuthIdentity, MemoryOutbox, signInAs, type TestPersonKey } from "@holypearls/auth";
+import { createBetterAuthIdentity, MemoryOutbox, signInAs, TEST_PEOPLE, type TestPersonKey } from "@holypearls/auth";
 import { loadTestDatabaseEnv } from "@holypearls/config";
 import { buildSeedSteps, createTestDatabase, FakeGateway, runSeed, type TestDatabase } from "@holypearls/testkit";
 import type { PaymentGateway } from "@holypearls/payments";
@@ -46,6 +46,9 @@ export async function createHarness(
     rateLimit?: boolean;
     /** WEB_PROXY_SECRET, for tests of the visitor's address. */
     proxySecret?: string;
+    /** The admin app's origin and secret: two front ends (ADR-017). Unset: one front end, as older tests expect. */
+    adminOrigin?: string;
+    adminProxySecret?: string;
     /** Mounts the demo routes (on by default when a Jobs sender is passed). */
     demoSlice?: boolean;
     seed?: boolean;
@@ -76,6 +79,7 @@ export async function createHarness(
     db: database.db,
     secret: TEST_AUTH_SECRET,
     webOrigin: TEST_WEB_ORIGIN,
+    adminOrigin: options.adminOrigin ?? null,
     secureCookies: false,
     outbox,
     now: () => now.value ?? new Date(),
@@ -108,6 +112,8 @@ export async function createHarness(
     demoSlice: options.demoSlice ?? Boolean(options.jobs),
     rateLimit: options.rateLimit ?? false,
     proxySecret: options.proxySecret ?? null,
+    adminOrigin: options.adminOrigin ?? null,
+    adminProxySecret: options.adminProxySecret ?? null,
     now: () => now.value ?? new Date(),
     webOrigin: TEST_WEB_ORIGIN,
     controllers: options.controllers,
@@ -128,7 +134,12 @@ export async function createHarness(
     url,
     authUrl,
     now,
-    signInAs: async (key) => (await signInAs(key, { authUrl, origin: TEST_WEB_ORIGIN })).cookie,
+    // With two front ends (ADR-017) staff sign in through the admin, customers through the customer site.
+    signInAs: async (key) => {
+      const staff = "staff" in TEST_PEOPLE[key] && Boolean(options.adminOrigin);
+      const headers: Record<string, string> = staff ? { "x-hp-surface": "admin", ...(options.adminProxySecret ? { "x-hp-proxy-secret": options.adminProxySecret } : {}) } : {};
+      return (await signInAs(key, { authUrl, origin: staff ? options.adminOrigin! : TEST_WEB_ORIGIN, headers })).cookie;
+    },
     close: async () => {
       await app.close();
       await jobs.stop(1000);

@@ -6,6 +6,7 @@ import type { Logger } from "pino";
 import { recordAudit } from "../platform/audit.js";
 import { clientIp, type RateLimiter } from "../platform/rate-limit.js";
 import type { ActorContext } from "./actor.js";
+import { type FrontEnds, signInAllowedHere } from "./front-ends.js";
 
 /** API path of the sign-in routes; the browser reaches them at /api/v1/auth via the web app. */
 export const AUTH_ROUTE_PREFIX = "/v1/auth/";
@@ -87,6 +88,7 @@ export function withoutTokens(text: string): string {
 export interface AuthRouteDeps {
   identity: IdentityAdapter;
   webOrigin: string;
+  fronts: FrontEnds;
   logger: Logger;
   db: Database;
   limiter: RateLimiter;
@@ -98,7 +100,7 @@ export interface AuthRouteDeps {
  * §2). The library's own code (for example INVALID_EMAIL_OR_PASSWORD) is kept
  * in `context.reason`.
  */
-export function authRoutes({ identity, webOrigin, logger, db, limiter }: AuthRouteDeps) {
+export function authRoutes({ identity, webOrigin, fronts, logger, db, limiter }: AuthRouteDeps) {
   const sendError = (response: Response, code: ErrorCode, requestId: string, context?: Record<string, unknown>) => {
     const body: ApiErrorBody = { code, message: ERROR_CODES[code].message, ...(context && { context }), requestId };
     response.status(ERROR_CODES[code].status).json(body);
@@ -120,6 +122,12 @@ export function authRoutes({ identity, webOrigin, logger, db, limiter }: AuthRou
           response.setHeader("retry-after", String(limit.retryAfterSeconds));
           return sendError(response, "RATE_LIMITED", requestId, { retryAfterSeconds: limit.retryAfterSeconds });
         }
+      }
+      // Staff sign in only on the admin and customers only on the customer site (ADR-017).
+      // The refusal is the library's own wrong-password answer, so no email is revealed as staff.
+      if (path === "/sign-in/email" && !(await signInAllowedHere(db, fronts, request.surface, email))) {
+        await auditSecurityEvent({ db, limiter, path, ok: false, status: 401, email, before: null });
+        return sendError(response, "NOT_SIGNED_IN", requestId, { reason: "INVALID_EMAIL_OR_PASSWORD" });
       }
       const before = AUDITED.includes(path) ? await request.getActor!() : null;
 

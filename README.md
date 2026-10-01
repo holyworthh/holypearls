@@ -6,10 +6,11 @@ The HolyPearls storefront and operations platform: product discovery, configurat
 
 | Part | Where | What it does |
 | :-- | :-- | :-- |
-| Web | `apps/web` (Next.js) | Public site, product pages and configurators, cart, checkout, account and staff admin. The browser only talks to the web domain; `/api/*` is forwarded to the API. |
+| Web | `apps/web` (Next.js) | Public site, product pages and configurators, cart, checkout and account. The browser talks only to this domain; `/api/*` is forwarded to the API. |
+| Admin | `apps/admin` (Next.js) | The staff admin, on its own subdomain (ADR-017). It forwards `/api/*` with its own proxy secret; the API serves admin routes and staff sign-in only to it. |
 | API | `apps/api` (NestJS) | Every business rule: catalogue, configuration and pricing, cart and checkout, customers and guest links, files, content, search and audit. |
 | Worker | `apps/worker` | Background jobs on pg-boss: email, file inspection and previews, search index, page refresh and the daily clean-up. |
-| Packages | `packages/*` | `contracts` (Zod schemas shared by web and API), `db` (Drizzle schema and migrations), `auth`, `config` (typed environment), `jobs`, `storage` (R2/MinIO/local), `email`, `ui` (design tokens and components), `testkit` (test databases and seed data). |
+| Packages | `packages/*` | `contracts` (Zod schemas shared by web and API), `db` (Drizzle schema and migrations), `auth`, `config` (typed environment), `jobs`, `storage` (R2/MinIO/local), `email`, `ui` (design tokens and components), `web-kit` (browser and server API helpers shared by web and admin), `payments` (Paystack), `testkit` (test databases and seed data). |
 
 Money is whole minor units (`bigint`) and is always calculated on the server. Prices, VAT and rules are effective-dated and insert-only, and the audit log can't be changed. Architecture and rules are in `docs/tech/TECH-00.md` to `TECH-08.md`, and decisions are in `docs/plan/ADR-REGISTER.md`.
 
@@ -21,7 +22,7 @@ Use Node.js 22 and pnpm 11.15.1.
 2. Copy `.env.example` to `.env` and fill in the secrets. Every setting is explained there.
 3. Start the services: `docker compose up -d` (PostgreSQL, MinIO and Mailpit), or point `DATABASE_URL` at a Neon development branch.
 4. Run `pnpm db:migrate`, then `pnpm seed` for the TEST DATA catalogue and test people.
-5. Run `pnpm dev`: the web app on port 3000, the API on 3001 and the worker.
+5. Run `pnpm dev`: the web app on port 3000, the admin on 3002, the API on 3001 and the worker.
 
 ## Checks
 

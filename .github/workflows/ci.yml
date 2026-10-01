@@ -58,6 +58,8 @@ jobs:
         run: pnpm check:openapi
       - run: docker compose config --quiet
       - run: pnpm build
+      - name: The customer site ships no admin (ADR-017)
+        run: pnpm --filter @holypearls/web check:no-admin
       - name: Upgrade from the release on main (its schema and seed data, then this branch's migrations)
         # Release reality (review P2-06): production holds main's schema and data, then gets
         # every new migration with the real runner. The result must equal a fresh database.

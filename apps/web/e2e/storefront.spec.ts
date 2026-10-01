@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff, ADMIN } from "./helpers";
 
 /* T02-03: homepage, navigation, Product Directory and category hubs (Pen 15–18, 105). */
 
@@ -97,14 +97,14 @@ test("category hubs render on the server and staff edit them", async ({ page }) 
   expect((await page.request.get("/categories/not-a-category")).status()).toBe(404);
 
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await page.goto("/admin/categories");
+  await page.goto(`${ADMIN}/categories`);
   await page.getByRole("link", { name: "Edit hub page sections →" }).click();
   await expect(page.getByRole("heading", { level: 1, name: /hub$/ })).toBeVisible();
   await page.getByRole("button", { name: "FAQ", exact: true }).click();
   await expect(page.getByRole("heading", { name: /^FAQ/ })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.goto("/admin/merchandising");
+  await page.goto(`${ADMIN}/merchandising`);
   await expect(page.getByRole("heading", { name: "Menus & homepage" })).toBeVisible();
   await expect(page.getByText("Polo Shirt").first()).toBeVisible();
   await expectNoAxeViolations(page);

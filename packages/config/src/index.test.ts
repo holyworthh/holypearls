@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadApiEnv, loadDatabaseEnv, loadTestDatabaseEnv, loadWebEnv, loadWorkerEnv } from "./index.js";
+import { loadAdminEnv, loadApiEnv, loadDatabaseEnv, loadTestDatabaseEnv, loadWebEnv, loadWorkerEnv } from "./index.js";
 
 describe("environment configuration", () => {
   it("rejects missing required values without printing secrets", () => {
@@ -48,6 +48,8 @@ describe("environment configuration", () => {
       DATA_ENCRYPTION_KEY: "k".repeat(32),
       HELP_INBOX_EMAIL: "help@holypearls.example.com",
       WEB_PROXY_SECRET: "p".repeat(32),
+      ADMIN_ORIGIN: "https://admin.holypearls.example.com",
+      ADMIN_PROXY_SECRET: "a".repeat(32),
       HP_ENV: "production",
     };
     const r2 = {
@@ -99,6 +101,18 @@ describe("environment configuration", () => {
       expect(() => loadApiEnv({ ...api, ...r2, WEB_PROXY_SECRET: undefined })).toThrow("WEB_PROXY_SECRET");
       expect(() => loadWorkerEnv({ ...worker, WEB_REVALIDATE: "off" })).toThrow("WEB_REVALIDATE");
       expect(() => loadWorkerEnv({ ...worker, WEB_REVALIDATE_SECRET: undefined })).toThrow("WEB_REVALIDATE_SECRET");
+    });
+
+    it("needs the admin app on its own domain with its own secret (ADR-017)", () => {
+      expect(() => loadApiEnv({ ...api, ...r2, ADMIN_ORIGIN: undefined })).toThrow("ADMIN_ORIGIN");
+      expect(() => loadApiEnv({ ...api, ...r2, ADMIN_PROXY_SECRET: undefined })).toThrow("ADMIN_PROXY_SECRET");
+      expect(() => loadApiEnv({ ...api, ...r2, ADMIN_PROXY_SECRET: api.WEB_PROXY_SECRET })).toThrow("ADMIN_PROXY_SECRET (must differ from WEB_PROXY_SECRET)");
+      expect(() => loadApiEnv({ ...api, ...r2, ADMIN_ORIGIN: "https://holypearls.example.com" })).toThrow("ADMIN_ORIGIN (must be its own domain");
+      expect(() => loadApiEnv({ ...api, ...r2, ADMIN_ORIGIN: "http://localhost:3002" })).toThrow("ADMIN_ORIGIN");
+      const admin = { API_URL: "https://api.holypearls.example.com", SITE_URL: "https://holypearls.example.com", HP_ENV: "production" };
+      expect(() => loadAdminEnv(admin)).toThrow("ADMIN_PROXY_SECRET");
+      expect(() => loadAdminEnv({ ...admin, ADMIN_PROXY_SECRET: "a".repeat(32), SITE_URL: "http://localhost:3000" })).toThrow("SITE_URL");
+      expect(loadAdminEnv({ ...admin, ADMIN_PROXY_SECRET: "a".repeat(32) }).SITE_URL).toBe(admin.SITE_URL);
     });
 
     it("accepts a complete R2 production setup", () => {

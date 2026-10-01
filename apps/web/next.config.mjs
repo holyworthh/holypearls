@@ -44,8 +44,8 @@ const GUEST_PAGES = ["/l", "/l/:path*", "/quotes/:path*", "/proofs/:path*", "/or
 export default {
   reactStrictMode: true,
   poweredByHeader: false,
-  // packages/ui ships TypeScript and CSS Modules source.
-  transpilePackages: ["@holypearls/ui"],
+  // packages/ui and packages/web-kit ship TypeScript and CSS Modules source.
+  transpilePackages: ["@holypearls/ui", "@holypearls/web-kit"],
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

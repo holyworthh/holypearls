@@ -11,6 +11,10 @@ declare global {
       requestId?: string;
       /** The visitor's address, as trusted by clientIpFrom (review P1-08). */
       clientIp?: string;
+      /** Which front end the request came through: the customer site or the admin (ADR-017). */
+      surface?: "web" | "admin";
+      /** True when the API serves two front ends (ADMIN_ORIGIN set). */
+      frontEndsSeparated?: boolean;
     }
   }
 }
