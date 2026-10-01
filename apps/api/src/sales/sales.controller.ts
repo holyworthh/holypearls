@@ -20,13 +20,17 @@ import { DATABASE, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, requestCartQuotes } from "./cart.js";
 import { getCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
+import { claimDeviceCommerce } from "./claim.js";
 import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
 
 const uuid = new ParseUUIDPipe();
 const versioned = <T extends z.ZodType>(schema: T) => new ZodValidationPipe(z.intersection(schema, z.object({ version: z.number().int() })));
 
-async function access(request: Request): Promise<CartAccess> {
-  return { actor: await request.getActor!(), deviceKey: deviceKey(request) };
+/** Who's asking; a signed-in request that still has the browser's cookie claims the browser's cart first. */
+async function access(db: Database, request: Request): Promise<CartAccess> {
+  const access = { actor: await request.getActor!(), deviceKey: deviceKey(request) };
+  await claimDeviceCommerce(db, access);
+  return access;
 }
 
 /** The cart (COM-FR-080–081). Owned by the account, or by the browser before sign-in. */
@@ -36,20 +40,20 @@ export class CartController {
 
   @Get()
   async get(@Req() request: Request) {
-    return getCart(this.deps.db, await access(request));
+    return getCart(this.deps.db, await access(this.deps.db, request));
   }
 
   @Post("items")
   @HttpCode(200)
   @RateLimit("COMMERCIAL_WRITE")
   async add(@Req() request: Request, @Body(new ZodValidationPipe(addToCartSchema)) body: z.infer<typeof addToCartSchema>) {
-    return addToCart(this.deps.db, await access(request), body.configurationId);
+    return addToCart(this.deps.db, await access(this.deps.db, request), body.configurationId);
   }
 
   @Delete("items/:id")
   @RateLimit("COMMERCIAL_WRITE")
   async remove(@Req() request: Request, @Param("id", uuid) id: string) {
-    return removeFromCart(this.deps.db, await access(request), id, { saveForLater: false });
+    return removeFromCart(this.deps.db, await access(this.deps.db, request), id, { saveForLater: false });
   }
 
   /** "Save for later": the design goes back to the customer's saved drafts. */
@@ -57,13 +61,13 @@ export class CartController {
   @HttpCode(200)
   @RateLimit("COMMERCIAL_WRITE")
   async saveForLater(@Req() request: Request, @Param("id", uuid) id: string) {
-    return removeFromCart(this.deps.db, await access(request), id, { saveForLater: true });
+    return removeFromCart(this.deps.db, await access(this.deps.db, request), id, { saveForLater: true });
   }
 
   @Delete("saved/:configurationId")
   @RateLimit("COMMERCIAL_WRITE")
   async forget(@Req() request: Request, @Param("configurationId", uuid) id: string) {
-    return forgetSaved(this.deps.db, await access(request), id);
+    return forgetSaved(this.deps.db, await access(this.deps.db, request), id);
   }
 
   /** "Submit quote items": each quote item becomes a quote request. */
@@ -71,7 +75,7 @@ export class CartController {
   @HttpCode(200)
   @RateLimit("CONTACT")
   async quote(@Req() request: Request, @Body(new ZodValidationPipe(cartQuoteRequestSchema)) body: z.infer<typeof cartQuoteRequestSchema>) {
-    return requestCartQuotes(this.deps, await access(request), body);
+    return requestCartQuotes(this.deps, await access(this.deps.db, request), body);
   }
 }
 
@@ -85,36 +89,36 @@ export class CheckoutController {
   @Idempotent()
   @RateLimit("COMMERCIAL_WRITE")
   async start(@Req() request: Request) {
-    return startCheckout(this.db, await access(request));
+    return startCheckout(this.db, await access(this.db, request));
   }
 
   @Get(":id")
   async get(@Req() request: Request, @Param("id", uuid) id: string) {
-    return getCheckout(this.db, await access(request), id);
+    return getCheckout(this.db, await access(this.db, request), id);
   }
 
   @Put(":id/contact")
   @RateLimit("COMMERCIAL_WRITE")
   async contact(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutContactSchema)) body: z.infer<typeof checkoutContactSchema> & { version: number }) {
-    return setContact(this.db, await access(request), id, body);
+    return setContact(this.db, await access(this.db, request), id, body);
   }
 
   @Put(":id/address")
   @RateLimit("COMMERCIAL_WRITE")
   async address(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutAddressSchema)) body: z.infer<typeof checkoutAddressSchema> & { version: number }) {
-    return setAddress(this.db, await access(request), id, body);
+    return setAddress(this.db, await access(this.db, request), id, body);
   }
 
   @Put(":id/delivery")
   @RateLimit("COMMERCIAL_WRITE")
   async delivery(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutDeliverySchema)) body: z.infer<typeof checkoutDeliverySchema> & { version: number }) {
-    return setDelivery(this.db, await access(request), id, body);
+    return setDelivery(this.db, await access(this.db, request), id, body);
   }
 
   @Put(":id/billing")
   @RateLimit("COMMERCIAL_WRITE")
   async billing(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutBillingSchema)) body: z.infer<typeof checkoutBillingSchema> & { version: number }) {
-    return setBilling(this.db, await access(request), id, body);
+    return setBilling(this.db, await access(this.db, request), id, body);
   }
 }
 
