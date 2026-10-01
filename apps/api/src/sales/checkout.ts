@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { AppError } from "../errors.js";
 import { currentTaxSetting } from "../catalogue/rules.js";
 import { draftView, reprice } from "../configuration/drafts.js";
-import { ensureCustomer } from "../identity/customers.js";
+import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
 
@@ -232,8 +232,9 @@ const advance = (current: string, step: Step): Step => {
 
 export async function setContact(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutContactSchema> & { version: number }) {
   const row = await load(db, access, id);
-  const customer = await ensureCustomer(db, { email: input.email, name: input.name, phone: input.phone, userId: access.actor.type === "user" ? access.actor.session.userId : null });
-  return save(db, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: customer.id, step: advance(row.step, "contact") });
+  // Signed in, the checkout belongs to the account's customer; the typed email is only where we write to.
+  const owner = access.actor.type === "user" ? await ensureAccountCustomer(db, access.actor.session, access.actor.now) : await ensureGuestCustomer(db, input);
+  return save(db, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
 }
 
 export async function setAddress(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutAddressSchema> & { version: number }) {

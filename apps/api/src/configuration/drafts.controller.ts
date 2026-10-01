@@ -16,6 +16,7 @@ import { FILE_DEPS, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
 import type { FileDeps } from "../files/files.js";
 import { ZodValidationPipe } from "../validation.js";
 import { attachDraftFile, createDraft, type DraftAccess, emailDraftLink, getDraft, importPersonalization, removeDraftFile, requestQuote, setLowResolutionAction, updateDraft } from "./drafts.js";
+import { claimDeviceCommerce } from "../sales/claim.js";
 
 /** The browser's device key for drafts started without signing in (HttpOnly; never readable by scripts). */
 export const DEVICE_COOKIE = "hp.device";
@@ -41,7 +42,9 @@ export class ConfigurationsController {
   ) {}
 
   private async access(request: Request): Promise<DraftAccess> {
-    return { actor: await request.getActor!(), deviceKey: deviceKey(request) };
+    const access = { actor: await request.getActor!(), deviceKey: deviceKey(request) };
+    await claimDeviceCommerce(this.deps.db, access);
+    return access;
   }
 
   @Post()

@@ -4,6 +4,7 @@ import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import { AppError } from "../errors.js";
 import { recordAudit } from "../platform/audit.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
+import type { IdentitySession } from "@holypearls/auth";
 import type { ActorContext } from "./actor.js";
 
 type Db = Database | Transaction;
@@ -12,27 +13,66 @@ const DAY_MS = 86_400_000;
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 export const sha256 = (value: string) => createHash("sha256").update(value).digest("base64url");
 
-/** Finds or creates the one customer row for an email (TECH-03 §2). */
-export async function ensureCustomer(
-  db: Db,
-  input: { email: string; name?: string | null; phone?: string | null; userId?: string | null },
-) {
+/**
+ * Finds or creates the one customer record for an email someone typed
+ * (TECH-03 §2). It never joins the record to an account: typing an email
+ * proves nothing about owning it (TECH-03 §6, review P1-03).
+ */
+export async function ensureGuestCustomer(db: Db, input: { email: string; name?: string | null; phone?: string | null }) {
   const emailNormalized = normalizeEmail(input.email);
   const [row] = await db
     .insert(schema.customers)
-    .values({
-      email: input.email.trim(),
-      emailNormalized,
-      name: input.name ?? null,
-      phone: input.phone ?? null,
-      userId: input.userId ?? null,
-    })
+    .values({ email: input.email.trim(), emailNormalized, name: input.name ?? null, phone: input.phone ?? null })
     .onConflictDoUpdate({
       target: schema.customers.emailNormalized,
       set: { name: sql`coalesce(${schema.customers.name}, excluded.name)`, updatedAt: new Date() },
     })
     .returning();
   return row!;
+}
+
+/**
+ * The signed-in account's own customer record. The email comes from the
+ * session, never from a form. A verified email joins that email's record to
+ * the account (TECH-03 §6); an unverified one gets the record without the
+ * link, so nothing it holds becomes the account's.
+ */
+export async function ensureAccountCustomer(db: Db, session: Pick<IdentitySession, "userId" | "email" | "name" | "emailVerified">, now = new Date()) {
+  const [own] = await db.select().from(schema.customers).where(eq(schema.customers.userId, session.userId)).limit(1);
+  if (own) return own;
+  if (session.emailVerified) {
+    const [row] = await db
+      .insert(schema.customers)
+      .values({ email: session.email.trim(), emailNormalized: normalizeEmail(session.email), name: session.name || null, userId: session.userId, emailVerifiedAt: now })
+      .onConflictDoUpdate({
+        target: schema.customers.emailNormalized,
+        set: {
+          userId: sql`coalesce(${schema.customers.userId}, excluded.user_id)`,
+          emailVerifiedAt: sql`coalesce(${schema.customers.emailVerifiedAt}, excluded.email_verified_at)`,
+          name: sql`coalesce(${schema.customers.name}, excluded.name)`,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    return row!;
+  }
+  return ensureGuestCustomer(db, { email: session.email, name: session.name || null });
+}
+
+/**
+ * For a form with contact details: `owner` is the customer the record belongs
+ * to (the account's own when signed in), `recipient` the one its emails and
+ * guest link go to. Signed in with a different email, the two differ and the
+ * typed email stays contact data only (review P1-03).
+ */
+export async function customersForContact(db: Db, actor: ActorContext, input: { email: string; name?: string | null; phone?: string | null }) {
+  if (actor.type === "user") {
+    const owner = await ensureAccountCustomer(db, actor.session, actor.now);
+    const recipient = owner.emailNormalized === normalizeEmail(input.email) ? owner : await ensureGuestCustomer(db, input);
+    return { owner, recipient };
+  }
+  const customer = await ensureGuestCustomer(db, input);
+  return { owner: customer, recipient: customer };
 }
 
 /**
@@ -204,7 +244,7 @@ export async function customerForActor(db: Database, actor: ActorContext) {
     const [row] = await db.select().from(schema.customers).where(eq(schema.customers.id, actor.guest.customerId));
     return row ?? null;
   }
-  if (actor.type === "user") return ensureCustomer(db, { email: actor.session.email, name: actor.session.name, userId: actor.session.userId });
+  if (actor.type === "user") return ensureAccountCustomer(db, actor.session, actor.now);
   return null;
 }
 

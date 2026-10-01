@@ -3,7 +3,7 @@ import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holype
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureCustomer, maskEmail, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
 import type { StorageAdapter } from "@holypearls/storage";
@@ -424,8 +424,9 @@ export async function emailDraftLink(deps: NotificationDeps & { webOrigin: strin
   const [product] = await deps.db.select({ name: schema.products.name }).from(schema.products).where(eq(schema.products.id, row.productId));
   const opened: { session: { token: string; expiresAt: Date } | null } = { session: null };
   await deps.db.transaction(async (tx) => {
-    const customer = await ensureCustomer(tx, { email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
-    await tx.update(schema.configurations).set({ customerId: customer.id }).where(eq(schema.configurations.id, id));
+    // The link goes to whoever was typed in; the design stays its owner's (review P1-03).
+    const { owner, recipient: customer } = await customersForContact(tx, access.actor, { email });
+    await tx.update(schema.configurations).set({ customerId: owner.id }).where(eq(schema.configurations.id, id));
     const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now: access.actor.now });
     // A visitor without an account gets a guest session for this one draft, so they can upload artwork here (TECH-04 uploads need a session).
     if (access.actor.type === "anonymous") {
@@ -545,7 +546,8 @@ export async function requestQuote(
 
   const now = access.actor.now;
   const reference = await deps.db.transaction(async (tx) => {
-    const customer = await ensureCustomer(tx, { email: input.email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
+    // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
+    const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
     const moved = await tx
       .update(schema.configurations)
       .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
@@ -563,13 +565,13 @@ export async function requestQuote(
       customerId: customer.id,
       configurationId: id,
       requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
-      contact: { name: input.name, phone: input.phone ?? null, note: input.note ?? null },
+      contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
     });
-    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now });
+    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: recipient.id, now });
     await queueEmail(deps, tx, {
       template: "guest_link",
       to: input.email,
-      customerId: customer.id,
+      customerId: recipient.id,
       data: { url: link.url, what: "quote request", reference: ref },
       record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
       linkLabel: "Opens the design the quote is for",

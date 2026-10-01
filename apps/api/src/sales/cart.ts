@@ -9,8 +9,8 @@ import { configuratorFor, productOptions } from "../configuration/pricing.js";
 /*
  * The cart (T04-01, COM-FR-080–081, Pen 41/42). It belongs to the signed-in
  * account, or before sign-in to the browser's device key (stored hashed, the
- * same key configuration drafts use). Signing in moves the browser's cart
- * into the account's.
+ * same key configuration drafts use). Signing in moves the browser's cart,
+ * designs and checkout into the account (claim.ts).
  *
  * Each item keeps a copy of the design and its price as they were when added.
  * Editing the design in the configurator refreshes that copy (the item is
@@ -38,19 +38,8 @@ async function findCart(db: Db, access: CartAccess, create: boolean) {
     if (create) throw new AppError("RULE_FAILED", { message: "Your browser blocked the cookie we use to keep your cart. Allow cookies for this site and try again.", context: { reason: "NO_DEVICE" } });
     return null;
   }
+  // Signing in brought the browser's cart along already (claimDeviceCommerce, in the controllers).
   let [cart] = await db.select().from(schema.carts).where(ownerWhere(owner));
-  // Signing in brings the browser's cart along.
-  if ("userId" in owner && access.deviceKey) {
-    const [device] = await db.select().from(schema.carts).where(eq(schema.carts.ownerDeviceHash, deviceHash(access.deviceKey)));
-    if (device) {
-      if (!cart) {
-        [cart] = await db.update(schema.carts).set({ ownerUserId: owner.userId, ownerDeviceHash: null }).where(eq(schema.carts.id, device.id)).returning();
-      } else {
-        await db.update(schema.cartItems).set({ cartId: cart.id }).where(eq(schema.cartItems.cartId, device.id));
-        await db.delete(schema.carts).where(eq(schema.carts.id, device.id));
-      }
-    }
-  }
   if (!cart && create) {
     [cart] = await db
       .insert(schema.carts)
