@@ -82,6 +82,7 @@ Turn on R2's object lifecycle or versioning settings where available. `packages/
 | | Staging | Production |
 | :---- | :---- | :---- |
 | Web | https://holypearls-git-dev-holyworths-projects.vercel.app (Vercel login required) | https://holypearls.vercel.app |
+| Admin (ADR-017; Vercel project `holypearls-admin`) | https://holypearls-admin-git-dev-holyworths-projects.vercel.app (Vercel login required) | https://holypearls-admin.vercel.app (from the next release) |
 | API | https://holypearls-api-staging.onrender.com | https://holypearls-api.onrender.com |
 | Render service | `holypearls-api-staging` (branch `dev`) | `holypearls-api` (branch `main`) |
 | Neon branch | `staging` (database `neondb`) | `production` (database `holypearls`, empty) |

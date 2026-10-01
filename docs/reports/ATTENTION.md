@@ -84,6 +84,11 @@ Production accepts only a live key (`sk_live_`) and stays "payment not available
 - Add the live secret key to production Render, and set the live webhook URL to `https://holypearls-api.onrender.com/v1/webhooks/paystack`, or the real API domain.
 - Online payments start **off** in every environment. Staff switch them on in Payment settings (T04-05). Until then I can switch staging on for testing if you say so.
 
+### 26. Admin app on Vercel: one setting (T00-11)
+The staff admin now has its own Vercel project, `holypearls-admin` (ADR-017). New projects take the repository's default branch (`dev`) as production, and the Vercel connector can't change that. **In the Vercel dashboard:** open `holypearls-admin`, go to Settings → Git → Production Branch, and set it to **`main`**. Until then, a guard skips any production build that isn't from `main`, so staging's admin (`dev`) won't build either. Tell me when it's done and I'll deploy staging and check it.
+
+When the domain exists, give the admin its own subdomain (`admin.<domain>`), and I'll update `ADMIN_ORIGIN` on Render to match. Staff sign in at the admin address only. The customer site no longer has `/admin`.
+
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
