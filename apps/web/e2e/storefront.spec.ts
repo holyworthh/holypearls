@@ -145,3 +145,21 @@ test("the footer links to the photo credits the stand-in images need", async ({ 
   await expect(page.getByRole("main").getByRole("link", { name: "Source", exact: true })).toHaveCount(18);
   await expectNoAxeViolations(page);
 });
+
+test("the Our work rail ends on the content edge and its button keeps its layout", async ({ page }) => {
+  await page.goto("/");
+  const section = page.locator("section", { has: page.locator("#work-title") });
+  const ends = await section.evaluate((element) => {
+    const rail = element.querySelector("ul")!;
+    rail.scrollLeft = rail.scrollWidth;
+    const items = rail.querySelectorAll("li");
+    const link = [...element.querySelectorAll<HTMLAnchorElement>('a[href="/our-work"]')].find((a) => a.offsetParent)!;
+    return {
+      lastRight: Math.round(items[items.length - 1].getBoundingClientRect().right),
+      linkRight: Math.round(link.getBoundingClientRect().right),
+      linkDisplay: getComputedStyle(link).display,
+    };
+  });
+  expect(Math.abs(ends.lastRight - ends.linkRight)).toBeLessThanOrEqual(1);
+  expect(ends.linkDisplay).not.toBe("inline");
+});

@@ -864,6 +864,7 @@ a:hover .photo {
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .headLink, .textLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -883,6 +884,7 @@ a:hover .photo {
 
 .cardLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

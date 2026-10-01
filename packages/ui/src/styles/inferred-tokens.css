@@ -179,6 +179,8 @@
   --hp-motion-colour: 500ms;
   --hp-motion-zoom: 800ms;
   --hp-motion-clip: 1.4s;
+  --hp-motion-swatch-in: 1.3s; /* Hero swatches fly in from the screen edges (owner, 1 Oct 2026). */
+  --hp-swatch-in-tilt: 10deg;
   --hp-motion-stitch: 1.6s;
   --hp-motion-typing: 2.6s;
   --hp-motion-float: 6s;

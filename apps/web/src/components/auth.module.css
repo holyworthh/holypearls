@@ -222,6 +222,7 @@
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .link {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

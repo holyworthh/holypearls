@@ -56,6 +56,19 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
   - all of it is off with `prefers-reduced-motion`
 - **Icons.** Lucide at a 1.6 px stroke (Foundations · icons), with `arrow-up`, `list`, `tag`, `circle-check` and `truck` added.
 
+## Owner review, 1 October 2026
+
+- **Header.** The logo and nav sit together on the left (32 px apart, plus the items' 10 px padding); the actions stay on the right. The Pen header groups them the same way (48 px).
+- **Underlines reduced.**
+  - Removed the hover underline from the header nav items (it ran under the chevron and padding), the mega-menu lists (now a Holy Blue colour change) and product card titles (the photo zoom is the hover).
+  - Every remaining drawn underline is `width: fit-content`, so it stops at the end of the text. Block links such as "View all products →" no longer underline the whole column.
+  - The faint resting underline on plain inline links in body copy stays, so links remain distinguishable from text.
+- **Our work.**
+  - "See all projects" sat off-centre because `.deskOnly` used `display: revert`, which turned the button back into an inline link. `.deskOnly` and `.mobOnly` now only hide, so components keep their own display.
+  - The rail is a size container with a `--work-edge` margin on both sides, so it starts on the left content edge and, scrolled to the end, the last card lines up with the right content edge (1345 px at 1440; 359 px at 375).
+- **Hero swatches.** On load each swatch flies in from the nearest screen edge (left ones from the left, right ones from the right, the middle phone swatch from below), staggered 80 ms, over 1.3 s with the enter easing, then starts its float. New tokens `--hp-motion-swatch-in` and `--hp-swatch-in-tilt`. Off with reduced motion.
+- **Tests.** Added a check that the rail ends on the content edge and the button isn't inline (375 and 1440). Storefront, interactions and design-system specs: 95 passed, 9 skipped.
+
 ## Research behind the added motion
 
 - NN/g timing guidance: about 100 ms reads as instant, and anything past roughly 400 ms feels slow. Hover and press feedback stay at 120–200 ms, and only entrances and ambient loops run longer. Sources: [Val Head](https://valhead.com/?p=2978), [Fronteers](https://www.fronteers.nl/en/blog/2024/12/microanimations).

@@ -1314,6 +1314,7 @@
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .breadcrumb a {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1333,6 +1334,7 @@
 
 .link {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1352,6 +1354,7 @@
 
 .interruptLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1371,6 +1374,7 @@
 
 .featureLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

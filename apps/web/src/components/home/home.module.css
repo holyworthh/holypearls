@@ -5,15 +5,14 @@
  * custom properties on each swatch class.
  */
 
-.deskOnly {
-  display: none !important;
+/* Hide only; never reset display, so flex buttons keep their own layout. */
+@media (max-width: 1023px) {
+  .deskOnly {
+    display: none !important;
+  }
 }
 
 @media (min-width: 1024px) {
-  .deskOnly {
-    display: revert !important;
-  }
-
   .mobOnly {
     display: none !important;
   }
@@ -1538,22 +1537,31 @@
 
 /* ── Our work rail ── */
 
+/*
+ * The rail runs edge to edge but starts and ends on the content edges: the
+ * section is a size container, and --work-edge is the page margin inside it.
+ */
 .work {
+  --work-edge: var(--hp-layout-gutter-mobile);
+
+  container-type: inline-size;
   padding-right: 0;
+  padding-left: 0;
 }
 
 .workHead {
   flex-direction: row;
   align-items: flex-end;
   justify-content: space-between;
-  padding-right: var(--hp-layout-gutter-mobile);
+  padding: 0 var(--work-edge);
 }
 
 .rail {
   display: flex;
   gap: var(--hp-space-12);
   margin: 0;
-  padding: 0 var(--hp-layout-gutter-mobile) var(--hp-space-8) 0;
+  padding: 0 var(--work-edge) var(--hp-space-8);
+  scroll-padding-inline: var(--work-edge);
   overflow-x: auto;
   list-style: none;
   scroll-snap-type: x mandatory;
@@ -1597,13 +1605,11 @@
 
 @media (min-width: 1024px) {
   .work {
+    --work-edge: max(var(--hp-layout-margin-desktop), calc((100cqw - var(--hp-layout-content-width)) / 2));
+
     max-width: none;
     padding-right: 0;
-    padding-left: max(var(--hp-layout-margin-desktop), calc((100% - var(--hp-layout-content-width)) / 2));
-  }
-
-  .workHead {
-    padding-right: max(var(--hp-layout-margin-desktop), calc((100vw - var(--hp-layout-content-width)) / 2));
+    padding-left: 0;
   }
 
   .rail {
@@ -1917,16 +1923,29 @@
     animation-play-state: paused;
   }
 
+  /*
+   * On load each swatch flies in from the nearest screen edge (left-hand ones
+   * from the left, right-hand ones from the right, the middle phone swatch from
+   * below), staggered, then settles into its float. The entrance uses
+   * `transform`; the float uses `translate`, so the two never fight.
+   */
   :root[data-motion="on"] .swatchCard {
-    animation: hp-float var(--hp-motion-float) ease-in-out infinite;
-    animation-delay: var(--delay, 0s);
+    animation:
+      hp-swatch-in var(--hp-motion-swatch-in) var(--hp-ease-enter) both calc(var(--order, 0) * var(--hp-reveal-stagger)),
+      hp-float var(--hp-motion-float) ease-in-out calc(var(--hp-motion-swatch-in) + var(--delay, 0s)) infinite;
   }
 
-  .swatch2 { --delay: 1.2s; }
-  .swatch3 { --delay: 0.6s; }
-  .swatch4 { --delay: 1.8s; }
-  .swatch5 { --delay: 0.9s; }
-  .swatch6 { --delay: 1.5s; }
+  .swatch1 { --order: 0; --in-x: -100vw; --in-tilt: calc(var(--hp-swatch-in-tilt) * -1); }
+  .swatch2 { --order: 1; --in-x: 100vw; --delay: 1.2s; }
+  .swatch3 { --order: 2; --in-x: 0; --in-y: 100vh; --delay: 0.6s; }
+  .swatch4 { --order: 3; --in-x: 100vw; --delay: 1.8s; }
+  .swatch5 { --order: 4; --in-x: -100vw; --in-tilt: calc(var(--hp-swatch-in-tilt) * -1); --delay: 0.9s; }
+  .swatch6 { --order: 5; --in-x: 100vw; --delay: 1.5s; }
+
+  /* Desktop: swatch 3 sits on the left edge, so it comes in from the left. */
+  @media (min-width: 1024px) {
+    .swatch3 { --in-x: -100vw; --in-y: 0; --in-tilt: calc(var(--hp-swatch-in-tilt) * -1); }
+  }
 
   :root[data-motion="on"] .heroStamp {
     animation: hp-spin var(--hp-motion-spin) linear infinite;
@@ -1951,6 +1970,12 @@
 @keyframes hp-marquee {
   to {
     transform: translateX(-50%);
+  }
+}
+
+@keyframes hp-swatch-in {
+  from {
+    transform: translate(var(--in-x, 0), var(--in-y, 0)) rotate(var(--in-tilt, var(--hp-swatch-in-tilt)));
   }
 }
 
