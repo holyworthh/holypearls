@@ -82,6 +82,8 @@ jobs:
         run: |
           docker exec "${{ job.services.postgres.id }}" createdb -U holypearls_ci holypearls_image
           docker build -t holypearls-api:ci .
+          # Whatever happens, show what the container said.
+          trap 'docker logs api-image 2>&1 | tail -n 80' EXIT
           docker run -d --name api-image --network host \
             -e DATABASE_URL="$PG_URL" -e API_PORT=3099 -e BETTER_AUTH_URL -e BETTER_AUTH_SECRET -e DATA_ENCRYPTION_KEY \
             holypearls-api:ci sh deploy/start-single.sh
@@ -89,8 +91,8 @@ jobs:
           curl -fsS http://localhost:3099/health/ready
           # Built code and production dependencies only: no sources, tests or web app.
           docker exec api-image sh -c 'test ! -d /repo/apps/api/src && test ! -d /repo/apps/web/src && test ! -d /repo/apps/web/node_modules'
-          docker logs api-image 2>&1 | tail -n 20
           docker rm -f api-image
+          trap - EXIT
       - name: Install Chromium for browser tests
         run: pnpm --filter @holypearls/web exec playwright install --with-deps chromium
       - name: Accessibility, keyboard and viewport tests (375 and 1440 px)
