@@ -25,7 +25,8 @@ test("payments admin: list, review queue and settings pass the accessibility che
   await page.goto(`${ADMIN}/payments/settings`);
   await expect(page.getByRole("heading", { name: "Payment settings", level: 1 })).toBeVisible();
   await expect(page.getByText("Paystack setup checklist")).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /Apple Pay/ })).toBeVisible();
+  // The payment method itself (Apple Pay is also listed under account support and the checklist).
+  await expect(page.getByRole("group", { name: "Payment methods passed to Paystack" }).getByRole("checkbox", { name: /^Apple Pay/ })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 });
