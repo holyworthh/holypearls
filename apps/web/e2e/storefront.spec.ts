@@ -163,3 +163,24 @@ test("the Our work rail ends on the content edge and its button keeps its layout
   expect(Math.abs(ends.lastRight - ends.linkRight)).toBeLessThanOrEqual(1);
   expect(ends.linkDisplay).not.toBe("inline");
 });
+
+test("pages send the security headers, and guest-link pages send no referrer (review P2-07)", async ({ page }) => {
+  const violations: string[] = [];
+  page.on("console", (message) => {
+    if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
+  });
+  const home = await page.goto("/");
+  const headers = home!.headers();
+  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain("object-src 'none'");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["x-powered-by"]).toBeUndefined();
+  // Pages still run under the policy: a product page with its configurator loads and nothing was blocked.
+  await page.goto("/products/business-cards");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  expect(violations).toEqual([]);
+  const link = await page.request.get("/l");
+  expect(link.headers()["referrer-policy"]).toBe("no-referrer");
+});

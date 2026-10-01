@@ -139,6 +139,17 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   const getActor = actorResolver(options.identity, options.db, now);
 
   app.use(requestContext(options.logger));
+  // Security headers on every response (TECH-06, review P2-07). The API sends JSON and images only,
+  // so its policy allows nothing to run or embed it; HSTS where it's served over HTTPS.
+  app.use((_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader("x-content-type-options", "nosniff");
+    response.setHeader("referrer-policy", "no-referrer");
+    response.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    response.setHeader("x-frame-options", "DENY");
+    response.setHeader("cross-origin-resource-policy", "same-site");
+    if (options.webOrigin.startsWith("https:")) response.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
+    next();
+  });
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.clientIp = clientIpFrom(request, options.proxySecret ?? null);
     next();

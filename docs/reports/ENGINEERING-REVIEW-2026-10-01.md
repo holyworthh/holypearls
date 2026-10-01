@@ -144,3 +144,24 @@ Not in scope: keeping files that a paid order references is T04-05's job. Until 
 ### Questions
 - The retention values are the owner's starting values (2026-10-01). Confirm them with the accountant and lawyer; they live in one place (`RETENTION`).
 - Personal details are erased from every abandoned checkout, signed-in or guest. The review suggested guest checkouts only; erasing both keeps less.
+
+## PR E: pre-launch gates (P2-06, P2-07, P2-08, P3-01, P3-02)
+
+- **Security headers.**
+  - Web (`next.config.mjs`): a Content-Security-Policy that allows scripts only from this site, upload calls to R2, and no plugins, framing, base-URI or form-action changes. Also `nosniff`, `strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, a Permissions-Policy, HSTS in production, and no `X-Powered-By`.
+  - Guest-link pages (`/l`, quotes, proofs, orders, configure, collections, help) send `no-referrer`.
+  - API: `default-src 'none'`, `frame-ancestors 'none'`, `nosniff`, `no-referrer`, `DENY`, `CORP same-site`, and HSTS over HTTPS.
+  - Tested in `app.test.ts` and in an e2e that loads the homepage and a product page with no CSP violations.
+- **Dependency checks.** `pnpm audit --prod --audit-level high` gates CI; one moderate advisory remains and is allowed. `.github/dependabot.yml` opens weekly pull requests for npm, GitHub Actions and Docker into `dev`.
+- **Release upgrade check (P2-06).** CI builds `main` in a worktree, migrates and seeds a database with it, runs this branch's migrations with the real runner, and diffs the schema against a fresh database. Any difference fails the build.
+- **Slimmer image (P3-02).** The runtime image now holds only the workspace manifests, built `dist` folders, the migrations, the start script and a fresh production-only install of the API, worker and db packages, with no sources, tests, web app or build tools. Because Docker isn't available locally, CI builds the image and runs `deploy/start-single.sh` against Postgres until `/health/ready` answers, and checks that no sources are inside.
+- **README (P3-01).** Rewritten around the services, checks, database changes, environments and releases, and ticket workflow.
+- `turbo.json` passes `WEB_REVALIDATE`, `WEB_PROXY_SECRET` and `DATABASE_MIGRATION_URL` through to tasks.
+
+### Deviations and what's left
+- **Script nonces (P2-07).** Inline scripts are still allowed. Per-request nonces make every page dynamic, which would end the published-page caching (`revalidateTag`), so it needs a decision. It's the remaining step of T15-01's CSP work. Everything else in the review's header list is done.
+- **CodeQL (P2-08).** It needs GitHub Advanced Security on a private repository, which isn't available on the Free plan; Dependabot and `pnpm audit` cover dependencies. Secret scanning has the same limit.
+- **SBOM (P2-08, P3-02).** Not generated yet. Render builds the release image itself, so an SBOM belongs with a CI-built image (the paid-plan setup in ENVIRONMENTS.md).
+
+## Tests overall
+Every PR passed the full API suite locally against Neon. The browser suite passed at 375 and 1440 px (183–184 passed, 15 skipped). Each PR's CI is linked from its pull request.
