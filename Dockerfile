@@ -12,10 +12,11 @@ COPY . .
 RUN pnpm install --frozen-lockfile \
   && pnpm turbo run build --filter=@holypearls/api --filter=@holypearls/worker --filter=@holypearls/db
 # What the runtime needs, and nothing else (review P3-02): the workspace manifests,
-# the built code, the migrations and the start script. No sources, tests, web app or tooling.
+# the built code, the migrations, the design tokens emails use and the start script.
+# No sources, tests, web app or tooling.
 RUN mkdir /out \
   && cp --parents package.json pnpm-lock.yaml pnpm-workspace.yaml apps/*/package.json packages/*/package.json /out \
-  && cp -r --parents apps/api/dist apps/worker/dist packages/*/dist packages/db/drizzle deploy /out
+  && cp -r --parents apps/api/dist apps/worker/dist packages/*/dist packages/db/drizzle packages/ui/tokens deploy /out
 
 # A fresh production-only install of the three services and what they use. (Not
 # `pnpm prune --prod`: in a workspace that removes the links between our own packages.)
