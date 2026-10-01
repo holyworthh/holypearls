@@ -1,10 +1,10 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
 import { users } from "./identity.js";
-import { deliveryZones } from "./pricing.js";
+import { deliveryZones, taxSettings } from "./pricing.js";
 
 /*
  * Quotes, minimal (T03-08): a "Request Final Quote" creates a quote in
@@ -59,6 +59,8 @@ export const carts = pgTable(
   (table) => [
     uniqueIndex("carts_owner_user_unique").on(table.ownerUserId),
     uniqueIndex("carts_owner_device_unique").on(table.ownerDeviceHash),
+    // Exactly one owner: an account or a browser (review P2-04).
+    check("carts_one_owner", sql`num_nonnulls(${table.ownerUserId}, ${table.ownerDeviceHash}) = 1`),
   ],
 );
 
@@ -113,7 +115,7 @@ export const checkouts = pgTable(
     totalMinor: bigint("total_minor", { mode: "bigint" }).notNull(),
     vatRateBps: integer("vat_rate_bps").notNull(),
     vatOnDelivery: boolean("vat_on_delivery").notNull(),
-    taxSettingId: uuid("tax_setting_id"),
+    taxSettingId: uuid("tax_setting_id").references(() => taxSettings.id, { onDelete: "restrict" }),
     step: text("step").notNull().default("contact"),
     version: versionColumn(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
@@ -123,5 +125,10 @@ export const checkouts = pgTable(
   (table) => [
     uniqueIndex("checkouts_open_cart_unique").on(table.cartId).where(sql`${table.status} = 'OPEN'`),
     index("checkouts_customer_idx").on(table.customerId),
+    // At most one owner; an open checkout has exactly one. A closed one keeps its history without an owner
+    // if the account is deleted (review P2-04).
+    check("checkouts_owner", sql`num_nonnulls(${table.ownerUserId}, ${table.ownerDeviceHash}) = 1 or (${table.status} <> 'OPEN' and ${table.ownerUserId} is null and ${table.ownerDeviceHash} is null)`),
+    check("checkouts_step", sql`${table.step} in ('contact', 'address', 'delivery', 'billing', 'review')`),
+    check("checkouts_currency", sql`${table.currency} in ('NGN', 'USD')`),
   ],
 );
