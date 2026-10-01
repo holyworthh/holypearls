@@ -44,6 +44,8 @@ export class Jobs {
       application_name: `holypearls-${options.role}`,
       supervise: options.role === "worker",
       schedule: options.role === "worker",
+      // The pgboss schema comes from a migration (0023): the app's row-only role can't create schemas.
+      createSchema: false,
     });
     this.boss.on("error", (error: Error) => options.onError?.(error));
   }

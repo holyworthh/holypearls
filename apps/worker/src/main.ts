@@ -15,7 +15,7 @@ import {
   reportError,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
-import { createDatabaseClient } from "@holypearls/db";
+import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
 import { createEmailSender } from "@holypearls/email";
 import { createStorage } from "@holypearls/storage";
 import { deadLetterName, Jobs, QUEUES, type QueueName } from "@holypearls/jobs";
@@ -25,6 +25,11 @@ const logger = createLogger({ service: "worker", environment: env.HP_ENV });
 initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "worker" });
 // Worker jobs call the same services as the API (TECH-00 §5) on a bounded pool (TECH-07 §4).
 const database = createDatabaseClient(env.DATABASE_URL, { max: 5 });
+// Production runs on a row-only database role; a schema owner here means the wrong URL (review P1-02).
+if (env.HP_ENV === "production") {
+  const problems = await runtimePrivilegeProblems(database.db);
+  if (problems.length) throw new Error(`DATABASE_URL must use the app's row-only role: ${problems.join("; ")}.`);
+}
 const jobs = new Jobs({
   connectionString: jobsConnectionString(env),
   role: "worker",
@@ -83,11 +88,11 @@ await jobs.send("cleanup.daily", { v: 1, requestId: "startup" });
 await jobs.work(
   "cache.revalidate",
   track("cache.revalidate", async (payload) => {
-    const url = process.env.WEB_REVALIDATE_URL;
-    if (!url) return logger.info({ tags: payload.tags }, "cache tags changed (no revalidation URL set)");
-    const response = await fetch(url, {
+    // Off only by explicit choice (staging); production can't start with it off (review P2-05).
+    if (env.WEB_REVALIDATE === "off") return logger.info({ tags: payload.tags }, "cache tags changed (page refresh is off here)");
+    const response = await fetch(env.WEB_REVALIDATE_URL!, {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.WEB_REVALIDATE_SECRET ?? ""}` },
+      headers: { "content-type": "application/json", authorization: `Bearer ${env.WEB_REVALIDATE_SECRET!}` },
       body: JSON.stringify({ tags: payload.tags }),
       signal: AbortSignal.timeout(10_000),
     });
