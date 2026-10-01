@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { checkoutSchema, configurationSchema } from "@holypearls/contracts";
-import { and, eq, schema } from "@holypearls/db";
+import { and, desc, eq, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -57,6 +57,20 @@ async function csvFile(rows: number, prefix = "Staff") {
     .returning();
   return file!.id;
 }
+
+/**
+ * Rules are insert-only and the newest one in effect wins, so a test's rule must
+ * start just after the newest one, however quickly earlier tests ran (CI is fast),
+ * and not in the future.
+ */
+async function after(latest: Date) {
+  const at = Math.max(latest.getTime() + 1, Date.now() - 1000);
+  while (Date.now() <= at) await new Promise((resolve) => setTimeout(resolve, 5));
+  return new Date(at);
+}
+const currentRule = async (productId: string) =>
+  (await db().select().from(schema.priceRules).where(eq(schema.priceRules.productId, productId)).orderBy(desc(schema.priceRules.effectiveFrom)).limit(1))[0]!;
+const currentTax = async () => (await db().select().from(schema.taxSettings).orderBy(desc(schema.taxSettings.effectiveFrom)).limit(1))[0]!;
 
 const statusOf = async (checkoutId: string) => (await db().select({ status: schema.checkouts.status }).from(schema.checkouts).where(eq(schema.checkouts.id, checkoutId)))[0]!.status;
 /** One design's frozen item (the account's cart may hold others from earlier tests). */
@@ -140,15 +154,15 @@ describe("the checkout freezes the whole item (review P1-06)", () => {
 
     // Change everything around it: the catalogue, prices, VAT and the design itself.
     const [product] = await db().select().from(schema.products).where(eq(schema.products.slug, "business-cards"));
-    const [rule] = await db().select().from(schema.priceRules).where(eq(schema.priceRules.productId, product!.id));
-    const copy: Omit<typeof rule & object, "id" | "createdAt"> & { id?: string; createdAt?: Date } = { ...rule! };
+    const rule = await currentRule(product!.id);
+    const copy: Omit<typeof rule, "id" | "createdAt"> & { id?: string; createdAt?: Date } = { ...rule };
     delete copy.id;
     delete copy.createdAt;
-    const [tax] = await db().select().from(schema.taxSettings).limit(1);
+    const tax = await currentTax();
     const [paper] = await db().select().from(schema.productOptionValues).where(eq(schema.productOptionValues.key, "350gsm-matte"));
     await db().update(schema.products).set({ name: "Renamed Cards" }).where(eq(schema.products.id, product!.id));
-    const [doubled] = await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: new Date(Date.now() - 1000), baseMinor: rule!.baseMinor * 2n, tiers: [] }).returning();
-    const [vat] = await db().insert(schema.taxSettings).values({ effectiveFrom: new Date(Date.now() - 1000), vatRateBps: 1000, vatOnDelivery: true }).returning();
+    const [doubled] = await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: await after(rule.effectiveFrom), baseMinor: rule.baseMinor * 2n, tiers: [] }).returning();
+    const [vat] = await db().insert(schema.taxSettings).values({ effectiveFrom: await after(tax.effectiveFrom), vatRateBps: 1000, vatOnDelivery: true }).returning();
     try {
       await db().update(schema.productOptionValues).set({ label: "Relabelled" }).where(eq(schema.productOptionValues.key, "350gsm-matte"));
       const current = configurationSchema.parse((await get(`/v1/configurations/${cards.id}`)).body);
@@ -161,8 +175,8 @@ describe("the checkout freezes the whole item (review P1-06)", () => {
       expect(await statusOf(checkout.id)).toBe("ABANDONED");
     } finally {
       await db().update(schema.products).set({ name: product!.name }).where(eq(schema.products.id, product!.id));
-      await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: new Date(doubled!.effectiveFrom.getTime() + 500) });
-      await db().insert(schema.taxSettings).values({ effectiveFrom: new Date(vat!.effectiveFrom.getTime() + 500), vatRateBps: tax!.vatRateBps, vatOnDelivery: tax!.vatOnDelivery });
+      await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: await after(doubled!.effectiveFrom) });
+      await db().insert(schema.taxSettings).values({ effectiveFrom: await after(vat!.effectiveFrom), vatRateBps: tax.vatRateBps, vatOnDelivery: tax.vatOnDelivery });
       await db().update(schema.productOptionValues).set({ label: paper!.label }).where(eq(schema.productOptionValues.key, "350gsm-matte"));
     }
   });
@@ -174,11 +188,11 @@ describe("an old checkout closes even when nothing is ready any more (review P1-
     // A day later, the price needs a review: the product's newest rule is an estimate.
     await db().update(schema.checkouts).set({ createdAt: new Date(Date.now() - 2 * 86_400_000) }).where(eq(schema.checkouts.id, checkout.id));
     const [product] = await db().select().from(schema.products).where(eq(schema.products.slug, "business-cards"));
-    const [rule] = await db().select().from(schema.priceRules).where(eq(schema.priceRules.productId, product!.id));
-    const copy: Omit<typeof rule & object, "id" | "createdAt"> & { id?: string; createdAt?: Date } = { ...rule! };
+    const rule = await currentRule(product!.id);
+    const copy: Omit<typeof rule, "id" | "createdAt"> & { id?: string; createdAt?: Date } = { ...rule };
     delete copy.id;
     delete copy.createdAt;
-    const [estimate] = await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: new Date(Date.now() - 1000), state: "ESTIMATE_READY" }).returning();
+    const [estimate] = await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: await after(rule.effectiveFrom), state: "ESTIMATE_READY" }).returning();
     try {
       const refused = await post("/v1/checkouts");
       expect(refused.status).toBe(422);
@@ -189,7 +203,7 @@ describe("an old checkout closes even when nothing is ready any more (review P1-
       const [cart] = await db().select().from(schema.carts).where(eq(schema.carts.ownerUserId, chidiId));
       expect(await db().select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart!.id), eq(schema.checkouts.status, "OPEN")))).toHaveLength(0);
     } finally {
-      await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: new Date(estimate!.effectiveFrom.getTime() + 500) });
+      await db().insert(schema.priceRules).values({ ...copy, effectiveFrom: await after(estimate!.effectiveFrom) });
       // Leave the cart empty for the other tests.
       await db().delete(schema.cartItems).where(eq(schema.cartItems.configurationId, cards.id));
       await db().update(schema.configurations).set({ status: "DRAFT" }).where(eq(schema.configurations.id, cards.id));
