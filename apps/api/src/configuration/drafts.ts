@@ -43,6 +43,27 @@ export async function closeCheckoutsWith(db: Pick<Database, "update">, configura
     .where(and(eq(schema.checkouts.status, "OPEN"), sql`${configurationId}::uuid = any(${schema.checkouts.configurationIds})`));
 }
 
+type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/**
+ * Every change to what would be made goes through here (review P1-05):
+ * choices, sizes, placements, artwork added or removed, the low-resolution
+ * decision and personalisation. It raises the version and the change time
+ * (the cart refreshes its copy from that), and closes an open checkout that
+ * holds the design's older copy. With `expectedVersion` it only changes a
+ * design still at that version, and says whether it did.
+ */
+export async function touchOrderableConfiguration(tx: Tx, id: string, options: { expectedVersion?: number } = {}): Promise<boolean> {
+  const rows = await tx
+    .update(schema.configurations)
+    .set({ version: sql`${schema.configurations.version} + 1`, updatedAt: new Date() })
+    .where(options.expectedVersion === undefined ? eq(schema.configurations.id, id) : and(eq(schema.configurations.id, id), eq(schema.configurations.version, options.expectedVersion)))
+    .returning({ status: schema.configurations.status });
+  if (!rows.length) return false;
+  if (rows[0]!.status === "IN_CART") await closeCheckoutsWith(tx, id);
+  return true;
+}
+
 export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   const { actor, deviceKey } = access;
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
@@ -381,6 +402,9 @@ export async function updateDraft(
   }
 
   const saved = await db.transaction(async (tx) => {
+    // Moving between steps changes nothing that would be made, so it doesn't close a checkout.
+    const changesWhatIsMade = Object.keys(patch).some((key) => key !== "version" && key !== "step" && key !== "confirmRemovals");
+    if (changesWhatIsMade && !(await touchOrderableConfiguration(tx, id, { expectedVersion: patch.version }))) return false;
     const rows = await tx
       .update(schema.configurations)
       .set({
@@ -392,12 +416,12 @@ export async function updateDraft(
         ...(patch.decoration !== undefined && { decoration: patch.decoration }),
         ...(patch.details && { details: { ...(row.details as object), ...patch.details } }),
         ...(patch.sizesUnknown !== undefined && { sizesUnknown: patch.sizesUnknown }),
-        version: sql`${schema.configurations.version} + 1`,
+        ...(!changesWhatIsMade && { version: sql`${schema.configurations.version} + 1` }),
+        updatedAt: new Date(),
       })
-      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, patch.version)))
+      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, changesWhatIsMade ? patch.version + 1 : patch.version)))
       .returning({ id: schema.configurations.id });
     if (!rows.length) return false;
-    if (row.status === "IN_CART" && Object.keys(patch).some((key) => key !== "version" && key !== "step")) await closeCheckoutsWith(tx, id);
     await writeSelections(tx, id, before, next, options.map((option) => option.key));
     if (patch.sizes) {
       await tx.delete(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, id));
@@ -464,7 +488,7 @@ export async function attachDraftFile(db: Database, access: DraftAccess, id: str
   await db.transaction(async (tx) => {
     await tx.insert(schema.configurationFiles).values({ configurationId: id, fileId: file.id, role: input.role }).onConflictDoNothing();
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
-    await tx.update(schema.configurations).set({ version: sql`${schema.configurations.version} + 1` }).where(eq(schema.configurations.id, row.id));
+    await touchOrderableConfiguration(tx, row.id);
   });
   return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
@@ -472,24 +496,33 @@ export async function attachDraftFile(db: Database, access: DraftAccess, id: str
 /** Low resolution never blocks (COM-FR-051): the customer replaces, asks for clean-up, or asks for review. */
 export async function setLowResolutionAction(db: Database, access: DraftAccess, id: string, linkId: string, action: "REPLACE" | "CLEANUP" | "REVIEW") {
   await loadDraft(db, access, id);
-  const rows = await db
-    .update(schema.configurationFiles)
-    .set({ lowResolutionAction: action })
-    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
-    .returning({ id: schema.configurationFiles.id });
-  if (!rows.length) throw new AppError("NOT_FOUND");
+  const found = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(schema.configurationFiles)
+      .set({ lowResolutionAction: action })
+      .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+      .returning({ id: schema.configurationFiles.id });
+    if (rows.length) await touchOrderableConfiguration(tx, id);
+    return rows.length > 0;
+  });
+  if (!found) throw new AppError("NOT_FOUND");
   return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
 export async function removeDraftFile(db: Database, access: DraftAccess, id: string, linkId: string) {
   await loadDraft(db, access, id);
-  const rows = await db
-    .delete(schema.configurationFiles)
-    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
-    .returning({ fileId: schema.configurationFiles.fileId });
-  if (!rows.length) throw new AppError("NOT_FOUND");
-  // The file is unattached again, so the daily clean-up can remove it after 7 days.
-  await db.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
+  const found = await db.transaction(async (tx) => {
+    const rows = await tx
+      .delete(schema.configurationFiles)
+      .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+      .returning({ fileId: schema.configurationFiles.fileId });
+    if (!rows.length) return false;
+    // The file is unattached again, so the daily clean-up can remove it after 7 days.
+    await tx.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
+    await touchOrderableConfiguration(tx, id);
+    return true;
+  });
+  if (!found) throw new AppError("NOT_FOUND");
   return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
@@ -512,6 +545,7 @@ export async function importPersonalization(deps: { db: Database; storage: Stora
       await tx.insert(schema.configurationPersonalizationRows).values(result.rows.slice(start, start + 500).map((row) => ({ configurationId: id, ...row })));
     }
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
+    await touchOrderableConfiguration(tx, id);
   });
   return { accepted: true, count: result.rows.length, errors: [] };
 }

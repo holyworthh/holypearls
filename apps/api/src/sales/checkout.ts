@@ -1,5 +1,5 @@
 import type { Checkout, checkoutAddressSchema, checkoutBillingSchema, checkoutContactSchema, Configuration } from "@holypearls/contracts";
-import { and, type Database, desc, eq, schema, sql } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
 import type { z } from "zod";
 import { AppError } from "../errors.js";
 import { currentTaxSetting } from "../catalogue/rules.js";
@@ -7,6 +7,7 @@ import { draftView, reprice } from "../configuration/drafts.js";
 import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
+import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snapshot.js";
 
 /*
  * Checkout (T04-01, COM-FR-083–084, TECH-05 §1, Pen 43/44/45).
@@ -45,6 +46,8 @@ interface FrozenItem {
   cartTotalMinor: string | null;
   leadDays: { min: number; max: number } | null;
   priceResultId: string;
+  /** What production makes and accounts charge for, frozen now (review P1-06). */
+  snapshot: OrderableConfigurationSnapshotV1;
 }
 
 interface Delivery {
@@ -142,14 +145,19 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
   const ids = items.map((item) => item.configurationId);
   if (open && sameSet(open.configurationIds, ids) && now.getTime() - open.createdAt.getTime() < FRESH_FOR_MS) return withCartState(db, open);
 
+  const tax = await currentTaxSetting(db, now);
+  const vat = { vatRateBps: tax?.vatRateBps ?? 0, vatOnDelivery: tax?.vatOnDelivery ?? false };
+  const taxSnapshot = { settingId: tax?.id ?? null, ...vat };
+
   // The server's price now, not the cart's copy (TECH-05 §1).
   const frozen: FrozenItem[] = [];
+  const nowQuote: string[] = [];
   for (const item of items) {
     const row = await reprice(db, item.configurationId, now);
     const draft: Configuration = await draftView(db, row, now);
     if (groupOf(draft) !== "READY") {
       // Its price now needs review: it moves to the quote group and stays out of this payment.
-      await db.update(schema.cartItems).set({ group: "QUOTE" }).where(eq(schema.cartItems.id, item.id));
+      nowQuote.push(item.id);
       continue;
     }
     const price = draft.price!;
@@ -166,19 +174,21 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
       cartTotalMinor: added !== null && added !== price.totalMinor ? added : null,
       leadDays: price.leadDays,
       priceResultId: price.id,
+      snapshot: await orderableSnapshot(db, row, draft, taxSnapshot, now),
     });
   }
-  if (!frozen.length) throw new AppError("RULE_FAILED", { message: "Prices changed and your items now need a quote. They're in the quote group in your cart.", context: { reason: "NOTHING_READY" } });
   if (frozen.some((item) => BigInt(item.totalMinor) <= 0n)) throw new AppError("RULE_FAILED", { message: "An item has no price. Contact us to finish this order.", context: { reason: "NO_PRICE" } });
 
-  const tax = await currentTaxSetting(db, now);
-  const vat = { vatRateBps: tax?.vatRateBps ?? 0, vatOnDelivery: tax?.vatOnDelivery ?? false };
   // The customer's answers carry over from the open checkout, or the one a change just closed.
   const [previous] = open ? [open] : await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "ABANDONED"))).orderBy(desc(schema.checkouts.createdAt)).limit(1);
   const earlier = previous ?? null;
   try {
+    // Regrouping, closing the old checkout and opening the new one happen together (review P1-07):
+    // when nothing is ready any more, the old checkout still closes.
     const created = await db.transaction(async (tx) => {
+      if (nowQuote.length) await tx.update(schema.cartItems).set({ group: "QUOTE" }).where(inArray(schema.cartItems.id, nowQuote));
       if (open) await tx.update(schema.checkouts).set({ status: "ABANDONED" }).where(and(eq(schema.checkouts.id, open.id), eq(schema.checkouts.status, "OPEN")));
+      if (!frozen.length) return null;
       const base = {
         cartId: cart.id,
         ownerUserId: cart.ownerUserId,
@@ -200,6 +210,7 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
       const [row] = await tx.insert(schema.checkouts).values({ ...base, ...totals }).returning();
       return row!;
     });
+    if (!created) throw new AppError("RULE_FAILED", { message: "Prices changed and your items now need a quote. They're in the quote group in your cart.", context: { reason: "NOTHING_READY" } });
     return withCartState(db, created);
   } catch (error) {
     // Two "Check out" clicks at once: the index lets one through, and both get it.
@@ -230,11 +241,15 @@ const advance = (current: string, step: Step): Step => {
   return STEPS.indexOf(current as Step) > STEPS.indexOf(next) ? (current as Step) : next;
 };
 
+/** One transaction: a stale version leaves no customer record behind (review P2-01). */
 export async function setContact(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutContactSchema> & { version: number }) {
-  const row = await load(db, access, id);
-  // Signed in, the checkout belongs to the account's customer; the typed email is only where we write to.
-  const owner = access.actor.type === "user" ? await ensureAccountCustomer(db, access.actor.session, access.actor.now) : await ensureGuestCustomer(db, input);
-  return save(db, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
+  return db.transaction(async (transaction) => {
+    const tx = transaction as unknown as Db;
+    const row = await load(tx, access, id);
+    // Signed in, the checkout belongs to the account's customer; the typed email is only where we write to.
+    const owner = access.actor.type === "user" ? await ensureAccountCustomer(tx, access.actor.session, access.actor.now) : await ensureGuestCustomer(tx, input);
+    return save(tx, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
+  });
 }
 
 export async function setAddress(db: Db, access: CartAccess, id: string, input: z.infer<typeof checkoutAddressSchema> & { version: number }) {
