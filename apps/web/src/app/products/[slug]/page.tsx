@@ -1,21 +1,20 @@
-import { configurationSchema, CUSTOMER_PRICE_LABEL, customerPriceState } from "@holypearls/contracts";
+import { configurationSchema, customerPriceState, type PublicProduct } from "@holypearls/contracts";
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { Configurator } from "../../../components/catalogue/Configurator";
-import g from "../../../components/catalogue/garment.module.css";
-import p from "../../../components/catalogue/pdp.module.css";
-import { Gallery } from "../../../components/catalogue/Gallery";
-import { GarmentGallery, GarmentStart, StickyConfigure } from "../../../components/catalogue/GarmentStart";
-import { Icon } from "../../../components/pen/Icon";
+import { GarmentConfigurator } from "../../../components/catalogue/GarmentConfigurator";
+import s from "../../../components/catalogue/ledger-pdp.module.css";
+import { PdpGallery } from "../../../components/catalogue/PdpGallery";
 import { ProductCard } from "../../../components/catalogue/ProductCard";
+import { Icon } from "../../../components/pen/Icon";
+import { JsonLd } from "../../../components/seo/JsonLd";
 import { categoryHref } from "../../../components/site/nav";
 import { DELIVERY_COVERAGE, SiteShell } from "../../../components/site/SiteShell";
-import { serverApi } from "../../../lib/server-api";
-import { getProduct } from "../../../lib/storefront";
-import { JsonLd } from "../../../components/seo/JsonLd";
 import { breadcrumbLd, productLd } from "../../../lib/seo";
+import { hasSessionCookie, serverApi } from "../../../lib/server-api";
+import { getProduct } from "../../../lib/storefront";
 
-type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string }> };
+type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string; sourcing?: string; colour?: string }> };
 const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -31,385 +30,297 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 /**
- * Product pages (T03-03, COM-FR-001–005). Most products (Pen 21 · VSjt2):
- * gallery and the inline configurator with the price beside the choices.
- * Garments (Pen 19 · V3j7CP): a product page whose "Configure yours" opens the
- * stepped configurator (Pen 22) at /products/[slug]/configure. A `?draft=`
- * address reopens a saved design (owners only).
- */
-/**
  * The "how we brand it" copy follows the decorations this product offers
  * (configurator.allowedDecorations), so a print-only garment never promises
- * embroidery. Pen 19's copy is the embroidery case.
+ * embroidery.
  */
 function brandingCopy(decorations: string[]) {
   const embroidery = decorations.includes("EMBROIDERY");
   const print = decorations.includes("PRINT");
   if (embroidery && print) {
-    return { title: "We prepare your logo for embroidery or print", body: "Just send your logo. We turn it into an embroidery or print file and show you a proof before we produce anything. When you reorder, we use the same approved file." };
+    return {
+      title: "Embroidery or print?",
+      body: "Embroidery lasts and feels premium. It's best for logos on the chest. Print suits large or detailed artwork, like a design across the back. Not sure? Choose “Recommend for me” and we'll advise after seeing your logo.",
+    };
   }
-  if (embroidery) {
-    return { title: "We prepare your logo for embroidery", body: "Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file." };
-  }
-  if (print) {
-    return { title: "We prepare your logo for print", body: "Just send your logo. We turn it into a print file and show you a proof before we print anything. When you reorder, we use the same approved file." };
-  }
+  if (embroidery) return { title: "We prepare your logo for embroidery", body: "Just send your logo. We convert it into an embroidery file and show you a proof before we stitch anything. When you reorder, we use the same approved file." };
+  if (print) return { title: "We prepare your logo for print", body: "Just send your logo. We turn it into a print file and show you a proof before we print anything. When you reorder, we use the same approved file." };
   return { title: "We agree the branding with you", body: "Tell us what you'd like on it. We confirm how it's made and show you a proof before we produce anything." };
 }
 
-/** What each quantity band says (Pen 19): the minimum, a worked example, a live estimate, or a production review. */
-function bandNote(tier: { quantity: number; perUnitMinor: string | null }, index: number, count: number, moq: number) {
-  if (index === 0) return `Standard minimum ${moq.toLocaleString("en-NG")}`;
-  if (!tier.perUnitMinor || (index === count - 1 && count > 2)) return "Production review";
-  if (index === 1) return `e.g. ${tier.quantity.toLocaleString("en-NG")} → est. ₦${((BigInt(tier.perUnitMinor) * BigInt(tier.quantity)) / 100n).toLocaleString("en-NG")}`;
-  return "Live estimate";
+/** The stage tint follows the family (Pen): garments Holy Blue, print Brick, others white. */
+const tintFor = (family: string) => (family === "GARMENT" ? "brand" : family === "PAPER_PRINT" || family === "LARGE_FORMAT" ? "print" : null);
+
+function Crumbs({ product }: { product: PublicProduct }) {
+  return (
+    <nav className={s.crumbs} aria-label="Breadcrumb">
+      <ol>
+        <li>
+          <a href="/">Home</a>
+        </li>
+        {product.categoryParent ? (
+          <li>
+            <a href={categoryHref(product.categoryParent.slug)}>{product.categoryParent.name}</a>
+          </li>
+        ) : null}
+        <li>
+          <a href={categoryHref(product.category.slug)}>{product.category.name}</a>
+        </li>
+        <li aria-current="page">{product.name}</li>
+      </ol>
+    </nav>
+  );
 }
 
+/** Title, summary and the facts that hold for every configuration (Pen: minimum, production time). */
+function Head({ product, from }: { product: PublicProduct; from: string | null }) {
+  const config = product.configurator;
+  const unit = product.family === "GARMENT" ? "piece" : "each";
+  return (
+    <>
+      <h1 id="product-title" className={s.title} data-enter>
+        {product.name}
+      </h1>
+      {product.summary ? <p className={s.lead}>{product.summary}</p> : null}
+      <ul className={s.meta} aria-label="At a glance">
+        {from ? <li>From {from} / {unit}</li> : null}
+        {config ? (
+          <li>
+            <Icon name="boxes" size={14} />
+            Minimum {config.moq.toLocaleString("en-NG")}
+          </li>
+        ) : null}
+        {config?.leadDays ? (
+          <li>
+            <Icon name="clock-3" size={14} />
+            {config.leadDays.min}–{config.leadDays.max} working days to produce
+          </li>
+        ) : null}
+      </ul>
+    </>
+  );
+}
+
+function Questions({ product }: { product: PublicProduct }) {
+  return (
+    <section className={s.col} aria-labelledby="faq-title">
+      <h2 id="faq-title" className={s.colTitle}>
+        Questions
+      </h2>
+      {product.faqs.length ? (
+        <div className={s.faq}>
+          {product.faqs.map((item) => (
+            <details key={item.question}>
+              <summary>
+                {item.question}
+                <Icon name="plus" size={16} />
+              </summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      ) : (
+        <p className={s.colBody}>{DELIVERY_COVERAGE}</p>
+      )}
+      <a className={s.colLink} href={`/contact?topic=product&product=${product.slug}`}>
+        Ask Holypearls about this product
+      </a>
+    </section>
+  );
+}
+
+function Specifications({ product, title = "Specifications" }: { product: PublicProduct; title?: string }) {
+  if (!product.specifications.length && !product.description) return null;
+  return (
+    <section className={s.col} aria-labelledby="specs-title">
+      <h2 id="specs-title" className={s.colTitle}>
+        {title}
+      </h2>
+      {product.description ? <p className={s.colBody}>{product.description}</p> : null}
+      {product.specifications.length ? (
+        <dl className={s.specs}>
+          {product.specifications.map((spec) => (
+            <div key={spec.label}>
+              <dt>{spec.label}</dt>
+              <dd>{spec.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
+function Related({ product, title, short = false }: { product: PublicProduct; title: string; short?: boolean }) {
+  if (!product.related.length) return null;
+  return (
+    <div className={s.relatedWrap}>
+      <section className={s.related} aria-labelledby="related-title">
+        <h2 id="related-title" className={s.colTitle}>
+          {title}
+        </h2>
+        <ul className={s.relatedRow}>
+          {product.related.slice(0, 4).map((item) => (
+            <li key={item.slug}>
+              <ProductCard product={item} short={short} />
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * Product pages (Pen Stage 4.3; COM-FR-001–005). One look for every product:
+ * a framed gallery on the left; on the right the title, the choices and a
+ * price ticket beside them. Garments (template mfOQO) configure in six
+ * expanding steps beside a live garment map; everything else (template
+ * gb4rz) uses the short one-page flow. A `?draft=` address reopens a saved
+ * design (owners only).
+ */
 export default async function ProductPage({ params, searchParams }: Params) {
   const { slug } = await params;
   if (!validSlug(slug)) notFound();
   const product = await getProduct(slug);
   if (!product) notFound();
-  const { draft: draftId } = await searchParams;
-  const draft =
-    draftId && /^[0-9a-f-]{36}$/.test(draftId) && product.configurator ? await serverApi(`/v1/configurations/${draftId}`, configurationSchema) : null;
+  const query = await searchParams;
+  const draft = query.draft && /^[0-9a-f-]{36}$/.test(query.draft) && product.configurator ? await serverApi(`/v1/configurations/${query.draft}`, configurationSchema) : null;
   const initialDraft = draft?.ok && draft.data.productSlug === product.slug ? draft.data : null;
 
-  const garment = product.family === "GARMENT" && product.configurator && product.available;
+  const priceState = customerPriceState(product);
+  const listed = priceState === "PRICE_READY" || priceState === "ESTIMATE_READY" ? product.price : null;
+  const from = listed ? `₦${(BigInt(listed.amountMinor) / 100n).toLocaleString("en-NG")}` : null;
   const ld = <JsonLd data={[productLd(product), breadcrumbLd([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: product.name, path: `/products/${product.slug}` }])]} />;
-  if (!garment) {
+  const garment = product.family === "GARMENT" && product.configurator && product.available;
+
+  if (garment) {
+    const config = product.configurator!;
+    // Only a route or colour this product offers (from the API); the address can't choose another one.
+    const sourcing = config.allowedRoutes.find((value) => value === query.sourcing) ?? null;
+    const colour = config.options.find((option) => option.key === "colour")?.values.find((value) => value.key === query.colour)?.key;
+    const branding = brandingCopy(config.allowedDecorations);
     return (
       <SiteShell>
         {ld}
-        <section className={p.top} aria-labelledby="product-title">
-          <nav className={p.breadcrumb} aria-label="Breadcrumb">
-            <ol>
-              <li>
-                <a href="/products">Products</a>
-              </li>
-              <li>
-                <a href={categoryHref((product.categoryParent ?? product.category).slug)}>{(product.categoryParent ?? product.category).name}</a>
-              </li>
-              <li aria-current="page">{product.name}</li>
-            </ol>
-          </nav>
-          <div className={p.split}>
-            <Gallery images={product.images} name={product.name} />
-            <div className={p.side}>
-              <div className={p.titleBlock}>
-                <h1 id="product-title" className={p.h1} data-enter>
-                  {product.name}
-                </h1>
-              </div>
-              {!product.available ? (
-                <p className={p.hint} role="status">
-                  This product can&apos;t be ordered right now. Ask us when it&apos;s back or for an alternative.
-                </p>
-              ) : null}
-              {product.configurator && product.available ? (
-                <Configurator productSlug={product.slug} productName={product.name} family={product.family} data={product.configurator} initialDraft={initialDraft} listState={product.price?.state ?? null} />
-              ) : (
-                <a className={p.add} href={`/contact?topic=${product.configurator ? "product" : "project"}&product=${product.slug}`}>
-                  {product.configurator ? "Ask about this product" : "Start a project"}
+        <div className={s.page}>
+          <GarmentConfigurator
+            productSlug={product.slug}
+            productName={product.name}
+            data={config}
+            images={product.images}
+            initialDraft={initialDraft}
+            signedIn={await hasSessionCookie()}
+            startSourcing={initialDraft ? null : sourcing}
+            startChoices={colour ? { colour } : {}}
+            listState={priceState}
+            crumbs={<Crumbs product={product} />}
+            head={<Head product={product} from={from} />}
+          />
+          <div className={s.belowWrap}>
+            <div className={s.below}>
+              <section className={s.col} aria-labelledby="branding-title">
+                <h2 id="branding-title" className={s.colTitle}>
+                  {branding.title}
+                </h2>
+                <p className={s.colBody}>{branding.body}</p>
+                <a className={s.colLink} href="/resources">
+                  Read the guides
                 </a>
-              )}
+              </section>
+              <Specifications product={product} title="Fabric & fit" />
+              <Questions product={product} />
             </div>
           </div>
-        </section>
-        {product.description || product.specifications.length || product.faqs.length ? (
-          <div className={p.more}>
-            {product.description ? (
-              <section aria-labelledby="about-title">
-                <h2 id="about-title" className={p.moreTitle}>
-                  About {product.name.toLowerCase()}
-                </h2>
-                <p className={p.moreBody}>{product.description}</p>
-                <p className={p.hint}>{DELIVERY_COVERAGE}</p>
-              </section>
-            ) : null}
-            {product.specifications.length ? (
-              <section aria-labelledby="specs-title">
-                <h2 id="specs-title" className={p.moreTitle}>
-                  Specifications
-                </h2>
-                <table className={p.specs}>
-                  <tbody>
-                    {product.specifications.map((spec) => (
-                      <tr key={spec.label}>
-                        <th scope="row">{spec.label}</th>
-                        <td>{spec.value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-            ) : null}
-            {product.faqs.length ? (
-              <section aria-labelledby="faq-title" className={p.faq}>
-                <h2 id="faq-title" className={p.moreTitle}>
-                  Questions
-                </h2>
-                {product.faqs.map((item) => (
-                  <details key={item.question}>
-                    <summary>{item.question}</summary>
-                    <p>{item.answer}</p>
-                  </details>
-                ))}
-              </section>
-            ) : null}
-          </div>
-        ) : null}
-        {product.related.length ? (
-          <section className={p.related} aria-labelledby="related-title">
-            <h2 id="related-title" className={p.moreTitle}>
-              Often ordered with
-            </h2>
-            <ul className={p.relatedRow}>
-              {product.related.slice(0, 4).map((item) => (
-                <li key={item.slug}>
-                  <ProductCard product={item} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+          <Related product={product} title="Complete the uniform" short />
+        </div>
       </SiteShell>
     );
   }
 
-  // Garments (Pen 19): the product page leads to the configurator (Pen 22) on its own route.
-  if (initialDraft) redirect(`/products/${slug}/configure?draft=${initialDraft.id}`);
-  const config = product.configurator!;
-  const tiers = config.quantityPresets;
-  const priceState = customerPriceState(product);
-  const state = CUSTOMER_PRICE_LABEL[priceState];
-  // A list price only when the state says there is one (never "estimate ready" without a price).
-  const from = priceState === "PRICE_READY" || priceState === "ESTIMATE_READY" ? product.price : null;
-  const pen = (n: number) => `/pen/generated-${n}.webp`;
-  const branding = brandingCopy(config.allowedDecorations);
+  const config = product.configurator && product.available ? product.configurator : null;
   return (
     <SiteShell>
       {ld}
-      <section className={g.top} aria-labelledby="product-title">
-        <nav className={`${p.breadcrumb} ${g.crumbs}`} aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="/products">Products</a>
-            </li>
-            {product.categoryParent ? (
-              <li>
-                <a href={categoryHref(product.categoryParent.slug)}>{product.categoryParent.name}</a>
-              </li>
-            ) : null}
-            <li>
-              <a href={categoryHref(product.category.slug)}>{product.category.name}</a>
-            </li>
-            <li aria-current="page">{product.name}</li>
-          </ol>
-        </nav>
-        <div className={g.split}>
-          <GarmentGallery images={product.images} name={product.name} fallback={[49, 33, 54, 52, 60, 57].map(pen)} />
-          <div className={g.panel}>
-            <div className={g.titleBlock}>
-              <h1 id="product-title" className={g.h1} data-enter>
-                {product.name}
-              </h1>
-              {product.summary ? <p className={g.lead}>{product.summary}</p> : null}
-            </div>
-            <div className={g.priceBlock}>
-              <span className={`${g.state} ${priceState === "PRICE_READY" ? g.stateReady : ""}`}>{state}</span>
-              {from ? (
-                <p className={g.price}>
-                  <span className={g.priceValue}>
-                    {from.state === "ESTIMATE_READY" ? "From " : ""}₦{(BigInt(from.amountMinor) / 100n).toLocaleString("en-NG")}
-                  </span>
-                  <span className={`${g.priceUnit} ${g.wide}`}>per piece · {from.state === "ESTIMATE_READY" ? "estimate ready" : "price ready"}</span>
-                  <span className={`${g.priceUnit} ${g.narrow}`}>/ piece · {from.state === "ESTIMATE_READY" ? "estimate" : "price ready"}</span>
-                </p>
-              ) : null}
-              <p className={g.priceNote}>
-                {from
-                  ? "You'll see an estimate as you choose options. We confirm the final price before you pay."
-                  : "Choose your options and we'll send you a quote. We confirm the final price before you pay."}
-              </p>
-            </div>
-            <ul className={g.chips} aria-label="At a glance">
-              <li>
-                <Icon name="boxes" size={15} />
-                Min {config.moq.toLocaleString("en-NG")}
-              </li>
-              {config.leadDays ? (
-                <li>
-                  <Icon name="clock-3" size={15} />
-                  {config.leadDays.min}–{config.leadDays.max} days
-                </li>
-              ) : null}
-              <li>
-                <Icon name="stamp" size={15} />
-                Proof first
-              </li>
-            </ul>
-            <GarmentStart
+      <div className={s.page}>
+        <div className={s.crumbRow}>
+          <Crumbs product={product} />
+        </div>
+        <section className={`${s.split} ${s.splitFixed}`} aria-labelledby="product-title">
+          <div className={s.stickyCol}>
+            <PdpGallery
+              images={product.images}
+              name={product.name}
               slug={product.slug}
-              data={config}
-              compareHref={`${categoryHref((product.categoryParent ?? product.category).slug)}#compare`}
-              facts={
-              <dl className={g.facts}>
-              <div className={g.fact}>
-                <Icon name="boxes" size={18} className={g.factIcon} />
-                <dt>Standard minimum</dt>
-                <dd>{config.moq.toLocaleString("en-NG")} pieces</dd>
-              </div>
-              {config.leadDays ? (
-                <div className={g.fact}>
-                  <Icon name="clock-3" size={18} className={g.factIcon} />
-                  <dt>Typical production</dt>
-                  <dd>
-                    {config.leadDays.min}–{config.leadDays.max} working days
-                  </dd>
-                </div>
-              ) : null}
-              <div className={g.fact}>
-                <Icon name="stamp" size={18} className={g.factIcon} />
-                <dt>Proof</dt>
-                <dd>Before production</dd>
-              </div>
-            </dl>
-              }
+              tint={tintFor(product.family)}
+              fixed
+              caption={config ? "Stock, finish and size are confirmed in your proof" : undefined}
             />
           </div>
-        </div>
-      </section>
-
-      <section className={g.material} aria-label="Material and process">
-        <div className={g.materialCol}>
-          <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(60)}")` }} />
-          <h2 className={g.mt}>Fabric &amp; fit</h2>
-          {product.specifications.length ? (
-            <dl className={g.spec}>
-              {product.specifications.map((spec) => (
-                <div key={spec.label}>
-                  <dt>{spec.label}</dt>
-                  <dd>{spec.value}</dd>
+          <div className={`${s.side} ${s.sideFixed}`}>
+            {config ? (
+              <Configurator
+                productSlug={product.slug}
+                productName={product.name}
+                family={product.family}
+                data={config}
+                initialDraft={initialDraft}
+                listState={listed?.state ?? null}
+                head={<Head product={product} from={null} />}
+              />
+            ) : (
+              <>
+                <div className={s.head}>
+                  <Head product={product} from={from} />
                 </div>
-              ))}
-            </dl>
-          ) : (
-            <p className={g.pb}>{product.description ?? "Fabric, fit and sizes are confirmed with you before production."}</p>
-          )}
-        </div>
-        <div className={g.materialCol}>
-          <span className={g.materialPhoto} data-unveil style={{ backgroundImage: `url("${pen(58)}")` }} />
-          <h2 className={g.mt}>{branding.title}</h2>
-          <p className={g.pb}>{branding.body}</p>
-        </div>
-        <div className={g.tiers}>
-          {tiers.length ? (
-            <>
-              <p className={g.monoLabel}>QUANTITY BANDS</p>
-              <ul className={g.tierList}>
-                {tiers.map((tier, index) => (
-                  <li key={tier.quantity} className={`${g.tier} ${index === 1 ? g.tierOn : ""}`}>
-                    <span>
-                      {tier.quantity.toLocaleString("en-NG")}
-                      {tiers[index + 1] ? `–${(tiers[index + 1]!.quantity - 1).toLocaleString("en-NG")}` : "+"} pieces
-                    </span>
-                    <span className={g.tierRight}>{bandNote(tier, index, tiers.length, config.moq)}</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
-          {product.faqs.length ? (
-            <div className={g.faq}>
-              <p className={g.monoLabel}>QUESTIONS</p>
-              {product.faqs.map((item) => (
-                <details key={item.question}>
-                  <summary>
-                    {item.question}
-                    <Icon name="plus" size={18} className={g.plus} />
-                  </summary>
-                  <p>{item.answer}</p>
-                </details>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* Phones (Pen 20): material, process, bands, sizing and questions fold into accordions. */}
-      <section className={g.folds} aria-label={`About the ${product.name}`}>
-        {[
-          { title: "Fabric & fit", body: product.specifications.filter((spec) => spec.label !== "Sizes") },
-          { title: "How we brand it", text: branding.body },
-          { title: "Quantity bands", bands: true },
-          { title: "Sizing", body: product.specifications.filter((spec) => spec.label === "Sizes") },
-          { title: "Questions", faqs: true },
-        ]
-          .filter((fold) => (fold.body ? fold.body.length : fold.bands ? tiers.length : fold.faqs ? product.faqs.length : true))
-          .map((fold) => (
-            <details key={fold.title} className={g.fold}>
-              <summary>
-                {fold.title}
-                <Icon name="plus" size={20} className={g.plus} />
-              </summary>
-              {fold.text ? <p className={g.pb}>{fold.text}</p> : null}
-              {fold.body ? (
-                <dl className={g.spec}>
-                  {fold.body.map((spec) => (
-                    <div key={spec.label}>
-                      <dt>{spec.label}</dt>
-                      <dd>{spec.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : null}
-              {fold.bands ? (
-                <ul className={g.tierList}>
-                  {tiers.map((tier, index) => (
-                    <li key={tier.quantity} className={g.tier}>
-                      <span>
-                        {tier.quantity.toLocaleString("en-NG")}
-                        {tiers[index + 1] ? `–${(tiers[index + 1]!.quantity - 1).toLocaleString("en-NG")}` : "+"} pieces
-                      </span>
-                      <span className={g.tierRight}>{bandNote(tier, index, tiers.length, config.moq)}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {fold.faqs
-                ? product.faqs.map((item) => (
-                    <div key={item.question} className={g.foldFaq}>
-                      <h3>{item.question}</h3>
-                      <p>{item.answer}</p>
-                    </div>
-                  ))
-                : null}
-            </details>
-          ))}
-        <span className={g.foldPhoto} style={{ backgroundImage: `url("${pen(60)}")` }} />
-      </section>
-
-      <StickyConfigure
-        state={state}
-        price={from ? `₦${(BigInt(from.amountMinor) / 100n).toLocaleString("en-NG")} / piece` : null}
-        href={`/products/${product.slug}/configure`}
-      />
-
-      {product.related.length ? (
-        <section className={g.related} aria-labelledby="related-title">
-          <h2 id="related-title" className={g.sectionTitle}>
-            Complete the uniform
-          </h2>
-          <ul className={g.row}>
-            {product.related.slice(0, 4).map((item) => (
-              <li key={item.slug}>
-                <ProductCard product={item} short />
-              </li>
-            ))}
-          </ul>
+                {!product.available ? (
+                  <p className={s.unavailable} role="status">
+                    This product can&apos;t be ordered right now. Ask us when it&apos;s back or for an alternative.
+                  </p>
+                ) : null}
+                <a className={s.primary} href={`/contact?topic=${product.configurator ? "product" : "project"}&product=${product.slug}`}>
+                  {product.configurator ? "Ask about this product" : "Start a project"}
+                </a>
+              </>
+            )}
+          </div>
         </section>
-      ) : null}
+        <div className={s.belowWrap}>
+          <div className={s.below}>
+            {config ? (
+              <section className={s.col} aria-labelledby="next-title">
+                <h2 id="next-title" className={s.colTitle}>
+                  What happens next
+                </h2>
+                <ol className={s.next}>
+                  <li>
+                    <span>01</span>
+                    <span>
+                      <b>Order and upload.</b> Or send artwork later where the product allows it.
+                    </span>
+                  </li>
+                  <li>
+                    <span>02</span>
+                    <span>
+                      <b>Approve your proof.</b> We check your file and show you exactly what we&apos;ll make.
+                    </span>
+                  </li>
+                  <li>
+                    <span>03</span>
+                    <span>
+                      <b>Made and checked</b>
+                      {config.leadDays ? ` in ${config.leadDays.min}–${config.leadDays.max} working days,` : ""} then dispatched.
+                    </span>
+                  </li>
+                </ol>
+              </section>
+            ) : null}
+            <Specifications product={product} />
+            <Questions product={product} />
+          </div>
+        </div>
+        <Related product={product} title="Often ordered with" />
+      </div>
     </SiteShell>
   );
 }

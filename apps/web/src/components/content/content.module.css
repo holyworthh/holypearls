@@ -115,7 +115,7 @@
   height: var(--hp-size-52);
   padding: 0 var(--hp-space-20);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   font: inherit;
   font-size: var(--hp-space-16);
   font-weight: 600;
@@ -385,7 +385,7 @@
   gap: var(--hp-space-48);
   padding-top: var(--hp-size-56);
   padding-bottom: var(--hp-size-56);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .customText {
@@ -433,7 +433,7 @@
   gap: var(--hp-size-18);
   padding: var(--hp-size-56);
   padding-left: max(var(--hp-size-56), calc((100vw - var(--hp-size-1328)) / 2));
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 .projectHeroText .red {
@@ -520,7 +520,7 @@
   width: var(--hp-size-52);
   height: var(--hp-size-52);
   overflow: hidden;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   background: var(--hp-sand);
 }
 
@@ -934,7 +934,7 @@
   position: relative;
   display: flex;
   min-height: var(--hp-size-560);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .featured .photo {
@@ -1050,14 +1050,14 @@
   min-height: var(--hp-size-620);
   padding-top: var(--hp-space-24);
   padding-bottom: var(--hp-space-48);
-  background: var(--hp-bone) center / cover no-repeat;
+  background: var(--hp-paper) center / cover no-repeat;
 }
 
 .darkTicket {
   align-self: flex-start;
   padding: var(--hp-space-4) var(--hp-space-8);
   border-radius: var(--hp-size-3);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
   color: var(--hp-paper);
   font-family: var(--hp-font-mono);
   font-size: var(--hp-size-11);
@@ -1213,7 +1213,7 @@
   gap: var(--hp-space-48);
   padding-top: var(--hp-size-56);
   padding-bottom: var(--hp-size-56);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .ctaText {
@@ -1301,7 +1301,7 @@
   margin-right: calc(var(--hp-space-10) * -1);
   padding: 0;
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   background: transparent;
   color: var(--hp-ink);
   cursor: pointer;
@@ -1895,7 +1895,7 @@
   gap: var(--hp-space-28);
   padding-top: var(--hp-space-80);
   padding-bottom: var(--hp-space-80);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .howMade h2 {

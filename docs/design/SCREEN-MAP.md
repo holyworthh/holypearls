@@ -6,6 +6,28 @@ This map includes all 36 named frames from the Stage 4.1 Signal board and all 87
 
 The source is the open Pen file `untitled.pen`. All Stage 4.1, 4.2 and 4.4 frames now sit on one board, "HolyPearls — Application map" (node `C9q8v3`), grouped into flows in the order people use the product. Customer flows are 01–07, organization admin flows 08–09, HolyPearls staff flows 10–15, and design reference sets 16–19. A "Start here" cover at the top-left of the canvas maps each journey to its flow. Frames kept their node IDs and names, so the IDs below are unchanged. Frames 01–36 in the first group of rows come from the Stage 4.1 Signal run and frames 01–86 from Stage 4.2, so look a frame up by its name and node ID, not its number alone. Stage 4.2 frame 02 (`lyo0w`) locks the Signal direction. The older warm Stage 4.1 board is provisional/superseded and is not used as the active visual source. Stage 3 research, wireframes and image libraries are archived to the right of the board.
 
+## Stage 4.3 — Workshop Ledger (1 October 2026)
+
+The owner replaced Signal with **Workshop Ledger** from their design canvas. Board `MW5h2` ("STAGE 4.3 — WORKSHOP LEDGER") sits to the right of the Application map. The Application map (`C9q8v3`) now selects `hp-direction: ledger`, so the frames listed further down render in Ledger colour and type. Where a Stage 4.3 frame exists, it is the source; the older frame it replaces is marked superseded.
+
+| Screen name | Pen.dev frame/node ID | Breakpoint | Route | State shown | PRD requirement IDs | Built by |
+| --- | --- | --- | --- | --- | --- | --- |
+| F01 · Homepage — desktop 1440 (Ledger) | ZqhyZ | Desktop 1440 | `/` | Default; first FAQ open; Navy + Embroidery selected | PUB-FR-001, PUB-FR-002, PUB-FR-014 | Ledger design-system pass (no ticket) |
+| F01 · Homepage — mobile 390 (Ledger) | Y0ftk8 | Mobile 390 | `/` | Default; first FAQ open | PUB-FR-001, PUB-FR-002, PUB-FR-005, PUB-FR-014 | Ledger design-system pass (no ticket) |
+| 00 · Brand & logo (Ledger) | YI1UU | N/A — system board | N/A | Logo, lockups, colour, misuse | N/A | — |
+| 01 · Foundations (Ledger) | k1aon | N/A — system board | N/A | Colour, status, type, space, radius, elevation, ticket | N/A | — |
+| 02 · Components (Ledger) | BfHwp | N/A — system board | N/A | HP/* library in the Ledger theme | N/A | — |
+| 03 · Motion (Ledger) | nGctt | N/A — system board | N/A | Tokens, rules, canvas patterns, research additions | N/A | — |
+| 00 Ledger brand components | sNAL0 | N/A — components | N/A | HP/Brand/Mark, Lockup, Logo, Logo/130, Stamp, WovenStrip; HP/Nav/MobileFooter; HP/Ledger/TicketCard (in Foundations); HP/Button/Brand | N/A | — |
+| HP/Nav/Header (rebuilt) | nO6TF | Desktop | all public pages | Ledger header: lockup, nav, search pill, account, cart, Start a Project | PUB-FR-003, PUB-FR-004 | Ledger pass |
+| HP/Nav/MobileHeader (rebuilt) | ED2Si | Mobile | all public pages | Lockup, search, cart, menu | PUB-FR-005 | Ledger pass |
+| HP/Nav/Footer (rebuilt) | F64bQ | Desktop | all public pages | Woven strip, full logo, Blue Deep CTA, columns, giant wordmark | PUB-FR-014 (via Delivery link) | Ledger pass |
+| F02 · Business Cards — desktop 1440 (Ledger) | gb4rz | Desktop 1440 | `/products/[slug]` (fixed-price template) | Soft matte, Standard, 500, Upload selected; PRICE_READY | COM-FR-001–005, COM-FR-040–044, COM-FR-050, COM-FR-053, COM-FR-084 | Ledger PDP pass (no ticket) |
+| F02 · Polo Shirt — desktop 1440 (Ledger) | mfOQO | Desktop 1440 | `/products/[slug]` (estimate / garment template) | Steps 1–2 done, Placement and Sizes open, 50 pieces; ESTIMATE | COM-FR-001–005, COM-FR-010–014, COM-FR-020–028, COM-FR-053, COM-FR-060–061 | Ledger PDP pass (no ticket) |
+| F02 · Polo Shirt — mobile 390 (Ledger) | Q7ml3 | Mobile 390 | `/products/[slug]` (estimate / garment template) | Step 4 of 6 (Sizes), completed-step summaries, sticky price bar | COM-FR-002, COM-FR-010, COM-FR-014, COM-FR-027–028 | Ledger PDP pass (no ticket) |
+
+The owner canvas also holds Ledger versions of the Product Directory, category hubs, search states and the Business Cards and Polo product pages (F01/F02 boards). They are not yet in Pen; see the Ledger report.
+
 ## Screen and frame table
 
 The PRD references below copy the mapped tracker rows' PRD refs. A dash means the tracker gives no PRD ref. PRD/TECH do not define a complete browser route table. TECH-00 names `/admin`; the T05-01 tracker Build field names `/start`. Other browser paths remain unspecified. API endpoints in TECH-02 are not browser routes.
@@ -26,13 +48,13 @@ The PRD references below copy the mapped tracker rows' PRD refs. A dash means th
 | 12 Commerce | DuEFo | N/A — design/reference frame | N/A — not a product screen | Design-system, coverage or audit reference; not a product screen | N/A — reference frame | T00-05, T03-03 |
 | 13 Status, transaction + project | nwaUu | N/A — design/reference frame | N/A — not a product screen | Design-system, coverage or audit reference; not a product screen | N/A — reference frame | T00-05, T05-05, T06-01, T07-03 |
 | 14 B2B + project primitives | O6rPH9 | N/A — design/reference frame | N/A — not a product screen | Design-system, coverage or audit reference; not a product screen | N/A — reference frame | T00-05, T10-03, T12-01, T12-03 |
-| 15 Homepage — desktop | FYNoI | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-001–005, PUB-FR-014 | T02-03 |
-| 16 Homepage — mobile | kZf2b | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-001–005, PUB-FR-014 | T02-03 |
+| 15 Homepage — desktop (superseded by Stage 4.3 `ZqhyZ`) | FYNoI | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-001–005, PUB-FR-014 | T02-03 |
+| 16 Homepage — mobile (superseded by Stage 4.3 `Y0ftk8`) | kZf2b | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-001–005, PUB-FR-014 | T02-03 |
 | 17 Product Directory — desktop | bhA8B | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-008, PUB-FR-010 | T02-03 |
 | 18 Category hub — Apparel | jUd9y | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-009 | T02-03 |
-| 19 Polo PDP — desktop | V3j7CP | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
-| 20 Polo PDP — mobile | XX8rq | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
-| 21 Business Cards PDP | VSjt2 | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044 | T03-03 |
+| 19 Polo PDP — desktop (superseded by Stage 4.3 `mfOQO`) | V3j7CP | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
+| 20 Polo PDP — mobile (superseded by Stage 4.3 `Q7ml3`) | XX8rq | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
+| 21 Business Cards PDP (superseded by Stage 4.3 `gb4rz`) | VSjt2 | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044 | T03-03 |
 | 22 Polo Configurator — visual step | O2tORo | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-010–014; COM-FR-020–026; COM-FR-027–029; COM-FR-050–054 | T03-03, T03-05 |
 | 23 Start a Project — landing | jRe2D | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH; tracker Build says /start | Representative view; specific state not named | PROJ-FR-001–002, 007 | T05-01 |
 | 24 Event Builder — recommendations | LqHMw | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Recommendations shown | PROJ-FR-003–006 | T05-01 |

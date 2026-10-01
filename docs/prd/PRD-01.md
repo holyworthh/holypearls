@@ -1,6 +1,6 @@
 # HolyPearls — PRD 01: Public Website, Search & SEO
 
-**Version:** 2.0 (27 September 2026). Replaces PRD 01 v0.1. **Built in:** Pass P02 (catalogue and discovery), hardened in P14.
+**Version:** 2.1 (1 October 2026). 2.1 amends PUB-FR-003 (main navigation items). 2.0 replaced PRD 01 v0.1. **Built in:** Pass P02 (catalogue and discovery), hardened in P14.
 
 ## 1\. Purpose
 
@@ -33,7 +33,7 @@ Homepage, main navigation and mega-menu, search, Product Directory, Category Hub
 
 **PUB-FR-002 — Homepage goal routes (P0).** The homepage offers routes by goal: uniforms, events, business launch, merchandise, packaging, custom projects.
 
-**PUB-FR-003 — Main navigation (P0).** Shows Products, Projects, Apparel, Print & Display, Our Work and Resources. No giant wall of links.
+**PUB-FR-003 — Main navigation (P0).** Shows Products, Projects, Our Work and Help. Apparel and Print & Display are reached from the Products mega-menu (PUB-FR-004). Help leads to the Resources guides. No giant wall of links.
 
 **PUB-FR-004 — Desktop mega-menu (P0).** Groups categories, popular products, project goals, and a "Can't find it? Tell us what you need" route. The popular-products list is managed in admin.
 

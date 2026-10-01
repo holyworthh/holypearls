@@ -1,7 +1,7 @@
-import { PublicShell } from "@holypearls/ui";
 import type { Metadata } from "next";
 import styles from "../../components/auth.module.css";
 import { SignInCard } from "./SignInCard";
+import { SiteShell } from "../../components/site/SiteShell";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
@@ -12,10 +12,10 @@ export default async function SignInPage({
 }) {
   const params = await searchParams;
   return (
-    <PublicShell bleed>
+    <SiteShell>
       <div className={styles.page}>
         <SignInCard next={params.next} linkExpired={params.link === "expired" || Boolean(params.error)} />
       </div>
-    </PublicShell>
+    </SiteShell>
   );
 }

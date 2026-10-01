@@ -1,0 +1,47 @@
+/* Ledger lockup for shells (matches apps/web logo.module.css). */
+.lockup {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--hp-space-10);
+  color: var(--hp-brand);
+  text-decoration: none;
+}
+
+.mark {
+  width: var(--hp-logo-mark-width);
+  height: auto;
+}
+
+.brick {
+  fill: var(--hp-accent);
+}
+
+.blue {
+  fill: var(--hp-brand);
+}
+
+.wordmark {
+  font-family: var(--hp-font-wordmark);
+  font-size: var(--hp-text-wordmark-ledger);
+  font-weight: var(--hp-weight-bold);
+  letter-spacing: var(--hp-tracking-eyebrow);
+}
+
+.tag {
+  padding: var(--hp-space-2) var(--hp-space-6);
+  border: var(--hp-border-width) solid currentColor;
+  border-radius: var(--hp-r-tag);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+/* On Blue Deep: the blue swoosh and the wordmark turn white; Brick stays. */
+.reversed {
+  color: var(--hp-paper);
+}
+
+.reversed .blue {
+  fill: var(--hp-paper);
+}

@@ -13,14 +13,14 @@ test("roll-up banner: a custom size switches to a quote, keeps every choice, and
   await page.getByLabel(/^85 × 200 cm/).check();
   await page.getByLabel(/^More/).check();
   await page.getByLabel("Or enter a quantity").fill("2");
-  await expect(page.getByText("PRICE READY", { exact: false }).first()).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("Fixed price", { exact: true }).first()).toBeVisible({ timeout: 45_000 });
 
   // Custom size shows the area and switches to a quote without losing the size or quantity.
   await page.getByLabel(/^Custom size/).check();
   await page.getByLabel("Width (cm)").fill("300");
   await page.getByLabel("Height (cm)").fill("150");
   await expect(page.getByText("4.5 m²").first()).toBeVisible();
-  await expect(page.getByText("QUOTE REQUIRED", { exact: false }).first()).toBeVisible({ timeout: 45_000 });
+  await expect(page.getByText("Quote needed", { exact: true }).first()).toBeVisible({ timeout: 45_000 });
   await expect(page.getByLabel(/^85 × 200 cm/)).toBeChecked();
   await expect(page.getByLabel("Or enter a quantity")).toHaveValue("2");
 
@@ -45,7 +45,7 @@ test("business cards to an international address continue as a quote with freigh
   await page.getByLabel(/^Outside Nigeria/).check();
   await page.getByLabel("Country").fill("Ghana");
   await expect(page.getByText("International delivery: freight is confirmed in your quote.").first()).toBeVisible({ timeout: 45_000 });
-  await expect(page.getByText("QUOTE REQUIRED", { exact: false }).first()).toBeVisible();
+  await expect(page.getByText("Quote needed", { exact: true }).first()).toBeVisible();
   await expect(page.getByLabel(/^500/)).toBeChecked();
 });
 

@@ -15,7 +15,8 @@
   gap: var(--hp-size-18);
   padding-top: var(--hp-space-40);
   padding-bottom: var(--hp-space-24);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
 }
 
 /* "Search field (active)": paper, radius 8, 64 tall, 2px ink outline. */
@@ -67,7 +68,7 @@
   height: var(--hp-space-48);
   padding: 0 var(--hp-size-18);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   background: var(--hp-accent);
   color: var(--hp-paper);
   font: inherit;
@@ -81,7 +82,15 @@
     transform var(--hp-motion-status) var(--hp-ease-soft);
 }
 
-.fieldButton:hover,
+/* Search runs in Holy Blue (canvas F01 Search); Start a Project stays Brick. */
+.fieldButton {
+  background: var(--hp-brand);
+}
+
+.fieldButton:hover {
+  background: var(--hp-brand-hover);
+}
+
 .redButton:hover {
   background: var(--hp-accent-hover);
 }
@@ -327,7 +336,7 @@
   flex: none;
   width: var(--hp-size-120);
   height: var(--hp-space-96);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   background: var(--hp-sand) center / cover no-repeat;
   transition: transform var(--hp-motion-card) var(--hp-ease-soft);
 }
@@ -456,7 +465,7 @@
   align-items: center;
   height: var(--hp-size-44);
   padding: 0 var(--hp-space-16);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
   outline-offset: var(--hp-size--0_5);
   color: var(--hp-ink);
@@ -529,7 +538,7 @@
   gap: var(--hp-space-12);
   padding: var(--hp-space-24);
   border-radius: var(--hp-space-10);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .notSure h2 {
@@ -672,7 +681,7 @@
   width: var(--hp-size-400);
   padding: var(--hp-space-28);
   border-radius: var(--hp-space-10);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .tellUs h2 {
@@ -694,7 +703,7 @@
   height: var(--hp-size-110);
   padding: var(--hp-space-14);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-control);
   background: var(--hp-paper);
   color: var(--hp-ink);
   font: inherit;
@@ -760,7 +769,7 @@
     gap: var(--hp-space-10);
     height: var(--hp-space-48);
     padding: 0 var(--hp-space-4) 0 var(--hp-space-12);
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-control);
   }
 
   .fieldIcon {

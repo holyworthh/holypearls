@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { getNavigation } from "../../lib/storefront";
 import { Icon } from "../pen/Icon";
 import footer from "./footer.module.css";
+import { LogoFull } from "./Logo";
 import { buildNavigation, categoryHref, projectHref } from "./nav";
 import { Newsletter } from "./Newsletter";
 import { SiteHeader } from "./SiteHeader";
@@ -14,23 +15,6 @@ import styles from "./site.module.css";
  */
 export const DELIVERY_COVERAGE =
   "We deliver across Nigeria and can arrange international shipping. Delivery costs and dates depend on the order and the address, and are confirmed at checkout or in your quote.";
-
-function UtilityStrip() {
-  return (
-    <div className={styles.strip}>
-      <div className={`${styles.container} ${styles.stripInner}`}>
-        <p className={styles.stripTagline}>SOURCE · MAKE · BRAND · DELIVER</p>
-        <nav aria-label="Utility">
-          <div className={styles.stripLinks}>
-            <a href="/contact?topic=order">Track an order</a>
-            <a href="/contact">Help centre</a>
-            <a href="/sign-in">Workspace sign in</a>
-          </div>
-        </nav>
-      </div>
-    </div>
-  );
-}
 
 const FOOTER_COLUMNS: { id: string; head: string; links: [string, string][] }[] = [
   {
@@ -91,76 +75,109 @@ function FooterLinks({ column, labelled }: { column: (typeof FOOTER_COLUMNS)[num
       ) : null}
       {column.links.map(([label, href]) => (
         <li key={label}>
-          <a href={href}>{label}</a>
+          <a className={footer.link} href={href}>
+            {label}
+          </a>
         </li>
       ))}
     </ul>
   );
 }
 
-function FooterLogo() {
-  return (
-    <a className={footer.logo} href="/" aria-label="HolyPearls home">
-      <span className={footer.pearl} aria-hidden="true" />
-      HolyPearls
-    </a>
-  );
-}
-
 /**
- * Footer (Pen HP/Nav/Footer; mobile accordion from Pen 16). Delivery coverage
- * (PUB-FR-014) is on the Delivery help page it links to, and on product pages.
+ * Footer (Pen Stage 4.3 · HP/Nav/Footer and HP/Nav/MobileFooter, Ledger). The
+ * woven Holy Blue strip, the full logo, a Blue Deep call to action and the
+ * giant wordmark. Delivery coverage (PUB-FR-014) is on the Delivery help page
+ * it links to, and on product pages.
  */
 function SiteFooter() {
   const year = new Date().getFullYear();
   return (
     <footer className={footer.footer}>
-      <div className={footer.top}>
+      <div className={footer.woven} aria-hidden="true" />
+      <div className={footer.body}>
         <div className={footer.brand}>
-          <FooterLogo />
-          <p className={footer.blurb}>Branded uniforms, print and merch for businesses, from brief to delivery.</p>
-          <Newsletter />
+          <a href="/" aria-label="Holypearls home" className={footer.logoLink}>
+            <LogoFull id="footer-logo-arc" />
+          </a>
+          <p className={footer.blurb}>
+            <span className={footer.blurbLong}>Branded uniforms, print and merch for businesses across Nigeria, from brief to delivery.</span>
+            <span className={footer.blurbShort}>Branded uniforms, print and merch, from brief to delivery.</span>
+          </p>
+          <a className={footer.brickButton} href="/contact?topic=project">
+            Start a Project
+            <Icon name="arrow-right" size={18} />
+          </a>
         </div>
-        {FOOTER_COLUMNS.map((column) => (
-          <nav key={column.id} aria-label={column.head.toLowerCase()} className={footer.column}>
-            <FooterLinks column={column} labelled />
-          </nav>
-        ))}
+        <div className={footer.side}>
+          <div className={footer.cta}>
+            <div className={footer.ctaCopy}>
+              <p className={footer.ctaTitle}>Have something in mind?</p>
+              <p className={footer.ctaBody}>Describe it. We reply with a plan and a price.</p>
+            </div>
+            <div className={footer.ctaActions}>
+              <a className={footer.whiteButton} href="/contact?topic=project">
+                Start a Project
+                <Icon name="arrow-right" size={18} />
+              </a>
+              <Newsletter />
+            </div>
+          </div>
+          <div className={footer.columns}>
+            {FOOTER_COLUMNS.map((column) => (
+              <nav key={column.id} aria-label={column.head.toLowerCase()}>
+                <FooterLinks column={column} labelled />
+              </nav>
+            ))}
+          </div>
+        </div>
+        <div className={footer.accordions}>
+          {FOOTER_COLUMNS.map((column) => (
+            <details key={column.id} className={footer.accordion}>
+              <summary>
+                {column.head[0] + column.head.slice(1).toLowerCase()}
+                <Icon name="plus" size={20} className={footer.plus} />
+              </summary>
+              <FooterLinks column={column} labelled={false} />
+            </details>
+          ))}
+        </div>
       </div>
       <div className={footer.bottom}>
-        <p className={footer.legal}>© {year} HOLYPEARLS</p>
+        <p className={footer.legal}>© {year} Holypearls</p>
         <nav aria-label="Legal" className={footer.legalLinks}>
-          <a href="/help?topic=privacy">Privacy</a>
-          <a href="/help?topic=terms">Terms</a>
-          <a href="/help?topic=accessibility">Accessibility</a>
+          <a className={footer.link} href="/help?topic=privacy">
+            Privacy
+          </a>
+          <a className={footer.link} href="/help?topic=terms">
+            Terms
+          </a>
+          <a className={`${footer.link} ${footer.deskOnly}`} href="/help?topic=accessibility">
+            Accessibility
+          </a>
+          <a className={footer.link} href="/photo-credits">
+            Photo credits
+          </a>
+          <span className={footer.deskOnly}>Payments by Paystack</span>
+          <a className={footer.backTop} href="#main-content" aria-label="Back to top">
+            <Icon name="arrow-up" size={16} />
+          </a>
         </nav>
       </div>
-      <div className={footer.mobile}>
-        <FooterLogo />
-        {FOOTER_COLUMNS.map((column) => (
-          <details key={column.id} className={footer.accordion}>
-            <summary>
-              {column.head[0] + column.head.slice(1).toLowerCase()}
-              <Icon name="plus" size={20} className={footer.plus} />
-            </summary>
-            <FooterLinks column={column} labelled={false} />
-          </details>
-        ))}
-        <p className={footer.mobileLegal}>© {year} HOLYPEARLS</p>
-      </div>
+      {/* Decorative: the wordmark is drawn by CSS (::before), so it isn't read or contrast-checked as text. */}
+      <div className={footer.giant} aria-hidden="true" />
     </footer>
   );
 }
 
-/** The public site's shell: utility strip, header with menus, main content and footer. */
+/** The public site's shell: header with menus, main content and footer. */
 export async function SiteShell({ children }: { children: ReactNode }) {
   const navigation = await getNavigation();
   return (
     <div className={styles.page}>
       <SkipLink />
-      {/* One banner landmark holds the utility strip and the header bar. */}
-      <header>
-        <UtilityStrip />
+      {/* One banner landmark holds the header bar (the Ledger header has no utility strip). */}
+      <header className={styles.banner} data-sticky-header>
         <SiteHeader items={buildNavigation(navigation)} />
       </header>
       <main id="main-content" tabIndex={-1} className={styles.main}>

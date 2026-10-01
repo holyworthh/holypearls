@@ -404,6 +404,7 @@
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .noteLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent));
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1), 100% var(--hp-size-1);
@@ -564,7 +565,7 @@
   .fieldRow > .fieldInput {
     height: var(--hp-space-48);
     padding: 0 var(--hp-space-12) 0 calc(var(--hp-space-12) + var(--hp-space-20) + var(--hp-space-10));
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-control);
     outline: var(--hp-space-2) solid var(--hp-ink);
     outline-offset: var(--hp-size--1);
     font-size: var(--hp-space-16);

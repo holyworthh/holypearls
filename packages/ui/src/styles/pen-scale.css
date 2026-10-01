@@ -204,4 +204,13 @@
   --hp-size-1328: 1328px;
   --hp-size-1440: 1440px;
   --hp-size-1600: 1600px;
+  /* Ledger home (Pen Stage 4.3). */
+  --hp-size-92: 92px;
+  --hp-size-124: 124px;
+  --hp-size-132: 132px;
+  --hp-size-190: 190px;
+  --hp-size-250: 250px;
+  --hp-size-310: 310px;
+  --hp-size-680: 680px;
+  --hp-size-800: 800px;
 }

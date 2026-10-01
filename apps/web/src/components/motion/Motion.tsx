@@ -75,5 +75,32 @@ export function Motion() {
       cancelAnimationFrame(pending);
     };
   }, [pathname]);
+
+  // The header slides away while reading down the page and comes back on the way up (Ledger Motion board).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (root.dataset.motion !== "on") return;
+    let last = window.scrollY;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < HEADER_HIDE_AFTER) delete root.dataset.scroll;
+        else if (Math.abs(y - last) > SCROLL_SLACK) root.dataset.scroll = y > last ? "down" : "up";
+        last = y;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+      delete root.dataset.scroll;
+    };
+  }, []);
   return null;
 }
+
+/** The header stays put near the top of the page, and small scroll jitters don't toggle it. */
+const HEADER_HIDE_AFTER = 240;
+const SCROLL_SLACK = 6;
