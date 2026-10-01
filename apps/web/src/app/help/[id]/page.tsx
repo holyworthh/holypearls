@@ -1,9 +1,10 @@
 import { helpRequestSchema } from "@holypearls/contracts";
-import { PublicShell, StatusChip } from "@holypearls/ui";
+import { StatusChip } from "@holypearls/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import styles from "../../../components/auth.module.css";
 import { serverApi } from "../../../lib/server-api";
+import { SiteShell } from "../../../components/site/SiteShell";
 
 export const metadata: Metadata = { title: "Your question", robots: { index: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function HelpRequestPage({ params }: { params: Promise<{ id
     throw new Error(help.error.message);
   }
   return (
-    <PublicShell bleed>
+    <SiteShell>
       <div className={styles.page}>
         <section className={`${styles.card} ${styles.enrolCard}`} aria-labelledby="help-title">
           <p className={styles.support}>REQUEST {help.data.reference}</p>
@@ -43,6 +44,6 @@ export default async function HelpRequestPage({ params }: { params: Promise<{ id
           )}
         </section>
       </div>
-    </PublicShell>
+    </SiteShell>
   );
 }

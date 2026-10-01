@@ -1,6 +1,6 @@
 import { type CanActivate, type ExecutionContext, SetMetadata } from "@nestjs/common";
 import { type Database, lt, schema, sql } from "@holypearls/db";
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 import { AppError } from "../errors.js";
 
@@ -18,7 +18,12 @@ export const RATE_LIMITS = {
   /** Public "contact us" writes such as help requests: a person rarely sends more than a few an hour. */
   CONTACT: { ip: { limit: 5, windowSeconds: 10 * 60 }, subject: { limit: 10, windowSeconds: 60 * 60 } },
   UPLOAD_INTENT: { subject: { limit: 30, windowSeconds: 60 * 60 } },
-  COMMERCIAL_WRITE: { subject: { limit: 20, windowSeconds: 60 } },
+  /**
+   * Drafts, carts and checkouts. Anonymous drafts have no account or guest
+   * link yet, so the address counts too (review P1-08); a browser's device
+   * cookie, once it has one, is its subject.
+   */
+  COMMERCIAL_WRITE: { ip: { limit: 60, windowSeconds: 60 }, subject: { limit: 20, windowSeconds: 60 } },
   ADMIN_WRITE: { subject: { limit: 120, windowSeconds: 60 } },
 } as const satisfies Record<string, { ip?: Rule; subject?: Rule }>;
 
@@ -89,9 +94,33 @@ export const RATE_LIMIT_CLASS = "hp:rate-limit";
 /** Marks a route with its TECH-02 §14 class. */
 export const RateLimit = (name: RateLimitClass) => SetMetadata(RATE_LIMIT_CLASS, name);
 
-/** The client address as the API sees it (the web proxy and host set X-Forwarded-For). */
-export const clientIp = (request: Request) =>
-  (request.header("x-forwarded-for")?.split(",")[0]?.trim() || request.socket.remoteAddress) ?? "unknown";
+/** Header names the web app's proxy sets on every /api request (apps/web/src/proxy.ts). */
+export const CLIENT_IP_HEADER = "x-hp-client-ip";
+export const PROXY_SECRET_HEADER = "x-hp-proxy-secret";
+
+/**
+ * The visitor's address (review P1-08). X-Forwarded-For is never trusted: anyone
+ * can send it. The web app's proxy, which sees the real address, passes it in
+ * x-hp-client-ip with a shared secret; any other request counts as the address
+ * that connected.
+ */
+export function clientIpFrom(request: Request, proxySecret: string | null): string {
+  const claimed = request.header(CLIENT_IP_HEADER)?.trim();
+  const secret = request.header(PROXY_SECRET_HEADER);
+  if (proxySecret && claimed && secret && secret.length === proxySecret.length && timingSafeEqual(Buffer.from(secret), Buffer.from(proxySecret)) && /^[0-9a-fA-F.:]{2,45}$/.test(claimed)) {
+    return claimed;
+  }
+  return request.socket.remoteAddress ?? "unknown";
+}
+
+/** The visitor's address worked out once per request (see clientIpFrom). */
+export const clientIp = (request: Request) => request.clientIp ?? request.socket.remoteAddress ?? "unknown";
+
+/** The device cookie's value, without importing the drafts module (it's only hashed into a bucket key). */
+function deviceCookieValue(request: Request): string | null {
+  const match = /(?:^|;\s*)hp\.device=([A-Za-z0-9-]{40,100})(?:;|$)/.exec(request.header("cookie") ?? "");
+  return match?.[1] ?? null;
+}
 
 export function rateLimitedError(retryAfterSeconds: number) {
   return new AppError("RATE_LIMITED", { context: { retryAfterSeconds } });
@@ -106,12 +135,15 @@ export class RateLimitGuard implements CanActivate {
     if (!name) return true;
     const request = context.switchToHttp().getRequest<Request>();
     const actor = await request.getActor!();
+    const device = deviceCookieValue(request);
     const subject =
       actor.type === "user"
         ? (actor.staff?.staffProfileId ?? actor.session.userId)
         : actor.type === "guest"
           ? actor.guest.guestSessionId
-          : undefined;
+          : device
+            ? `device:${device}`
+            : undefined;
     const result = await this.limiter.hit(name, { ip: clientIp(request), subject });
     if (!result.allowed) {
       context.switchToHttp().getResponse<Response>().setHeader("retry-after", String(result.retryAfterSeconds));

@@ -15,7 +15,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   createGuestLink,
-  ensureCustomer,
+  ensureGuestCustomer,
   linkCustomersToVerifiedEmail,
   requireRecentEmailCode,
 } from "../identity/customers.js";
@@ -148,7 +148,7 @@ describe("email notifications (TECH-02 §10)", () => {
 
 describe("guest links (TECH-03 §5)", () => {
   const makeLink = async (overrides: { expired?: boolean } = {}) => {
-    const customer = await ensureCustomer(harness.database.db, { email: "bisi.guest@holypearls.test", name: "Bisi (TEST DATA)" });
+    const customer = await ensureGuestCustomer(harness.database.db, { email: "bisi.guest@holypearls.test", name: "Bisi (TEST DATA)" });
     const [help] = await harness.database.db
       .insert(schema.helpRequests)
       .values({ reference: `HR-TEST-${Date.now()}`, customerId: customer.id, message: "Guest link target", context: { page: { path: "/", title: "Home" } } })
@@ -205,7 +205,7 @@ describe("guest links (TECH-03 §5)", () => {
 
 describe("email codes (TECH-03 §5)", () => {
   const guestSession = async () => {
-    const customer = await ensureCustomer(harness.database.db, { email: "code.guest@holypearls.test" });
+    const customer = await ensureGuestCustomer(harness.database.db, { email: "code.guest@holypearls.test" });
     const [help] = await harness.database.db
       .insert(schema.helpRequests)
       .values({ reference: `HR-CODE-${Date.now()}`, customerId: customer.id, message: "x", context: { page: { path: "/", title: "Home" } } })
@@ -311,8 +311,8 @@ describe("email-code window per session (T01-02 follow-up)", () => {
 describe("linking guest history to an account (TECH-03 §6)", () => {
   it("links only customer rows with the exact verified email", async () => {
     const db = harness.database.db;
-    await ensureCustomer(db, { email: "Link.Me@HolyPearls.test" });
-    await ensureCustomer(db, { email: "someone.else@holypearls.test" });
+    await ensureGuestCustomer(db, { email: "Link.Me@HolyPearls.test" });
+    await ensureGuestCustomer(db, { email: "someone.else@holypearls.test" });
     const [user] = await db.select().from(schema.users).where(eq(schema.users.email, TEST_PEOPLE.customerChidi.email));
     expect(await linkCustomersToVerifiedEmail(db, user!.id, "link.me@holypearls.test")).toBe(1);
     const [linked] = await db.select().from(schema.customers).where(eq(schema.customers.emailNormalized, "link.me@holypearls.test"));

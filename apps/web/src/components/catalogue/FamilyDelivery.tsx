@@ -251,7 +251,20 @@ export function DeliveryFields({ draft, details, rush, onChange, onRush }: { dra
  * Request Final Quote (COM-FR-061): the design and every answer go with it;
  * the customer gets a reference and a link back.
  */
-export function QuoteRequest({ draft, ensure, onRequested }: { draft: Configuration | null; ensure: () => Promise<Configuration | null>; onRequested: (reference: string) => void }) {
+export function QuoteRequest({
+  draft,
+  ensure,
+  onRequested,
+  buttonClassName,
+  children,
+}: {
+  draft: Configuration | null;
+  ensure: () => Promise<Configuration | null>;
+  onRequested: (reference: string) => void;
+  /** The product page's own button style (Ledger ticket); the shared Button otherwise. */
+  buttonClassName?: string;
+  children?: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", note: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -286,9 +299,16 @@ export function QuoteRequest({ draft, ensure, onRequested }: { draft: Configurat
   const blocking = draft?.price?.reasons.find((reason) => reason.blocking);
   return (
     <>
-      <Button fullWidth disabled={!draft?.price || Boolean(blocking)} onClick={() => setOpen(true)}>
-        Request Final Quote
-      </Button>
+      {buttonClassName ? (
+        <button type="button" className={buttonClassName} disabled={!draft?.price || Boolean(blocking)} onClick={() => setOpen(true)}>
+          Request Final Quote
+          {children}
+        </button>
+      ) : (
+        <Button fullWidth disabled={!draft?.price || Boolean(blocking)} onClick={() => setOpen(true)}>
+          Request Final Quote
+        </Button>
+      )}
       <Dialog
         open={open}
         onClose={() => setOpen(false)}

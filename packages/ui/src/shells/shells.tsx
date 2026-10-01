@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrandLockup } from "../components/BrandMark";
 import { cx } from "../cx";
 import styles from "./Shell.module.css";
 
@@ -40,20 +41,18 @@ export interface PublicShellProps {
   /** Extra header content, such as search or the cart. */
   actions?: ReactNode;
   footer?: ReactNode;
-  /** Main content spans the full width on a bone background (sign-in, account pages). */
+  /** Main content spans the full width on a white background. */
   bleed?: boolean;
 }
 
-/** Public site: header, main content and dark footer. */
+/** Public site fallback (error page, demos): Ledger lockup header, main content and a light footer. */
 export function PublicShell({ children, nav = [], actions, footer, bleed = false }: PublicShellProps) {
   return (
     <div className={styles.page}>
       <SkipLink />
       <header className={styles.header}>
         <div className={cx(styles.container, styles.headerInner)}>
-          <a className={styles.brand} href="/">
-            HolyPearls
-          </a>
+          <BrandLockup />
           {nav.length ? <Nav label="Main" items={nav} /> : null}
           {actions}
         </div>
@@ -61,8 +60,8 @@ export function PublicShell({ children, nav = [], actions, footer, bleed = false
       <main id={MAIN_ID} tabIndex={-1} className={bleed ? styles.bleed : cx(styles.container, styles.main)}>
         {children}
       </main>
-      <footer className={cx(styles.footer, "hp-surface-dark")}>
-        <div className={styles.container}>{footer ?? "HolyPearls"}</div>
+      <footer className={styles.footer}>
+        <div className={styles.container}>{footer ?? `© ${new Date().getFullYear()} Holypearls`}</div>
       </footer>
     </div>
   );

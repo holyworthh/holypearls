@@ -1,7 +1,7 @@
 import { refreshSearchIndex } from "./catalogue/search.js";
 import { type AuthOutbox, createBetterAuthIdentity } from "@holypearls/auth";
 import { jobsConnectionString, loadApiEnv } from "@holypearls/config";
-import { createDatabaseClient } from "@holypearls/db";
+import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
 import { Jobs } from "@holypearls/jobs";
 import { createStorage } from "@holypearls/storage";
 import { createApp } from "./app.js";
@@ -17,6 +17,11 @@ if (env.HP_ENV === "production" && env.HP_DEMO_SLICE === "on") {
   throw new Error("The demo routes are never on in production.");
 }
 const database = createDatabaseClient(env.DATABASE_URL);
+// Production runs on a row-only database role; a schema owner here means the wrong URL (review P1-02).
+if (env.HP_ENV === "production") {
+  const problems = await runtimePrivilegeProblems(database.db);
+  if (problems.length) throw new Error(`DATABASE_URL must use the app's row-only role: ${problems.join("; ")}.`);
+}
 const jobs = new Jobs({
   connectionString: jobsConnectionString(env),
   role: "sender",
@@ -53,6 +58,7 @@ const { storage, publicStorage } = createStorage(env, {
   signingSecret: env.DATA_ENCRYPTION_KEY,
 });
 const app = await createApp({
+  proxySecret: env.WEB_PROXY_SECRET ?? null,
   storage,
   publicStorage,
   db: database.db,

@@ -51,7 +51,7 @@
   align-items: center;
   height: var(--hp-size-52);
   padding: 0 var(--hp-size-22);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   font-size: var(--hp-space-16);
   font-weight: 600;
   line-height: var(--hp-size-23);
@@ -115,7 +115,7 @@
   min-height: var(--hp-size-640);
   padding-top: var(--hp-space-40);
   padding-bottom: var(--hp-size-56);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 .heroText {
@@ -195,7 +195,7 @@
 
 .subPhoto {
   height: var(--hp-size-200);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
 }
 
 .subName {
@@ -234,7 +234,8 @@
   flex-direction: column;
   gap: var(--hp-space-32);
   padding-block: var(--hp-space-80);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
+  border-top: var(--hp-border-width) solid var(--hp-line);
 }
 
 .productRow {
@@ -249,7 +250,7 @@
   flex-direction: column;
   gap: var(--hp-space-40);
   padding-block: var(--hp-space-96);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .routesTitle {
@@ -275,7 +276,7 @@
 
 .routePhoto {
   height: var(--hp-size-260);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
 }
 
 .routeHead {
@@ -329,7 +330,8 @@
   flex-direction: column;
   gap: var(--hp-space-32);
   padding-block: var(--hp-space-96);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
+  border-top: var(--hp-border-width) solid var(--hp-line);
 }
 
 .tableWrap {
@@ -394,7 +396,7 @@
 .thumb {
   flex: 0 0 var(--hp-size-72);
   height: var(--hp-size-72);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
 }
 
 .note {
@@ -447,7 +449,7 @@
 
 .relatedPhoto {
   height: var(--hp-size-220);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
 }
 
 .relatedTitle {
@@ -557,7 +559,7 @@
 .catCard {
   position: relative;
   overflow: hidden;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   outline: var(--hp-size-1) solid var(--hp-line);
   outline-offset: var(--hp-size--0_5);
   background: var(--hp-paper);
@@ -649,7 +651,7 @@
 .band {
   display: flex;
   min-height: var(--hp-size-520);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .bandPhoto {
@@ -747,7 +749,7 @@
   align-items: center;
   gap: var(--hp-space-20);
   padding: var(--hp-space-12);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   outline: var(--hp-size-1) solid var(--hp-line);
   outline-offset: var(--hp-size--0_5);
 }
@@ -759,7 +761,7 @@
 .rowPhoto {
   flex: 0 0 var(--hp-size-180);
   height: var(--hp-size-112);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
 }
 
 .rowText {
@@ -864,6 +866,7 @@ a:hover .photo {
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .headLink, .textLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -883,6 +886,7 @@ a:hover .photo {
 
 .cardLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

@@ -1,10 +1,11 @@
 import { meSchema, sessionListSchema } from "@holypearls/contracts";
-import { PublicShell } from "@holypearls/ui";
+
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { serverApi } from "../../../lib/server-api";
 import styles from "./security.module.css";
 import { SessionsCard } from "./SessionsCard";
+import { SiteShell } from "../../../components/site/SiteShell";
 
 export const metadata: Metadata = { title: "Security", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function SecurityPage() {
   const sessions = await serverApi("/v1/me/sessions", sessionListSchema);
 
   return (
-    <PublicShell bleed>
+    <SiteShell>
       <div className={styles.body}>
         <nav className={styles.nav} aria-label="Account">
           <p className={styles.navLabel}>ACCOUNT</p>
@@ -63,6 +64,6 @@ export default async function SecurityPage() {
           <p className={styles.note}>Sessions last 30 days and extend while you use them.</p>
         </div>
       </div>
-    </PublicShell>
+    </SiteShell>
   );
 }

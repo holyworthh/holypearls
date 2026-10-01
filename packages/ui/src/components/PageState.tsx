@@ -27,9 +27,9 @@ export function PageLoading({ label = "Loading" }: { label?: string }) {
     <div className={styles.state} role="status" aria-live="polite">
       <span className="hp-visually-hidden">{label}</span>
       <div className={styles.skeleton} aria-hidden="true">
-        <div className={styles.bar} />
-        <div className={styles.bar} />
-        <div className={styles.bar} />
+        <div className={styles.bar} data-skeleton />
+        <div className={styles.bar} data-skeleton />
+        <div className={styles.bar} data-skeleton />
       </div>
     </div>
   );

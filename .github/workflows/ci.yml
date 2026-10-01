@@ -39,6 +39,8 @@ jobs:
           node-version: "22"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Dependency advisories (high and critical fail the build; TECH-06, review P2-08)
+        run: pnpm audit --prod --audit-level high
       - run: pnpm lint
       - run: pnpm typecheck
       - name: Migrate from an empty database
@@ -56,6 +58,41 @@ jobs:
         run: pnpm check:openapi
       - run: docker compose config --quiet
       - run: pnpm build
+      - name: Upgrade from the release on main (its schema and seed data, then this branch's migrations)
+        # Release reality (review P2-06): production holds main's schema and data, then gets
+        # every new migration with the real runner. The result must equal a fresh database.
+        env:
+          PG: ${{ job.services.postgres.id }}
+          UPGRADE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_upgrade
+          FRESH_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_fresh
+        run: |
+          docker exec "$PG" createdb -U holypearls_ci holypearls_upgrade
+          docker exec "$PG" createdb -U holypearls_ci holypearls_fresh
+          git fetch --no-tags --depth=1 origin main
+          git worktree add ../release FETCH_HEAD
+          (cd ../release && pnpm install --frozen-lockfile && DATABASE_URL="$UPGRADE_URL" TEST_DATABASE_URL="$UPGRADE_URL" pnpm seed)
+          DATABASE_URL="$UPGRADE_URL" node packages/db/dist/migrate-cli.js
+          DATABASE_URL="$FRESH_URL" node packages/db/dist/migrate-cli.js
+          dump() { docker exec "$PG" pg_dump -U holypearls_ci --schema-only --no-owner "$1" | grep -vE '^(--|\\(un)?restrict )'; }
+          diff <(dump holypearls_upgrade) <(dump holypearls_fresh)
+          echo "Upgraded schema matches a fresh migration."
+      - name: The production image builds and starts (api, worker and migrations)
+        env:
+          PG_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_image
+        run: |
+          docker exec "${{ job.services.postgres.id }}" createdb -U holypearls_ci holypearls_image
+          docker build -t holypearls-api:ci .
+          # Whatever happens, show what the container said.
+          trap 'docker logs api-image 2>&1 | tail -n 80' EXIT
+          docker run -d --name api-image --network host \
+            -e DATABASE_URL="$PG_URL" -e API_PORT=3099 -e BETTER_AUTH_URL -e BETTER_AUTH_SECRET -e DATA_ENCRYPTION_KEY \
+            holypearls-api:ci sh deploy/start-single.sh
+          for attempt in $(seq 1 60); do curl -fsS http://localhost:3099/health/ready && break; sleep 2; done
+          curl -fsS http://localhost:3099/health/ready
+          # Built code and production dependencies only: no sources, tests or web app.
+          docker exec api-image sh -c 'test ! -d /repo/apps/api/src && test ! -d /repo/apps/web/src && test ! -d /repo/apps/web/node_modules'
+          docker rm -f api-image
+          trap - EXIT
       - name: Install Chromium for browser tests
         run: pnpm --filter @holypearls/web exec playwright install --with-deps chromium
       - name: Accessibility, keyboard and viewport tests (375 and 1440 px)

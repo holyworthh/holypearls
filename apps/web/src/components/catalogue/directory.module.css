@@ -5,7 +5,7 @@
 
 /* Pen 17 sits on bone; Pen 06 (mobile) on paper. */
 .page {
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 @media (max-width: 1023px) {
@@ -120,8 +120,8 @@
   height: var(--hp-size-52);
   padding: 0 var(--hp-size-22);
   border: 0;
-  border-radius: var(--hp-space-6);
-  background: var(--hp-accent);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-brand);
   color: var(--hp-paper);
   font: inherit;
   font-size: var(--hp-space-16);
@@ -137,7 +137,7 @@
 }
 
 .redButton:hover {
-  background: var(--hp-accent-hover);
+  background: var(--hp-brand-hover);
 }
 
 .redButton:active {
@@ -471,7 +471,7 @@
   gap: var(--hp-space-10);
   height: var(--hp-space-48);
   padding: 0 var(--hp-space-14);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-control);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
   outline-offset: var(--hp-size--0_5);
   background: var(--hp-paper);
@@ -567,7 +567,7 @@
   height: var(--hp-space-40);
   padding: 0 calc(var(--hp-space-12) + var(--hp-space-16) + var(--hp-space-8)) 0 var(--hp-space-12);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-control);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
   outline-offset: var(--hp-size--0_5);
   background: var(--hp-paper);
@@ -726,7 +726,7 @@
   min-height: var(--hp-size-360);
   overflow: hidden;
   border-radius: var(--hp-space-10);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
 }
 
 .interruptPhoto {
@@ -803,7 +803,7 @@
   justify-content: center;
   height: var(--hp-size-52);
   padding: 0 var(--hp-space-28);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   outline: var(--hp-size-1_5) solid var(--hp-ink);
   outline-offset: var(--hp-size--0_75);
   color: var(--hp-ink);
@@ -826,7 +826,7 @@
   place-items: center;
   width: var(--hp-space-40);
   height: var(--hp-space-40);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   color: var(--hp-ink);
   font-size: var(--hp-size-15);
   font-weight: 600;
@@ -1058,7 +1058,7 @@
   .search {
     height: var(--hp-size-52);
     padding: 0 var(--hp-space-14);
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-control);
     outline: var(--hp-size-1) solid var(--hp-line-strong);
     outline-offset: var(--hp-size--0_5);
   }
@@ -1140,7 +1140,7 @@
     height: var(--hp-size-44);
     padding: 0 var(--hp-space-14);
     border: 0;
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-button);
     outline: var(--hp-size-1_5) solid var(--hp-ink);
     outline-offset: var(--hp-size--0_75);
     background: var(--hp-paper);
@@ -1237,7 +1237,7 @@
     gap: var(--hp-space-8);
     height: var(--hp-space-48);
     padding: 0 var(--hp-space-16);
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-button);
     outline: var(--hp-size-1_5) solid var(--hp-ink);
     outline-offset: var(--hp-size--0_75);
     color: var(--hp-ink);
@@ -1314,6 +1314,7 @@
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .breadcrumb a {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1333,6 +1334,7 @@
 
 .link {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1352,6 +1354,7 @@
 
 .interruptLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);
@@ -1371,6 +1374,7 @@
 
 .featureLink {
   text-decoration: none;
+  width: fit-content;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
   background-size: 0 var(--hp-size-1);

@@ -7,17 +7,25 @@ import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./
 test("a product is reachable from the homepage in three clicks", async ({ page }) => {
   const isMobile = (page.viewportSize()?.width ?? 0) < 768;
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Branded uniforms, print and merch" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Custom uniforms, merch & print, made for you." })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
-  // 1: a category on the homepage, 2: a product card.
-  await page.getByRole("link", { name: "Print & Business Stationery" }).first().click();
+  // 1: a category tile on the homepage (Ledger "Shop by category"), 2: a product card.
+  await page.getByRole("link", { name: /T-shirts & hoodies/ }).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expectNoAxeViolations(page);
-  await page.getByRole("link", { name: "Business Cards" }).first().click();
-  await expect(page.getByRole("heading", { level: 1, name: "Business Cards" })).toBeVisible();
+  await page.getByRole("link", { name: "Polo Shirt" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Polo Shirt" })).toBeVisible();
   await expectNoAxeViolations(page);
   if (!isMobile) await expectNoHorizontalScroll(page);
+});
+
+test("the main navigation shows the four Ledger items", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1280, "The primary nav shows from 1280 px; smaller widths use the menu.");
+  await page.goto("/");
+  const main = page.getByRole("navigation", { name: "Main" });
+  await expect(main.getByRole("listitem")).toHaveText(["Products", "Projects", "Our Work", "Help"]);
+  await expect(main.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/resources");
 });
 
 test("the Products mega-menu works by keyboard", async ({ page }) => {
@@ -100,4 +108,79 @@ test("category hubs render on the server and staff edit them", async ({ page }) 
   await expect(page.getByRole("heading", { name: "Menus & homepage" })).toBeVisible();
   await expect(page.getByText("Polo Shirt").first()).toBeVisible();
   await expectNoAxeViolations(page);
+});
+
+/* Ledger homepage (Pen Stage 4.3 · ZqhyZ / Y0ftk8): PUB-FR-001 search and Start a Project, PUB-FR-002 goal routes. */
+test("the homepage leads with the search box, Start a Project and the goal routes", async ({ page }) => {
+  await page.goto("/");
+  const main = page.getByRole("main");
+  await expect(main.getByRole("combobox", { name: "What do you need made?" })).toBeVisible();
+  await expect(main.getByRole("link", { name: "Start a Project" }).first()).toBeVisible();
+  for (const [name, href] of [
+    [/Custom uniforms/, "/projects/staff-team-branding"],
+    [/Event branding/, "/projects/event-branding"],
+    [/Branded merch/, "/projects/corporate-gifts"],
+    [/Custom packaging/, "/categories/bags-packaging"],
+    [/Something custom/, "/contact?topic=custom-request"],
+    ["business cards", "/projects/business-launch"],
+  ] as const)
+    await expect(main.getByRole("link", { name }).first()).toHaveAttribute("href", href);
+});
+
+test("the polo preview follows the chosen colour and decoration", async ({ page }) => {
+  await page.goto("/");
+  const preview = page.getByRole("img", { name: /Polo shirt preview/ });
+  await expect(preview).toHaveAccessibleName("Polo shirt preview in Navy, embroidered left chest");
+  await page.getByRole("radio", { name: "Wine" }).click();
+  await page.getByRole("radio", { name: "Print" }).click();
+  await expect(preview).toHaveAccessibleName("Polo shirt preview in Wine, printed left chest");
+  await expect(page.getByRole("radio", { name: "Wine" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("link", { name: /Configure this polo/ })).toHaveAttribute("href", "/products/polo-shirt");
+});
+
+test("the footer links to the photo credits the stand-in images need", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Photo credits" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Stand-in photography" })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Source", exact: true })).toHaveCount(18);
+  await expectNoAxeViolations(page);
+});
+
+test("the Our work rail ends on the content edge and its button keeps its layout", async ({ page }) => {
+  await page.goto("/");
+  const section = page.locator("section", { has: page.locator("#work-title") });
+  const ends = await section.evaluate((element) => {
+    const rail = element.querySelector("ul")!;
+    rail.scrollLeft = rail.scrollWidth;
+    const items = rail.querySelectorAll("li");
+    const link = [...element.querySelectorAll<HTMLAnchorElement>('a[href="/our-work"]')].find((a) => a.offsetParent)!;
+    return {
+      lastRight: Math.round(items[items.length - 1].getBoundingClientRect().right),
+      linkRight: Math.round(link.getBoundingClientRect().right),
+      linkDisplay: getComputedStyle(link).display,
+    };
+  });
+  expect(Math.abs(ends.lastRight - ends.linkRight)).toBeLessThanOrEqual(1);
+  expect(ends.linkDisplay).not.toBe("inline");
+});
+
+test("pages send the security headers, and guest-link pages send no referrer (review P2-07)", async ({ page }) => {
+  const violations: string[] = [];
+  page.on("console", (message) => {
+    if (/Content Security Policy/i.test(message.text())) violations.push(message.text());
+  });
+  const home = await page.goto("/");
+  const headers = home!.headers();
+  expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(headers["content-security-policy"]).toContain("object-src 'none'");
+  expect(headers["x-content-type-options"]).toBe("nosniff");
+  expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(headers["permissions-policy"]).toContain("camera=()");
+  expect(headers["x-powered-by"]).toBeUndefined();
+  // Pages still run under the policy: a product page with its configurator loads and nothing was blocked.
+  await page.goto("/products/business-cards");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  expect(violations).toEqual([]);
+  const link = await page.request.get("/l");
+  expect(link.headers()["referrer-policy"]).toBe("no-referrer");
 });

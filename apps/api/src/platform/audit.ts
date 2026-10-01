@@ -25,11 +25,32 @@ export function auditActor(actor: ActorContext | null) {
   return {
     actorType: actor.staff ? ("STAFF" as const) : ("USER" as const),
     actorUserId: actor.session.userId,
-    actorLabel: actor.staff?.displayName ?? actor.session.name,
+    // Staff are named (it's their work record); a customer is identified by ID only (review P2-09).
+    actorLabel: actor.staff?.displayName ?? "Customer",
     mfaVerifiedAt: actor.session.mfaVerifiedAt,
     requestId: actor.requestId,
   };
 }
+
+/**
+ * Personal details never enter the insert-only audit log (review P2-09):
+ * emails, phone numbers, addresses, names of customers and contact or billing
+ * blocks are replaced wherever they appear in `before` and `after`, and an
+ * email or phone number in the record label is masked. Audit rows can't be
+ * changed later, so they mustn't need erasing.
+ */
+const PERSONAL_KEY = /^(e-?mail|phone|mobile|street|address|landmark|postcode|contact|billing|delivery_?address|first_?name|last_?name|full_?name|customer_?name|recipient)$/i;
+export const REMOVED = "[personal data removed]";
+
+export function withoutPersonalData(value: unknown, depth = 0): unknown {
+  if (depth > 8 || value === null || typeof value !== "object") return typeof value === "string" ? maskContact(value) : value;
+  if (Array.isArray(value)) return value.map((item) => withoutPersonalData(item, depth + 1));
+  return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, PERSONAL_KEY.test(key) ? REMOVED : withoutPersonalData(inner, depth + 1)]));
+}
+
+const EMAIL = /[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+/g;
+const PHONE = /\+?\d[\d\s-]{8,}\d/g;
+const maskContact = (text: string) => text.replace(EMAIL, REMOVED).replace(PHONE, REMOVED);
 
 /**
  * Writes one audit entry, inside the business change's transaction when one
@@ -44,9 +65,9 @@ export async function recordAudit(db: Database | Transaction, actor: ActorContex
       summary: input.summary,
       recordType: input.recordType,
       recordId: input.recordId ?? null,
-      recordLabel: input.recordLabel ?? null,
-      before: input.before ?? null,
-      after: input.after ?? null,
+      recordLabel: input.recordLabel ? maskContact(input.recordLabel) : null,
+      before: withoutPersonalData(input.before ?? null),
+      after: withoutPersonalData(input.after ?? null),
       permission: input.permission ?? null,
     })
     .returning({ id: schema.auditLog.id });

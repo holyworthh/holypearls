@@ -3,14 +3,15 @@ import type { StorageAdapter } from "@holypearls/storage";
 import { removeExpiredSearchEvents } from "../catalogue/search.js";
 import { removeOldPriceResults } from "../configuration/pricing.js";
 import { removeUnattachedFiles } from "../files/files.js";
+import { applyRetention } from "../sales/retention.js";
 import { RateLimiter } from "./rate-limit.js";
 
 /**
  * cleanup.daily at 03:00 WAT (TECH-02 §8): unattached uploads after 7 days,
  * finished rate-limit windows, expired idempotency keys, guest sessions and
  * used or expired email codes, and saved price results older than 30 days
- * (T03-01), and search events older than 90 days (T02-06). Stale drafts join
- * when drafts exist (T03-03).
+ * (T03-01), search events older than 90 days (T02-06), and expired checkouts,
+ * old checkout details and untouched drafts (review P2-03, sales/retention.ts).
  */
 export async function runDailyCleanup(deps: { db: Database; storage: StorageAdapter; publicStorage: StorageAdapter }, now = new Date()) {
   const files = await removeUnattachedFiles(deps, now);
@@ -22,5 +23,6 @@ export async function runDailyCleanup(deps: { db: Database; storage: StorageAdap
     .where(or(lt(schema.emailCodes.expiresAt, now), and(isNotNull(schema.emailCodes.consumedAt), lt(schema.emailCodes.createdAt, now))));
   const priceResults = await removeOldPriceResults(deps.db, now);
   const searchEvents = await removeExpiredSearchEvents(deps.db, now);
-  return { files, priceResults, searchEvents };
+  const retention = await applyRetention(deps.db, now);
+  return { files, priceResults, searchEvents, ...retention };
 }

@@ -68,7 +68,13 @@
   text-decoration: none;
 }
 
-/* Header */
+/* Header (Ledger): sticky, and it slides away on scroll down (motion.css · data-sticky-header). */
+
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
 
 .header {
   position: relative;
@@ -77,28 +83,18 @@
   background: var(--hp-paper);
 }
 
+/* Logo and nav sit together on the left (owner, 1 Oct 2026); the actions push right. */
 .headerInner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--hp-space-16);
   min-height: var(--hp-header-height);
 }
 
+/* Ledger lockup (Logo.tsx): mark + tracked Open Sans wordmark in Holy Blue. */
 .logo {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--hp-space-10);
-  color: var(--hp-ink);
-  font-size: var(--hp-text-dialog-title);
-  font-weight: var(--hp-weight-semibold);
-  text-decoration: none;
-}
-
-@media (min-width: 1024px) {
-  .logo {
-    font-size: var(--hp-text-wordmark);
-  }
+  flex: none;
 }
 
 .pearl {
@@ -112,16 +108,17 @@
   display: none;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .primaryNav {
     display: block;
+    margin-left: var(--hp-space-16);
   }
 }
 
-/* Pen HP/Nav/Header: 30px between labels (12px padding each side + 6px). */
+/* Ledger header: 32px between labels (12px padding each side + 8px). */
 .primaryList {
   display: flex;
-  gap: var(--hp-space-6);
+  gap: var(--hp-space-8);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -132,43 +129,29 @@
   align-items: center;
   gap: var(--hp-space-4);
   min-height: var(--hp-touch-target);
-  padding: 0 var(--hp-space-12);
+  padding: 0 var(--hp-space-10);
   border: 0;
   border-radius: var(--hp-r-control);
   background: transparent;
-  color: var(--hp-ink);
+  color: var(--hp-graphite);
   font-family: var(--hp-font-ui);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-medium);
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-/*
- * Hover draws an ink rule under the label (and it stays while its menu is open);
- * the current section is marked with a small vermilion pearl, like the logo's.
- */
+/* Hover and an open menu darken the label; the current section is marked with a small pearl. */
 .navItem {
   position: relative;
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
-.navItem::after {
-  position: absolute;
-  right: var(--hp-space-12);
-  bottom: var(--hp-space-8);
-  left: var(--hp-space-12);
-  height: var(--hp-space-2);
-  border-radius: var(--hp-space-2);
-  background: var(--hp-ink);
-  transform: scaleX(0);
-  transform-origin: left center;
-  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
-  content: "";
-}
-
-.navItem:hover::after,
-.navItem[aria-expanded="true"]::after {
-  transform: scaleX(1);
+.navItem:hover,
+.navItem[aria-expanded="true"],
+.navItem[aria-current="page"] {
+  color: var(--hp-ink);
 }
 
 .navItem[aria-current="page"]::before {
@@ -184,11 +167,7 @@
   content: "";
 }
 
-/* The current item answers hover with its own mark: the pearl stretches, no underline. */
-.navItem[aria-current="page"]::after {
-  display: none;
-}
-
+/* The current item answers hover with its own mark: the pearl stretches. */
 .navItem[aria-current="page"]:hover::before {
   width: var(--hp-space-24);
 }
@@ -197,11 +176,11 @@
   color: var(--hp-ink-70);
 }
 
-/* Pen shows no chevrons; aria-expanded carries the open state. */
+/* Ledger header: a small chevron marks the items that open a menu. */
 .chevron {
-  display: none;
-  width: var(--hp-space-12);
-  height: var(--hp-space-12);
+  width: var(--hp-space-16);
+  height: var(--hp-space-16);
+  color: var(--hp-text-3);
   transition: transform var(--hp-motion-dropdown) var(--hp-ease-enter);
 }
 
@@ -212,6 +191,7 @@
 /* Pen: 18px between the search, 20px icons and the button. */
 .actions {
   display: flex;
+  margin-left: auto;
   align-items: center;
   gap: 0;
 }
@@ -222,14 +202,15 @@
   gap: var(--hp-space-8);
   width: var(--hp-header-search-width);
   margin-right: var(--hp-space-8);
-  height: var(--hp-space-40);
-  padding: 0 var(--hp-space-12);
-  border-radius: var(--hp-r-control);
+  height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-16);
+  border-radius: var(--hp-r-pill);
   background: var(--hp-bone);
-  color: var(--hp-graphite);
+  color: var(--hp-text-3);
 }
 
-@media (min-width: 1024px) {
+/* The field shows with the primary nav from 1280; below that the header keeps the icon. */
+@media (min-width: 1280px) {
   .search {
     display: flex;
   }
@@ -258,7 +239,7 @@
 .searchTrigger:focus-visible {
   outline: none;
   background: var(--hp-paper);
-  box-shadow: 0 0 0 var(--hp-focus-ring-width) var(--hp-ink);
+  box-shadow: 0 0 0 var(--hp-focus-ring-width) var(--hp-brand);
 }
 
 .search input {
@@ -284,9 +265,9 @@
 .iconLink {
   display: none;
   place-items: center;
-  width: var(--hp-size-38);
+  width: var(--hp-touch-target);
   height: var(--hp-touch-target);
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-pill);
   color: var(--hp-ink);
 }
 
@@ -311,13 +292,30 @@
   }
 }
 
+/* The bag stays in the phone header too (Pen 42 mobile header: search, bag, menu). */
+.bagLink {
+  display: grid;
+}
+
+@media (max-width: 1023px) {
+  .bagLink {
+    order: 1;
+    width: var(--hp-touch-target);
+  }
+
+  .menuButton {
+    order: 2;
+  }
+}
+
 .cta {
   display: none;
   align-items: center;
   min-height: var(--hp-touch-target);
-  margin-left: var(--hp-space-8);
+  gap: var(--hp-space-8);
+  margin-left: var(--hp-space-12);
   padding: 0 var(--hp-size-18);
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-button);
   background: var(--hp-accent);
   color: var(--hp-paper);
   font-size: var(--hp-text-label);
@@ -337,7 +335,7 @@
 }
 
 .cta:active {
-  transform: scale(var(--hp-press-scale));
+  transform: scale(var(--hp-press-scale-ledger));
 }
 
 @media (min-width: 768px) {
@@ -352,13 +350,13 @@
   width: var(--hp-touch-target);
   height: var(--hp-touch-target);
   border: 0;
-  border-radius: var(--hp-r-control);
+  border-radius: var(--hp-r-button);
   background: transparent;
   color: var(--hp-ink);
   cursor: pointer;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1280px) {
   .menuButton {
     display: none;
   }
@@ -366,8 +364,34 @@
 
 a:focus-visible,
 button:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-  outline-offset: var(--hp-space-2);
+  outline: var(--hp-focus-ring-width) solid var(--hp-brand);
+  outline-offset: var(--hp-size-3);
+}
+
+/* Reading progress under the header (Motion board): drawn by the page scroll where CSS scroll timelines exist. */
+.progress {
+  position: absolute;
+  right: 0;
+  bottom: calc(var(--hp-border-width) * -1);
+  left: 0;
+  height: var(--hp-size-3);
+  background: var(--hp-marigold);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  :root[data-motion="on"] .progress {
+    animation: hp-grow linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes hp-grow {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* Mega-menu (HP/Nav/MegaMenu) */
@@ -474,6 +498,8 @@ button:focus-visible {
 }
 
 .allLink {
+  align-self: flex-start;
+  width: fit-content;
   color: var(--hp-accent);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-semibold);
@@ -635,8 +661,8 @@ button:focus-visible {
 @media (max-width: 1023px) {
   .headerInner {
     gap: 0;
-    min-height: var(--hp-size-59_5);
-    padding: 0 var(--hp-space-8) 0 var(--hp-space-20);
+    min-height: var(--hp-space-64);
+    padding: 0 var(--hp-space-8) 0 var(--hp-space-16);
   }
 
   .logo {
@@ -662,7 +688,7 @@ button:focus-visible {
   height: var(--hp-size-22);
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1280px) {
   .phoneSearch {
     display: none;
   }
@@ -715,6 +741,7 @@ button:focus-visible {
 
 /* Drawn underline: grows left to right on hover, retracts to the right after. */
 .stripLinks a {
+  width: fit-content;
   text-decoration: none;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
@@ -734,25 +761,15 @@ button:focus-visible {
 }
 
 .megaLink {
-  text-decoration: none;
-  background-image: linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat;
-  background-size: 0 var(--hp-size-1);
-  background-position: 100% 100%;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-  transition:
-    background-size var(--hp-motion-underline) var(--hp-ease-soft),
-    color var(--hp-motion-hover) var(--hp-ease-soft);
+  transition: color var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
 .megaLink:hover {
-  text-decoration: none;
-  background-size: 100% var(--hp-size-1);
-  background-position: 0 100%;
+  color: var(--hp-brand);
 }
 
 .allLink {
+  width: fit-content;
   text-decoration: none;
   background-image: linear-gradient(currentColor, currentColor);
   background-repeat: no-repeat;
@@ -769,4 +786,17 @@ button:focus-visible {
   text-decoration: none;
   background-size: 100% var(--hp-size-1);
   background-position: 0 100%;
+}
+
+/* Full-page states (404, loading) inside the site shell: content-width with the page gutters. */
+.statePage {
+  max-width: calc(var(--hp-layout-content-width) + 2 * var(--hp-layout-margin-desktop));
+  margin: 0 auto;
+  padding: var(--hp-space-48) var(--hp-layout-gutter-mobile) var(--hp-space-96);
+}
+
+@media (min-width: 1024px) {
+  .statePage {
+    padding: var(--hp-space-80) var(--hp-layout-margin-desktop) var(--hp-space-128);
+  }
 }

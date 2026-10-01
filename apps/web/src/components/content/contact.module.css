@@ -157,7 +157,7 @@
   height: var(--hp-size-52);
   padding: 0 var(--hp-space-14);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-control);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
   outline-offset: var(--hp-size--0_5);
   background: var(--hp-paper);
@@ -250,7 +250,7 @@
   height: var(--hp-size-52);
   padding: 0 var(--hp-space-20);
   border: 0;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
   font: inherit;
   font-size: var(--hp-space-16);
   font-weight: 600;

@@ -138,6 +138,8 @@ test("the product image viewer opens in place and moves between images", async (
   test.skip(isPhone(page.viewportSize()?.width), "Phones swipe the gallery; the viewer opens from desktop and tablet.");
   await page.goto("/products/polo-shirt");
   const url = page.url();
+  // Garments open on their placement map; the photos follow it in the gallery.
+  await page.getByRole("button", { name: /^Show image 1/ }).click();
   await page.getByRole("button", { name: "View images full size" }).click();
   const viewer = page.getByRole("dialog", { name: /Polo Shirt images/ });
   await expect(viewer).toBeVisible();
@@ -216,7 +218,8 @@ test("sections reveal as they scroll into view", async ({ page }) => {
   await page.goto("/");
   const reveals = page.locator("[data-reveal]");
   await expect.poll(() => reveals.count()).toBeGreaterThan(2);
-  const last = reveals.last();
+  // Pin the element: Motion keeps tagging content that arrives later, so "last" could move after the scroll.
+  const last = reveals.nth((await reveals.count()) - 1);
   await last.scrollIntoViewIfNeeded();
   await expect(last).toHaveAttribute("data-revealed", "true");
   await expect.poll(() => last.evaluate((element) => getComputedStyle(element).opacity)).toBe("1");
@@ -234,7 +237,7 @@ test("with reduced motion, content shows at once", async ({ browser }) => {
 });
 
 test("desktop mega-menus open on hover and close when the pointer leaves", async ({ page }) => {
-  test.skip((page.viewportSize()?.width ?? 0) < 1200, "The mega-menus are desktop only.");
+  test.skip((page.viewportSize()?.width ?? 0) < 1280, "The mega-menus are desktop only (the main nav shows from 1280).");
   await page.goto("/");
   const products = page.getByRole("button", { name: "Products", exact: true });
   await products.hover();
@@ -264,9 +267,8 @@ test("desktop mega-menus open on hover and close when the pointer leaves", async
 test("icon-only actions show a tooltip with their name on hover and keyboard focus", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) < 1024, "Header icons are desktop only; touch never shows tooltips.");
   await page.goto("/");
-  // The header icon, not the utility strip's text link (which has visible text, so no tooltip).
-  await page.getByRole("banner").getByLabel("Track an order").hover();
-  const tip = page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Track an order" });
+  await page.getByRole("banner").getByLabel("Your cart").hover();
+  const tip = page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Your cart" });
   await expect(tip).toBeVisible();
   const box = await tip.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -282,4 +284,13 @@ test("icon-only actions show a tooltip with their name on hover and keyboard foc
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await expect(page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Your account" })).toBeVisible();
+});
+
+test("with reduced motion, the marquee and floating swatches stand still", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.goto(`${test.info().project.use.baseURL ?? ""}/`);
+  const track = page.getByLabel("Things we make").locator("ul");
+  expect(await track.evaluate((element) => getComputedStyle(element).animationName)).toBe("none");
+  await context.close();
 });

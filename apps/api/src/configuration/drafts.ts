@@ -3,7 +3,7 @@ import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holype
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureCustomer, maskEmail, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
 import type { StorageAdapter } from "@holypearls/storage";
@@ -31,6 +31,39 @@ export interface DraftAccess {
   deviceKey: string | null;
 }
 
+/**
+ * A design in the cart changed or left it: an open checkout holding the old
+ * copy is closed, so the customer can never pay for something other than
+ * what they now have (TECH-05 §1). The next "Check out" starts afresh.
+ */
+export async function closeCheckoutsWith(db: Pick<Database, "update">, configurationId: string) {
+  await db
+    .update(schema.checkouts)
+    .set({ status: "ABANDONED" })
+    .where(and(eq(schema.checkouts.status, "OPEN"), sql`${configurationId}::uuid = any(${schema.checkouts.configurationIds})`));
+}
+
+type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
+
+/**
+ * Every change to what would be made goes through here (review P1-05):
+ * choices, sizes, placements, artwork added or removed, the low-resolution
+ * decision and personalisation. It raises the version and the change time
+ * (the cart refreshes its copy from that), and closes an open checkout that
+ * holds the design's older copy. With `expectedVersion` it only changes a
+ * design still at that version, and says whether it did.
+ */
+export async function touchOrderableConfiguration(tx: Tx, id: string, options: { expectedVersion?: number } = {}): Promise<boolean> {
+  const rows = await tx
+    .update(schema.configurations)
+    .set({ version: sql`${schema.configurations.version} + 1`, updatedAt: new Date() })
+    .where(options.expectedVersion === undefined ? eq(schema.configurations.id, id) : and(eq(schema.configurations.id, id), eq(schema.configurations.version, options.expectedVersion)))
+    .returning({ status: schema.configurations.status });
+  if (!rows.length) return false;
+  if (rows[0]!.status === "IN_CART") await closeCheckoutsWith(tx, id);
+  return true;
+}
+
 export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   const { actor, deviceKey } = access;
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
@@ -38,7 +71,7 @@ export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === hash(deviceKey));
 }
 
-async function load(db: Database, access: DraftAccess, id: string): Promise<Row> {
+export async function loadDraft(db: Database, access: DraftAccess, id: string): Promise<Row> {
   const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
   if (!row || !canOpenDraft(access, row)) throw new AppError("NOT_FOUND");
   return row;
@@ -91,7 +124,7 @@ async function filesOf(db: Database, id: string, placements: Placement[]) {
   });
 }
 
-async function view(db: Database, row: Row, now: Date): Promise<Configuration> {
+export async function draftView(db: Database, row: Row, now: Date): Promise<Configuration> {
   const [product] = await db
     .select({ slug: schema.products.slug, name: schema.products.name, family: schema.products.family, routes: schema.products.routes, decorations: schema.products.decorations })
     .from(schema.products)
@@ -296,11 +329,11 @@ export async function createDraft(
     return row!.id;
   });
   const priced = await reprice(db, id, actor.now);
-  return { draft: await view(db, priced, access.actor.now), newDeviceKey };
+  return { draft: await draftView(db, priced, access.actor.now), newDeviceKey };
 }
 
 /** Prices the draft's current answers and remembers the saved result (TECH-01 price_results). */
-async function reprice(db: Database, id: string, at: Date): Promise<Row> {
+export async function reprice(db: Database, id: string, at: Date): Promise<Row> {
   const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
   const chosen = Object.fromEntries((await selections(db, id)).map((item) => [item.optionKey, item.valueKey]));
   const sizes = await sizesOf(db, id);
@@ -313,7 +346,7 @@ async function reprice(db: Database, id: string, at: Date): Promise<Row> {
 }
 
 export async function getDraft(db: Database, access: DraftAccess, id: string) {
-  return view(db, await load(db, access, id), access.actor.now);
+  return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
 /**
@@ -341,9 +374,10 @@ export async function updateDraft(
     confirmRemovals: boolean;
   },
 ) {
-  const row = await load(db, access, id);
-  if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
-  if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, row, access.actor.now) } });
+  const row = await loadDraft(db, access, id);
+  // A design in the cart stays editable; the cart picks up the change (T04-01 "edit returns to configuration").
+  if (row.status !== "DRAFT" && row.status !== "IN_CART") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await draftView(db, row, access.actor.now) } });
   if (patch.sourcing || patch.decoration || patch.placements) {
     const [capabilities] = await db.select({ routes: schema.products.routes, decorations: schema.products.decorations }).from(schema.products).where(eq(schema.products.id, row.productId));
     checkGarmentPatch(capabilities!, patch);
@@ -368,6 +402,9 @@ export async function updateDraft(
   }
 
   const saved = await db.transaction(async (tx) => {
+    // Moving between steps changes nothing that would be made, so it doesn't close a checkout.
+    const changesWhatIsMade = Object.keys(patch).some((key) => key !== "version" && key !== "step" && key !== "confirmRemovals");
+    if (changesWhatIsMade && !(await touchOrderableConfiguration(tx, id, { expectedVersion: patch.version }))) return false;
     const rows = await tx
       .update(schema.configurations)
       .set({
@@ -379,9 +416,10 @@ export async function updateDraft(
         ...(patch.decoration !== undefined && { decoration: patch.decoration }),
         ...(patch.details && { details: { ...(row.details as object), ...patch.details } }),
         ...(patch.sizesUnknown !== undefined && { sizesUnknown: patch.sizesUnknown }),
-        version: sql`${schema.configurations.version} + 1`,
+        ...(!changesWhatIsMade && { version: sql`${schema.configurations.version} + 1` }),
+        updatedAt: new Date(),
       })
-      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, patch.version)))
+      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, changesWhatIsMade ? patch.version + 1 : patch.version)))
       .returning({ id: schema.configurations.id });
     if (!rows.length) return false;
     await writeSelections(tx, id, before, next, options.map((option) => option.key));
@@ -397,8 +435,8 @@ export async function updateDraft(
     }
     return true;
   });
-  if (!saved) throw new AppError("VERSION_CONFLICT", { context: { latest: await view(db, await load(db, access, id), access.actor.now) } });
-  return { draft: await view(db, await reprice(db, id, access.actor.now), access.actor.now), removed: conflicts };
+  if (!saved) throw new AppError("VERSION_CONFLICT", { context: { latest: await draftView(db, await loadDraft(db, access, id), access.actor.now) } });
+  return { draft: await draftView(db, await reprice(db, id, access.actor.now), access.actor.now), removed: conflicts };
 }
 
 /**
@@ -406,12 +444,13 @@ export async function updateDraft(
  * device. The link opens a guest session scoped to this draft.
  */
 export async function emailDraftLink(deps: NotificationDeps & { webOrigin: string }, access: DraftAccess, id: string, email: string) {
-  const row = await load(deps.db, access, id);
+  const row = await loadDraft(deps.db, access, id);
   const [product] = await deps.db.select({ name: schema.products.name }).from(schema.products).where(eq(schema.products.id, row.productId));
   const opened: { session: { token: string; expiresAt: Date } | null } = { session: null };
   await deps.db.transaction(async (tx) => {
-    const customer = await ensureCustomer(tx, { email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
-    await tx.update(schema.configurations).set({ customerId: customer.id }).where(eq(schema.configurations.id, id));
+    // The link goes to whoever was typed in; the design stays its owner's (review P1-03).
+    const { owner, recipient: customer } = await customersForContact(tx, access.actor, { email });
+    await tx.update(schema.configurations).set({ customerId: owner.id }).where(eq(schema.configurations.id, id));
     const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now: access.actor.now });
     // A visitor without an account gets a guest session for this one draft, so they can upload artwork here (TECH-04 uploads need a session).
     if (access.actor.type === "anonymous") {
@@ -428,7 +467,7 @@ export async function emailDraftLink(deps: NotificationDeps & { webOrigin: strin
       requestId: access.actor.requestId,
     });
   });
-  return { draft: await view(deps.db, await load(deps.db, access, id), access.actor.now), session: opened.session };
+  return { draft: await draftView(deps.db, await loadDraft(deps.db, access, id), access.actor.now), session: opened.session };
 }
 
 const ROLE_PURPOSES: Record<string, string[]> = {
@@ -440,7 +479,7 @@ const ROLE_PURPOSES: Record<string, string[]> = {
 
 /** Attaches an uploaded file (the customer's own) to the draft (COM-FR-050, 023 garment photos). */
 export async function attachDraftFile(db: Database, access: DraftAccess, id: string, input: { fileId: string; role: "ARTWORK" | "LOGO" | "REFERENCE" | "GARMENT_PHOTO" }) {
-  const row = await load(db, access, id);
+  const row = await loadDraft(db, access, id);
   const file = await findFileForActor(db, access.actor, input.fileId).catch(() => null);
   // Browser-owned drafts: the file must come from the same upload flow; the files module already scopes by uploader.
   if (!file) throw new AppError("NOT_FOUND");
@@ -449,33 +488,42 @@ export async function attachDraftFile(db: Database, access: DraftAccess, id: str
   await db.transaction(async (tx) => {
     await tx.insert(schema.configurationFiles).values({ configurationId: id, fileId: file.id, role: input.role }).onConflictDoNothing();
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
-    await tx.update(schema.configurations).set({ version: sql`${schema.configurations.version} + 1` }).where(eq(schema.configurations.id, row.id));
+    await touchOrderableConfiguration(tx, row.id);
   });
-  return view(db, await load(db, access, id), access.actor.now);
+  return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
 /** Low resolution never blocks (COM-FR-051): the customer replaces, asks for clean-up, or asks for review. */
 export async function setLowResolutionAction(db: Database, access: DraftAccess, id: string, linkId: string, action: "REPLACE" | "CLEANUP" | "REVIEW") {
-  await load(db, access, id);
-  const rows = await db
-    .update(schema.configurationFiles)
-    .set({ lowResolutionAction: action })
-    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
-    .returning({ id: schema.configurationFiles.id });
-  if (!rows.length) throw new AppError("NOT_FOUND");
-  return view(db, await load(db, access, id), access.actor.now);
+  await loadDraft(db, access, id);
+  const found = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(schema.configurationFiles)
+      .set({ lowResolutionAction: action })
+      .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+      .returning({ id: schema.configurationFiles.id });
+    if (rows.length) await touchOrderableConfiguration(tx, id);
+    return rows.length > 0;
+  });
+  if (!found) throw new AppError("NOT_FOUND");
+  return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
 export async function removeDraftFile(db: Database, access: DraftAccess, id: string, linkId: string) {
-  await load(db, access, id);
-  const rows = await db
-    .delete(schema.configurationFiles)
-    .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
-    .returning({ fileId: schema.configurationFiles.fileId });
-  if (!rows.length) throw new AppError("NOT_FOUND");
-  // The file is unattached again, so the daily clean-up can remove it after 7 days.
-  await db.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
-  return view(db, await load(db, access, id), access.actor.now);
+  await loadDraft(db, access, id);
+  const found = await db.transaction(async (tx) => {
+    const rows = await tx
+      .delete(schema.configurationFiles)
+      .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
+      .returning({ fileId: schema.configurationFiles.fileId });
+    if (!rows.length) return false;
+    // The file is unattached again, so the daily clean-up can remove it after 7 days.
+    await tx.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
+    await touchOrderableConfiguration(tx, id);
+    return true;
+  });
+  if (!found) throw new AppError("NOT_FOUND");
+  return draftView(db, await loadDraft(db, access, id), access.actor.now);
 }
 
 /**
@@ -484,7 +532,7 @@ export async function removeDraftFile(db: Database, access: DraftAccess, id: str
  * clean, and each problem comes back with its line number.
  */
 export async function importPersonalization(deps: { db: Database; storage: StorageAdapter }, access: DraftAccess, id: string, fileId: string) {
-  await load(deps.db, access, id);
+  await loadDraft(deps.db, access, id);
   const file = await findFileForActor(deps.db, access.actor, fileId).catch(() => null);
   if (!file || file.purpose !== "CSV_IMPORT") throw new AppError("NOT_FOUND");
   if (file.status !== "READY") throw new AppError("RULE_FAILED", { message: "This file is still being checked. Try again in a moment.", context: { reason: file.status } });
@@ -497,6 +545,7 @@ export async function importPersonalization(deps: { db: Database; storage: Stora
       await tx.insert(schema.configurationPersonalizationRows).values(result.rows.slice(start, start + 500).map((row) => ({ configurationId: id, ...row })));
     }
     await tx.update(schema.files).set({ ownerType: "CONFIGURATION", ownerId: id, attachedAt: new Date() }).where(eq(schema.files.id, file.id));
+    await touchOrderableConfiguration(tx, id);
   });
   return { accepted: true, count: result.rows.length, errors: [] };
 }
@@ -519,46 +568,69 @@ export async function requestQuote(
   id: string,
   input: { email: string; name: string; phone?: string; note?: string },
 ) {
-  const row = await load(deps.db, access, id);
-  const current = await view(deps.db, row, access.actor.now);
+  const checked = await quotable(deps.db, access, id);
+  if ("reference" in checked) return checked;
+  const reference = await deps.db.transaction((tx) => quoteIn(tx, deps, access, checked, input));
+  return { reference, status: "PENDING_REVIEW" as const };
+}
+
+/** Checks a design can be quoted, before anything changes. A design already quoted returns its reference. */
+export async function quotable(db: Database, access: DraftAccess, id: string) {
+  const row = await loadDraft(db, access, id);
+  const current = await draftView(db, row, access.actor.now);
   if (row.status === "QUOTE_REQUESTED" && current.quote) return { reference: current.quote.reference, status: "PENDING_REVIEW" as const };
-  if (row.status !== "DRAFT") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  if (row.status !== "DRAFT" && row.status !== "IN_CART") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   const unavailable = current.garment?.unavailable[0];
   if (unavailable) throw new AppError("RULE_FAILED", { message: unavailable.message, context: { reason: "CHOICE_UNAVAILABLE", field: unavailable.field } });
   if (!current.price) throw new AppError("VALIDATION_FAILED", { fieldErrors: { quantity: "Choose a quantity before asking for a quote." } });
   const blocking = current.price.reasons.find((reason) => reason.blocking);
   if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });
+  return { id, current };
+}
 
+/**
+ * The quote request's changes, inside the caller's transaction, so several
+ * designs can be quoted all together or not at all (review P2-02).
+ */
+export async function quoteIn(
+  tx: Tx,
+  deps: NotificationDeps & { webOrigin: string },
+  access: DraftAccess,
+  checked: { id: string; current: Configuration },
+  input: { email: string; name: string; phone?: string; note?: string },
+) {
+  const { id, current } = checked;
   const now = access.actor.now;
-  const reference = await deps.db.transaction(async (tx) => {
-    const customer = await ensureCustomer(tx, { email: input.email, userId: access.actor.type === "user" ? access.actor.session.userId : null });
-    const moved = await tx
-      .update(schema.configurations)
-      .set({ status: "QUOTE_REQUESTED", customerId: customer.id, version: sql`${schema.configurations.version} + 1` })
-      .where(and(eq(schema.configurations.id, id), eq(schema.configurations.status, "DRAFT")))
-      .returning({ id: schema.configurations.id });
-    if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
-    const ref = await nextQuoteReference(tx, now);
-    const { emailedTo: _emailed, ...snapshot } = current;
-    void _emailed;
-    await tx.insert(schema.quotes).values({
-      reference: ref,
-      customerId: customer.id,
-      configurationId: id,
-      requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
-      contact: { name: input.name, phone: input.phone ?? null, note: input.note ?? null },
-    });
-    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: customer.id, now });
-    await queueEmail(deps, tx, {
-      template: "guest_link",
-      to: input.email,
-      customerId: customer.id,
-      data: { url: link.url, what: "quote request", reference: ref },
-      record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
-      linkLabel: "Opens the design the quote is for",
-      requestId: access.actor.requestId,
-    });
-    return ref;
+  // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
+  const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
+  const moved = await tx
+    .update(schema.configurations)
+    .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
+    .where(and(eq(schema.configurations.id, id), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .returning({ id: schema.configurations.id });
+  if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  // A quote item leaves the cart when its quote is requested (COM-FR-081).
+  await tx.delete(schema.cartItems).where(eq(schema.cartItems.configurationId, id));
+  await closeCheckoutsWith(tx, id);
+  const ref = await nextQuoteReference(tx, now);
+  const { emailedTo: _emailed, ...snapshot } = current;
+  void _emailed;
+  await tx.insert(schema.quotes).values({
+    reference: ref,
+    customerId: customer.id,
+    configurationId: id,
+    requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
+    contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
   });
-  return { reference, status: "PENDING_REVIEW" as const };
+  const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: recipient.id, now });
+  await queueEmail(deps, tx, {
+    template: "guest_link",
+    to: input.email,
+    customerId: recipient.id,
+    data: { url: link.url, what: "quote request", reference: ref },
+    record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
+    linkLabel: "Opens the design the quote is for",
+    requestId: access.actor.requestId,
+  });
+  return ref;
 }

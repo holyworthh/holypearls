@@ -41,6 +41,8 @@ export async function createHarness(
   options: {
     controllers?: Type[];
     rateLimit?: boolean;
+    /** WEB_PROXY_SECRET, for tests of the visitor's address. */
+    proxySecret?: string;
     /** Mounts the demo routes (on by default when a Jobs sender is passed). */
     demoSlice?: boolean;
     seed?: boolean;
@@ -98,6 +100,7 @@ export async function createHarness(
     helpInboxEmail: TEST_HELP_INBOX,
     demoSlice: options.demoSlice ?? Boolean(options.jobs),
     rateLimit: options.rateLimit ?? false,
+    proxySecret: options.proxySecret ?? null,
     now: () => now.value ?? new Date(),
     webOrigin: TEST_WEB_ORIGIN,
     controllers: options.controllers,

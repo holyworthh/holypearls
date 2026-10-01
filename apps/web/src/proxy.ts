@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { CLIENT_IP_HEADER, PROXY_SECRET_HEADER, visitorHeaders } from "./lib/visitor";
 
 /**
  * Private pages (PUB-SEO-008): noindex by default, in code, for every page
@@ -17,6 +18,13 @@ export const isPrivatePath = (pathname: string) => PRIVATE.test(pathname);
  */
 export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
+  // API calls go on to the API with the visitor's address, vouched for by the shared secret (review P1-08).
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    headers.delete(CLIENT_IP_HEADER);
+    headers.delete(PROXY_SECRET_HEADER);
+    for (const [name, value] of Object.entries(visitorHeaders(request.headers))) headers.set(name, value);
+    return NextResponse.next({ request: { headers } });
+  }
   if (!/^[A-Za-z0-9_-]{8,64}$/.test(headers.get("x-request-id") ?? "")) {
     headers.set("x-request-id", `req_web_${crypto.randomUUID().replaceAll("-", "")}`);
   }
@@ -26,4 +34,4 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/((?!api/|_next/|favicon.ico).*)"] };
+export const config = { matcher: ["/((?!_next/|favicon.ico).*)"] };

@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { products } from "./catalogue.js";
 import { customers } from "./customers.js";
@@ -46,6 +46,8 @@ export const configurations = pgTable(
     details: jsonb("details").notNull().default({}),
     /** "I don't know the sizes yet" is a valid answer (COM-FR-027). */
     sizesUnknown: boolean("sizes_unknown").notNull().default(false),
+    /** Set when the customer moved it out of the cart with "Save for later". */
+    savedForLaterAt: timestamp("saved_for_later_at", { withTimezone: true }),
     lastPriceResultId: uuid("last_price_result_id").references(() => priceResults.id, { onDelete: "set null" }),
     version: versionColumn(),
     createdAt: createdAt(),

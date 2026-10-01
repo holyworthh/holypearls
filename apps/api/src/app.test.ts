@@ -66,6 +66,17 @@ describe("API conventions", () => {
     logs.lines.length = 0;
   });
 
+  it("sends the security headers on every response (review P2-07)", async () => {
+    for (const path of ["/health/live", "/v1/conventions/expired", "/no-such-path"]) {
+      const response = await request(app.getHttpServer()).get(path);
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+      expect(response.headers["referrer-policy"]).toBe("no-referrer");
+      expect(response.headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+      expect(response.headers["content-security-policy"]).toContain("default-src 'none'");
+      expect(response.headers["x-frame-options"]).toBe("DENY");
+    }
+  });
+
   it("returns 400 in the error shape with field errors and the request ID", async () => {
     const response = await request(app.getHttpServer())
       .post("/v1/conventions/echo")

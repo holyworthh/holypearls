@@ -3,7 +3,7 @@ import { and, type Database, eq, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { attachFile, findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureCustomer, redeemGuestLink } from "../identity/customers.js";
+import { createGuestLink, ensureAccountCustomer, ensureGuestCustomer, redeemGuestLink } from "../identity/customers.js";
 import { recordAudit } from "./audit.js";
 import { type NotificationDeps, queueEmail } from "./notifications.js";
 import { allow, type Decision, hide } from "./policy.js";
@@ -99,13 +99,11 @@ export async function createHelpRequest(
   const customer =
     actor.type === "guest"
       ? (await deps.db.select().from(schema.customers).where(eq(schema.customers.id, actor.guest.customerId)))[0]
-      : email
-        ? await ensureCustomer(deps.db, {
-            email,
-            name: actor.type === "user" ? actor.session.name : input.name,
-            userId: actor.type === "user" ? actor.session.userId : null,
-          })
-        : null;
+      : actor.type === "user"
+        ? await ensureAccountCustomer(deps.db, actor.session, actor.now)
+        : email
+          ? await ensureGuestCustomer(deps.db, { email, name: input.name })
+          : null;
   if (!customer) throw new AppError("VALIDATION_FAILED", { fieldErrors: { email: "Enter your email so we can reply" } });
 
   const reference = await nextReference(deps.db, now);

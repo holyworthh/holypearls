@@ -2,6 +2,7 @@ import { loadWebEnv } from "@holypearls/config";
 import { apiErrorSchema, type ApiErrorBody, REQUEST_ID_HEADER } from "@holypearls/contracts";
 import { cookies, headers } from "next/headers";
 import type { z } from "zod";
+import { visitorHeaders } from "./visitor";
 
 const env = loadWebEnv();
 
@@ -23,7 +24,7 @@ export async function serverApi<T extends z.ZodType>(path: string, schema: T): P
   const incoming = await headers();
   const requestId = incoming.get(REQUEST_ID_HEADER) ?? `req_web_${crypto.randomUUID().replaceAll("-", "")}`;
   const response = await fetch(`${env.API_URL}${path}`, {
-    headers: { accept: "application/json", cookie: jar.toString(), [REQUEST_ID_HEADER]: requestId },
+    headers: { accept: "application/json", cookie: jar.toString(), [REQUEST_ID_HEADER]: requestId, ...visitorHeaders(incoming) },
     cache: "no-store",
   });
   const payload: unknown = await response.json().catch(() => undefined);

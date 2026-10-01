@@ -23,6 +23,7 @@ import { ContentAdminController, ContentController } from "./catalogue/content.c
 import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
+import { CartController, CheckoutController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -32,7 +33,7 @@ import { NotificationsController } from "./platform/notifications.controller.js"
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
-import { RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
+import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
 import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
 import { LocalDiskStorage, type StorageAdapter } from "@holypearls/storage";
 
@@ -55,6 +56,8 @@ export interface CreateAppOptions {
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
   rateLimit?: boolean;
+  /** WEB_PROXY_SECRET: proves the web app's proxy sent the visitor's address (review P1-08). */
+  proxySecret?: string | null;
   /** Clock, for tests. */
   now?: () => Date;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
@@ -89,6 +92,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       SeoController,
       PricingAdminController,
       PublicPricingController,
+      CartController,
+      CheckoutController,
+      DeliveryZonesAdminController,
       ConfigurationsController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
@@ -133,6 +139,21 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   const getActor = actorResolver(options.identity, options.db, now);
 
   app.use(requestContext(options.logger));
+  // Security headers on every response (TECH-06, review P2-07). The API sends JSON and images only,
+  // so its policy allows nothing to run or embed it; HSTS where it's served over HTTPS.
+  app.use((_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader("x-content-type-options", "nosniff");
+    response.setHeader("referrer-policy", "no-referrer");
+    response.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    response.setHeader("x-frame-options", "DENY");
+    response.setHeader("cross-origin-resource-policy", "same-site");
+    if (options.webOrigin.startsWith("https:")) response.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
+    next();
+  });
+  app.use((request: Request, _response: Response, next: NextFunction) => {
+    request.clientIp = clientIpFrom(request, options.proxySecret ?? null);
+    next();
+  });
   app.use(originCheck(options.webOrigin));
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.getActor = () => getActor(request);
