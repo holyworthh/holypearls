@@ -69,6 +69,12 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 - **Hero swatches.** On load each swatch flies in from the nearest screen edge (left ones from the left, right ones from the right, the middle phone swatch from below), staggered 80 ms, over 1.3 s with the enter easing, then starts its float. New tokens `--hp-motion-swatch-in` and `--hp-swatch-in-tilt`. Off with reduced motion.
 - **Tests.** Added a check that the rail ends on the content edge and the button isn't inline (375 and 1440). Storefront, interactions and design-system specs: 95 passed, 9 skipped.
 
+## Product pages (Pen first), 1 October 2026
+
+- **Pen.** Three new frames on the Stage 4.3 screens board: Business Cards 1440 `gb4rz` (fixed-price template), Polo Shirt 1440 `mfOQO` (estimate and garment template) and Polo Shirt 390 `Q7ml3`. They are drawn from the canvas F02 boards and are templates for every product page, not one-off pages.
+- **White, not beige (owner).** The canvas's cream card faces (`#FBF9F4`, `#F3EEE3`), the striped warm-grey thumbnail placeholders and the Mist timing boxes are white with a rule border in Pen. The preview stages keep their tints (Holy Blue tint for garments, Brick tint for print), and the amber "Quote needed" tint stays as a status colour.
+- **Pen limits.** Dashed borders (logo mark, "I don't know the sizes yet", upload drop zone) are solid in Pen; the code uses dashes as in the canvas.
+
 ## Research behind the added motion
 
 - NN/g timing guidance: about 100 ms reads as instant, and anything past roughly 400 ms feels slow. Hover and press feedback stay at 120–200 ms, and only entrances and ambient loops run longer. Sources: [Val Head](https://valhead.com/?p=2978), [Fronteers](https://www.fronteers.nl/en/blog/2024/12/microanimations).
@@ -82,7 +88,7 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
    - The site now shows Products, Projects, Our Work and Help. Help goes to the buying guides (`/resources`).
    - With four items, the search pill is back to the canvas's 300 px and shows with the main nav from 1280 px; below that, the search icon and menu button.
    - Projects keeps its existing menu (code only; the Pen header shows a chevron on Products alone).
-   - **Proposed PRD change (not edited here):** amend PUB-FR-003 to "Products, Projects, Our Work and Help; Apparel and Print & Display are reached from the Products mega-menu."
+   - **PRD amended at the owner's request:** PRD-01 is now v2.1, and PUB-FR-003 reads "Products, Projects, Our Work and Help", with Apparel and Print & Display reached from the Products mega-menu.
 2. **Header cart icon.** The canvas shows a cart. The cart ships with T04-01 (PR #36, not merged into `dev`), so the code keeps "Track an order" in that slot for now. Swap it for the cart once T04-01 lands.
 3. **Unsourced prices and colours.**
    - "Tees from ₦7,500" has no catalogue source and is replaced by "Tees, hoodies and caps". "Polos from ₦8,500" is the seeded polo price.
@@ -125,5 +131,5 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 
 ## Follow-ups to docs outside `docs/design`
 
-- PRD-01 PUB-FR-003 (navigation items): amend to the four items, as in item 1.
+- PRD-01 PUB-FR-003 (navigation items): done in PRD-01 v2.1.
 - TECH or ADR: record Workshop Ledger as the active visual direction, superseding the Signal visual lock (Stage 4.2 `lyo0w`).

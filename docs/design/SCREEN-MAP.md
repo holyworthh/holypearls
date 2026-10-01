@@ -22,6 +22,9 @@ The owner replaced Signal with **Workshop Ledger** from their design canvas. Boa
 | HP/Nav/Header (rebuilt) | nO6TF | Desktop | all public pages | Ledger header: lockup, nav, search pill, account, cart, Start a Project | PUB-FR-003, PUB-FR-004 | Ledger pass |
 | HP/Nav/MobileHeader (rebuilt) | ED2Si | Mobile | all public pages | Lockup, search, cart, menu | PUB-FR-005 | Ledger pass |
 | HP/Nav/Footer (rebuilt) | F64bQ | Desktop | all public pages | Woven strip, full logo, Blue Deep CTA, columns, giant wordmark | PUB-FR-014 (via Delivery link) | Ledger pass |
+| F02 · Business Cards — desktop 1440 (Ledger) | gb4rz | Desktop 1440 | `/products/[slug]` (fixed-price template) | Soft matte, Standard, 500, Upload selected; PRICE_READY | COM-FR-001–005, COM-FR-040–044, COM-FR-050, COM-FR-053, COM-FR-084 | Ledger PDP pass (no ticket) |
+| F02 · Polo Shirt — desktop 1440 (Ledger) | mfOQO | Desktop 1440 | `/products/[slug]` (estimate / garment template) | Steps 1–2 done, Placement and Sizes open, 50 pieces; ESTIMATE | COM-FR-001–005, COM-FR-010–014, COM-FR-020–028, COM-FR-053, COM-FR-060–061 | Ledger PDP pass (no ticket) |
+| F02 · Polo Shirt — mobile 390 (Ledger) | Q7ml3 | Mobile 390 | `/products/[slug]` (estimate / garment template) | Step 4 of 6 (Sizes), completed-step summaries, sticky price bar | COM-FR-002, COM-FR-010, COM-FR-014, COM-FR-027–028 | Ledger PDP pass (no ticket) |
 
 The owner canvas also holds Ledger versions of the Product Directory, category hubs, search states and the Business Cards and Polo product pages (F01/F02 boards). They are not yet in Pen; see the Ledger report.
 
@@ -49,9 +52,9 @@ The PRD references below copy the mapped tracker rows' PRD refs. A dash means th
 | 16 Homepage — mobile (superseded by Stage 4.3 `Y0ftk8`) | kZf2b | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-001–005, PUB-FR-014 | T02-03 |
 | 17 Product Directory — desktop | bhA8B | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-008, PUB-FR-010 | T02-03 |
 | 18 Category hub — Apparel | jUd9y | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | PUB-FR-009 | T02-03 |
-| 19 Polo PDP — desktop | V3j7CP | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
-| 20 Polo PDP — mobile | XX8rq | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
-| 21 Business Cards PDP | VSjt2 | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044 | T03-03 |
+| 19 Polo PDP — desktop (superseded by Stage 4.3 `mfOQO`) | V3j7CP | Desktop | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
+| 20 Polo PDP — mobile (superseded by Stage 4.3 `Q7ml3`) | XX8rq | Mobile | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044; COM-FR-020–026 | T03-03, T03-05 |
+| 21 Business Cards PDP (superseded by Stage 4.3 `gb4rz`) | VSjt2 | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-001–005, 040–044 | T03-03 |
 | 22 Polo Configurator — visual step | O2tORo | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Representative view; specific state not named | COM-FR-010–014; COM-FR-020–026; COM-FR-027–029; COM-FR-050–054 | T03-03, T03-05 |
 | 23 Start a Project — landing | jRe2D | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH; tracker Build says /start | Representative view; specific state not named | PROJ-FR-001–002, 007 | T05-01 |
 | 24 Event Builder — recommendations | LqHMw | Desktop (INFERRED; breakpoint not named) | Not specified in PRD/TECH | Recommendations shown | PROJ-FR-003–006 | T05-01 |

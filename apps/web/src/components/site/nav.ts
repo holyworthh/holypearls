@@ -36,8 +36,7 @@ export const GOALS: { label: string; body: string; href: string }[] = [
 ];
 
 /**
- * Main navigation (Ledger header, owner decision 1 October 2026): Products,
- * Projects, Our Work and Help. Apparel and Print & Display are reached through
+ * Main navigation (PUB-FR-003, PRD-01 v2.1): Products, Projects, Our Work and Help. Apparel and Print & Display are reached through
  * the Products mega-menu, which groups categories, the admin-managed popular
  * products and goals (PUB-FR-004). Help goes to the buying guides.
  */
