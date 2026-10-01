@@ -15,6 +15,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Node's types follow the Node version we run (22, as in CI and the image). Moving to a
+      # newer Node is a deliberate decision, not a weekly update.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     target-branch: dev
@@ -31,3 +36,7 @@ updates:
       day: monday
     commit-message:
       prefix: chore
+    ignore:
+      # Same Node major as CI and Vercel's build; patch and minor updates still come weekly.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
