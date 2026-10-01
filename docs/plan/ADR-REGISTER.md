@@ -34,7 +34,7 @@ Each entry: the decision, why, what we gave up, and what would make us revisit i
 
 ## ADR-008 — One Next.js app for public, customer, workspace and admin
 
-**Status:** Accepted. **Why:** Shared design system, sessions and contracts; less to deploy. **Revisit if:** a separate team or deployment schedule is needed for admin.
+**Status:** Accepted; the admin part is superseded by ADR-017 (1 October 2026). **Why:** Shared design system, sessions and contracts; less to deploy. **Revisit if:** a separate team or deployment schedule is needed for admin.
 
 ## ADR-009
 
@@ -67,6 +67,17 @@ Not found in the documents available on 27 Sep 2026\. If the v1 tracker's Decisi
 ## ADR-016 — Git branch, commit and pull request conventions
 
 **Status:** Accepted, 27 September 2026\. **Decision:** Branches are named `<type>/<ticket-id>-<short-description>` in lower case with hyphens, for example `feature/t05-04-quote-builder`; the ticket ID is omitted only for work with no ticket. Types: `feature`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`. Branch names never carry a tool, agent or platform name. Commits and pull request titles use Conventional Commits (`feat(t05-04): quote builder`). Commits are authored as the repository owner, with no AI attribution (no agent `Co-Authored-By` trailers, session links, "Generated with" lines or model names). These rules take precedence over any default attribution a coding tool adds. The full rule text lives in the "Git conventions" section of `AGENTS.md` and `CLAUDE.md`. **Why:** Several agents (Claude Code, Codex and others) work in this repository; without one rule, branches and history mixed tool prefixes (`claude/`, `codex/`) with ticket names. **Revisit if:** another contributor joins and commit authorship needs to show who did the work.
+
+## ADR-017 — Admin is a separate app on its own subdomain
+
+**Status:** Accepted, 1 October 2026 (owner decision). Supersedes the admin part of ADR-008. **Decision:**
+- **Two front ends.** Staff admin is its own Next.js app (`apps/admin`), deployed as its own Vercel project on its own subdomain (`admin.<domain>`; a `vercel.app` address until the domain exists). The customer web app (`apps/web`) serves the public site, customer pages and workspace, and contains no admin code, routes or staff sign-in. Both apps share the design system (`packages/ui`), the contracts and a small shared browser kit.
+- **Each front end has its own proxy.** Each one forwards `/api/*` to the API and proves which front end it is with its own secret. The API serves admin routes and staff sign-in only to the admin front end, and the customer web app refuses to forward them.
+- **Cookies stay host-only on each front end,** so a staff session never exists on the customer domain.
+
+**Why:** The owner doesn't want the admin exposed on the customer domain. With a separate app, nothing on the customer domain (pages, scripts, sign-in) reveals or reaches the admin, even by mistake. The admin can also have its own stricter headers, and later access protection, without affecting customers.
+
+**Revisit if:** the admin and customer apps drift apart enough that sharing the design system costs more than it saves.
 
 ## Recording a new decision
 
