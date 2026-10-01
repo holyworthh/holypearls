@@ -292,6 +292,22 @@
   }
 }
 
+/* The bag stays in the phone header too (Pen 42 mobile header: search, bag, menu). */
+.bagLink {
+  display: grid;
+}
+
+@media (max-width: 1023px) {
+  .bagLink {
+    order: 1;
+    width: var(--hp-touch-target);
+  }
+
+  .menuButton {
+    order: 2;
+  }
+}
+
 .cta {
   display: none;
   align-items: center;

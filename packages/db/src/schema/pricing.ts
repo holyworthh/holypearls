@@ -163,3 +163,40 @@ export const priceResults = pgTable(
   },
   (table) => [index("price_results_created_idx").on(table.createdAt)],
 );
+
+export const deliveryZoneKind = pgEnum("delivery_zone_kind", ["AREA", "REST_OF_NIGERIA", "INTERNATIONAL"]);
+export const deliveryPricing = pgEnum("delivery_pricing", ["FIXED", "QUOTE"]);
+
+/**
+ * Delivery zones and rates (T04-01, OPS-FR-100–101, Pen 108). An AREA zone
+ * covers whole states or single LGAs; every Nigerian address resolves to
+ * exactly one zone (an LGA match beats a whole-state match, and anything not
+ * covered falls to the REST_OF_NIGERIA zone). INTERNATIONAL is freight by
+ * quote. Checkouts copy the rate they used, so changing a rate never changes
+ * an existing checkout.
+ */
+export const deliveryZones = pgTable(
+  "delivery_zones",
+  {
+    id: idColumn(),
+    name: text("name").notNull(),
+    kind: deliveryZoneKind("kind").notNull().default("AREA"),
+    /** For AREA zones: `{ state, lga }` pairs; `lga: null` covers the whole state. */
+    covers: jsonb("covers").notNull().default([]),
+    pricing: deliveryPricing("pricing").notNull(),
+    /** NGN kobo, before VAT; null when pricing is QUOTE. */
+    rateMinor: bigint("rate_minor", { mode: "bigint" }),
+    /** Working days in transit, shown separately from production time (COM-FR-070). */
+    transitMinDays: integer("transit_min_days"),
+    transitMaxDays: integer("transit_max_days"),
+    position: integer("position").notNull().default(0),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("delivery_zones_name_unique").on(sql`lower(${table.name})`),
+    uniqueIndex("delivery_zones_rest_unique").on(table.kind).where(sql`${table.kind} <> 'AREA'`),
+    check("delivery_zones_rate", sql`(${table.pricing} = 'FIXED' and ${table.rateMinor} >= 0) or (${table.pricing} = 'QUOTE' and ${table.rateMinor} is null)`),
+  ],
+);

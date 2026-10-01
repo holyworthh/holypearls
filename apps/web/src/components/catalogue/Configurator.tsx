@@ -6,7 +6,8 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { z } from "zod";
 import { api, errorCode, errorReason } from "../../lib/api";
 import s from "./ledger-pdp.module.css";
-import { ArrowRight, Check, Clock, PenTool, Upload } from "lucide-react";
+import { ArrowRight, Check, Clock, Lock, PenTool, Upload } from "lucide-react";
+import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, FamilyFields, QuoteRequest } from "./FamilyDelivery";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
@@ -514,15 +515,15 @@ export function Configurator({ productSlug, productName, family, data, initialDr
             </Notice>
           ) : null}
           {ready ? (
-            <>
-              <button type="button" className={s.primary} disabled title="Online checkout opens soon">
-                Checkout now
-              </button>
-              <button type="button" className={s.secondary} disabled title="Online checkout opens soon">
-                Add to cart
-              </button>
-              <p className={`${s.small} ${s.center}`}>Online checkout opens soon. Save this design now and we&apos;ll email you a link to come back to it.</p>
-            </>
+            draft?.status === "IN_CART" ? (
+              <AddToCart draft={draft} ensure={ensure} />
+            ) : (
+              <>
+                <AddToCart draft={draft} ensure={ensure} className={s.primary} label="Checkout now" then="checkout" icon={<Lock size={18} aria-hidden="true" />} />
+                <AddToCart draft={draft} ensure={ensure} className={s.secondary} label="Add to cart" />
+                <p className={`${s.small} ${s.center}`}>Guest checkout · no account needed. Your design saves as you go.</p>
+              </>
+            )
           ) : (
             <QuoteRequest
               draft={draft}

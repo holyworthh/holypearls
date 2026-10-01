@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-09-30 (after T02-06 and release #33).
+Last updated: 2026-09-30 (after T04-01).
 
 ## Decisions and actions needed
 
@@ -67,10 +67,18 @@ COM-FR-054 still says JPEG, PNG and PDF only. You approved AI and SVG (TECH-04 w
 ### 17. Garment decoration prices and sizes (T03-05)
 Extra placements currently keep the price an estimate. **Needed:** per-placement embroidery and print prices. Also **confirm the design widths** used for the resolution check: small 7 cm, standard 10 cm, large 28 cm.
 
+### 22. Real delivery rates (T04-01)
+Checkout uses Pen 108's TEST DATA zones: Lagos Mainland ₦5,000, Lagos Island ₦6,500, Abuja FCT ₦12,000, other states "quote required", international "freight by quote", with transit Lagos 1–2 and elsewhere 2–5 working days. **Needed:** real zones, rates (before VAT) and transit days. You can enter them yourself in Admin → Delivery & installation.
+
+### 23. Paystack test keys (for T04-03, next)
+**Needed:** the Paystack **test** secret and public keys from the Paystack dashboard (Settings → API Keys & Webhooks). Until they arrive, payments are built and tested against a fake gateway, and checkout's Pay button stays off.
+
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
 - **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header (planned for T15-01 unless you want it sooner).
+- **T04-01, delivery by quote:** when an address is in a "Quote required" zone (or abroad), checkout completes but payment waits for the delivery price. How should that price reach the customer: a delivery-only quote, or staff setting the price on the checkout?
+- **T04-01, several quote items:** "Submit quote items" makes one quote request (and email) per item. Fine for now, or should they become one request?
 - **T02-06, anonymous attachments:** visitors who aren't signed in can attach files only after sending a contact enquiry (uploads need a session, TECH-04). Fine, or should guests get an upload session earlier?
 - **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?
 - **T03-08, custom sizes:** Pen says custom large-format sizes are priced by area and only very large ones need a quote. Without per-m² prices, every custom size is a quote for now (PRD COM-FR-060). **Needed:** per-m² prices per material and a "very large" threshold.

@@ -15,3 +15,4 @@ export * from "./pricing.js";
 export * from "./configuration.js";
 export * from "./content.js";
 export * from "./search.js";
+export * from "./sales.js";

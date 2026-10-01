@@ -47,3 +47,10 @@ export const ChevronLeft = ({ className }: { className?: string }) => (
     <path d="m15 18-6-6 6-6" />
   </svg>
 );
+export const BagIcon = ({ className }: { className?: string }) => (
+  <svg {...base} className={className}>
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+    <path d="M3 6h18" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </svg>
+);

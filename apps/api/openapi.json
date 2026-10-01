@@ -23474,6 +23474,4757 @@
         }
       }
     },
+    "/v1/cart": {
+      "get": {
+        "summary": "The cart: ready and quote groups, saved-for-later designs (owner or browser only)",
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "QUOTE"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "artwork": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantityOptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "configurationId",
+                          "group",
+                          "productName",
+                          "productSlug",
+                          "summary",
+                          "quantity",
+                          "artwork",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "quantityOptions",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "savedForLater": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ready": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quoteEstimateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "savedForLater",
+                    "ready",
+                    "quoteEstimateMinor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/items": {
+      "post": {
+        "summary": "Add a saved design to the cart (COM-FR-080); quote-needing designs join the quote group",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "configurationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "configurationId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "QUOTE"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "artwork": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantityOptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "configurationId",
+                          "group",
+                          "productName",
+                          "productSlug",
+                          "summary",
+                          "quantity",
+                          "artwork",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "quantityOptions",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "savedForLater": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ready": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quoteEstimateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "savedForLater",
+                    "ready",
+                    "quoteEstimateMinor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No quantity yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already has a quote request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A blocking answer must change first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/items/{id}": {
+      "delete": {
+        "summary": "Remove an item; its design stays a draft",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "QUOTE"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "artwork": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantityOptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "configurationId",
+                          "group",
+                          "productName",
+                          "productSlug",
+                          "summary",
+                          "quantity",
+                          "artwork",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "quantityOptions",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "savedForLater": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ready": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quoteEstimateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "savedForLater",
+                    "ready",
+                    "quoteEstimateMinor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/items/{id}/save-for-later": {
+      "post": {
+        "summary": "Move an item back to the customer's saved designs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "QUOTE"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "artwork": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantityOptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "configurationId",
+                          "group",
+                          "productName",
+                          "productSlug",
+                          "summary",
+                          "quantity",
+                          "artwork",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "quantityOptions",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "savedForLater": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ready": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quoteEstimateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "savedForLater",
+                    "ready",
+                    "quoteEstimateMinor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/saved/{configurationId}": {
+      "delete": {
+        "summary": "Drop a design from the saved-for-later list (the draft stays)",
+        "parameters": [
+          {
+            "name": "configurationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "group": {
+                            "type": "string",
+                            "enum": [
+                              "READY",
+                              "QUOTE"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "artwork": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "quantityOptions": {
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "configurationId",
+                          "group",
+                          "productName",
+                          "productSlug",
+                          "summary",
+                          "quantity",
+                          "artwork",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "quantityOptions",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "savedForLater": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "editHref": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "editHref"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ready": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "quoteEstimateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "savedForLater",
+                    "ready",
+                    "quoteEstimateMinor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/quote-request": {
+      "post": {
+        "summary": "Submit quote items: one quote request per quote item (CONTACT limit)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "email",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quote references",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "references": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "references"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No quote items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts": {
+      "post": {
+        "summary": "Start checkout for the cart's ready items; the server reprices and freezes them (TECH-05 §1). Idempotency-Key required; the cart's open checkout is returned when nothing changed",
+        "responses": {
+          "200": {
+            "description": "Checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Nothing ready to check out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts/{id}": {
+      "get": {
+        "summary": "A checkout (owner or browser only)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts/{id}/contact": {
+      "put": {
+        "summary": "Contact step (with version)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "phone",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout, totals recalculated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Check the fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed elsewhere or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts/{id}/address": {
+      "put": {
+        "summary": "Delivery address; resolves the delivery zone and copies its rate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "country": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "phone": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  },
+                  "street": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "area": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "state": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "landmark": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "postcode": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "country",
+                  "name",
+                  "phone",
+                  "street",
+                  "area",
+                  "state",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Check the fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed elsewhere or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Contact first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts/{id}/delivery": {
+      "put": {
+        "summary": "Delivery option",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "option": {
+                    "type": "string",
+                    "const": "STANDARD"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "option",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed elsewhere or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Address first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/checkouts/{id}/billing": {
+      "put": {
+        "summary": "Billing and VAT details",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sameAsDelivery": {
+                    "type": "boolean"
+                  },
+                  "companyName": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "taxId": {
+                    "type": "string",
+                    "maxLength": 40
+                  },
+                  "address": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "sameAsDelivery",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "OPEN",
+                        "COMPLETED",
+                        "ABANDONED"
+                      ]
+                    },
+                    "step": {
+                      "type": "string",
+                      "enum": [
+                        "contact",
+                        "address",
+                        "delivery",
+                        "billing",
+                        "review"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productName": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "totalMinor": {
+                            "type": "string"
+                          },
+                          "perUnitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "cartTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "productName",
+                          "summary",
+                          "quantity",
+                          "totalMinor",
+                          "perUnitMinor",
+                          "cartTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "contact": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 120
+                            },
+                            "email": {
+                              "type": "string",
+                              "maxLength": 254,
+                              "format": "email",
+                              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 40
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "email",
+                            "phone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "address": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "street": {
+                              "type": "string"
+                            },
+                            "area": {
+                              "type": "string"
+                            },
+                            "state": {
+                              "type": "string"
+                            },
+                            "landmark": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "postcode": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "country",
+                            "name",
+                            "phone",
+                            "street",
+                            "area",
+                            "state",
+                            "landmark",
+                            "postcode"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "delivery": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "zoneName": {
+                              "type": "string"
+                            },
+                            "pricing": {
+                              "type": "string",
+                              "enum": [
+                                "FIXED",
+                                "QUOTE"
+                              ]
+                            },
+                            "rateMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "transitDays": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "min": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "max": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
+                                  },
+                                  "required": [
+                                    "min",
+                                    "max"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "chosen": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "zoneName",
+                            "pricing",
+                            "rateMinor",
+                            "transitDays",
+                            "chosen"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "billing": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "sameAsDelivery": {
+                              "type": "boolean"
+                            },
+                            "companyName": {
+                              "type": "string",
+                              "maxLength": 160
+                            },
+                            "taxId": {
+                              "type": "string",
+                              "maxLength": 40
+                            },
+                            "address": {
+                              "type": "string",
+                              "maxLength": 300
+                            }
+                          },
+                          "required": [
+                            "sameAsDelivery"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "totals": {
+                      "type": "object",
+                      "properties": {
+                        "goodsMinor": {
+                          "type": "string"
+                        },
+                        "deliveryMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "vatMinor": {
+                          "type": "string"
+                        },
+                        "totalMinor": {
+                          "type": "string"
+                        },
+                        "vatRateBps": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "goodsMinor",
+                        "deliveryMinor",
+                        "vatMinor",
+                        "totalMinor",
+                        "vatRateBps"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "international": {
+                      "type": "boolean"
+                    },
+                    "productionDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "blockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "STEPS_INCOMPLETE",
+                              "DELIVERY_QUOTE_REQUIRED",
+                              "PAYMENTS_NOT_AVAILABLE"
+                            ]
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteItemsLeftInCart": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "step",
+                    "version",
+                    "items",
+                    "contact",
+                    "address",
+                    "delivery",
+                    "billing",
+                    "totals",
+                    "international",
+                    "productionDays",
+                    "blockers",
+                    "quoteItemsLeftInCart"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Check the fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not yours",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed elsewhere or closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Delivery first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/delivery-zones": {
+      "get": {
+        "summary": "Delivery zones (PRICING_MANAGE)",
+        "responses": {
+          "200": {
+            "description": "Zones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "zones": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "AREA",
+                              "REST_OF_NIGERIA",
+                              "INTERNATIONAL"
+                            ]
+                          },
+                          "covers": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "state": {
+                                  "type": "string",
+                                  "enum": [
+                                    "Abia",
+                                    "Adamawa",
+                                    "Akwa Ibom",
+                                    "Anambra",
+                                    "Bauchi",
+                                    "Bayelsa",
+                                    "Benue",
+                                    "Borno",
+                                    "Cross River",
+                                    "Delta",
+                                    "Ebonyi",
+                                    "Edo",
+                                    "Ekiti",
+                                    "Enugu",
+                                    "FCT",
+                                    "Gombe",
+                                    "Imo",
+                                    "Jigawa",
+                                    "Kaduna",
+                                    "Kano",
+                                    "Katsina",
+                                    "Kebbi",
+                                    "Kogi",
+                                    "Kwara",
+                                    "Lagos",
+                                    "Nasarawa",
+                                    "Niger",
+                                    "Ogun",
+                                    "Ondo",
+                                    "Osun",
+                                    "Oyo",
+                                    "Plateau",
+                                    "Rivers",
+                                    "Sokoto",
+                                    "Taraba",
+                                    "Yobe",
+                                    "Zamfara"
+                                  ]
+                                },
+                                "lga": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 80
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "state",
+                                "lga"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "transitMinDays": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "transitMaxDays": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "kind",
+                          "covers",
+                          "pricing",
+                          "rateMinor",
+                          "transitMinDays",
+                          "transitMaxDays",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "zones"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing PRICING_MANAGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add an area zone; overlapping covers are refused (audited)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "covers": {
+                    "minItems": 1,
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
+                          ]
+                        },
+                        "lga": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 80
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "state",
+                        "lga"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "pricing": {
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "QUOTE"
+                    ]
+                  },
+                  "rateMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMinDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMaxDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "covers",
+                  "pricing",
+                  "rateMinor",
+                  "transitMinDays",
+                  "transitMaxDays"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "AREA",
+                        "REST_OF_NIGERIA",
+                        "INTERNATIONAL"
+                      ]
+                    },
+                    "covers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "Abia",
+                              "Adamawa",
+                              "Akwa Ibom",
+                              "Anambra",
+                              "Bauchi",
+                              "Bayelsa",
+                              "Benue",
+                              "Borno",
+                              "Cross River",
+                              "Delta",
+                              "Ebonyi",
+                              "Edo",
+                              "Ekiti",
+                              "Enugu",
+                              "FCT",
+                              "Gombe",
+                              "Imo",
+                              "Jigawa",
+                              "Kaduna",
+                              "Kano",
+                              "Katsina",
+                              "Kebbi",
+                              "Kogi",
+                              "Kwara",
+                              "Lagos",
+                              "Nasarawa",
+                              "Niger",
+                              "Ogun",
+                              "Ondo",
+                              "Osun",
+                              "Oyo",
+                              "Plateau",
+                              "Rivers",
+                              "Sokoto",
+                              "Taraba",
+                              "Yobe",
+                              "Zamfara"
+                            ]
+                          },
+                          "lga": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "lga"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FIXED",
+                        "QUOTE"
+                      ]
+                    },
+                    "rateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "transitMinDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transitMaxDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "covers",
+                    "pricing",
+                    "rateMinor",
+                    "transitMinDays",
+                    "transitMaxDays",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Overlap or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing PRICING_MANAGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/delivery-zones/{id}": {
+      "patch": {
+        "summary": "Change a zone; the rest-of-Nigeria and International rows change pricing only (audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 80
+                      },
+                      "covers": {
+                        "minItems": 1,
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "state": {
+                              "type": "string",
+                              "enum": [
+                                "Abia",
+                                "Adamawa",
+                                "Akwa Ibom",
+                                "Anambra",
+                                "Bauchi",
+                                "Bayelsa",
+                                "Benue",
+                                "Borno",
+                                "Cross River",
+                                "Delta",
+                                "Ebonyi",
+                                "Edo",
+                                "Ekiti",
+                                "Enugu",
+                                "FCT",
+                                "Gombe",
+                                "Imo",
+                                "Jigawa",
+                                "Kaduna",
+                                "Kano",
+                                "Katsina",
+                                "Kebbi",
+                                "Kogi",
+                                "Kwara",
+                                "Lagos",
+                                "Nasarawa",
+                                "Niger",
+                                "Ogun",
+                                "Ondo",
+                                "Osun",
+                                "Oyo",
+                                "Plateau",
+                                "Rivers",
+                                "Sokoto",
+                                "Taraba",
+                                "Yobe",
+                                "Zamfara"
+                              ]
+                            },
+                            "lga": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 80
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "state",
+                            "lga"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "pricing": {
+                        "type": "string",
+                        "enum": [
+                          "FIXED",
+                          "QUOTE"
+                        ]
+                      },
+                      "rateMinor": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^\\d{1,12}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "transitMinDays": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "transitMaxDays": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "covers",
+                      "pricing",
+                      "rateMinor",
+                      "transitMinDays",
+                      "transitMaxDays"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "pricing": {
+                        "type": "string",
+                        "enum": [
+                          "FIXED",
+                          "QUOTE"
+                        ]
+                      },
+                      "rateMinor": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^\\d{1,12}$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "transitMinDays": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "transitMaxDays": {
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 60
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "version": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "pricing",
+                      "rateMinor",
+                      "transitMinDays",
+                      "transitMaxDays",
+                      "version"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "AREA",
+                        "REST_OF_NIGERIA",
+                        "INTERNATIONAL"
+                      ]
+                    },
+                    "covers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "Abia",
+                              "Adamawa",
+                              "Akwa Ibom",
+                              "Anambra",
+                              "Bauchi",
+                              "Bayelsa",
+                              "Benue",
+                              "Borno",
+                              "Cross River",
+                              "Delta",
+                              "Ebonyi",
+                              "Edo",
+                              "Ekiti",
+                              "Enugu",
+                              "FCT",
+                              "Gombe",
+                              "Imo",
+                              "Jigawa",
+                              "Kaduna",
+                              "Kano",
+                              "Katsina",
+                              "Kebbi",
+                              "Kogi",
+                              "Kwara",
+                              "Lagos",
+                              "Nasarawa",
+                              "Niger",
+                              "Ogun",
+                              "Ondo",
+                              "Osun",
+                              "Oyo",
+                              "Plateau",
+                              "Rivers",
+                              "Sokoto",
+                              "Taraba",
+                              "Yobe",
+                              "Zamfara"
+                            ]
+                          },
+                          "lga": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "lga"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FIXED",
+                        "QUOTE"
+                      ]
+                    },
+                    "rateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "transitMinDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transitMaxDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "covers",
+                    "pricing",
+                    "rateMinor",
+                    "transitMinDays",
+                    "transitMaxDays",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Overlap or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing PRICING_MANAGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an area zone (audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "403": {
+            "description": "Missing PRICING_MANAGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such area zone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/configurations": {
       "post": {
         "summary": "Start a configuration draft for a published product. Owned by the account, or by this browser (sets the HttpOnly hp.device cookie).",

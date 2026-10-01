@@ -19,6 +19,7 @@ import { ArrowRight, Check, CircleAlert, CircleDashed, CloudUpload, RefreshCw, U
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
+import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, QuoteRequest } from "./FamilyDelivery";
 import { GarmentPreview, POSITION_LABEL, type Position } from "./GarmentPreview";
 import s from "./ledger-pdp.module.css";
@@ -911,6 +912,10 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
               >
                 <ArrowRight size={18} aria-hidden="true" />
               </QuoteRequest>
+              {/* Quote it together with other items from the cart (Pen 41 "Needs a quote"). */}
+              {draft?.quote ? null : (
+                <AddToCart draft={draft} ensure={ensure} className={s.secondary} label="Add to cart for a quote" disabled={!draft?.price || Boolean(draft.garment?.unavailable.length)} />
+              )}
               <div className={s.links}>
                 <button type="button" className={s.textButton} onClick={() => setEmailOpen(true)}>
                   {draft?.emailedTo ? `Link sent to ${draft.emailedTo}` : "Save for later"}

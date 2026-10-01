@@ -267,8 +267,8 @@ test("desktop mega-menus open on hover and close when the pointer leaves", async
 test("icon-only actions show a tooltip with their name on hover and keyboard focus", async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? 0) < 1024, "Header icons are desktop only; touch never shows tooltips.");
   await page.goto("/");
-  await page.getByRole("banner").getByLabel("Track an order").hover();
-  const tip = page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Track an order" });
+  await page.getByRole("banner").getByLabel("Your cart").hover();
+  const tip = page.locator("[role='presentation'][aria-hidden='true']", { hasText: "Your cart" });
   await expect(tip).toBeVisible();
   const box = await tip.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
