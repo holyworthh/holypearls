@@ -28,10 +28,10 @@ Ticket T00-06 must prove, before any feature work: a server-rendered page with a
 
 ## 4\. Sessions
 
-- HttpOnly, Secure (in production), SameSite=Lax cookies, on the HolyPearls domain only.  
+- HttpOnly, Secure (in production), SameSite=Lax cookies, host-only on each front end: the customer domain, and the admin subdomain for staff (ADR-017).  
 - Customers: 30-day session, extended while in use. Staff: 12-hour session, never extended beyond 12 hours.  
 - Changing password or email ends all other sessions.  
-- The browser talks to one domain (web forwards `/api/*` to the API), so no cross-site cookie setup.
+- The browser talks only to the front end it is on (each forwards `/api/*` to the API), so no cross-site cookie setup. Staff sign in only on the admin subdomain. The customer domain neither serves nor forwards admin pages, admin API routes or staff sign-in. The API checks which front end a request came through by that front end's own proxy secret (ADR-017).
 
 ## 5\. Guest links
 
@@ -112,7 +112,7 @@ The web app hides buttons using permissions returned by the API, but that's only
 
 ## 13\. Cross-site request protection
 
-Every state-changing request from the browser must use a POST, PUT, PATCH or DELETE method, carry the SameSite=Lax session cookie, and pass an `Origin` header check against the HolyPearls domain. Better Auth's built-in protection stays on. Never loosen cookie settings to work around a front-end problem.
+Every state-changing request from the browser must use a POST, PUT, PATCH or DELETE method, carry the SameSite=Lax session cookie, and pass an `Origin` header check against the front end it belongs to: the customer domain for customer routes, the admin subdomain for admin routes. Better Auth's built-in protection stays on. Never loosen cookie settings to work around a front-end problem.
 
 ## 14\. Database row-level security
 

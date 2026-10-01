@@ -8,15 +8,16 @@ HolyPearls is **one application split into clear modules** (a "modular monolith"
 
 | Process | What it does |
 | :---- | :---- |
-| **web** (Next.js) | All screens: public site, customer pages, workspace and admin. |
+| **web** (Next.js) | Customer screens: public site, customer pages and workspace. |
+| **admin** (Next.js) | Staff screens, on their own subdomain (ADR-017). |
 | **api** (NestJS) | All business rules, permission checks, database writes, Paystack webhooks, and the OpenAPI description. |
 | **worker** (Node, same code as api) | Background jobs: emails, file checks, payment checks, expiring quotes, reminders, exports. |
 
-Only **api** and **worker** can touch the database. **web** always goes through the API.
+Only **api** and **worker** can touch the database. **web** and **admin** always go through the API.
 
 Why this size: HolyPearls has a lot of business logic but modest traffic (section 10). One application gives us one place to enforce permissions, simple transactions, cheap hosting and easy local development. A module can be split out later if real load or a separate team ever needs it.
 
-We will **not** use: microservices, Kafka or any message broker, Redis, Elasticsearch or Algolia, Kubernetes, GraphQL, a separate CMS, a separate admin app, websockets, or a general workflow engine.
+We will **not** use: microservices, Kafka or any message broker, Redis, Elasticsearch or Algolia, Kubernetes, GraphQL, a separate CMS, websockets, or a general workflow engine.
 
 ## 2\. Technology
 
@@ -78,7 +79,7 @@ Before: 18 modules. After: 10\. Modules with the same purpose were combined (ADR
 | **groups** | Group collections, participants, submissions, CSV imports, Order Drafts, company stores, allowances | groups |
 | **platform** | Audit log, notifications and email templates, help requests, rate limiting, idempotency keys, exports, job helpers | notifications, audit |
 
-**Admin is not a module.** Admin screens are a section of the web app (`/admin`) that calls the same module services with staff permissions. Admin can never skip a business rule.
+**Admin is not a module.** Admin screens live in the separate admin app (`apps/admin`, ADR-017) on their own subdomain. They call the same API and module services with staff permissions. Admin can never skip a business rule, and the API serves admin routes only to the admin app.
 
 ## 5\. Rules between modules
 

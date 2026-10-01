@@ -7,6 +7,7 @@
 | Part | Where | Notes |
 | :---- | :---- | :---- |
 | web | Vercel | Next.js |
+| admin | Vercel (its own project, on the admin subdomain; ADR-017) | Next.js |
 | api | Railway, Render or Fly.io (choose in T00-08) | Always-on Node service |
 | worker | Same host as api, separate service | Same code image as api |
 | Database | Neon PostgreSQL | Pooled connection for api; **direct** (unpooled) connection for worker and pg-boss |
