@@ -3,7 +3,7 @@
 #   worker:   node apps/worker/dist/main.js
 #   release:  node packages/db/dist/migrate-cli.js   (once, before new code starts; TECH-07 §6)
 # On the free tier one container runs all three (deploy/start-single.sh).
-FROM node:22.15.0-slim AS build
+FROM node:26.10.0-slim AS build
 # pnpm asks before removing modules unless it knows it runs in CI.
 ENV CI=true
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
@@ -20,14 +20,14 @@ RUN mkdir /out \
 
 # A fresh production-only install of the three services and what they use. (Not
 # `pnpm prune --prod`: in a workspace that removes the links between our own packages.)
-FROM node:22.15.0-slim AS deps
+FROM node:26.10.0-slim AS deps
 ENV CI=true
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
 WORKDIR /repo
 COPY --from=build /out /repo
 RUN pnpm install --prod --frozen-lockfile --filter "@holypearls/api..." --filter "@holypearls/worker..." --filter "@holypearls/db..."
 
-FROM node:22.15.0-slim
+FROM node:26.10.0-slim
 ENV NODE_ENV=production
 WORKDIR /repo
 COPY --from=deps /repo /repo
