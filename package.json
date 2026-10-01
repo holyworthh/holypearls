@@ -21,7 +21,7 @@
     "@types/node": "22.19.15",
     "dotenv-cli": "11.0.0",
     "eslint": "9.39.5",
-    "turbo": "2.11.4",
+    "turbo": "2.11.5",
     "typescript": "5.9.3",
     "typescript-eslint": "8.70.1",
     "vitest": "5.0.2"

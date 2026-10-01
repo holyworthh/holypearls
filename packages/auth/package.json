@@ -15,7 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@better-auth/utils": "0.4.2",
+    "@better-auth/utils": "0.5.0",
     "@holypearls/contracts": "workspace:*",
     "@holypearls/db": "workspace:*",
     "better-auth": "1.7.6"
