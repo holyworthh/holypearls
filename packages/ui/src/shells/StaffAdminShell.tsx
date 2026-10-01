@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type ReactNode } from "react";
+import { BrandLockup } from "../components/BrandMark";
 import { cx } from "../cx";
 import { SkipLink, type NavItem } from "./shells";
 import styles from "./StaffAdminShell.module.css";
@@ -34,11 +35,7 @@ const initials = (name: string) =>
 
 function Brand() {
   return (
-    <span className={styles.brand}>
-      <span className={styles.pearl} aria-hidden="true" />
-      <span className={styles.brandName}>HolyPearls</span>
-      <span className={styles.brandTag}>ADMIN</span>
-    </span>
+    <BrandLockup tone="reversed" tag="ADMIN" href="/admin" className={styles.brand} />
   );
 }
 

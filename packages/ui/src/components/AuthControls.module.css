@@ -4,27 +4,32 @@
   grid-auto-flow: column;
   gap: var(--hp-space-4);
   padding: var(--hp-space-4);
-  border-radius: var(--hp-space-8);
-  background: var(--hp-bone);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-pill);
+  background: var(--hp-paper);
 }
 
 .tab {
   min-height: var(--hp-touch-target);
-  border: var(--hp-border-width) solid transparent;
-  border-radius: var(--hp-r-control);
+  border: 0;
+  border-radius: var(--hp-r-pill);
   background: transparent;
-  color: var(--hp-graphite);
+  color: var(--hp-ink);
   font-family: var(--hp-font-ui);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-regular);
   cursor: pointer;
 }
 
-.tabSelected {
-  border-color: var(--hp-line);
-  background: var(--hp-paper);
-  color: var(--hp-ink);
+.tab {
   font-weight: var(--hp-weight-semibold);
+  transition: background-color var(--hp-motion-hover) var(--hp-ease-ui);
+}
+
+/* Ledger segmented control: the chosen side is ink on white (Pen mfOQO Front / Back). */
+.tabSelected {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
 }
 
 .passwordWrap {

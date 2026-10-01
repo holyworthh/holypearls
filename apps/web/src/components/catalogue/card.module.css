@@ -11,7 +11,7 @@
 .media {
   aspect-ratio: 320 / 425;
   overflow: hidden;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   background: var(--hp-sand);
 }
 
@@ -61,7 +61,7 @@
 .compact:has(.cardLink:focus-visible) {
   outline: var(--hp-focus-ring-width) solid var(--hp-ink);
   outline-offset: var(--hp-space-4);
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-button);
 }
 
 /* Hover: the photo pushes in slowly. */
@@ -144,7 +144,7 @@
 .compactMedia {
   height: var(--hp-size-240);
   overflow: hidden;
-  border-radius: var(--hp-space-6);
+  border-radius: var(--hp-r-option);
   background: var(--hp-sand);
 }
 

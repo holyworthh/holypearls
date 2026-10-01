@@ -565,7 +565,7 @@
   .fieldRow > .fieldInput {
     height: var(--hp-space-48);
     padding: 0 var(--hp-space-12) 0 calc(var(--hp-space-12) + var(--hp-space-20) + var(--hp-space-10));
-    border-radius: var(--hp-space-6);
+    border-radius: var(--hp-r-control);
     outline: var(--hp-space-2) solid var(--hp-ink);
     outline-offset: var(--hp-size--1);
     font-size: var(--hp-space-16);

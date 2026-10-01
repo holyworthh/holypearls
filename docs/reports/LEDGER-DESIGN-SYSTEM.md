@@ -105,6 +105,18 @@ The owner chose: garment steps on the product page, a live preview followed by r
 9. **Card mock-up preview** for Business Cards isn't built: only garments have a live preview; other products show their photos.
 10. **Map zones** show only on hover / focus on desktop (faintly on touch) to keep the garment clean; chosen zones carry the LOGO mark.
 
+## Consistency pass before merge, 1 October 2026
+
+The owner asked for every page built so far to follow Ledger before the PR merges. Audit at 1440 and 375 of every public route, plus the account and admin shells, against the canvas F01 boards (Directory, both hubs, search results, no results, autocomplete and the phone variants). Their structure already matched (the earlier Pen frames used the same layouts), so this pass is styling:
+
+- **Dark panels are Blue Deep, not Signal ink:** the Directory "Can't find it?" panel, hub "Choose how it's made" routes band and format band, the Our Work feature, the case-study ticket and CTA band, About "How every order is made", the search "Not sure what you need?" and "Tell us" panels, and the staff admin sidebar and phone bar. Ink stays for buttons, selected chips and segmented controls, as in the canvas.
+- **Search buttons are Holy Blue** (Directory and search results), as on the F01 boards; Start a Project stays Brick.
+- **Radii:** Signal's 6 px on buttons, inputs and product images moved to the Ledger tokens (`hp-r-button` 10, `hp-r-control` 11, `hp-r-option` 12). Chips stay pills; the homepage swatches keep their Pen values.
+- **Shells:** sign-in, link redeem, account security, help request and 404 now use the Ledger site header and footer. The shared `PublicShell` (error page, demos) and the staff admin shell carry the Ledger lockup (`BrandLockup` in `packages/ui`) instead of the Signal pearl wordmark; the admin lockup is reversed on Blue Deep with an ADMIN tag. The `PublicShell` footer is light with a rule.
+- **Sign-in tabs** (Password / Email me a link) are the Ledger segmented pill: ink on white.
+- **White surfaces in Pen:** 79 full-width Mist frames in the customer flows (Flows 01–07, desktop and phone) are now `hp-paper`; the no-results "Tell us" panel is `hp-brand-deep`. Staff and organisation flows are unchanged.
+- **Not changed (recorded):** the staff admin content area keeps Mist behind its white cards for contrast; small panels (fact boxes, guide cards, the homepage "Try it" panel) keep their pale fill; Our Work cards without photos still show placeholders until the shoot.
+
 ## Research behind the added motion
 
 - NN/g timing guidance: about 100 ms reads as instant, and anything past roughly 400 ms feels slow. Hover and press feedback stay at 120–200 ms, and only entrances and ambient loops run longer. Sources: [Val Head](https://valhead.com/?p=2978), [Fronteers](https://www.fronteers.nl/en/blog/2024/12/microanimations).

@@ -771,3 +771,16 @@ button:focus-visible {
   background-size: 100% var(--hp-size-1);
   background-position: 0 100%;
 }
+
+/* Full-page states (404, loading) inside the site shell: content-width with the page gutters. */
+.statePage {
+  max-width: calc(var(--hp-layout-content-width) + 2 * var(--hp-layout-margin-desktop));
+  margin: 0 auto;
+  padding: var(--hp-space-48) var(--hp-layout-gutter-mobile) var(--hp-space-96);
+}
+
+@media (min-width: 1024px) {
+  .statePage {
+    padding: var(--hp-space-80) var(--hp-layout-margin-desktop) var(--hp-space-128);
+  }
+}

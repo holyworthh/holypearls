@@ -96,8 +96,9 @@
 
 .footer {
   padding-block: var(--hp-space-32);
-  background: var(--hp-ink);
-  color: var(--hp-mid);
+  background: var(--hp-paper);
+  border-top: var(--hp-border-width) solid var(--hp-line);
+  color: var(--hp-text-3);
   font-size: var(--hp-text-support);
 }
 
@@ -120,7 +121,7 @@
 
 .sidebar {
   padding: var(--hp-space-16);
-  background: var(--hp-ink);
+  background: var(--hp-brand-deep);
   color: var(--hp-paper);
 }
 
