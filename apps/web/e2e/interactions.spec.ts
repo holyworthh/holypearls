@@ -218,7 +218,8 @@ test("sections reveal as they scroll into view", async ({ page }) => {
   await page.goto("/");
   const reveals = page.locator("[data-reveal]");
   await expect.poll(() => reveals.count()).toBeGreaterThan(2);
-  const last = reveals.last();
+  // Pin the element: Motion keeps tagging content that arrives later, so "last" could move after the scroll.
+  const last = reveals.nth((await reveals.count()) - 1);
   await last.scrollIntoViewIfNeeded();
   await expect(last).toHaveAttribute("data-revealed", "true");
   await expect.poll(() => last.evaluate((element) => getComputedStyle(element).opacity)).toBe("1");
