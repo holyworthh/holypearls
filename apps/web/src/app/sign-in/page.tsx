@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import styles from "../../components/auth.module.css";
+import styles from "@holypearls/web-kit/auth.module.css";
 import { SignInCard } from "./SignInCard";
 import { SiteShell } from "../../components/site/SiteShell";
 

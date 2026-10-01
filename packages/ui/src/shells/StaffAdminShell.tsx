@@ -35,7 +35,7 @@ const initials = (name: string) =>
 
 function Brand() {
   return (
-    <BrandLockup tone="reversed" tag="ADMIN" href="/admin" className={styles.brand} />
+    <BrandLockup tone="reversed" tag="ADMIN" href="/" className={styles.brand} />
   );
 }
 

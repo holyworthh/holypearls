@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff, ADMIN } from "./helpers";
 
 /*
  * T02-06 browser checks, written before the pages: search (Pen 07–10),
@@ -123,7 +123,7 @@ test.describe("content pages", () => {
 
 test.describe("SEO foundations", () => {
   test("private pages send noindex by default", async ({ request }) => {
-    for (const path of ["/search?q=polo", "/sign-in", "/account/security", "/admin/sign-in", "/products/polo-shirt/configure", "/help/0190c5b3-0000-7000-8000-000000000001", "/cart", "/checkout"]) {
+    for (const path of ["/search?q=polo", "/sign-in", "/account/security", "/products/polo-shirt/configure", "/help/0190c5b3-0000-7000-8000-000000000001", "/cart", "/checkout"]) {
       const response = await request.get(path, { maxRedirects: 0 });
       expect({ path, robots: response.headers()["x-robots-tag"] ?? "" }).toEqual({ path, robots: expect.stringContaining("noindex") });
     }
@@ -134,7 +134,9 @@ test.describe("SEO foundations", () => {
   test("robots.txt, the sitemap and the home page's structured data", async ({ page, request }) => {
     const robots = await (await request.get("/robots.txt")).text();
     expect(robots).toContain("Sitemap:");
-    expect(robots).toMatch(/Disallow: \/admin/);
+    // The admin lives on its own site and is never crawled (ADR-017).
+    const adminRobots = await (await request.get(`${ADMIN}/robots.txt`)).text();
+    expect(adminRobots).toMatch(/^Disallow: \/$/m);
     const sitemap = await (await request.get("/sitemap.xml")).text();
     expect(sitemap).toContain("/resources/embroidery-or-print</loc>");
     expect(sitemap).not.toContain("/search");
@@ -157,13 +159,13 @@ test.describe("content editor", () => {
 
   test("staff write a guide, unsafe text is removed, and publishing puts it live", async ({ page }) => {
     await signInStaff(page, TEST_PEOPLE.adminAda);
-    await page.goto("/admin/content?type=GUIDE");
+    await page.goto(`${ADMIN}/content?type=GUIDE`);
     await page.getByRole("button", { name: "New guide" }).click();
     const slug = `e2e-guide-${Date.now()}`;
     await page.getByLabel("Title").fill("E2E guide (TEST DATA)");
     await page.getByLabel("Address").fill(slug);
     await page.getByRole("button", { name: "Create draft" }).click();
-    await expect(page).toHaveURL(/\/admin\/content\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(new RegExp(`^${ADMIN}/content/[0-9a-f-]{36}$`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: "E2E guide (TEST DATA)" })).toBeVisible();
     await page.getByLabel("Summary").fill("A short guide written by the end-to-end tests.");
     const editor = page.getByRole("textbox", { name: "Page text" });

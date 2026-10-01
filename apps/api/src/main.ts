@@ -47,6 +47,7 @@ const identity = createBetterAuthIdentity({
   db: database.db,
   secret: env.BETTER_AUTH_SECRET,
   webOrigin: env.BETTER_AUTH_URL,
+  adminOrigin: env.ADMIN_ORIGIN ?? null,
   // Secure cookies whenever the site is served over HTTPS (staging and production).
   secureCookies: new URL(env.BETTER_AUTH_URL).protocol === "https:",
   outbox,
@@ -61,6 +62,8 @@ const { storage, publicStorage } = createStorage(env, {
 const app = await createApp({
   payments: createPaymentGateway(env),
   proxySecret: env.WEB_PROXY_SECRET ?? null,
+  adminOrigin: env.ADMIN_ORIGIN ?? null,
+  adminProxySecret: env.ADMIN_PROXY_SECRET ?? null,
   storage,
   publicStorage,
   db: database.db,

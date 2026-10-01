@@ -115,10 +115,22 @@ function deployedRules(env: Deployed, ctx: z.RefinementCtx) {
   }
 }
 
-/** The api also needs the web proxy's secret in production, or every visitor shares one address. */
-function apiRules(env: Deployed, ctx: z.RefinementCtx) {
+/**
+ * The api also needs the web proxy's secret in production, or every visitor
+ * shares one address, and the admin app's origin and its own secret, or the
+ * admin can't be told apart from the customer site (ADR-017).
+ */
+function apiRules(env: Deployed & { ADMIN_ORIGIN?: string; ADMIN_PROXY_SECRET?: string }, ctx: z.RefinementCtx) {
   deployedRules(env, ctx);
-  if (env.HP_ENV === "production" && !env.WEB_PROXY_SECRET) ctx.addIssue({ code: "custom", path: ["WEB_PROXY_SECRET"], message: "required in production" });
+  const fail = (path: string, message: string) => ctx.addIssue({ code: "custom", path: [path], message });
+  if (env.ADMIN_PROXY_SECRET && !env.ADMIN_ORIGIN) fail("ADMIN_ORIGIN", "required with ADMIN_PROXY_SECRET");
+  if (env.ADMIN_PROXY_SECRET && env.ADMIN_PROXY_SECRET === env.WEB_PROXY_SECRET) fail("ADMIN_PROXY_SECRET", "must differ from WEB_PROXY_SECRET");
+  if (env.HP_ENV !== "production") return;
+  if (!env.WEB_PROXY_SECRET) fail("WEB_PROXY_SECRET", "required in production");
+  if (!env.ADMIN_ORIGIN) fail("ADMIN_ORIGIN", "required in production");
+  if (!env.ADMIN_PROXY_SECRET) fail("ADMIN_PROXY_SECRET", "required in production");
+  if (env.ADMIN_ORIGIN && notReal(env.ADMIN_ORIGIN)) fail("ADMIN_ORIGIN", "can't be a localhost or .test address in production");
+  if (env.ADMIN_ORIGIN && env.BETTER_AUTH_URL && new URL(env.ADMIN_ORIGIN).host === new URL(env.BETTER_AUTH_URL).host) fail("ADMIN_ORIGIN", "must be its own domain, not the customer site's");
 }
 
 const webSchema = z.object({
@@ -129,6 +141,24 @@ const webSchema = z.object({
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
   ...monitoring,
 });
+
+/**
+ * The staff admin app (ADR-017), on its own subdomain. SITE_URL is the
+ * customer site, for links to public pages. Production needs the admin's own
+ * proxy secret (different from the customer site's) and a real site address.
+ */
+const adminSchema = z
+  .object({
+    API_URL: z.url(),
+    SITE_URL: z.url().default("http://localhost:3000"),
+    ADMIN_PROXY_SECRET: z.string().min(32).optional(),
+    ...monitoring,
+  })
+  .superRefine((env, ctx) => {
+    if (env.HP_ENV !== "production") return;
+    if (!env.ADMIN_PROXY_SECRET) ctx.addIssue({ code: "custom", path: ["ADMIN_PROXY_SECRET"], message: "required in production" });
+    if (notReal(env.SITE_URL)) ctx.addIssue({ code: "custom", path: ["SITE_URL"], message: "can't be a localhost or .test address in production" });
+  });
 
 const apiSchema = z
   .object({
@@ -149,6 +179,9 @@ const apiSchema = z
     HELP_INBOX_EMAIL: z.email().default("help@holypearls.test"),
     /** Shared with the web app: proves its proxy sent the visitor's address (review P1-08). */
     WEB_PROXY_SECRET: z.string().min(32).optional(),
+    /** The admin app on its own subdomain, and its own proxy secret (ADR-017). */
+    ADMIN_ORIGIN: z.url().optional(),
+    ADMIN_PROXY_SECRET: z.string().min(32).optional(),
     ...storage,
     ...payments,
   })
@@ -209,6 +242,9 @@ function parseEnv<T extends z.ZodType>(schema: T, source: Record<string, string 
 
 export const loadWebEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(webSchema, source);
+
+export const loadAdminEnv = (source: Record<string, string | undefined> = process.env) =>
+  parseEnv(adminSchema, source);
 
 export const loadApiEnv = (source: Record<string, string | undefined> = process.env) =>
   parseEnv(apiSchema, source);

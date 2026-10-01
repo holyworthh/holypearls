@@ -3,7 +3,7 @@
 import { redeemResultSchema } from "@holypearls/contracts";
 import { ButtonLink, IconBadge, PageLoading } from "@holypearls/ui";
 import { useEffect, useState } from "react";
-import styles from "../../components/auth.module.css";
+import styles from "@holypearls/web-kit/auth.module.css";
 import { api, errorCode, errorReason } from "../../lib/api";
 
 type State = "opening" | "expired" | "revoked" | "invalid";

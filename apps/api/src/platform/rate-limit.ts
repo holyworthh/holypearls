@@ -104,10 +104,12 @@ export const PROXY_SECRET_HEADER = "x-hp-proxy-secret";
  * x-hp-client-ip with a shared secret; any other request counts as the address
  * that connected.
  */
-export function clientIpFrom(request: Request, proxySecret: string | null): string {
+export function clientIpFrom(request: Request, proxySecrets: (string | null)[]): string {
   const claimed = request.header(CLIENT_IP_HEADER)?.trim();
   const secret = request.header(PROXY_SECRET_HEADER);
-  if (proxySecret && claimed && secret && secret.length === proxySecret.length && timingSafeEqual(Buffer.from(secret), Buffer.from(proxySecret)) && /^[0-9a-fA-F.:]{2,45}$/.test(claimed)) {
+  // Either front end's proxy (customer site or admin, ADR-017) may vouch for the address.
+  const vouched = proxySecrets.some((proxySecret) => proxySecret && secret && secret.length === proxySecret.length && timingSafeEqual(Buffer.from(secret), Buffer.from(proxySecret)));
+  if (vouched && claimed && /^[0-9a-fA-F.:]{2,45}$/.test(claimed)) {
     return claimed;
   }
   return request.socket.remoteAddress ?? "unknown";

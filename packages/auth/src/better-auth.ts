@@ -23,6 +23,8 @@ export interface BetterAuthIdentityOptions {
   /** The web app's origin, for example https://holypearls.ng. */
   webOrigin: string;
   outbox: AuthOutbox;
+  /** The admin app's origin (ADR-017); staff sign in there. */
+  adminOrigin?: string | null;
   /** Secure cookies. On in production (TECH-03 §4). */
   secureCookies: boolean;
   /** Staff sessions last 12 hours from sign-in and are never extended. */
@@ -46,7 +48,8 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
     secret: options.secret,
     baseURL: options.webOrigin,
     basePath: AUTH_BASE_PATH,
-    trustedOrigins: [options.webOrigin],
+    // The customer site, and the admin on its own subdomain (ADR-017).
+    trustedOrigins: [options.webOrigin, ...(options.adminOrigin ? [options.adminOrigin] : [])],
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {

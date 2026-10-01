@@ -30,14 +30,14 @@ const cookieHeader = (response: Response, previous = "") => {
  */
 export async function signInAs(
   key: TestPersonKey,
-  options: { authUrl: string; origin: string; fetch?: typeof fetch },
+  options: { authUrl: string; origin: string; fetch?: typeof fetch; headers?: Record<string, string> },
 ): Promise<SignedIn> {
   const person = TEST_PEOPLE[key];
   const doFetch = options.fetch ?? fetch;
   const post = (path: string, body: unknown, cookie = "") =>
     doFetch(`${options.authUrl}${path}`, {
       method: "POST",
-      headers: { "content-type": "application/json", origin: options.origin, ...(cookie && { cookie }) },
+      headers: { "content-type": "application/json", origin: options.origin, ...options.headers, ...(cookie && { cookie }) },
       body: JSON.stringify(body),
     });
 

@@ -18,7 +18,7 @@ import {
   TextField,
 } from "@holypearls/ui";
 import { useState, type FormEvent } from "react";
-import styles from "../../components/auth.module.css";
+import styles from "@holypearls/web-kit/auth.module.css";
 import { api, errorCode, safeNext } from "../../lib/api";
 
 type Tab = "password" | "link";
@@ -105,9 +105,9 @@ export function SignInCard({ next, linkExpired = false }: SignInCardProps) {
     }
     setBusy(true);
     try {
-      const result = await api("/v1/auth/sign-in/email", { method: "POST", body: parsed.data, response: signInResultSchema });
-      // Staff accounts finish signing in with their authenticator on the staff page.
-      window.location.assign(result.twoFactorRedirect ? "/admin/sign-in?step=code" : destination);
+      await api("/v1/auth/sign-in/email", { method: "POST", body: parsed.data, response: signInResultSchema });
+      // Staff accounts sign in on the admin site only (ADR-017); the API refuses them here.
+      window.location.assign(destination);
     } catch (error) {
       handleError(error);
       setBusy(false);

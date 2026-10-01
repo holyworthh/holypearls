@@ -174,6 +174,7 @@ describe("readiness without a database", () => {
       logger: captureLogs().logger,
       identity,
       webOrigin: TEST_WEB_ORIGIN,
+      payments: null,
       jobs: {} as never,
       sealKey: "unused-in-this-test-0123456789-0123456789",
       helpInboxEmail: "help@holypearls.test",

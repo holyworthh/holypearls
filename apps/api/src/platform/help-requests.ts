@@ -11,6 +11,8 @@ import { afterCursor, newestFirst, pageOf } from "./cursor.js";
 
 export interface HelpDeps extends NotificationDeps {
   webOrigin: string;
+  /** The admin app's origin, for staff links (ADR-017). */
+  adminOrigin: string;
   helpInboxEmail: string;
 }
 
@@ -145,7 +147,7 @@ export async function createHelpRequest(
         reference,
         from: `${name ?? "A customer"} (${actor.type === "user" ? "account" : "guest"})`,
         where,
-        url: `${deps.webOrigin}/admin/help?request=${row!.id}`,
+        url: `${deps.adminOrigin}/help?request=${row!.id}`,
       },
       record: { type: "HELP_REQUEST", id: row!.id, label: reference },
       linkLabel: `Opens ${reference} in the help inbox`,

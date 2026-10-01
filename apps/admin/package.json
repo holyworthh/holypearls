@@ -1,0 +1,33 @@
+{
+  "name": "@holypearls/admin",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3002",
+    "build": "next build",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@holypearls/config": "workspace:*",
+    "@holypearls/contracts": "workspace:*",
+    "@holypearls/ui": "workspace:*",
+    "@holypearls/web-kit": "workspace:*",
+    "@tiptap/core": "3.31.3",
+    "@tiptap/extension-image": "3.31.3",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
+    "lucide-react": "^1.48.0",
+    "next": "16.3.6",
+    "qrcode": "1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  }
+}

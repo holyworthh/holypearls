@@ -4,7 +4,7 @@ import { createHelpRequestSchema, type HelpContext, helpRequestSchema, toFieldEr
 import { Button, ButtonLink, Dialog, ErrorSummary, FormField, Notice, TextArea, TextField } from "@holypearls/ui";
 import { useState, type FormEvent } from "react";
 import { api } from "../lib/api";
-import styles from "./auth.module.css";
+import styles from "@holypearls/web-kit/auth.module.css";
 
 export interface NeedHelpProps {
   /** Everything staff need, so the customer never explains from scratch (PRD-00 §18). IDs and labels only. */

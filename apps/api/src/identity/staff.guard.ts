@@ -14,6 +14,9 @@ export function StaffGuard(permission?: StaffPermission): Type<CanActivate> {
   class Guard implements CanActivate {
     async canActivate(context: ExecutionContext): Promise<boolean> {
       const request = context.switchToHttp().getRequest<Request>();
+      // Admin routes answer only through the admin front end (ADR-017); frontEndBoundary already refuses
+      // them elsewhere, and this keeps a route added outside /v1/admin from slipping through.
+      if (request.surface !== undefined && request.surface !== "admin" && request.frontEndsSeparated) throw new AppError("NOT_FOUND");
       assertStaff(await request.getActor!(), permission);
       return true;
     }

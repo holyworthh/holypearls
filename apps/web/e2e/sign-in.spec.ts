@@ -1,6 +1,6 @@
 import { TEST_PEOPLE, totpCode } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoAxeViolations } from "./helpers";
+import { expectNoAxeViolations, ADMIN } from "./helpers";
 
 /*
  * TECH-03 §3 checks in a real browser: a signed-in server-rendered page, a
@@ -23,7 +23,7 @@ async function signInCustomer(page: Page, person: { email: string; password: str
 }
 
 async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {
-  await page.goto("/admin/sign-in");
+  await page.goto(`${ADMIN}/sign-in`);
   await page.locator("#staff-email").fill(person.email);
   await page.locator("#staff-password").fill(person.password);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -37,11 +37,11 @@ async function signInStaff(page: Page, person: { email: string; password: string
     await page.getByLabel("6-digit code").fill(await totpCode(person.totpSecret));
     await page.getByRole("button", { name: "Verify" }).click();
   }
-  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page).toHaveURL(`${ADMIN}/`);
 }
 
 test("sign-in pages pass the accessibility check and fit the viewport", async ({ page }) => {
-  for (const path of ["/sign-in", "/admin/sign-in"]) {
+  for (const path of ["/sign-in", `${ADMIN}/sign-in`]) {
     await page.goto(path);
     await expect(page.locator("main")).toBeVisible();
     await expectNoAxeViolations(page);
@@ -101,13 +101,19 @@ test("sign out everywhere ends every session", async ({ page, browser }) => {
   await other.close();
 });
 
-test("non-staff get 404 on /admin", async ({ page }) => {
-  const signedOut = await page.goto("/admin");
-  expect(page.url()).toMatch(/\/admin\/sign-in$/);
+test("the customer site has no admin, and non-staff get 404 in the admin app (ADR-017)", async ({ page }) => {
+  // Nothing admin lives on the customer site: pages, API routes and authenticator steps are 404.
+  expect((await page.goto("/admin"))?.status()).toBe(404);
+  expect((await page.request.get("/api/v1/admin/me")).status()).toBe(404);
+  expect((await page.request.post("/api/v1/auth/two-factor/verify-totp", { data: { code: "000000" } })).status()).toBe(404);
+
+  const signedOut = await page.goto(`${ADMIN}/`);
+  expect(page.url()).toBe(`${ADMIN}/sign-in`);
   expect(signedOut?.ok()).toBe(true);
 
+  // Locally both sites share localhost cookies, so the customer's session reaches the admin and is refused there.
   await signInCustomer(page, TEST_PEOPLE.customerChidi);
-  const response = await page.goto("/admin");
+  const response = await page.goto(`${ADMIN}/`);
   expect(response?.status()).toBe(404);
   await expect(page).not.toHaveTitle(/Admin/);
   await expect(page.getByRole("heading", { name: "We can’t find that page" })).toBeVisible();
@@ -128,14 +134,14 @@ test("staff sign in with their authenticator and see only permitted sections", a
   await expectNoHorizontalScroll(page);
 
   // Permission guard: 403 inside the shell.
-  await page.goto("/admin/production");
+  await page.goto(`${ADMIN}/production`);
   await expect(page.getByRole("heading", { name: "You don't have access to this" })).toBeVisible();
   await expect(page.getByText("403 · PERMISSION REQUIRED")).toBeVisible();
   await expectNoAxeViolations(page);
 });
 
 test("staff without MFA must set up an authenticator first", async ({ page }) => {
-  await page.goto("/admin/sign-in");
+  await page.goto(`${ADMIN}/sign-in`);
   await page.locator("#staff-email").fill(TEST_PEOPLE.catalogueNoMfa.email);
   await page.locator("#staff-password").fill(TEST_PEOPLE.catalogueNoMfa.password);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -145,13 +151,13 @@ test("staff without MFA must set up an authenticator first", async ({ page }) =>
   await expectNoHorizontalScroll(page);
 
   // Leaving enrolment does not open admin.
-  await page.goto("/admin");
-  await expect(page).toHaveURL(/\/admin\/sign-in\?step=mfa-required$/);
+  await page.goto(`${ADMIN}/`);
+  await expect(page).toHaveURL(`${ADMIN}/sign-in?step=mfa-required`);
   await expect(page.getByText("Admin is locked until you set up MFA.")).toBeVisible();
 });
 
 test("a wrong authenticator code shows the field error", async ({ page }) => {
-  await page.goto("/admin/sign-in");
+  await page.goto(`${ADMIN}/sign-in`);
   await page.locator("#staff-email").fill(TEST_PEOPLE.adminTunde.email);
   await page.locator("#staff-password").fill(TEST_PEOPLE.adminTunde.password);
   await page.getByRole("button", { name: "Continue" }).click();
@@ -163,13 +169,13 @@ test("a wrong authenticator code shows the field error", async ({ page }) => {
 test("the audit viewer lists entries for AUDIT_VIEW staff", async ({ page }) => {
   test.setTimeout(90_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await page.goto("/admin/audit");
+  await page.goto(`${ADMIN}/audit`);
   await expect(page.getByRole("heading", { name: "Audit log" })).toBeVisible();
   await expect(page.getByRole("search", { name: "Filter the audit log" })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
-  await page.goto("/admin/audit?q=no-such-entry-anywhere");
+  await page.goto(`${ADMIN}/audit?q=no-such-entry-anywhere`);
   await expect(page.getByRole("heading", { name: "No entries for these filters" })).toBeVisible();
 });
 

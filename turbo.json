@@ -34,7 +34,10 @@
     "WEB_REVALIDATE",
     "WEB_PROXY_SECRET",
     "DATABASE_MIGRATION_URL",
-    "PAYSTACK_SECRET_KEY"
+    "PAYSTACK_SECRET_KEY",
+    "ADMIN_ORIGIN",
+    "ADMIN_PROXY_SECRET",
+    "SITE_URL"
   ],
   "tasks": {
     "build": {

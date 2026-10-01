@@ -2,7 +2,7 @@ import { helpRequestSchema } from "@holypearls/contracts";
 import { StatusChip } from "@holypearls/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import styles from "../../../components/auth.module.css";
+import styles from "@holypearls/web-kit/auth.module.css";
 import { serverApi } from "../../../lib/server-api";
 import { SiteShell } from "../../../components/site/SiteShell";
 

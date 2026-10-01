@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff, ADMIN } from "./helpers";
 
 /* T04-01: cart (Pen 41/42), checkout (Pen 43/44/45 A) and delivery zones (Pen 108); COM-FR-080–084, OPS-FR-100–101. */
 
@@ -90,7 +90,7 @@ test("staff see the delivery zones and can't save an overlapping zone (Pen 108)"
   test.skip(testInfo.project.name !== "desktop-1440", "Admin is a desktop tool");
   test.setTimeout(180_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await page.goto("/admin/delivery");
+  await page.goto(`${ADMIN}/delivery`);
   const table = page.getByRole("table");
   await expect(table.getByRole("rowheader", { name: "Lagos Island" })).toBeVisible();
   await expect(table.getByText("Quote required")).toBeVisible();
