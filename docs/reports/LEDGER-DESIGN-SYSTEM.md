@@ -64,11 +64,12 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 
 ## Conflicts and deviations (recorded, not silent)
 
-1. **Main navigation (PRD wins).** PUB-FR-003 requires Products, Projects, Apparel, Print & Display, Our Work and Resources. The canvas header shows Products, Projects, Our Work and Help.
-   - The site keeps the six PRD items in the Ledger style.
-   - To fit them, the header search pill is 200 px (not 300) and appears from 1440 px; below that, a search icon.
-   - The main nav shows from 1280 px; below that, the menu button.
-   - The Pen header (`nO6TF`) shows the canvas's four items. **Question for the owner:** keep PRD-01's six items, or change PUB-FR-003 to the canvas's four?
+1. **Main navigation (owner decision).** PUB-FR-003 lists Products, Projects, Apparel, Print & Display, Our Work and Resources. The canvas header shows Products, Projects, Our Work and Help.
+   - First pass kept the six PRD items. On 1 October 2026 the owner chose the canvas's four, because Apparel and Print & Display are already linked from the Products mega-menu.
+   - The site now shows Products, Projects, Our Work and Help. Help goes to the buying guides (`/resources`).
+   - With four items, the search pill is back to the canvas's 300 px and shows with the main nav from 1280 px; below that, the search icon and menu button.
+   - Projects keeps its existing menu (code only; the Pen header shows a chevron on Products alone).
+   - **Proposed PRD change (not edited here):** amend PUB-FR-003 to "Products, Projects, Our Work and Help; Apparel and Print & Display are reached from the Products mega-menu."
 2. **Header cart icon.** The canvas shows a cart. The cart ships with T04-01 (PR #36, not merged into `dev`), so the code keeps "Track an order" in that slot for now. Swap it for the cart once T04-01 lands.
 3. **Unsourced prices and colours.**
    - "Tees from ₦7,500" has no catalogue source and is replaced by "Tees, hoodies and caps". "Polos from ₦8,500" is the seeded polo price.
@@ -102,6 +103,7 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 - `tsc --noEmit` (web, ui), ESLint and `tokens:check`: pass.
 - `next build`: pass.
 - Playwright, `storefront.spec.ts` and `interactions.spec.ts`, on 375 and 1440: 38 passed, 8 skipped (viewport-specific).
+  - Added: the main nav shows the four Ledger items and Help goes to `/resources` (1440).
   - Updated: the home h1 and the three-click path (now tile → category → product), and the mega-menu hover threshold (1280).
   - Added: PUB-FR-001/002 home routes, the polo picker state and accessible name, and reduced motion stopping the marquee.
   - The first run caught colour-contrast regressions from the token change (`hp-mid` on dark, the footer wordmark and the stamp). All are fixed, as above.
@@ -110,5 +112,5 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 
 ## Follow-ups to docs outside `docs/design`
 
-- PRD-01 PUB-FR-003 (navigation items): see question 1.
+- PRD-01 PUB-FR-003 (navigation items): amend to the four items, as in item 1.
 - TECH or ADR: record Workshop Ledger as the active visual direction, superseding the Signal visual lock (Stage 4.2 `lyo0w`).

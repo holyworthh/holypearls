@@ -20,6 +20,14 @@ test("a product is reachable from the homepage in three clicks", async ({ page }
   if (!isMobile) await expectNoHorizontalScroll(page);
 });
 
+test("the main navigation shows the four Ledger items", async ({ page }) => {
+  test.skip((page.viewportSize()?.width ?? 0) < 1280, "The primary nav shows from 1280 px; smaller widths use the menu.");
+  await page.goto("/");
+  const main = page.getByRole("navigation", { name: "Main" });
+  await expect(main.getByRole("listitem")).toHaveText(["Products", "Projects", "Our Work", "Help"]);
+  await expect(main.getByRole("link", { name: "Help" })).toHaveAttribute("href", "/resources");
+});
+
 test("the Products mega-menu works by keyboard", async ({ page }) => {
   const isMobile = (page.viewportSize()?.width ?? 0) < 768;
   test.skip(isMobile, "The mega-menu is desktop only; mobile uses the drill-down menu.");

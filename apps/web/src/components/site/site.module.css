@@ -222,7 +222,7 @@
   display: none;
   align-items: center;
   gap: var(--hp-space-8);
-  width: var(--hp-header-search-width-prd);
+  width: var(--hp-header-search-width);
   margin-right: var(--hp-space-8);
   height: var(--hp-touch-target);
   padding: 0 var(--hp-space-16);
@@ -231,8 +231,8 @@
   color: var(--hp-text-3);
 }
 
-/* The field shows from 1440; below that the header keeps the icon (six PRD nav items need the room). */
-@media (min-width: 1440px) {
+/* The field shows with the primary nav from 1280; below that the header keeps the icon. */
+@media (min-width: 1280px) {
   .search {
     display: flex;
   }
@@ -692,7 +692,7 @@ button:focus-visible {
   height: var(--hp-size-22);
 }
 
-@media (min-width: 1440px) {
+@media (min-width: 1280px) {
   .phoneSearch {
     display: none;
   }

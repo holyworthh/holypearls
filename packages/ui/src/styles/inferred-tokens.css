@@ -68,7 +68,6 @@
   --hp-strip-height: 36px;
   --hp-header-height: 72px; /* Ledger header (Pen Stage 4.3). */
   --hp-header-search-width: 300px; /* Ledger header search pill. */
-  --hp-header-search-width-prd: 200px; /* Narrower so the six PRD nav items (PUB-FR-003) fit at 1440. */
   --hp-megamenu-feature-width: 400px;
   --hp-footer-brand-width: 420px;
   --hp-card-min-width: 240px;
