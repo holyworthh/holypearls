@@ -109,7 +109,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 @media (min-width: 1024px) {
@@ -191,7 +191,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 .bleed:focus {

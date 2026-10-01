@@ -1,44 +1,21 @@
-import { configurationSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
-import { GarmentConfigurator } from "../../../../components/catalogue/GarmentConfigurator";
-import { hasSessionCookie, serverApi } from "../../../../lib/server-api";
-import { getProduct } from "../../../../lib/storefront";
+import { notFound, permanentRedirect } from "next/navigation";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string; sourcing?: string; colour?: string }> };
-
-/** Temporary reference photography from the Pen board (Pen 22), by product and colour. */
-const REFERENCE_PHOTOS: Record<string, Record<string, string>> = { "polo-shirt": { navy: "/pen/generated-33.webp" } };
 
 export const metadata: Metadata = { robots: { index: false } };
 
 /**
- * The garment configurator (Pen 22 · O2tORo desktop, 40 · PeLav mobile): its
- * own header with the six steps, one step at a time, the preview beside it.
- * Products other than garments configure inline on their product page.
+ * Garments now configure on their product page (Pen Stage 4.3 · mfOQO), so
+ * the old configurator address sends people there, keeping a saved draft and
+ * any route or colour carried in the link (the product page re-checks them).
  */
 export default async function ConfigurePage({ params, searchParams }: Params) {
   const { slug } = await params;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) notFound();
-  const product = await getProduct(slug);
-  if (!product) notFound();
-  if (product.family !== "GARMENT" || !product.configurator || !product.available) redirect(`/products/${slug}`);
   const query = await searchParams;
-  const draft = query.draft && /^[0-9a-f-]{36}$/.test(query.draft) ? await serverApi(`/v1/configurations/${query.draft}`, configurationSchema) : null;
-  const initialDraft = draft?.ok && draft.data.productSlug === product.slug ? draft.data : null;
-  // Only a route this product offers (from the API); the address can't choose another one.
-  const sourcing = product.configurator.allowedRoutes.find((value) => value === query.sourcing) ?? null;
-  const colour = product.configurator.options.find((option) => option.key === "colour")?.values.find((value) => value.key === query.colour)?.key;
-  return (
-    <GarmentConfigurator
-      productSlug={product.slug}
-      productName={product.name}
-      data={product.configurator}
-      initialDraft={initialDraft}
-      signedIn={await hasSessionCookie()}
-      startSourcing={initialDraft ? null : sourcing}
-      startChoices={colour ? { colour } : {}}
-      photos={REFERENCE_PHOTOS[product.slug]}
-    />
-  );
+  const keep = new URLSearchParams(
+    Object.entries({ draft: query.draft, sourcing: query.sourcing, colour: query.colour }).filter((entry): entry is [string, string] => typeof entry[1] === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(entry[1])),
+  ).toString();
+  permanentRedirect(`/products/${slug}${keep ? `?${keep}` : ""}`);
 }

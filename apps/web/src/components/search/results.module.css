@@ -15,7 +15,8 @@
   gap: var(--hp-size-18);
   padding-top: var(--hp-space-40);
   padding-bottom: var(--hp-space-24);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
 }
 
 /* "Search field (active)": paper, radius 8, 64 tall, 2px ink outline. */

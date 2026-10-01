@@ -433,7 +433,7 @@
   gap: var(--hp-size-18);
   padding: var(--hp-size-56);
   padding-left: max(var(--hp-size-56), calc((100vw - var(--hp-size-1328)) / 2));
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 .projectHeroText .red {
@@ -1050,7 +1050,7 @@
   min-height: var(--hp-size-620);
   padding-top: var(--hp-space-24);
   padding-bottom: var(--hp-space-48);
-  background: var(--hp-bone) center / cover no-repeat;
+  background: var(--hp-paper) center / cover no-repeat;
 }
 
 .darkTicket {

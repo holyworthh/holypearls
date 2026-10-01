@@ -205,17 +205,18 @@
   gap: var(--hp-space-2);
   min-height: var(--hp-space-64);
   padding: var(--hp-space-10) var(--hp-space-14);
-  border-radius: var(--hp-space-8);
-  outline: var(--hp-size-1) solid var(--hp-line);
-  outline-offset: var(--hp-size--0_5);
+  border-radius: var(--hp-r-option);
+  outline: var(--hp-size-1_5) solid var(--hp-line);
+  outline-offset: calc(var(--hp-size-1_5) * -1);
   background: var(--hp-paper);
   color: var(--hp-ink);
   cursor: pointer;
 }
 
 .choice:has(input:checked) {
-  outline: var(--hp-space-2) solid var(--hp-ink);
-  outline-offset: 0;
+  outline: var(--hp-space-2) solid var(--hp-brand);
+  outline-offset: calc(var(--hp-space-2) * -1);
+  background: var(--hp-brand-tint);
 }
 
 .choice:has(input:focus-visible) {
@@ -751,7 +752,11 @@
 }
 
 .choice:hover {
-  outline-color: var(--hp-ink);
+  outline-color: var(--hp-text-3);
+}
+
+.choice:has(input:checked):hover {
+  outline-color: var(--hp-brand);
 }
 
 .stepExtra {

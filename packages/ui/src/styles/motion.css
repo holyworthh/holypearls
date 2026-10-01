@@ -192,7 +192,7 @@
 }
 
 /* A field that's been filled in correctly gets a quiet check (errors keep their own static styling). */
-:where(input, textarea):where(:not([type="checkbox"], [type="radio"], [type="search"], [type="hidden"])):user-valid:not(:placeholder-shown) {
+:where(input, textarea):where(:not([type="checkbox"], [type="radio"], [type="search"], [type="hidden"], [data-no-check])):user-valid:not(:placeholder-shown) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%232E6B3F' stroke-width='1.6'%3E%3Cpath d='M4 10.5l4 4L16 5'/%3E%3C/svg%3E");
   background-position: right var(--hp-space-12) center;
   background-repeat: no-repeat;

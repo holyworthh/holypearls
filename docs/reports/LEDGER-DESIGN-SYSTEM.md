@@ -75,6 +75,36 @@ Bring the design system from the owner's design canvas (claude.ai artifact `QAkh
 - **White, not beige (owner).** The canvas's cream card faces (`#FBF9F4`, `#F3EEE3`), the striped warm-grey thumbnail placeholders and the Mist timing boxes are white with a rule border in Pen. The preview stages keep their tints (Holy Blue tint for garments, Brick tint for print), and the amber "Quote needed" tint stays as a status colour.
 - **Pen limits.** Dashed borders (logo mark, "I don't know the sizes yet", upload drop zone) are solid in Pen; the code uses dashes as in the canvas.
 
+### Code (owner decisions, 1 October 2026)
+
+The owner chose: garment steps on the product page, a live preview followed by real photos, and white for full-width bands across the site.
+
+- **Two templates for every product page** (`app/products/[slug]/page.tsx`, `ledger-pdp.module.css`):
+  - **Fixed-price / short flow** (`gb4rz`): every non-garment product. 7 / 5 columns; framed gallery (Brick tint for print and large format, white for others); state pill, title, summary and facts; numbered groups (`01 Paper`…) as tiles, with spec-style options as a list; Delivery and Review; a price ticket with goods, VAT at the stored rate, delivery, a perforation, total and per-unit, Production / Delivery boxes, then Checkout now and Add to cart (or Request Final Quote for quote-led products).
+  - **Estimate / garment** (`mfOQO`, `Q7ml3`): every garment. The garment map (Holy Blue stage, Front / Back, the canvas polo outline in the chosen colour, LOGO marks on chosen zones) beside six steady steps that expand in place: Garment, Decoration, Placement, Sizes & quantity, Artwork, Review. Each step shows a done / current badge and a one-line summary; "Continue to …" opens the next. Sizes use − / + steppers and still accept typing. The price ticket shows the estimate caption, total, per piece, timing and Request Final Quote, with Save for later and Ask Holypearls. Phones get the six-bar step strip and a sticky price bar.
+  - Below both: three columns (What happens next or the branding note, Specifications or Fabric & fit, Questions), then related products.
+- **`/products/[slug]/configure`** now redirects (308) to the product page, keeping `draft`, `sourcing` and `colour`; the product page re-checks them against the product's allowed routes and colours.
+- **Behaviour kept:** autosave and the "Not saved — retrying" state, version conflicts, the remove-later-answers dialog, placement conflict fixes, CSV personalisation, low-resolution choices, email-a-link, quote requests, blocked combinations, the API's allowed routes and decorations. The draft's stored `step` values are unchanged (the API names: product, customize, quantity, artwork, delivery, review).
+- **Gallery** (`PdpGallery.tsx`): the live preview first (garments), then up to four photos as thumbnails; photos open the existing full-size viewer. Phones show a small scrolling thumbnail row and a `1 / N` count.
+- **Removed:** `GarmentStart.tsx`, `Gallery.tsx`, `garment.module.css`, `wizard.module.css`, `pdp.module.css` (replaced by the templates).
+- **White, site-wide:** full-width Mist bands are now white with hairline rules between sections: sign-in and account shells, the Product Directory, category hub hero / featured / compare, project and case-study heroes, and the search results head. Small panels (fact boxes, guide cards, the homepage "Try it" panel), chips and inputs keep their pale fill. The staff admin shell is unchanged.
+- **Tokens added:** PDP type sizes (49 / 35 / 30 / 24 / 34 / 30 / 19), option radii 12 / 14, stage heights 720 / 620 / 380, thumbnail 88 / 92, step row 64, badge 26, corner 18, spec key 140, garment map 480 / 280, the sticky bar shadow, `hp-paper-92`, `hp-leading-none`, map dash and opacities.
+
+**Tests (product pages).** `garment.spec.ts` rewritten for the on-page flow (address route and colour, the `/configure` redirect, placement conflict fix and live estimate, steppers, customer-supplied and unknown sizes, phone price bar and step strip, allowed routes and decorations). `families.spec.ts` now reads the new state pills; the image-viewer test opens a photo after the map. Full Playwright suite at 375 and 1440: 178 passed, 12 skipped (viewport-specific), 0 failed. `tsc`, ESLint and `next build` pass.
+
+### Deviations from the canvas (product pages)
+
+1. **No SKU code** next to the state pill (`HP-APP-007`): products have no code field yet.
+2. **Checkout and Add to cart are disabled** ("Online checkout opens soon") until the cart and checkout (T04-01) merge; quote-led products use Request Final Quote, as before.
+3. **Delivery sits in the Review step** of the garment flow. The canvas has no delivery step, but COM-FR-070–072 need needed-by, rush and destination; keeping six steps follows COM-FR-010.
+4. **Placement uses the product's nine positions** (left / right / centre chest, full front, upper / full back, both sleeves, custom), not the canvas's five.
+5. **Sizes follow the catalogue** (XS–4XL, eight boxes) rather than the canvas's six; desktop wraps to two rows.
+6. **Group Collection** is described as "soon" (no feature yet), so there's no set-up link.
+7. **"Names on every shirt" and "Order it again" columns** are replaced by the product's own specifications and FAQs: the canvas copy promises a CSV template download and saved templates that don't exist yet. The CSV upload is inside Sizes & quantity.
+8. **Phone sticky bar** links to the price ticket rather than opening the quote form itself, so there's one form on the page.
+9. **Card mock-up preview** for Business Cards isn't built: only garments have a live preview; other products show their photos.
+10. **Map zones** show only on hover / focus on desktop (faintly on touch) to keep the garment clean; chosen zones carry the LOGO mark.
+
 ## Research behind the added motion
 
 - NN/g timing guidance: about 100 ms reads as instant, and anything past roughly 400 ms feels slow. Hover and press feedback stay at 120–200 ms, and only entrances and ambient loops run longer. Sources: [Val Head](https://valhead.com/?p=2978), [Fronteers](https://www.fronteers.nl/en/blog/2024/12/microanimations).

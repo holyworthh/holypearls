@@ -5,7 +5,7 @@
   flex: 1;
   justify-content: center;
   padding: var(--hp-space-24) var(--hp-layout-gutter-mobile);
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 @media (min-width: 768px) {

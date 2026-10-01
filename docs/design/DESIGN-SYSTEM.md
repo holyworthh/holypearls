@@ -24,6 +24,10 @@ The document and JSON preserve values read through Pen MCP. Values marked **INFE
 
 **Motion.** Tokens: press 120 ms, hover 200 ms, card/accordion 400 ms, reveal 700 ms (24 px rise, 80 ms stagger), ease `cubic-bezier(.2,.7,.2,1)`, entrance `cubic-bezier(.16,1,.3,1)`. Patterns on the Motion board (`nGctt`): button press and arrow nudge, card lift with photo zoom, scroll reveal, stitch underline, stitch progress line, floating swatches with parallax, stamp spin, product marquee, rotating search hint, polo colour cross-fade, accordion, scroll progress line. New patterns from research, marked on the board: add-to-cart confirmation, field-valid tick, upload thread, proof-approved stamp, product image morph (View Transitions), directional configurator steps, hide-on-scroll header, skeleton shimmer, tracking stitch fill. Rules: never animate prices, errors or status labels; one moving thing at a time; feedback within 400 ms and alongside the request; everything off for `prefers-reduced-motion`.
 
+**Surfaces (owner, 1 October 2026).** Pages and full-width section bands are white (`hp-paper`); sections are separated by 1 px Rule lines, not tinted bands. Mist (`hp-bone`) is for small panels, chips and inputs only. Never use cream or beige surfaces: where a canvas board shows one (card faces, striped placeholders), Pen and code use white.
+
+**Product pages.** Two templates cover every product (Pen `gb4rz` fixed-price, `mfOQO` / `Q7ml3` estimate and garment): a framed gallery stage with corner marks (Holy Blue tint for garments, Brick tint for print, white for photos), state pill, Young Serif title (49 / 35), choice tiles (12 px radius, 1.5 px Rule, 2 px Holy Blue + Blue Tint when chosen), the garment map with six expanding steps, and the perforated price ticket. Details and deviations: `docs/reports/LEDGER-DESIGN-SYSTEM.md`.
+
 **Owner-canvas conflicts resolved.** Foundations calls buttons "pill"; the later Home, Motion and Product boards draw them at 10 px. The later boards win (`hp-r-button` = 10); chips and badges stay pills.
 
 ### Ledger variable values

@@ -5,7 +5,7 @@
 
 /* Pen 17 sits on bone; Pen 06 (mobile) on paper. */
 .page {
-  background: var(--hp-bone);
+  background: var(--hp-paper);
 }
 
 @media (max-width: 1023px) {

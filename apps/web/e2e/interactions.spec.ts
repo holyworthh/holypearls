@@ -138,6 +138,8 @@ test("the product image viewer opens in place and moves between images", async (
   test.skip(isPhone(page.viewportSize()?.width), "Phones swipe the gallery; the viewer opens from desktop and tablet.");
   await page.goto("/products/polo-shirt");
   const url = page.url();
+  // Garments open on their placement map; the photos follow it in the gallery.
+  await page.getByRole("button", { name: /^Show image 1/ }).click();
   await page.getByRole("button", { name: "View images full size" }).click();
   const viewer = page.getByRole("dialog", { name: /Polo Shirt images/ });
   await expect(viewer).toBeVisible();
