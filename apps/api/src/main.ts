@@ -3,6 +3,7 @@ import { type AuthOutbox, createBetterAuthIdentity } from "@holypearls/auth";
 import { jobsConnectionString, loadApiEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
 import { Jobs } from "@holypearls/jobs";
+import { createPaymentGateway } from "@holypearls/payments";
 import { createStorage } from "@holypearls/storage";
 import { createApp } from "./app.js";
 import { findActiveStaff } from "./identity/actor.js";
@@ -58,6 +59,7 @@ const { storage, publicStorage } = createStorage(env, {
   signingSecret: env.DATA_ENCRYPTION_KEY,
 });
 const app = await createApp({
+  payments: createPaymentGateway(env),
   proxySecret: env.WEB_PROXY_SECRET ?? null,
   storage,
   publicStorage,

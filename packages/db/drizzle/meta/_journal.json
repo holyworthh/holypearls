@@ -183,6 +183,13 @@
       "when": 1790862348415,
       "tag": "0025_checkout_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790873628018,
+      "tag": "0026_payments",
+      "breakpoints": true
     }
   ]
 }

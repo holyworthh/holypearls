@@ -55,6 +55,7 @@ test("Business Cards go in the bag, check out as a guest, and the server's total
   const summary = page.getByRole("complementary", { name: "Order summary" });
   await expect(summary.getByText("₦76,862.50")).toBeVisible({ timeout: 30_000 });
   await expect(summary.getByText("₦5,362.50")).toBeVisible();
+  // Online payments start switched off (T04-03): Pay waits until staff turn them on.
   await expect(page.getByRole("button", { name: "Pay ₦76,862.50" })).toBeDisabled();
   await expectNoAxeViolations(page);
 });

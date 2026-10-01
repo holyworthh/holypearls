@@ -15,6 +15,7 @@
     "@holypearls/db": "workspace:*",
     "@holypearls/email": "workspace:*",
     "@holypearls/jobs": "workspace:*",
+    "@holypearls/payments": "workspace:*",
     "@holypearls/storage": "workspace:*"
   },
   "devDependencies": {

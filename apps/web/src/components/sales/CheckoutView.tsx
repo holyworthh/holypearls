@@ -10,10 +10,11 @@ import {
   NIGERIA_STATES,
 } from "@holypearls/contracts";
 import { Button, Checkbox, ErrorSummary, FormField, Notice, Select, TextField } from "@holypearls/ui";
-import { Check, ChevronDown, CreditCard, Landmark, Lock, ShoppingBag, Smartphone, User } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, ChevronDown, CreditCard, Landmark, Lock, ShoppingBag, Smartphone, User, Wallet } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import type { z } from "zod";
-import { api } from "../../lib/api";
+import { api, newIdempotencyKey } from "../../lib/api";
+import { openPaystack, startCheckoutPayment } from "../../lib/paystack";
 import { countryOptions } from "../../lib/countries";
 import { naira, percent } from "../../lib/money";
 import styles from "./checkout.module.css";
@@ -43,7 +44,7 @@ function issues(error: z.ZodError): Errors {
 /**
  * Checkout (Pen 43/44; COM-FR-083–084). Guest first. Each step saves on the
  * server, which recalculates the total; the summary always shows the server's
- * numbers. Payment itself arrives with T04-03, so the last step says so.
+ * numbers. The last step starts the payment on Paystack (T04-03).
  */
 export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedIn: boolean }) {
   const [checkout, setCheckout] = useState(initial);
@@ -195,28 +196,32 @@ export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedI
             </div>
           </dl>
           {checkout.quoteItemsLeftInCart ? <p className={styles.note}>Quote items stay in your cart and aren&apos;t part of this payment.</p> : null}
-          <div className={styles.methods}>
-            <p className={styles.methodsTitle}>We accept</p>
-            <ul>
-              <li>
-                <CreditCard size={14} strokeWidth={2} aria-hidden="true" />
-                Card
-              </li>
-              <li>
-                <Landmark size={14} strokeWidth={2} aria-hidden="true" />
-                Bank transfer
-              </li>
-              <li>
-                <Smartphone size={14} strokeWidth={2} aria-hidden="true" />
-                USSD
-              </li>
-            </ul>
-          </div>
+          {checkout.payment.channels.length ? (
+            <div className={styles.methods}>
+              <p className={styles.methodsTitle}>We accept</p>
+              {/* Only the methods switched on for the Paystack account (PAY-FR-007). */}
+              <ul>
+                {checkout.payment.channels.map((channel) => {
+                  const Icon = CHANNEL_ICONS[channel];
+                  return (
+                    <li key={channel}>
+                      <Icon size={14} strokeWidth={2} aria-hidden="true" />
+                      {CHANNEL_LABELS[channel]}
+                    </li>
+                  );
+                })}
+              </ul>
+              {checkout.payment.internationalCards ? <p className={styles.note}>Visa, Mastercard, Verve and American Express cards from abroad are accepted in naira.</p> : null}
+            </div>
+          ) : null}
         </aside>
       </main>
     </div>
   );
 }
+
+const CHANNEL_LABELS = { card: "Card", bank_transfer: "Bank transfer", ussd: "USSD", apple_pay: "Apple Pay" } as const;
+const CHANNEL_ICONS = { card: CreditCard, bank_transfer: Landmark, ussd: Smartphone, apple_pay: Wallet } as const;
 
 function doneSummary(step: Step, checkout: Checkout) {
   const address = checkout.address;
@@ -502,6 +507,39 @@ function ReviewStep({ checkout }: { checkout: Checkout }) {
   const blockers = checkout.blockers.filter((blocker) => blocker.code !== "STEPS_INCOMPLETE");
   const quote = blockers.find((blocker) => blocker.code === "DELIVERY_QUOTE_REQUIRED");
   const paymentsOff = blockers.find((blocker) => blocker.code === "PAYMENTS_NOT_AVAILABLE");
+  const paused = blockers.find((blocker) => blocker.code === "PAYMENTS_PAUSED");
+  const attempt = checkout.payment.attempt;
+  const pending = attempt && (attempt.status === "PENDING" || attempt.status === "CREATED") ? attempt : null;
+  // One key per press; a retry after a network error reuses it, so it can't start a second payment.
+  const key = useRef(newIdempotencyKey());
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [inProgressUntil, setInProgressUntil] = useState<string | null>(pending?.newAttemptFrom ?? null);
+  const processing = `/checkout/${checkout.id}/processing`;
+  const canStartNew = inProgressUntil !== null && Date.now() >= new Date(inProgressUntil).getTime();
+
+  const pay = async () => {
+    setBusy(true);
+    setProblem(null);
+    const result = await startCheckoutPayment(checkout.id, key.current);
+    if (result.ok) {
+      key.current = newIdempotencyKey();
+      await openPaystack(result.start, () => window.location.assign(processing));
+      return;
+    }
+    setBusy(false);
+    if (result.reason === "PAYMENT_IN_PROGRESS") {
+      setInProgressUntil(result.newAttemptFrom);
+      return;
+    }
+    if (result.reason === "ALREADY_PAID" || result.reason === "PAYMENT_UNDER_REVIEW") {
+      window.location.assign(processing);
+      return;
+    }
+    // The server answered: the next press is a new one.
+    if (result.reason) key.current = newIdempotencyKey();
+    setProblem(result.message);
+  };
   return (
     <div className={styles.form}>
       <dl className={styles.review}>
@@ -531,8 +569,37 @@ function ReviewStep({ checkout }: { checkout: Checkout }) {
           <p>Online payment is being switched on. Your checkout is saved; come back to this page to pay once it&apos;s live.</p>
         </Notice>
       ) : null}
-      <Button className={styles.continue} disabled={blockers.length > 0} icon={<Lock size={16} strokeWidth={2} aria-hidden="true" />}>
-        Pay {naira(checkout.totals.totalMinor)}
+      {paused ? (
+        <Notice tone="info" title="Online payment is paused">
+          <p>{paused.message} Your checkout is saved.</p>
+        </Notice>
+      ) : null}
+      {attempt && (attempt.status === "FAILED" || attempt.status === "ABANDONED") && !problem ? (
+        <Notice tone="error" title="Payment didn't go through">
+          <p>{attempt.message ?? "Payment failed — try again"}. Nothing has changed on your checkout.</p>
+        </Notice>
+      ) : null}
+      {problem ? (
+        <Notice tone="error" title="Payment didn't start" live>
+          <p>{problem}</p>
+        </Notice>
+      ) : null}
+      {inProgressUntil ? (
+        <Notice tone="warning" title="A payment is already in progress" live>
+          <p>
+            Wait for it to finish before paying again. <a href={processing}>Check its status</a>
+            {canStartNew ? null : <>; you can start a new payment from {new Date(inProgressUntil).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" })}</>}.
+          </p>
+        </Notice>
+      ) : null}
+      <Button
+        className={styles.continue}
+        disabled={blockers.length > 0 || (inProgressUntil !== null && !canStartNew)}
+        loading={busy}
+        onClick={pay}
+        icon={<Lock size={16} strokeWidth={2} aria-hidden="true" />}
+      >
+        {busy ? "Opening secure payment…" : inProgressUntil && canStartNew ? "Start a new payment" : `Pay ${naira(checkout.totals.totalMinor)}`}
       </Button>
       <p className={styles.fine}>Card details are entered on Paystack&apos;s secure checkout, never on this page.</p>
     </div>

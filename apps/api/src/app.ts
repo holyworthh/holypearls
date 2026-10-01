@@ -6,6 +6,7 @@ import type { IdentityAdapter } from "@holypearls/auth";
 import { ERROR_CODES } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
+import type { PaymentGateway } from "@holypearls/payments";
 import type { NextFunction, Request, Response } from "express";
 import type { Logger } from "pino";
 import { ErrorShapeFilter } from "./errors.js";
@@ -24,6 +25,7 @@ import { SearchAdminController, SearchController, SeoController } from "./catalo
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
 import { CartController, CheckoutController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
+import { PaystackWebhookController } from "./payments/payments.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -34,7 +36,7 @@ import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
-import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
+import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER, PAYMENT_DEPS } from "./tokens.js";
 import { LocalDiskStorage, type StorageAdapter } from "@holypearls/storage";
 
 export interface CreateAppOptions {
@@ -52,6 +54,8 @@ export interface CreateAppOptions {
   /** Private files (R2 or the local disk) and the public-media bucket for staff images (TECH-04 §2). */
   storage: StorageAdapter;
   publicStorage: StorageAdapter;
+  /** Paystack (TECH-05); null when no key is set, and payments show as not available. */
+  payments: PaymentGateway | null;
   /** Serves the T00-04 demo routes. Never on in production. */
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
@@ -62,6 +66,28 @@ export interface CreateAppOptions {
   now?: () => Date;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
   controllers?: Type[];
+}
+
+/** Keeps the request body as bytes, and marks it read so the JSON parser leaves it alone. */
+function rawBody(limit: number) {
+  return (request: Request, response: Response, next: NextFunction) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    request.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size <= limit) chunks.push(chunk);
+    });
+    request.on("end", () => {
+      if (size > limit) {
+        response.status(413).json({ code: "VALIDATION_FAILED", message: ERROR_CODES.VALIDATION_FAILED.message, requestId: request.requestId ?? "unknown" });
+        return;
+      }
+      request.body = Buffer.concat(chunks);
+      (request as Request & { _body?: boolean })._body = true;
+      next();
+    });
+    request.on("error", next);
+  };
 }
 
 export async function createApp(options: CreateAppOptions): Promise<NestExpressApplication> {
@@ -95,6 +121,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       CartController,
       CheckoutController,
       DeliveryZonesAdminController,
+      PaystackWebhookController,
       ConfigurationsController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
@@ -115,6 +142,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
           helpInboxEmail: options.helpInboxEmail,
         },
       },
+      { provide: PAYMENT_DEPS, useValue: { db: options.db, jobs: options.jobs, gateway: options.payments, webOrigin: options.webOrigin } },
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },
@@ -165,6 +193,8 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   const localStores = [...new Set([options.storage, options.publicStorage])].filter((store) => store instanceof LocalDiskStorage);
   for (const store of localStores) app.use(localStorageRoute(store));
   if (localStores.length) app.use(localStorageRefused);
+  // Paystack signs the exact bytes it sent, so its webhook keeps the raw body (TECH-02 §9).
+  app.use("/v1/webhooks/paystack", rawBody(1024 * 1024));
   app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { checkoutPaymentSchema } from "./payments.js";
 
 /*
  * Cart, checkout and delivery zones (T04-01; COM-FR-080–084, OPS-FR-100–101).
@@ -185,7 +186,9 @@ export const checkoutSchema = z.object({
   /** Production working days after proof approval, across the items. */
   productionDays: z.object({ min: z.number().int(), max: z.number().int() }).nullable(),
   /** Why the customer can't pay yet, if anything stops it. */
-  blockers: z.array(z.object({ code: z.enum(["STEPS_INCOMPLETE", "DELIVERY_QUOTE_REQUIRED", "PAYMENTS_NOT_AVAILABLE"]), message: z.string() })),
+  blockers: z.array(z.object({ code: z.enum(["STEPS_INCOMPLETE", "DELIVERY_QUOTE_REQUIRED", "PAYMENTS_NOT_AVAILABLE", "PAYMENTS_PAUSED"]), message: z.string() })),
+  /** The payment for this checkout (T04-03): what can be used to pay, and the latest attempt. */
+  payment: checkoutPaymentSchema,
   /** True when the quote items stayed in the cart. */
   quoteItemsLeftInCart: z.boolean(),
 });

@@ -50,6 +50,15 @@ const revalidation = {
   WEB_REVALIDATE_SECRET: z.string().min(16).optional(),
 };
 
+/**
+ * Paystack (TECH-05 §14–15): secret key on the api and worker only. Unset
+ * means payments show as not available. Production takes only a live key;
+ * every other environment only a test key.
+ */
+const payments = {
+  PAYSTACK_SECRET_KEY: z.string().regex(/^sk_(test|live)_[A-Za-z0-9]+$/, "Expected a Paystack secret key").optional(),
+};
+
 type Deployed = {
   HP_ENV: "local" | "preview" | "staging" | "production";
   STORAGE_DRIVER?: "local" | "s3";
@@ -68,6 +77,7 @@ type Deployed = {
   WEB_REVALIDATE?: "on" | "off";
   WEB_REVALIDATE_URL?: string;
   WEB_REVALIDATE_SECRET?: string;
+  PAYSTACK_SECRET_KEY?: string;
 };
 
 const notReal = (value: string) => /(^|[.@/])localhost([:/]|$)|127\.0\.0\.1|\.test([:/>]|$)/i.test(value);
@@ -84,6 +94,9 @@ function deployedRules(env: Deployed, ctx: z.RefinementCtx) {
     if (!env.WEB_REVALIDATE_URL) fail("WEB_REVALIDATE_URL", "required when WEB_REVALIDATE=on");
     if (!env.WEB_REVALIDATE_SECRET) fail("WEB_REVALIDATE_SECRET", "required when WEB_REVALIDATE=on");
   }
+  const key = env.PAYSTACK_SECRET_KEY;
+  if (key && env.HP_ENV === "production" && !key.startsWith("sk_live_")) fail("PAYSTACK_SECRET_KEY", "must be a live key in production");
+  if (key && env.HP_ENV !== "production" && !key.startsWith("sk_test_")) fail("PAYSTACK_SECRET_KEY", "must be a test key outside production");
   if (env.HP_ENV !== "production") return;
   if (env.STORAGE_DRIVER !== undefined) {
     if (env.STORAGE_DRIVER !== "s3") fail("STORAGE_DRIVER", "must be s3 in production");
@@ -137,6 +150,7 @@ const apiSchema = z
     /** Shared with the web app: proves its proxy sent the visitor's address (review P1-08). */
     WEB_PROXY_SECRET: z.string().min(32).optional(),
     ...storage,
+    ...payments,
   })
   .superRefine(apiRules);
 
@@ -159,6 +173,7 @@ const workerSchema = z
     ...email,
     ...storage,
     ...revalidation,
+    ...payments,
   })
   .superRefine(deployedRules);
 
