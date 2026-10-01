@@ -40,11 +40,11 @@ Flow:
 
 ## Environment variables
 
-**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled, app role), `DATABASE_DIRECT_URL` (Neon direct, app role), `DATABASE_MIGRATION_URL` (Neon direct, schema owner; migrations only), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE` (`on` in production, `off` in staging), `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, `SENTRY_DSN` (set 2026-09-28; one Sentry project, events tagged by `HP_ENV`; the worker in the same container reports too), `STORAGE_DRIVER=s3` and the `S3_*` values.
+**api (Render)**: `HP_ENV` (`staging` or `production`), `DATABASE_URL` (Neon pooled, app role), `DATABASE_DIRECT_URL` (Neon direct, app role), `DATABASE_MIGRATION_URL` (Neon direct, schema owner; migrations only), `API_PORT=10000`, `BETTER_AUTH_URL` (that environment's web URL), `BETTER_AUTH_SECRET`, `DATA_ENCRYPTION_KEY`, `HP_DEMO_SLICE` (`on` in staging only), `EMAIL_TRANSPORT=resend`, `EMAIL_FROM`, `RESEND_API_KEY`, `HELP_INBOX_EMAIL`, `WEB_REVALIDATE` (`on` in production, `off` in staging), `WEB_REVALIDATE_URL`, `WEB_REVALIDATE_SECRET`, `SENTRY_DSN` (set 2026-09-28; one Sentry project, events tagged by `HP_ENV`; the worker in the same container reports too), `STORAGE_DRIVER=s3` and the `S3_*` values, `WEB_PROXY_SECRET` (the same value as the web app's).
 
 **Production fails closed.** With `HP_ENV=production` the api and worker refuse to start when files would go to the container's disk, an `S3_*` value is missing, the private and public buckets are the same, email isn't Resend, page refresh is off, the demo routes are on, an address is `localhost` or `.test`, or `DATABASE_URL` logs in as a role that can change the schema (`packages/config`, `runtimePrivilegeProblems`).
 
-**web (Vercel)**: `API_URL` (that environment's Render URL; written into the build), `HP_DEMO_SLICE`, `WEB_REVALIDATE_SECRET`. Staging values are scoped to the `dev` branch; production values to Production.
+**web (Vercel)**: `API_URL` (that environment's Render URL; written into the build), `HP_DEMO_SLICE`, `WEB_REVALIDATE_SECRET`, `WEB_PROXY_SECRET` (the same value as the api's: the web app's proxy sends each visitor's address with it, and the api trusts no other source of the address; review P1-08). Staging values are scoped to the `dev` branch; production values to Production.
 
 Secrets are generated per environment and never shared between staging and production.
 

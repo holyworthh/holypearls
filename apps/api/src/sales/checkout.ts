@@ -7,6 +7,7 @@ import { draftView, reprice } from "../configuration/drafts.js";
 import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
+import { checkoutExpiry } from "./retention.js";
 import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snapshot.js";
 
 /*
@@ -191,6 +192,7 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
       if (!frozen.length) return null;
       const base = {
         cartId: cart.id,
+        expiresAt: checkoutExpiry(now),
         ownerUserId: cart.ownerUserId,
         ownerDeviceHash: cart.ownerDeviceHash,
         items: frozen,
@@ -223,7 +225,8 @@ export async function startCheckout(db: Db, access: CartAccess): Promise<Checkou
 }
 
 async function save(db: Db, row: Row, version: number, patch: Partial<typeof schema.checkouts.$inferInsert>) {
-  if (row.status !== "OPEN") throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
+  const expired = row.expiresAt !== null && row.expiresAt.getTime() <= Date.now();
+  if (row.status !== "OPEN" || expired) throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
   const next = { ...row, ...patch } as Row;
   const totals = totalsOf(next);
   const [updated] = await db

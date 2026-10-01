@@ -568,8 +568,16 @@ export async function requestQuote(
   id: string,
   input: { email: string; name: string; phone?: string; note?: string },
 ) {
-  const row = await loadDraft(deps.db, access, id);
-  const current = await draftView(deps.db, row, access.actor.now);
+  const checked = await quotable(deps.db, access, id);
+  if ("reference" in checked) return checked;
+  const reference = await deps.db.transaction((tx) => quoteIn(tx, deps, access, checked, input));
+  return { reference, status: "PENDING_REVIEW" as const };
+}
+
+/** Checks a design can be quoted, before anything changes. A design already quoted returns its reference. */
+export async function quotable(db: Database, access: DraftAccess, id: string) {
+  const row = await loadDraft(db, access, id);
+  const current = await draftView(db, row, access.actor.now);
   if (row.status === "QUOTE_REQUESTED" && current.quote) return { reference: current.quote.reference, status: "PENDING_REVIEW" as const };
   if (row.status !== "DRAFT" && row.status !== "IN_CART") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   const unavailable = current.garment?.unavailable[0];
@@ -577,41 +585,52 @@ export async function requestQuote(
   if (!current.price) throw new AppError("VALIDATION_FAILED", { fieldErrors: { quantity: "Choose a quantity before asking for a quote." } });
   const blocking = current.price.reasons.find((reason) => reason.blocking);
   if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });
+  return { id, current };
+}
 
+/**
+ * The quote request's changes, inside the caller's transaction, so several
+ * designs can be quoted all together or not at all (review P2-02).
+ */
+export async function quoteIn(
+  tx: Tx,
+  deps: NotificationDeps & { webOrigin: string },
+  access: DraftAccess,
+  checked: { id: string; current: Configuration },
+  input: { email: string; name: string; phone?: string; note?: string },
+) {
+  const { id, current } = checked;
   const now = access.actor.now;
-  const reference = await deps.db.transaction(async (tx) => {
-    // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
-    const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
-    const moved = await tx
-      .update(schema.configurations)
-      .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
-      .where(and(eq(schema.configurations.id, id), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
-      .returning({ id: schema.configurations.id });
-    if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
-    // A quote item leaves the cart when its quote is requested (COM-FR-081).
-    await tx.delete(schema.cartItems).where(eq(schema.cartItems.configurationId, id));
-    await closeCheckoutsWith(tx, id);
-    const ref = await nextQuoteReference(tx, now);
-    const { emailedTo: _emailed, ...snapshot } = current;
-    void _emailed;
-    await tx.insert(schema.quotes).values({
-      reference: ref,
-      customerId: customer.id,
-      configurationId: id,
-      requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
-      contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
-    });
-    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: recipient.id, now });
-    await queueEmail(deps, tx, {
-      template: "guest_link",
-      to: input.email,
-      customerId: recipient.id,
-      data: { url: link.url, what: "quote request", reference: ref },
-      record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
-      linkLabel: "Opens the design the quote is for",
-      requestId: access.actor.requestId,
-    });
-    return ref;
+  // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
+  const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
+  const moved = await tx
+    .update(schema.configurations)
+    .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
+    .where(and(eq(schema.configurations.id, id), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .returning({ id: schema.configurations.id });
+  if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  // A quote item leaves the cart when its quote is requested (COM-FR-081).
+  await tx.delete(schema.cartItems).where(eq(schema.cartItems.configurationId, id));
+  await closeCheckoutsWith(tx, id);
+  const ref = await nextQuoteReference(tx, now);
+  const { emailedTo: _emailed, ...snapshot } = current;
+  void _emailed;
+  await tx.insert(schema.quotes).values({
+    reference: ref,
+    customerId: customer.id,
+    configurationId: id,
+    requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
+    contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
   });
-  return { reference, status: "PENDING_REVIEW" as const };
+  const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: recipient.id, now });
+  await queueEmail(deps, tx, {
+    template: "guest_link",
+    to: input.email,
+    customerId: recipient.id,
+    data: { url: link.url, what: "quote request", reference: ref },
+    record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
+    linkLabel: "Opens the design the quote is for",
+    requestId: access.actor.requestId,
+  });
+  return ref;
 }

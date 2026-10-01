@@ -105,4 +105,7 @@ Staff can preview a content page only after it's published. **Decide:** whether 
 GitHub refuses branch rules on a private repository on the Free plan. You chose to skip it for now, so `dev` and `main` still accept direct and force pushes. With GitHub Pro ($4/month) I can add: pull requests only, the `checks` job required, no force pushes, no deletion, on both branches.
 
 ### 12. Before the next release to `main`
-Production now checks its own settings on start (review P0-01, P1-02, P2-05). Before merging `dev` into `main`, production needs: R2 (item 3), the `holypearls_app` login in `DATABASE_URL` and `DATABASE_DIRECT_URL`, `DATABASE_MIGRATION_URL` for the owner, and `WEB_REVALIDATE=on`. I'll set these on Render once item 3 is done.
+Production now checks its own settings on start (review P0-01, P1-02, P1-08, P2-05). Before merging `dev` into `main`, production needs: R2 (item 3), the `holypearls_app` login in `DATABASE_URL` and `DATABASE_DIRECT_URL`, `DATABASE_MIGRATION_URL` for the owner, `WEB_REVALIDATE=on`, and the same `WEB_PROXY_SECRET` on Render and Vercel. I'll set these on Render once item 3 is done.
+
+### 13. Retention periods to confirm (review P2-03)
+Open checkouts now close after 72 hours. Contact, address and billing details are erased from checkouts abandoned for 90 days, and drafts untouched for 90 days are closed and lose their names and files. These are your starting values from 2026-10-01. **Needed:** confirm them with your accountant and lawyer (completed orders and tax records follow the legal period instead). They live in one place: `apps/api/src/sales/retention.ts`.

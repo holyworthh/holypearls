@@ -119,6 +119,10 @@ export const checkouts = pgTable(
     step: text("step").notNull().default("contact"),
     version: versionColumn(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** An open checkout stops taking answers after this (review P2-03). */
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    /** When contact, address and billing were erased from a closed checkout (review P2-03). */
+    personalDataPurgedAt: timestamp("personal_data_purged_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

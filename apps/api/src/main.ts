@@ -58,6 +58,7 @@ const { storage, publicStorage } = createStorage(env, {
   signingSecret: env.DATA_ENCRYPTION_KEY,
 });
 const app = await createApp({
+  proxySecret: env.WEB_PROXY_SECRET ?? null,
   storage,
   publicStorage,
   db: database.db,

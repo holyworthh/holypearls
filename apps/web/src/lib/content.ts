@@ -10,6 +10,7 @@ import {
 } from "@holypearls/contracts";
 import { headers } from "next/headers";
 import type { z } from "zod";
+import { visitorHeaders } from "./visitor";
 
 const env = loadWebEnv();
 
@@ -47,7 +48,7 @@ export async function getSearchResults(query: { q: string; scope: SearchScope; p
   if (query.exact) params.set("exact", "1");
   const incoming = await headers();
   const response = await fetch(`${env.API_URL}/v1/search?${params}`, {
-    headers: { accept: "application/json", ...(incoming.get("x-request-id") ? { "x-request-id": incoming.get("x-request-id")! } : {}) },
+    headers: { accept: "application/json", ...(incoming.get("x-request-id") ? { "x-request-id": incoming.get("x-request-id")! } : {}), ...visitorHeaders(incoming) },
     cache: "no-store",
   });
   // A busy moment (rate limit) is shown as a message on the page, not an error page.

@@ -3,7 +3,7 @@ import { and, asc, type Database, desc, eq, inArray, isNotNull, schema, sql } fr
 import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { NotificationDeps } from "../platform/notifications.js";
-import { closeCheckoutsWith, type DraftAccess, draftView, loadDraft, requestQuote } from "../configuration/drafts.js";
+import { closeCheckoutsWith, type DraftAccess, draftView, loadDraft, quoteIn, quotable } from "../configuration/drafts.js";
 import { configuratorFor, productOptions } from "../configuration/pricing.js";
 
 /*
@@ -215,9 +215,17 @@ export async function requestCartQuotes(deps: NotificationDeps & { webOrigin: st
   const cart = await findCart(deps.db, access, false);
   const items = cart ? await deps.db.select().from(schema.cartItems).where(and(eq(schema.cartItems.cartId, cart.id), eq(schema.cartItems.group, "QUOTE"))).orderBy(asc(schema.cartItems.createdAt)) : [];
   if (!items.length) throw new AppError("RULE_FAILED", { message: "There are no quote items in your cart.", context: { reason: "NO_QUOTE_ITEMS" } });
-  const references: string[] = [];
-  for (const item of items) references.push((await requestQuote(deps, access, item.configurationId, input)).reference);
-  return { references };
+  // All or nothing (review P2-02): every design is checked first, then all are quoted in one transaction.
+  const checked: Awaited<ReturnType<typeof quotable>>[] = [];
+  for (const item of items) checked.push(await quotable(deps.db, access, item.configurationId));
+  return deps.db.transaction(async (tx) => {
+    const references: string[] = [];
+    for (const one of checked) {
+      if (!("reference" in one)) references.push(await quoteIn(tx, deps, access, one, input));
+      else if (one.reference) references.push(one.reference);
+    }
+    return { references };
+  });
 }
 
 /** The cart's READY items for checkout, oldest first. */

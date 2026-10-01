@@ -33,7 +33,7 @@ import { NotificationsController } from "./platform/notifications.controller.js"
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
-import { RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
+import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
 import { DATABASE, FILE_DEPS, HELP_DEPS, IDENTITY, JOBS, LOGGER } from "./tokens.js";
 import { LocalDiskStorage, type StorageAdapter } from "@holypearls/storage";
 
@@ -56,6 +56,8 @@ export interface CreateAppOptions {
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
   rateLimit?: boolean;
+  /** WEB_PROXY_SECRET: proves the web app's proxy sent the visitor's address (review P1-08). */
+  proxySecret?: string | null;
   /** Clock, for tests. */
   now?: () => Date;
   /** Extra controllers; tests use this to exercise the conventions on a throwaway route. */
@@ -137,6 +139,10 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   const getActor = actorResolver(options.identity, options.db, now);
 
   app.use(requestContext(options.logger));
+  app.use((request: Request, _response: Response, next: NextFunction) => {
+    request.clientIp = clientIpFrom(request, options.proxySecret ?? null);
+    next();
+  });
   app.use(originCheck(options.webOrigin));
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.getActor = () => getActor(request);
