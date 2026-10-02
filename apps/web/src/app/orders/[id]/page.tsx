@@ -3,6 +3,7 @@ import { StatusChip } from "@holypearls/ui";
 import { Check, Truck } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PaymentSummary } from "../../../components/sales/PaymentSummary";
 import { SiteShell } from "../../../components/site/SiteShell";
 import { naira } from "../../../lib/money";
 import { serverApi } from "../../../lib/server-api";
@@ -40,9 +41,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   }
   const order = result.data;
   const paidOn = order.receipts[0] ? day(order.receipts[0].paidAt) : day(order.placedAt);
+  // An order from a quote is placed when it's accepted and paid on its schedule (T05-05).
+  const scheduled = order.payments;
+  const fullyPaid = !scheduled || scheduled.next === null;
+  const firstPaid = scheduled ? scheduled.installments.find((part) => part.status === "PAID") : null;
   const lead = order.items.reduce<{ min: number; max: number } | null>((widest, item) => (item.leadDays ? { min: Math.max(widest?.min ?? 0, item.leadDays.min), max: Math.max(widest?.max ?? 0, item.leadDays.max) } : widest), null);
   const stages = [
-    { label: "Paid", note: paidOn, state: "done" },
+    scheduled
+      ? { label: firstPaid ? "Deposit paid" : "Accepted", note: firstPaid?.paidAt ? day(firstPaid.paidAt) : day(order.placedAt), state: "done" }
+      : { label: "Paid", note: paidOn, state: "done" },
     { label: "Proof", note: "Now", state: "now" },
     { label: "Production", note: "Next", state: "todo" },
     { label: "Quality Check", note: "", state: "todo" },
@@ -51,12 +58,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
   return (
     <SiteShell>
-      <main id="main" className={styles.page}>
+      <div className={styles.page}>
         <div className={styles.column}>
           <p className={styles.eyebrow}>
-            ORDER {order.number} · PAID {paidOn.toUpperCase()}
+            ORDER {order.number} · {scheduled ? `PLACED ${day(order.placedAt).toUpperCase()}${order.quote ? ` · QUOTE ${order.quote.reference} V${order.quote.version}` : ""}` : `PAID ${paidOn.toUpperCase()}`}
           </p>
-          <h1 className={styles.title}>Your order is confirmed</h1>
+          <h1 className={styles.title}>{fullyPaid ? "Your order is confirmed" : "Your order is placed"}</h1>
+          {scheduled ? <PaymentSummary orderId={order.id} summary={scheduled} /> : null}
 
           {order.items.map((item) => (
             <div key={`${item.productName}-${item.summary}`} className={styles.card}>
@@ -66,7 +74,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   {item.productName} · {item.quantity.toLocaleString("en-NG")}
                 </p>
                 <p className={styles.meta}>{item.summary}</p>
-                <p className={styles.meta}>Paid {naira(item.totalMinor)}</p>
+                <p className={styles.meta}>{scheduled ? "Total" : "Paid"} {naira(item.totalMinor)}</p>
               </div>
               <StatusChip tone="info">{STATUS_LABEL[item.status] ?? item.status}</StatusChip>
             </div>
@@ -101,7 +109,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <a href={`/contact?topic=order&order=${encodeURIComponent(order.number)}`}>Get help</a>
           </nav>
         </div>
-      </main>
+      </div>
     </SiteShell>
   );
 }

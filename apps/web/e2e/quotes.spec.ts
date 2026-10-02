@@ -53,8 +53,8 @@ test("a guest requests a project quote and sees the confirmation", async ({ page
 test("staff review the request and send a quote", async ({ page, browser }) => {
   test.setTimeout(240_000);
   const context = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: test.info().project.use.viewport ?? null });
-  const reference = await submitProject(await context.newPage());
-  await context.close();
+  const customer = await context.newPage();
+  const reference = await submitProject(customer);
 
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.goto(`${ADMIN}/projects`);
@@ -85,6 +85,21 @@ test("staff review the request and send a quote", async ({ page, browser }) => {
   await expect(page.getByText(/V1 sent\./)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Version 1", level: 1 })).toBeVisible();
   await expect(page.getByText(/can't change\. Create a new version to revise\./)).toBeVisible();
+
+  // T05-05: the customer opens the quote (Pen 25/46) from the browser that sent the project.
+  const quoteId = new URL(page.url()).pathname.split("/").pop()!;
+  await customer.goto(`/quotes/${quoteId}`);
+  await expect(customer.getByRole("heading", { name: "Quote e2e summit (TEST DATA)", level: 1 })).toBeVisible();
+  await expect(customer.getByText("Quote V1 · ready for your decision")).toBeVisible();
+  await expect(customer.getByRole("button", { name: "Accept Quote V1" })).toBeEnabled();
+  await expectNoAxeViolations(customer);
+  await expectNoHorizontalScroll(customer);
+  await customer.getByRole("button", { name: "Request changes" }).click();
+  await customer.getByRole("dialog").getByRole("textbox", { name: "What would you like changed?" }).fill("Please add 20 more badges.");
+  await customer.getByRole("dialog").getByRole("button", { name: "Send" }).click();
+  await expect(customer.getByText("We'll revise the quote and email you the new version.")).toBeVisible();
+  await expect(customer.getByText("Quote V1 · being revised")).toBeVisible();
+  await context.close();
 
   await page.goto(`${ADMIN}/quotes/settings`);
   await expect(page.getByRole("heading", { name: "Quote settings", level: 1 })).toBeVisible();

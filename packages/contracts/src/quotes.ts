@@ -221,6 +221,8 @@ export const adminQuoteSchema = z.object({
   usdEnabled: z.boolean(),
   vatRateBps: z.number().int(),
   createdAt: isoDate,
+  /** The customer's change requests, questions, decline and renewal requests (OPS-FR-034). */
+  requests: z.array(z.object({ kind: z.string(), version: z.number().int().nullable(), line: z.string().nullable(), changeType: z.string().nullable(), note: z.string(), createdAt: isoDate })),
 });
 export type AdminQuote = z.infer<typeof adminQuoteSchema>;
 

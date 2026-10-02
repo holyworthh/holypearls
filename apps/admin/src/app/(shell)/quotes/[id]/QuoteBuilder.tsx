@@ -302,6 +302,25 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
         </Notice>
       ) : null}
 
+      {quote.requests.length ? (
+        <section className={styles.panel} aria-labelledby="customer-requests">
+          <h2 id="customer-requests" className={styles.panelTitle}>
+            From the customer ({quote.requests.length})
+          </h2>
+          <ul className={styles.plainList}>
+            {quote.requests.map((request) => (
+              <li key={`${request.createdAt}-${request.kind}`}>
+                <strong>{{ CHANGE: "Change requested", QUESTION: "Question", DECLINE: "Declined", UPDATE: "Updated quote requested" }[request.kind] ?? request.kind}</strong>
+                {request.version ? ` on V${request.version}` : ""}
+                {request.line ? ` · ${request.line}` : ""}
+                {request.changeType ? ` · ${request.changeType}` : ""} · {formatTime(request.createdAt)}
+                {request.note ? <span className={styles.hint}> · {request.note}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {!current ? (
         <EmptyState title="No line items yet" body="Start a version, then add lines from the project's items or configurations." />
       ) : current.status !== "DRAFT" ? (
