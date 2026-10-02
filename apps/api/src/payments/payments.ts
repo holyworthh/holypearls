@@ -185,7 +185,6 @@ export async function startCheckoutPayment(
   const settings = await paymentSettings(deps.db);
   const off = paymentsBlocker(deps.gateway, settings);
   if (off) throw new AppError("RULE_FAILED", { message: off.message, context: { reason: off.code } });
-  const gateway = deps.gateway!;
   const blocker = checkout.blockers.find((item) => item.code === "STEPS_INCOMPLETE" || item.code === "DELIVERY_QUOTE_REQUIRED");
   if (blocker) throw new AppError("RULE_FAILED", { message: blocker.message, context: { reason: blocker.code } });
   const email = (checkout.row.contact as { email?: string } | null)?.email;
