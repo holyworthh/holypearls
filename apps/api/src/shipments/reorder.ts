@@ -110,7 +110,13 @@ async function copyConfiguration(db: Database, access: DraftAccess, original: ty
       })
       .returning({ id: schema.configurations.id });
     const copy = row!.id;
-    const strip = <T extends Record<string, unknown>>(rows: T[]) => rows.map(({ id: _id, configurationId: _c, ...rest }) => ({ ...rest, configurationId: copy }));
+    // Same rows, new owner: drop each row's own id and point it at the copy.
+    const strip = <T extends Record<string, unknown>>(rows: T[]) =>
+      rows.map((row) => {
+        const rest: Record<string, unknown> = { ...row };
+        delete rest.id;
+        return { ...rest, configurationId: copy };
+      });
     const [selections, sizes, placements, people, files] = await Promise.all([
       tx.select().from(schema.configurationSelections).where(eq(schema.configurationSelections.configurationId, original.id)),
       tx.select().from(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, original.id)),
