@@ -17,11 +17,11 @@ import {
   projectSchema,
   type ProjectStep,
 } from "@holypearls/contracts";
-import { Button, FormField, Notice, TextField } from "@holypearls/ui";
+import { Button, ErrorSummary, FormField, Notice, TextField } from "@holypearls/ui";
 import { ArrowLeft, ArrowRight, CloudCheck, Headset } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../../lib/api";
+import { api, newIdempotencyKey } from "../../lib/api";
 import { FileUpload } from "../FileUpload";
 import { NeedHelp } from "../NeedHelp";
 import { QuestionField } from "./Questions";
@@ -57,7 +57,7 @@ const HEADINGS: Record<ProjectStep, { title: string; lead: string }> = {
   DATE_LOCATION: { title: "When and where?", lead: "No street address yet. We only need the city for now." },
   BRAND: { title: "What do you have already?", lead: "You don't need artwork to get suggestions. Send files now or later." },
   RECOMMENDATIONS: { title: "What we suggest", lead: "" },
-  REVIEW: { title: "Check your project", lead: "Everything you've told us, in one place. Edit any part." },
+  REVIEW: { title: "Check your project before we quote", lead: "Everything you've told us, in one place. Edit any part." },
 };
 
 /** "250 guests", "Lagos", "6 weeks away": the brief at a glance (Pen 24). */
@@ -133,6 +133,83 @@ function SaveLink({ project, onSaved }: { project: Project; onSaved: (project: P
       <Button type="submit" variant="secondary" loading={busy}>
         Send link
       </Button>
+    </form>
+  );
+}
+
+/**
+ * Request Project Quote (PROJ-FR-010–011, Pen 124 · r4skt): the only place
+ * to submit. Guests give the email the quote goes to. Pressing twice is safe:
+ * one idempotency key per press, and the server returns the same project.
+ */
+function SubmitPanel({ project, signedIn, flush, version }: { project: Project; signedIn: boolean; flush: () => Promise<unknown>; version: () => number }) {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [failed, setFailed] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [key] = useState(() => newIdempotencyKey());
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setErrors({});
+    setFailed(null);
+    if (!signedIn && !email.trim()) {
+      setErrors({ email: "Add an email so we can send your quote." });
+      return;
+    }
+    setBusy(true);
+    try {
+      await flush();
+      await api(`/v1/projects/${project.id}/submit`, {
+        method: "POST",
+        headers: { "idempotency-key": key },
+        body: { version: version(), ...(email.trim() ? { email: email.trim() } : {}), ...(name.trim() ? { name: name.trim() } : {}) },
+        response: projectSchema,
+      });
+      router.push(`/start/${project.id}`);
+    } catch (problem) {
+      setBusy(false);
+      if (problem instanceof ApiError && problem.body.fieldErrors) setErrors(problem.body.fieldErrors);
+      else if (problem instanceof ApiError && problem.code === "RULE_FAILED") setFailed(problem.body.message);
+      else if (problem instanceof ApiError && problem.code === "VERSION_CONFLICT") setFailed("This project changed in another tab. Reload the page to see the latest, then send it.");
+      else setFailed("We couldn't send your project. Nothing is lost — try again.");
+    }
+  };
+
+  const fieldErrors = Object.entries(errors);
+  return (
+    <form className={s.reviewSection} onSubmit={submit} noValidate aria-labelledby="submit-title">
+      <h2 id="submit-title" className={s.reviewTitle}>
+        Price
+      </h2>
+      <p className={s.deadline}>QUOTE REQUIRED</p>
+      <p className={s.hint}>HolyPearls prepares your quote after reviewing the brief. You only pay after you accept it.</p>
+      {fieldErrors.length ? (
+        <ErrorSummary title={fieldErrors.length === 1 ? "One thing to fix" : `${fieldErrors.length} things to fix`} errors={fieldErrors.map(([field, message]) => ({ fieldId: `submit-${field}`, message }))} />
+      ) : null}
+      {failed ? (
+        <Notice tone="error" title="Not sent" live>
+          <p>{failed}</p>
+        </Notice>
+      ) : null}
+      {signedIn ? (
+        <p className={s.hint}>We&apos;ll send the quote to your account&apos;s email.</p>
+      ) : (
+        <>
+          <FormField id="submit-email" label="Email for your quote" hint="No account needed. We'll send a secure link." error={errors.email}>
+            <TextField type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          </FormField>
+          <FormField id="submit-name" label="Your name" optional>
+            <TextField autoComplete="name" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />
+          </FormField>
+        </>
+      )}
+      <button type="submit" className={s.next} disabled={busy}>
+        {busy ? "Sending…" : "Request Project Quote"}
+      </button>
+      <p className={s.hint}>Need help? Ask HolyPearls — we&apos;ll see this project and your files.</p>
     </form>
   );
 }
@@ -492,10 +569,7 @@ export function Builder({ initial, step, signedIn }: { initial: Project; step: P
                   <p className={s.hint}>No items yet. Add some from Recommendations, or describe them in a custom item.</p>
                 )}
               </section>
-              <Notice tone="info" title="Next: request your quote">
-                <p>Sending your project for a quote opens here shortly. Save a link so you can come back to it.</p>
-              </Notice>
-              {!project.linkEmailed ? <SaveLink project={project} onSaved={(next) => ((version.current = next.version), setProject(next))} /> : null}
+              <SubmitPanel project={project} signedIn={signedIn} flush={flush} version={() => version.current} />
             </>
           ) : null}
 
