@@ -254,3 +254,110 @@ describe("the customer's decisions (FUL-FR-002–004)", () => {
     expect(apiErrorSchema.parse(old.body).context).toMatchObject({ reason: "NOT_CURRENT_VERSION" });
   });
 });
+
+/*
+ * T06-03: comments, pins and changes after approval (FUL-FR-005, 007;
+ * OPS-FR-052, 054). Done when: pins are stored as relative positions and
+ * listed as numbered text; the approved version is kept; cost and timing
+ * impact are recorded.
+ */
+async function publishedProof() {
+  const made = await paidOrder();
+  const ada = staff(actors.adminAda!);
+  const [proof] = await db()
+    .select({ id: schema.proofs.id })
+    .from(schema.proofs)
+    .innerJoin(schema.orderItems, eq(schema.orderItems.id, schema.proofs.orderItemId))
+    .where(eq(schema.orderItems.orderId, made.orderId));
+  await db().update(schema.proofs).set({ status: "PREPARING", requirement: "REQUIRED" }).where(eq(schema.proofs.id, proof!.id));
+  await publishVersion(ada, proof!.id);
+  return { ...made, ada, proofId: proof!.id };
+}
+
+describe("comments and pins (FUL-FR-005, TECH-04 §11)", () => {
+  it("numbers pins per version, keeps relative positions and whole-proof comments, with staff replies in the thread", async () => {
+    const { b, orderId, proofId, ada } = await publishedProof();
+    const base = `/v1/orders/${orderId}/proofs/${proofId}`;
+    await b.post(`${base}/comments`, { versionNumber: 1, body: "Logo looks close to the placket.", pin: { x: 0.31, y: 0.225, view: 0 } });
+    await b.post(`${base}/comments`, { versionNumber: 1, body: "Is this the navy we chose?", pin: { x: 0.5, y: 0.9, view: 0 } });
+    const proof = customerProofSchema.parse((await b.post(`${base}/comments`, { versionNumber: 1, body: "Otherwise looks great." })).body);
+    const comments = proof.current!.comments;
+    expect(comments.map((comment) => comment.pin?.number ?? null)).toEqual([1, 2, null]);
+    expect(comments[0]!.pin).toMatchObject({ x: 0.31, y: 0.225, view: 0 });
+    expect(proof.status).toBe("AWAITING_APPROVAL");
+    expect((await b.post(`${base}/comments`, { versionNumber: 1, body: "x", pin: { x: 1.4, y: 0.2, view: 0 } })).status).toBe(400);
+
+    const replied = adminProofSchema.parse((await ada.post(`/v1/admin/proofs/${proofId}/replies`, { versionNumber: 1, body: "Yes, we will move it 1 cm in V2.", parentId: comments[0]!.id })).body);
+    const reply = replied.versions[0]!.comments.find((comment) => comment.kind === "REPLY")!;
+    expect(reply).toMatchObject({ fromStaff: true, parentId: comments[0]!.id, pin: null });
+    expect(replied.status).toBe("AWAITING_APPROVAL");
+  });
+
+  it("keeps older versions read-only", async () => {
+    const { b, orderId, proofId, ada } = await publishedProof();
+    const base = `/v1/orders/${orderId}/proofs/${proofId}`;
+    await b.post(`${base}/changes`, { versionNumber: 1, note: "Bigger logo" });
+    await publishVersion(ada, proofId);
+    const old = await b.post(`${base}/comments`, { versionNumber: 1, body: "Late comment" });
+    expect(apiErrorSchema.parse(old.body).context).toMatchObject({ reason: "OLDER_VERSION" });
+  });
+});
+
+describe("changes after approval (FUL-FR-007, OPS-FR-054)", () => {
+  async function approved() {
+    const made = await publishedProof();
+    const { guest, code } = await guestFromProofEmail(made.orderId, made.contact.email);
+    await guest.post("/v1/email-codes/verify", { purpose: "APPROVE_PROOF", code });
+    await guest.post(`/v1/orders/${made.orderId}/proofs/${made.proofId}/approve`, { versionNumber: 1, acknowledged: true });
+    return made;
+  }
+
+  it("records the stage, then staff accept with cost and timing; the approved version is kept and a new version follows", async () => {
+    const { b, orderId, proofId, ada } = await approved();
+    const before = await b.post(`/v1/orders/${orderId}/change-requests`, { proofId, description: "Add the sponsor logo on the back." });
+    expect(before.status).toBe(200);
+    expect(before.body.items[0]).toMatchObject({ stage: "BEFORE_PRODUCTION", status: "OPEN" });
+    const twice = await b.post(`/v1/orders/${orderId}/change-requests`, { proofId, description: "And another." });
+    expect(apiErrorSchema.parse(twice.body).context).toMatchObject({ reason: "ALREADY_OPEN" });
+
+    const queue = (await ada.get("/v1/admin/change-requests")).body as { items: { id: string; orderId: string; version: number }[] };
+    const request = queue.items.find((item) => item.orderId === orderId)!;
+    const reviewing = (await ada.post(`/v1/admin/change-requests/${request.id}/review`)).body as { status: string; version: number };
+    expect(reviewing.status).toBe("UNDER_REVIEW");
+    const decided = await ada.post(`/v1/admin/change-requests/${request.id}/decision`, { version: reviewing.version, decision: "ACCEPTED", outcome: "NEW_PROOF_VERSION", costImpactMinor: "1500000", timingImpactDays: 2, note: "Back print adds 15,000 naira and 2 days." });
+    expect(decided.body).toMatchObject({ status: "ACCEPTED", costImpactMinor: "1500000", timingImpactDays: 2, outcome: "NEW_PROOF_VERSION" });
+
+    const proof = adminProofSchema.parse((await ada.get(`/v1/admin/proofs/${proofId}`)).body);
+    expect(proof.status).toBe("REVISION_IN_PROGRESS");
+    expect(proof.versions.map((version) => [version.number, version.status])).toEqual([
+      [2, "DRAFT"],
+      [1, "APPROVED"],
+    ]);
+    const order = orderSchema.parse((await b.get(`/v1/orders/${orderId}`)).body);
+    expect(order.changeRequests[0]).toMatchObject({ status: "ACCEPTED", staffNote: "Back print adds 15,000 naira and 2 days." });
+  });
+
+  it("marks a change after production started, and declining keeps the approved version", async () => {
+    const { b, orderId, proofId, ada } = await approved();
+    await db().update(schema.orderItems).set({ status: "IN_PRODUCTION" }).where(eq(schema.orderItems.orderId, orderId));
+    const asked = await b.post(`/v1/orders/${orderId}/change-requests`, { proofId, description: "Change the colour." });
+    expect(asked.body.items[0]).toMatchObject({ stage: "AFTER_PRODUCTION_START" });
+    const request = asked.body.items[0] as { id: string; version: number };
+    const declined = await ada.post(`/v1/admin/change-requests/${request.id}/decision`, { version: request.version, decision: "DECLINED", outcome: "NONE", costImpactMinor: null, timingImpactDays: null, note: "Production has started, so the colour stays." });
+    expect(declined.body).toMatchObject({ status: "DECLINED" });
+    const proof = adminProofSchema.parse((await ada.get(`/v1/admin/proofs/${proofId}`)).body);
+    expect(proof).toMatchObject({ status: "APPROVED", versions: [expect.objectContaining({ number: 1, status: "APPROVED" })] });
+    expect((await staff(actors.adminTunde!).get("/v1/admin/change-requests")).status).toBe(403);
+  });
+
+  it("refuses a change request on a proof that isn't approved", async () => {
+    const { b, orderId } = await paidOrder();
+    const [proof] = await db()
+      .select({ id: schema.proofs.id })
+      .from(schema.proofs)
+      .innerJoin(schema.orderItems, eq(schema.orderItems.id, schema.proofs.orderItemId))
+      .where(eq(schema.orderItems.orderId, orderId));
+    const refused = await b.post(`/v1/orders/${orderId}/change-requests`, { proofId: proof!.id, description: "x" });
+    expect(apiErrorSchema.parse(refused.body).context).toMatchObject({ reason: "NOT_APPROVED" });
+  });
+});

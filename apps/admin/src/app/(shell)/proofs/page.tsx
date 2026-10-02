@@ -1,10 +1,12 @@
-import { adminProofQueueSchema } from "@holypearls/contracts";
+import { adminProofQueueSchema, changeRequestListSchema } from "@holypearls/contracts";
 import { EmptyState, ErrorState, PermissionDenied, StatusChip } from "@holypearls/ui";
 import { serverApi } from "@/lib/server-api";
 import styles from "../admin-list.module.css";
 import { requireAdmin } from "../admin-session";
 import { ago } from "../format";
+import { ChangeDecision } from "./ChangeDecision";
 import { FileDecision } from "./FileDecision";
+import { money } from "../format";
 
 export const PROOF_TONE: Record<string, "info" | "warning" | "success" | "neutral"> = {
   PREPARING: "info",
@@ -19,7 +21,9 @@ export const PROOF_TONE: Record<string, "info" | "warning" | "success" | "neutra
 export default async function ProofsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const admin = await requireAdmin();
   if (!admin.permissions.includes("PROOF_MANAGE")) return <PermissionDenied permission="PROOF_MANAGE" />;
-  const view = (await searchParams).view === "approved" ? "approved" : "open";
+  const requested = (await searchParams).view;
+  const view = requested === "approved" ? "approved" : requested === "changes" ? "changes" : "open";
+  if (view === "changes") return <ChangeRequests />;
   const queue = await serverApi(`/v1/admin/proofs${view === "approved" ? "?view=approved" : ""}`, adminProofQueueSchema);
   return (
     <>
@@ -33,6 +37,9 @@ export default async function ProofsPage({ searchParams }: { searchParams: Promi
         </a>
         <a className={styles.tab} href="/proofs?view=approved" aria-current={view === "approved" ? "page" : undefined}>
           Approved
+        </a>
+        <a className={styles.tab} href="/proofs?view=changes">
+          Change requests
         </a>
       </nav>
       {!queue.ok ? (
@@ -114,6 +121,59 @@ export default async function ProofsPage({ searchParams }: { searchParams: Promi
             )}
           </section>
         </>
+      )}
+    </>
+  );
+}
+
+/** Changes asked for after approval (OPS-FR-054): open and under review, oldest first. */
+async function ChangeRequests() {
+  const list = await serverApi("/v1/admin/change-requests", changeRequestListSchema);
+  return (
+    <>
+      <header className={styles.head}>
+        <p className={styles.eyebrow}>ADMIN / ORDERS / PROOFS &amp; ARTWORK</p>
+        <h1 className={styles.title}>Change requests</h1>
+      </header>
+      <nav className={styles.tabs} aria-label="Proofs">
+        <a className={styles.tab} href="/proofs">
+          Proofs to prepare
+        </a>
+        <a className={styles.tab} href="/proofs?view=approved">
+          Approved
+        </a>
+        <a className={styles.tab} href="/proofs?view=changes" aria-current="page">
+          Change requests{list.ok ? ` · ${list.data.items.length}` : ""}
+        </a>
+      </nav>
+      {!list.ok ? (
+        <ErrorState title="We couldn't load this list" body="Something went wrong on our side. Try again, or share the request ID with support." requestId={list.error.requestId} />
+      ) : list.data.items.length === 0 ? (
+        <EmptyState title="No change requests" body="Changes customers ask for after approving a proof appear here." />
+      ) : (
+        <ul className={styles.plainList}>
+          {list.data.items.map((request) => (
+            <li key={request.id} className={styles.panel}>
+              <p className={styles.eyebrow}>
+                {request.orderNumber} · {request.item ?? "Order"} · {request.stage === "BEFORE_PRODUCTION" ? "BEFORE PRODUCTION" : "AFTER PRODUCTION STARTED"}
+              </p>
+              <h2 className={styles.panelTitle}>{request.description}</h2>
+              <div className={styles.chips}>
+                <StatusChip tone={request.status === "OPEN" ? "warning" : "info"}>{request.status}</StatusChip>
+                <span className={styles.hint}>
+                  {ago(request.createdAt)} ago
+                  {request.costImpactMinor ? ` · cost ${money(request.costImpactMinor, "NGN")}` : ""}
+                </span>
+                {request.proofId ? (
+                  <a className={styles.action} href={`/proofs/${request.proofId}`}>
+                    Open proof
+                  </a>
+                ) : null}
+              </div>
+              <ChangeDecision request={request} />
+            </li>
+          ))}
+        </ul>
       )}
     </>
   );

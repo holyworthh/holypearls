@@ -84,6 +84,8 @@ async function versionViews(db: Database | Tx, versions: VersionRow[], includeCo
           fromStaff: Boolean(comment.staffProfileId),
           body: comment.body,
           createdAt: comment.createdAt.toISOString(),
+          pin: comment.pinX !== null && comment.pinY !== null ? { x: Number(comment.pinX), y: Number(comment.pinY), view: comment.pinView ?? 0, number: comment.pinNumber ?? 0 } : null,
+          parentId: comment.parentId,
         })),
       version: version.version,
     };
@@ -206,6 +208,43 @@ export async function askProofQuestion(db: Database, access: OrderAccess, orderI
   if (!version || version.status === "DRAFT") throw new AppError("NOT_FOUND");
   const customer = await customerForActor(db, access.actor);
   await db.insert(schema.proofComments).values({ proofVersionId: version.id, kind: "QUESTION", body: input.body, customerId: customer?.id ?? null });
+  return getCustomerProof(db, access, orderId, proofId);
+}
+
+/**
+ * A comment on the whole proof, or a pin (FUL-FR-005, TECH-04 §11): pins are
+ * relative positions (0–1) on a view, numbered per version so the meaning is
+ * in the text list too. Only on the current version; older ones are read-only.
+ */
+export async function addProofComment(db: Database, access: OrderAccess, orderId: string, proofId: string, input: { versionNumber: number; body: string; pin?: { x: number; y: number; view: number } | null }) {
+  await loadCustomerProof(db, access, orderId, proofId);
+  const [latest] = await db
+    .select()
+    .from(schema.proofVersions)
+    .where(and(eq(schema.proofVersions.proofId, proofId), inArray(schema.proofVersions.status, ["PUBLISHED", "APPROVED", "CHANGES_REQUESTED", "SUPERSEDED"])))
+    .orderBy(desc(schema.proofVersions.number))
+    .limit(1);
+  if (!latest) throw new AppError("NOT_FOUND");
+  if (latest.number !== input.versionNumber) throw new AppError("RULE_FAILED", { message: `These comments belong to V${input.versionNumber}, which was replaced. Comment on V${latest.number}.`, context: { reason: "OLDER_VERSION" } });
+  const customer = await customerForActor(db, access.actor);
+  await db.transaction(async (tx) => {
+    let pinNumber: number | null = null;
+    if (input.pin) {
+      await tx.select({ id: schema.proofVersions.id }).from(schema.proofVersions).where(eq(schema.proofVersions.id, latest.id)).for("update");
+      const [count] = await tx.select({ n: sql<number>`coalesce(max(${schema.proofComments.pinNumber}), 0)::int` }).from(schema.proofComments).where(eq(schema.proofComments.proofVersionId, latest.id));
+      pinNumber = (count?.n ?? 0) + 1;
+    }
+    await tx.insert(schema.proofComments).values({
+      proofVersionId: latest.id,
+      kind: "COMMENT",
+      body: input.body,
+      customerId: customer?.id ?? null,
+      pinX: input.pin ? input.pin.x.toFixed(5) : null,
+      pinY: input.pin ? input.pin.y.toFixed(5) : null,
+      pinView: input.pin?.view ?? null,
+      pinNumber,
+    });
+  });
   return getCustomerProof(db, access, orderId, proofId);
 }
 
@@ -368,11 +407,15 @@ export async function publishProof(deps: OrderEmailDeps, actor: ActorContext, id
   return getAdminProof(deps.db, id);
 }
 
-/** Staff reply on a version (OPS-FR-052). */
-export async function replyToProof(db: Database, actor: ActorContext, id: string, input: { versionNumber: number; body: string }) {
+/** Staff reply on a version, optionally to one comment or pin (OPS-FR-052). Replies never change the proof status. */
+export async function replyToProof(db: Database, actor: ActorContext, id: string, input: { versionNumber: number; body: string; parentId?: string | null }) {
   const [version] = await db.select().from(schema.proofVersions).where(and(eq(schema.proofVersions.proofId, id), eq(schema.proofVersions.number, input.versionNumber)));
   if (!version) throw new AppError("NOT_FOUND");
-  await db.insert(schema.proofComments).values({ proofVersionId: version.id, kind: "REPLY", body: input.body, staffProfileId: staffId(actor) });
+  if (input.parentId) {
+    const [parent] = await db.select({ id: schema.proofComments.id }).from(schema.proofComments).where(and(eq(schema.proofComments.id, input.parentId), eq(schema.proofComments.proofVersionId, version.id)));
+    if (!parent) throw new AppError("VALIDATION_FAILED", { fieldErrors: { parentId: "Reply to a comment on this version." } });
+  }
+  await db.insert(schema.proofComments).values({ proofVersionId: version.id, kind: "REPLY", body: input.body, staffProfileId: staffId(actor), parentId: input.parentId ?? null });
   return getAdminProof(db, id);
 }
 
