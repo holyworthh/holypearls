@@ -5,8 +5,10 @@ import { type PaymentGateway, PaymentStartError, type VerifyResult } from "@holy
 import { createHash, randomUUID } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
+import { createGuestLink } from "../identity/customers.js";
 import { recordAudit } from "../platform/audit.js";
-import { type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
+import { queueEmail } from "../platform/notifications.js";
+import { displayMoney, type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
 import { customerPaymentStatus } from "./status.js";
 
 /*
@@ -183,23 +185,46 @@ export async function startCheckoutPayment(
   const settings = await paymentSettings(deps.db);
   const off = paymentsBlocker(deps.gateway, settings);
   if (off) throw new AppError("RULE_FAILED", { message: off.message, context: { reason: off.code } });
-  const gateway = deps.gateway!;
   const blocker = checkout.blockers.find((item) => item.code === "STEPS_INCOMPLETE" || item.code === "DELIVERY_QUOTE_REQUIRED");
   if (blocker) throw new AppError("RULE_FAILED", { message: blocker.message, context: { reason: blocker.code } });
   const email = (checkout.row.contact as { email?: string } | null)?.email;
   if (!email) throw new AppError("RULE_FAILED", { message: "Add your contact details first.", context: { reason: "STEPS_INCOMPLETE" } });
 
-  const started = await deps.db.transaction(async (tx) => {
-    const [row] = await tx.select().from(schema.checkouts).where(eq(schema.checkouts.id, checkout.row.id)).for("update");
-    if (row!.status === "COMPLETED") throw new AppError("CONFLICT", { message: "This checkout is already paid.", context: { reason: "ALREADY_PAID" } });
-    const expired = row!.expiresAt !== null && row!.expiresAt.getTime() <= now.getTime();
-    if (row!.status !== "OPEN" || expired) throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
-    if (row!.version !== checkout.row.version) throw new AppError("CONFLICT", { message: "This checkout changed in another tab. Reload to continue.", context: { reason: "STALE_VERSION" } });
+  return beginAttempt(deps, actor, {
+    email,
+    callbackUrl: `${deps.webOrigin}/checkout/${checkout.row.id}/processing`,
+    metadata: { checkoutId: checkout.row.id },
+    prepare: async (tx) => {
+      const [row] = await tx.select().from(schema.checkouts).where(eq(schema.checkouts.id, checkout.row.id)).for("update");
+      if (row!.status === "COMPLETED") throw new AppError("CONFLICT", { message: "This checkout is already paid.", context: { reason: "ALREADY_PAID" } });
+      const expired = row!.expiresAt !== null && row!.expiresAt.getTime() <= now.getTime();
+      if (row!.status !== "OPEN" || expired) throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
+      if (row!.version !== checkout.row.version) throw new AppError("CONFLICT", { message: "This checkout changed in another tab. Reload to continue.", context: { reason: "STALE_VERSION" } });
+      return ensureCheckoutIntent(tx, row!);
+    },
+  });
+}
 
-    const intent = await lockIntent(tx, (await ensureCheckoutIntent(tx, row!)).id);
-    if (intent.status === "SUCCEEDED") throw new AppError("CONFLICT", { message: "This checkout is already paid.", context: { reason: "ALREADY_PAID" } });
-    if (intent.status === "REVIEW_REQUIRED") throw new AppError("CONFLICT", { message: "We're checking a payment on this checkout. We'll email you, or contact us with your reference.", context: { reason: "PAYMENT_UNDER_REVIEW" } });
-    if (intent.status === "CANCELLED") throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
+/**
+ * The common part of every Pay (TECH-05 §5): under the intent's lock, check
+ * it can be paid, record a CREATED attempt with a new reference and mark the
+ * intent PROCESSING; then ask Paystack to start the transaction, mark the
+ * attempt PENDING and queue its checks. A refused start fails the attempt and
+ * reopens the intent.
+ */
+export async function beginAttempt(
+  deps: PaymentDeps,
+  actor: ActorContext,
+  input: { email: string; callbackUrl: string; metadata: Record<string, string>; prepare: (tx: Tx) => Promise<Intent> },
+): Promise<PaymentStart> {
+  const now = actor.now;
+  const settings = await paymentSettings(deps.db);
+  const gateway = deps.gateway!;
+  const started = await deps.db.transaction(async (tx) => {
+    const intent = await lockIntent(tx, (await input.prepare(tx)).id);
+    if (intent.status === "SUCCEEDED") throw new AppError("CONFLICT", { message: "This is already paid.", context: { reason: "ALREADY_PAID" } });
+    if (intent.status === "REVIEW_REQUIRED") throw new AppError("CONFLICT", { message: "We're checking a payment on this. We'll email you, or contact us with your reference.", context: { reason: "PAYMENT_UNDER_REVIEW" } });
+    if (intent.status === "CANCELLED") throw new AppError("CONFLICT", { message: "This payment was cancelled. Start again from the page you came from.", context: { reason: "CHECKOUT_CLOSED" } });
     if (intent.status === "PROCESSING") {
       const [active] = await tx
         .select()
@@ -231,10 +256,10 @@ export async function startCheckoutPayment(
       reference: attempt.reference,
       amountMinor: attempt.amountMinor,
       currency: attempt.currency as "NGN" | "USD",
-      email,
+      email: input.email,
       channels: settings.channels as PaymentChannel[],
-      callbackUrl: `${deps.webOrigin}/checkout/${checkout.row.id}/processing`,
-      metadata: { intentId: intent.id, checkoutId: checkout.row.id },
+      callbackUrl: input.callbackUrl,
+      metadata: { intentId: intent.id, ...input.metadata },
     });
   } catch (error) {
     if (!(error instanceof PaymentStartError)) throw error;
@@ -305,10 +330,11 @@ export interface ResultDeps {
 export async function onIntentSucceeded(tx: Tx, intent: Intent, attemptId: string, now: Date, notify: OrderEmailDeps | null, requestId: string) {
   await tx.update(schema.installments).set({ status: "PAID", paidAt: now }).where(eq(schema.installments.id, intent.installmentId));
   const [source] = await tx
-    .select({ checkoutId: schema.paymentSchedules.checkoutId })
+    .select({ checkoutId: schema.paymentSchedules.checkoutId, quoteVersionId: schema.paymentSchedules.quoteVersionId })
     .from(schema.installments)
     .innerJoin(schema.paymentSchedules, eq(schema.paymentSchedules.id, schema.installments.scheduleId))
     .where(eq(schema.installments.id, intent.installmentId));
+  if (source?.quoteVersionId) return onInstallmentPaid(tx, intent, attemptId, source.quoteVersionId, now, notify, requestId);
   if (!source?.checkoutId) return;
   const [checkout] = await tx
     .update(schema.checkouts)
@@ -324,6 +350,38 @@ export async function onIntentSucceeded(tx: Tx, intent: Intent, attemptId: strin
   const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
   const receipt = await receiptForAttempt(tx, { attempt: attempt!, intentId: intent.id, order, paidAt: attempt!.paidAt ?? now, now });
   if (notify) await queueOrderConfirmation(notify, tx, order, receipt, requestId);
+  return order;
+}
+
+/**
+ * An installment of an accepted quote is paid (PAY-FR-001–006): the receipt
+ * is made from the attempt and the customer is told what's left. The order
+ * already exists (it was made when the quote was accepted).
+ */
+async function onInstallmentPaid(tx: Tx, intent: Intent, attemptId: string, quoteVersionId: string, now: Date, notify: OrderEmailDeps | null, requestId: string) {
+  const [order] = await tx.select().from(schema.orders).where(eq(schema.orders.quoteVersionId, quoteVersionId));
+  if (!order) return;
+  const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
+  const receipt = await receiptForAttempt(tx, { attempt: attempt!, intentId: intent.id, order, paidAt: attempt!.paidAt ?? now, now });
+  if (notify) {
+    const [part] = await tx.select().from(schema.installments).where(eq(schema.installments.id, intent.installmentId));
+    const paid = await tx
+      .select({ amount: schema.installments.amountMinor })
+      .from(schema.installments)
+      .where(and(eq(schema.installments.scheduleId, part!.scheduleId), eq(schema.installments.status, "PAID")));
+    const remaining = order.totalMinor - paid.reduce((sum, row) => sum + row.amount, 0n);
+    const contact = order.contact as { email: string };
+    const link = await createGuestLink(tx as Database, notify.webOrigin, { purpose: "ORDER", targetType: "ORDER", targetId: order.id, customerId: order.customerId, now });
+    await queueEmail(notify, tx as Transaction, {
+      template: "payment_received",
+      to: contact.email,
+      customerId: order.customerId,
+      data: { orderNumber: order.number, label: part!.label, amount: displayMoney(receipt.amountMinor, receipt.currency), receiptNumber: receipt.number, remaining: displayMoney(remaining > 0n ? remaining : 0n, order.currency), url: link.url },
+      record: { type: "ORDER", id: order.id, label: order.number },
+      linkLabel: `Opens order ${order.number}`,
+      requestId,
+    });
+  }
   return order;
 }
 

@@ -17,6 +17,7 @@ import {
   processPaystackEvent,
   expireQuoteVersion,
   sendQuoteExpiringReminder,
+  sendInstallmentDueReminder,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
@@ -159,7 +160,10 @@ await jobs.work(
 await jobs.work(
   "reminder.send",
   track("reminder.send", async (payload) => {
-    const outcome = await sendQuoteExpiringReminder(payments.notify, payload.recordId, payload.requestId);
+    const outcome =
+      payload.kind === "INSTALLMENT_DUE"
+        ? await sendInstallmentDueReminder(payments.notify, payload.recordId, payload.requestId)
+        : await sendQuoteExpiringReminder(payments.notify, payload.recordId, payload.requestId);
     logger.info({ queue: "reminder.send", requestId: payload.requestId, kind: payload.kind, outcome }, "reminder checked");
   }),
 );

@@ -40,6 +40,9 @@ describe("templates", () => {
       "project_submitted",
       "quote_ready",
       "quote_expiring",
+      "quote_accepted",
+      "payment_due",
+      "payment_received",
     ]);
   });
 });

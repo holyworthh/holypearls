@@ -221,6 +221,8 @@ export const adminQuoteSchema = z.object({
   usdEnabled: z.boolean(),
   vatRateBps: z.number().int(),
   createdAt: isoDate,
+  /** The customer's change requests, questions, decline and renewal requests (OPS-FR-034). */
+  requests: z.array(z.object({ kind: z.string(), version: z.number().int().nullable(), line: z.string().nullable(), changeType: z.string().nullable(), note: z.string(), createdAt: isoDate })),
 });
 export type AdminQuote = z.infer<typeof adminQuoteSchema>;
 
@@ -228,3 +230,72 @@ export const adminQuoteListSchema = z.object({
   items: z.array(z.object({ id: z.string(), reference: z.string(), status: quoteStatusSchema, title: z.string(), customer: z.string(), latestVersion: z.number().int().nullable(), totalMinor: minor.nullable(), currency: currency.nullable(), updatedAt: isoDate })),
   nextCursor: z.string().nullable(),
 });
+
+/* ------------------------------------------------------------------ */
+/* The customer's quote page (T05-05; QUOTE-FR-002–008, Pen 25/46/47)  */
+/* ------------------------------------------------------------------ */
+
+export const quoteBlockerSchema = z.enum(["NOT_READY", "NOT_CURRENT_VERSION", "EXPIRED", "EMAIL_CODE_REQUIRED", "ALREADY_ACCEPTED"]);
+
+export const customerQuoteSchema = z.object({
+  id: z.string(),
+  reference: z.string(),
+  status: quoteStatusSchema,
+  title: z.string(),
+  projectReference: z.string().nullable(),
+  /** The version shown: the current sent one, or the last one the customer saw. Null while the first is being prepared. */
+  version: quoteVersionSchema.omit({ version: true, sentBy: true, scheduleProblem: true }).nullable(),
+  versions: z.array(z.object({ number: z.number().int(), status: quoteVersionStatusSchema, sentAt: isoDate.nullable() })),
+  /** Plain words: "Roll-up banners 4 → 2", "Backdrop installation added" (QUOTE-FR-005). */
+  changes: z.array(z.string()),
+  canAccept: z.boolean(),
+  blockers: z.array(z.object({ code: quoteBlockerSchema, message: z.string() })),
+  order: z.object({ id: z.string(), number: z.string() }).nullable(),
+  requests: z.array(z.object({ kind: z.enum(["CHANGE", "QUESTION", "DECLINE", "UPDATE"]), note: z.string(), line: z.string().nullable(), createdAt: isoDate, status: z.enum(["OPEN", "ANSWERED"]) })),
+});
+export type CustomerQuote = z.infer<typeof customerQuoteSchema>;
+
+export const acceptQuoteSchema = z.object({
+  versionNumber: z.number().int(),
+  acknowledged: z.literal(true, { error: "Tick the box to confirm you've reviewed the quote." }),
+});
+
+export const CHANGE_TYPES = ["Quantity", "Item or product", "Price", "Delivery or installation", "Timing", "Something else"] as const;
+
+export const customerQuoteRequestSchema = z.object({
+  kind: z.enum(["CHANGE", "QUESTION"]),
+  lineId: z.string().uuid().nullable().optional(),
+  changeType: z.enum(CHANGE_TYPES).nullable().optional(),
+  note: z.string().trim().min(1, "Tell us what you'd like changed or what you'd like to know").max(4000),
+  fileIds: z.array(z.string().uuid()).max(10).optional(),
+});
+
+export const declineQuoteSchema = z.object({ reason: z.string().trim().max(2000).optional() });
+
+/* ------------------------------------------------------------------ */
+/* Paying an accepted quote (PAY-FR-001–004, TECH-05 §4)               */
+/* ------------------------------------------------------------------ */
+
+export const installmentViewSchema = z.object({
+  id: z.string(),
+  position: z.number().int(),
+  label: z.string(),
+  amountMinor: minor,
+  trigger: installmentTriggerSchema,
+  dueOn: z.string().nullable(),
+  status: z.enum(["NOT_DUE", "DUE", "PROCESSING", "PAID", "CANCELLED"]),
+  paidAt: isoDate.nullable(),
+  /** Only the next unpaid payment can be paid; paying early is allowed. */
+  payable: z.boolean(),
+});
+
+/** Total, paid, remaining, next payment and history (PAY-FR-003). */
+export const paymentSummarySchema = z.object({
+  currency,
+  totalMinor: minor,
+  paidMinor: minor,
+  remainingMinor: minor,
+  next: installmentViewSchema.nullable(),
+  installments: z.array(installmentViewSchema),
+});
+export type PaymentSummary = z.infer<typeof paymentSummarySchema>;

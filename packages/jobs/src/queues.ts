@@ -51,7 +51,7 @@ export const QUEUES = {
   /** Expires a sent quote version at its valid-until time (TECH-02 §8), queued when the version is sent. */
   "quote.expire": { payload: payload({ quoteVersionId: z.string().uuid() }), settings: {} },
   /** A reminder due at a set time: quote expiring, balance due (TECH-02 §8). Checked again when it runs. */
-  "reminder.send": { payload: payload({ kind: z.enum(["QUOTE_EXPIRING"]), recordId: z.string().uuid() }), settings: {} },
+  "reminder.send": { payload: payload({ kind: z.enum(["QUOTE_EXPIRING", "INSTALLMENT_DUE"]), recordId: z.string().uuid() }), settings: {} },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;

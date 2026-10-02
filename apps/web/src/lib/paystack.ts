@@ -73,3 +73,17 @@ export async function startCheckoutPayment(checkoutId: string, key: string = new
     return { ok: false, reason: null, message: "We couldn't start the payment. Check your connection and try again.", newAttemptFrom: null };
   }
 }
+
+/** "Pay deposit" / "Pay balance" on an order from a quote (PAY-FR-001–004). Same outcome shape as checkout. */
+export async function startInstallmentPayment(orderId: string, installmentId: string, key: string = newIdempotencyKey()): Promise<PayOutcome> {
+  try {
+    const start = await api(`/v1/orders/${orderId}/installments/${installmentId}/payments`, { method: "POST", response: paymentStartSchema, headers: { "idempotency-key": key } });
+    return { ok: true, start };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      const context = error.body.context ?? {};
+      return { ok: false, reason: (context.reason as string | undefined) ?? null, message: error.body.message, newAttemptFrom: (context.newAttemptFrom as string | undefined) ?? null };
+    }
+    return { ok: false, reason: null, message: "We couldn't start the payment. Check your connection and try again.", newAttemptFrom: null };
+  }
+}

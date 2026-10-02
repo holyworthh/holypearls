@@ -1,0 +1,112 @@
+/* Payment summary on the order page (PAY-FR-003; Pen 25 payment summary and Pen 52 patterns). */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-14);
+  padding: var(--hp-space-20);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-space-10);
+  background: var(--hp-paper);
+}
+
+.title {
+  margin: 0;
+  color: var(--hp-ink);
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+  line-height: var(--hp-size-25);
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hp-space-12);
+  margin: 0;
+}
+
+.totals dt {
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.totals dd {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+  line-height: var(--hp-size-25);
+}
+
+.parts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--hp-space-12);
+  align-items: center;
+  padding: var(--hp-space-10) 0;
+  border-top: var(--hp-border-width) solid var(--hp-line);
+}
+
+.label {
+  display: block;
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+}
+
+.meta {
+  display: block;
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.amount {
+  color: var(--hp-ink);
+  font-size: var(--hp-size-15);
+  font-weight: 600;
+  line-height: var(--hp-size-22);
+}
+
+.pay {
+  min-height: var(--hp-size-56);
+  padding: 0 var(--hp-space-24);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-accent);
+  color: var(--hp-paper);
+  font: inherit;
+  font-size: var(--hp-size-17);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pay:hover {
+  background: var(--hp-accent-hover);
+}
+
+.pay:disabled {
+  cursor: progress;
+}
+
+@media (max-width: 599px) {
+  .totals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .part {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}

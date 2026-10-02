@@ -362,7 +362,15 @@ export async function getAdminQuote(db: Database, id: string): Promise<AdminQuot
   const project = quote.projectId ? (await db.select({ reference: schema.projects.reference, title: schema.projects.title, type: schema.projects.type }).from(schema.projects).where(eq(schema.projects.id, quote.projectId)))[0] : null;
   const snapshot = quote.requestSnapshot as { productName?: string };
   const contact = quote.contact as ContactJson;
+  const requests = await db
+    .select({ request: schema.quoteChangeRequests, version: schema.quoteVersions.number, line: schema.quoteLineItems.title })
+    .from(schema.quoteChangeRequests)
+    .leftJoin(schema.quoteVersions, eq(schema.quoteVersions.id, schema.quoteChangeRequests.quoteVersionId))
+    .leftJoin(schema.quoteLineItems, eq(schema.quoteLineItems.id, schema.quoteChangeRequests.lineId))
+    .where(eq(schema.quoteChangeRequests.quoteId, id))
+    .orderBy(desc(schema.quoteChangeRequests.createdAt));
   return {
+    requests: requests.map(({ request, version, line }) => ({ kind: request.kind, version, line, changeType: request.changeType, note: request.note, createdAt: request.createdAt.toISOString() })),
     id: quote.id,
     reference: quote.reference,
     status: quote.status,
