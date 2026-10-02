@@ -4,6 +4,7 @@ import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
+import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
@@ -96,6 +97,7 @@ export async function orderForCheckout(tx: Tx, checkout: CheckoutRow, now: Date)
       })),
     );
   }
+  await createProofsForOrder(tx, created.id);
   return created;
 }
 
@@ -247,6 +249,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
     receipts: receipts.map(receiptSummary),
     payments,
     quote: quote ?? null,
+    proofs: await proofsForOrder(db, row.id),
   };
 }
 

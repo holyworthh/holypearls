@@ -46,6 +46,21 @@ export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, own
     const [row] = await db.select({ owner: schema.projects.ownerUserId }).from(schema.projects).where(eq(schema.projects.id, ownerId));
     return row?.owner === actor.session.userId;
   },
+  /** A published proof version's files: whoever can open its order; staff with PROOF_MANAGE (TECH-04 §10). */
+  PROOF_VERSION: async (db, actor, ownerId) => {
+    if (actor.type === "user" && actor.staff?.permissions.has("PROOF_MANAGE")) return true;
+    const [row] = await db
+      .select({ status: schema.proofVersions.status, orderId: schema.orderItems.orderId, owner: schema.orders.ownerUserId, customerUser: schema.customers.userId })
+      .from(schema.proofVersions)
+      .innerJoin(schema.proofs, eq(schema.proofs.id, schema.proofVersions.proofId))
+      .innerJoin(schema.orderItems, eq(schema.orderItems.id, schema.proofs.orderItemId))
+      .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+      .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
+      .where(eq(schema.proofVersions.id, ownerId));
+    if (!row || row.status === "DRAFT") return false;
+    if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
+    return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
+  },
   HELP_REQUEST: async (db, actor, ownerId) => {
     const [row] = await db.select().from(schema.helpRequests).where(eq(schema.helpRequests.id, ownerId));
     return Boolean(row) && canViewHelpRequest(actor, row!).outcome === "allow";

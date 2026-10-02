@@ -31,6 +31,7 @@ import { OrdersController } from "./orders/orders.controller.js";
 import { ProjectsController, RecommendationRulesAdminController } from "./projects/projects.controller.js";
 import { QuoteSettingsAdminController, QuotesAdminController, RequestsAdminController } from "./quotes/quotes.controller.js";
 import { CustomerQuotesController, OrderPaymentsController } from "./quotes/customer.controller.js";
+import { CustomerProofsController, FileReviewAdminController, ProofsAdminController } from "./proofs/proofs.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -148,6 +149,9 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       QuoteSettingsAdminController,
       CustomerQuotesController,
       OrderPaymentsController,
+      CustomerProofsController,
+      ProofsAdminController,
+      FileReviewAdminController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],

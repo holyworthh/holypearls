@@ -207,6 +207,20 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  proof_ready: define({
+    label: "Proof ready to review",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), item: z.string(), version: z.number().int(), url: z.url() }),
+    subject: ({ item, version }) => `Your proof is ready: ${item}, V${version}`,
+    render: ({ orderNumber, item, version, url }) => (
+      <Layout preview={`Proof V${version} for ${item}`} title="Your proof is ready" action={{ label: "Review the proof", href: url }}>
+        <Text style={text.body}>
+          Proof V{version} for {item} (order {orderNumber}) is ready. Check the artwork, spelling, placement and details, then approve it or ask for changes. Nothing is made until you approve.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

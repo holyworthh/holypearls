@@ -43,6 +43,7 @@ describe("templates", () => {
       "quote_accepted",
       "payment_due",
       "payment_received",
+      "proof_ready",
     ]);
   });
 });
