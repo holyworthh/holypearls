@@ -59,7 +59,8 @@ type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 export async function touchOrderableConfiguration(tx: Tx, id: string, options: { expectedVersion?: number } = {}): Promise<boolean> {
   const rows = await tx
     .update(schema.configurations)
-    .set({ version: sql`${schema.configurations.version} + 1`, updatedAt: new Date() })
+    // Any change to what is made turns an exact reorder into a reorder with changes (FUL-FR-061–062).
+    .set({ version: sql`${schema.configurations.version} + 1`, reorderExact: false, updatedAt: new Date() })
     .where(options.expectedVersion === undefined ? eq(schema.configurations.id, id) : and(eq(schema.configurations.id, id), eq(schema.configurations.version, options.expectedVersion)))
     .returning({ status: schema.configurations.status });
   if (!rows.length) return false;

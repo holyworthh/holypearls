@@ -116,3 +116,53 @@
   color: var(--hp-ink);
   font-size: var(--hp-text-support);
 }
+
+/* Reorder comparison rows (Pen 128): label, then "Same" or "Changed" with a note. */
+.factRow {
+  display: contents;
+}
+
+.facts dd .hint {
+  margin-left: var(--hp-space-8);
+}
+
+/* Problem report (Pen 129) */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  margin-bottom: var(--hp-space-8);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-12);
+  min-height: var(--hp-size-44);
+  font-size: var(--hp-text-label);
+}
+
+.choice input {
+  width: var(--hp-size-22);
+  height: var(--hp-size-22);
+  margin: 0;
+  accent-color: var(--hp-accent);
+}
+
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--hp-text-support);
+}

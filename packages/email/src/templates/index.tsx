@@ -277,6 +277,61 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  shipment_dispatched: define({
+    label: "Shipment dispatched",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), items: z.string(), carrier: z.string(), trackingNumber: z.string(), url: z.url() }),
+    subject: ({ orderNumber }) => `Order ${orderNumber} is on its way`,
+    render: ({ orderNumber, items, carrier, trackingNumber, url }) => (
+      <Layout preview={`Order ${orderNumber} is on its way`} title="Your order is on its way" action={{ label: "Track your order", href: url }}>
+        <Text style={text.body}>
+          We&apos;ve dispatched {items} from order {orderNumber}.{carrier ? ` Carrier: ${carrier}.` : ""}
+          {trackingNumber ? ` Tracking number: ${trackingNumber}.` : ""}
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  shipment_delivered: define({
+    label: "Shipment delivered",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), items: z.string(), carrier: z.string(), trackingNumber: z.string(), url: z.url() }),
+    subject: ({ orderNumber }) => `Order ${orderNumber}: delivered`,
+    render: ({ orderNumber, items, url }) => (
+      <Layout preview={`Delivered: ${items}`} title="Delivered" action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>
+          {items} from order {orderNumber} {items.includes(",") ? "were" : "was"} delivered. If anything isn&apos;t right, you can report a problem from your order page.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  problem_received: define({
+    label: "Problem report received",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), reference: z.string(), item: z.string(), url: z.url() }),
+    subject: ({ reference }) => `We've got your report ${reference}`,
+    render: ({ orderNumber, reference, item, url }) => (
+      <Layout preview={`Report ${reference} received`} title="We've got your report" action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>
+          Thanks for telling us about the problem with {item} (order {orderNumber}). Your reference is {reference}. We&apos;ll look at it within 1 working day and email you.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  problem_reply: define({
+    label: "Reply to a problem report",
+    carriesSecret: true,
+    data: z.object({ reference: z.string(), body: z.string(), url: z.url() }),
+    subject: ({ reference }) => `About your report ${reference}`,
+    render: ({ reference, body, url }) => (
+      <Layout preview={`About your report ${reference}`} title={`About your report ${reference}`} action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>{body}</Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

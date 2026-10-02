@@ -2,6 +2,7 @@ import { z } from "zod";
 import { customerPaymentStatusSchema, paymentChannelSchema } from "./payments.js";
 import { changeRequestSchema, orderProofSummarySchema } from "./proofs.js";
 import { paymentSummarySchema } from "./quotes.js";
+import { customerProblemSchema, customerShipmentSchema } from "./shipments.js";
 
 /*
  * Orders, receipts and the payments admin (T04-05; COM-FR-082, 085,
@@ -106,6 +107,12 @@ export const orderSchema = z.object({
   cancel: z.object({ allowed: z.boolean(), blockedBy: z.enum(["STARTED", "PAYMENT_IN_PROGRESS", "CANCELLED", "DISPATCHED"]).nullable(), refundMinor: minor }),
   /** Scope changes go through a change request for orders from a quote (FUL-FR-052). */
   canChangeScope: z.boolean(),
+  /** Shipments with their items and status history (T08-01, FUL-FR-031). */
+  shipments: z.array(customerShipmentSchema),
+  /** Problems reported on this order (FUL-FR-070). */
+  problems: z.array(customerProblemSchema),
+  /** Each item can be reordered: exactly or with changes (FUL-FR-060–062). Quote lines can't. */
+  reorderable: z.array(z.number().int()),
   /** The detailed activity history, newest first; it can't be edited (FUL-FR-040). */
   activity: z.array(z.object({ at: isoDate, text: z.string() })),
 });
