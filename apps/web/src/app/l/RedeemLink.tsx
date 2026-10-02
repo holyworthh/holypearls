@@ -9,7 +9,7 @@ import { api, errorCode, errorReason } from "../../lib/api";
 type State = "opening" | "expired" | "revoked" | "invalid";
 
 const COPY: Record<Exclude<State, "opening">, { title: string; body: string }> = {
-  expired: { title: "This link has expired", body: "Links stop working after a while to keep your details safe. Ask HolyPearls for a new one, or find your order with your email." },
+  expired: { title: "This link has expired", body: "Links stop working after a while to keep your details safe. Your order is safe. Find it again with its number and your email, and we'll send a new link." },
   revoked: { title: "This link was turned off", body: "HolyPearls turned this link off. Ask us for a new one if you still need it." },
   invalid: { title: "This link doesn't work", body: "It may have been copied only in part. Open it again from your email." },
 };
@@ -47,7 +47,11 @@ export function RedeemLink() {
         {copy.title}
       </h1>
       <p className={styles.intro}>{copy.body}</p>
-      <ButtonLink href="/" variant="secondary" fullWidth className={styles.primary}>
+      {/* An expired order link recovers with Find my order (Pen 53 D; FUL-FR-033). */}
+      <ButtonLink href="/track" fullWidth className={styles.primary}>
+        Track with order number
+      </ButtonLink>
+      <ButtonLink href="/" variant="secondary" fullWidth>
         Go to the homepage
       </ButtonLink>
     </section>

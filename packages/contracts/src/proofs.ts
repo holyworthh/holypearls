@@ -142,7 +142,8 @@ export const changeRequestSchema = z.object({
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
 export const changeRequestListSchema = z.object({ items: z.array(changeRequestSchema) });
 
-export const newChangeRequestSchema = z.object({ proofId: z.string().uuid(), description: z.string().trim().min(1, "Describe the change").max(4000) });
+/** A change after approval (proofId) or, for an order from a quote, a scope change (no proofId; FUL-FR-052). */
+export const newChangeRequestSchema = z.object({ proofId: z.string().uuid().nullish(), description: z.string().trim().min(1, "Describe the change").max(4000) });
 
 export const decideChangeRequestSchema = z
   .object({

@@ -46,6 +46,8 @@ describe("templates", () => {
       "proof_ready",
       "item_on_hold",
       "hold_resolved",
+      "order_link",
+      "order_cancelled",
     ]);
   });
 });

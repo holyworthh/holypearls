@@ -48,6 +48,16 @@ export const customerHoldSchema = z.object({
   since: isoDate,
 });
 
+/** Find my order (FUL-FR-033): the order number and the email used at checkout. */
+export const findOrderSchema = z.object({
+  number: z.string().trim().min(1, "Enter your order number").max(40),
+  email: z.string().trim().min(1, "Enter the email you used").max(254).email("Enter the email you used, like name@example.com"),
+});
+export const findOrderResultSchema = z.object({ sentTo: z.string() });
+
+export const cancelOrderSchema = z.object({ reason: z.string().trim().max(500).optional() });
+export const staffCancelOrderSchema = z.object({ reason: z.string().trim().min(1, "Say why the order is cancelled").max(500) });
+
 export const receiptSummarySchema = z.object({
   id: z.string(),
   number: z.string(),
@@ -88,8 +98,16 @@ export const orderSchema = z.object({
   quote: z.object({ id: z.string(), reference: z.string(), version: z.number().int() }).nullable(),
   /** Each item's proof (T06-01). */
   proofs: z.array(orderProofSummarySchema),
-  /** Changes asked for after approval (T06-03). */
+  /** Changes asked for after approval (T06-03) and scope changes (T07-03). */
   changeRequests: z.array(changeRequestSchema),
+  /** Set once the order is cancelled (FUL-FR-050). */
+  cancellation: z.object({ at: isoDate, by: z.enum(["CUSTOMER", "STAFF"]), refundDueMinor: minor }).nullable(),
+  /** Whether the customer can cancel online now, and if not why (T07-03). */
+  cancel: z.object({ allowed: z.boolean(), blockedBy: z.enum(["STARTED", "PAYMENT_IN_PROGRESS", "CANCELLED", "DISPATCHED"]).nullable(), refundMinor: minor }),
+  /** Scope changes go through a change request for orders from a quote (FUL-FR-052). */
+  canChangeScope: z.boolean(),
+  /** The detailed activity history, newest first; it can't be edited (FUL-FR-040). */
+  activity: z.array(z.object({ at: isoDate, text: z.string() })),
 });
 export type Order = z.infer<typeof orderSchema>;
 

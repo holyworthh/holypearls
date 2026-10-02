@@ -115,6 +115,10 @@ A before-dispatch balance now falls due as soon as the first item passes quality
 
 The dev database has three TEST DATA orders (HP-2026-TEST-1 to 3) for trying the board.
 
+### 31. Cancellations and refunds (T07-03)
+- **Who can cancel online.** No document sets a cancellation policy. As built, a customer can cancel online only while every item is still waiting or queued (before production). After that they're sent to contact you. **Confirm** this, or name products that can't be cancelled at all once ordered.
+- **Refunds are manual for now.** A cancellation records the amount to refund and tells the customer "our finance team will refund ₦X to your original payment method". Refunds through the admin come with T13-05. Until then, refund in the Paystack dashboard yourself. The amount is in the audit log entry for each cancelled order.
+
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 
