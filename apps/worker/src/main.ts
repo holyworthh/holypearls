@@ -15,6 +15,8 @@ import {
   reportError,
   checkPaymentAttempt,
   processPaystackEvent,
+  expireQuoteVersion,
+  sendQuoteExpiringReminder,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
@@ -146,6 +148,21 @@ for (const queue of ["payment.verify", "payment.check"] as const) {
     reportError(new Error("Payment job moved to the dead-letter queue"), { queue, requestId: payload.requestId });
   });
 }
+// Quotes (T05-03): expiry at valid-until, and the "expires soon" reminder. Both check the quote again when they run.
+await jobs.work(
+  "quote.expire",
+  track("quote.expire", async (payload) => {
+    const outcome = await expireQuoteVersion(database.db, payload.quoteVersionId);
+    logger.info({ queue: "quote.expire", requestId: payload.requestId, outcome }, "quote expiry checked");
+  }),
+);
+await jobs.work(
+  "reminder.send",
+  track("reminder.send", async (payload) => {
+    const outcome = await sendQuoteExpiringReminder(payments.notify, payload.recordId, payload.requestId);
+    logger.info({ queue: "reminder.send", requestId: payload.requestId, kind: payload.kind, outcome }, "reminder checked");
+  }),
+);
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");

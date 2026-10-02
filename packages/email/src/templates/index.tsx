@@ -122,6 +122,47 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  project_submitted: define({
+    label: "Project received",
+    carriesSecret: true,
+    data: z.object({ reference: z.string(), title: z.string(), url: z.url() }),
+    subject: ({ reference }) => `We've got your project ${reference}`,
+    render: ({ reference, title, url }) => (
+      <Layout preview={`Project ${reference} received`} title={`We've got your project ${reference}`} action={{ label: "View your project", href: url }}>
+        <Text style={text.body}>Thanks for sending {title}. We&apos;re reviewing your brief and files, and we&apos;ll send your quote with a secure link. You don&apos;t pay anything until you accept it.</Text>
+        <Text style={text.support}>This link opens your project. Keep it private: anyone with it can see the project.</Text>
+      </Layout>
+    ),
+  }),
+  quote_ready: define({
+    label: "Quote ready",
+    carriesSecret: true,
+    data: z.object({ reference: z.string(), version: z.number().int(), total: z.string(), validUntil: z.string(), revised: z.boolean(), url: z.url() }),
+    subject: ({ reference, revised }) => (revised ? `Your revised quote ${reference} is ready` : `Your quote ${reference} is ready`),
+    render: ({ reference, version, total, validUntil, revised, url }) => (
+      <Layout preview={`Quote ${reference}, ${total}`} title={revised ? `Your revised quote is ready` : `Your quote is ready`} action={{ label: "Review your quote", href: url }}>
+        <Text style={text.body}>
+          Quote {reference}, version {version}: {total}. It&apos;s valid until {validUntil}.
+        </Text>
+        <Text style={text.body}>Review the items, prices and payment schedule. You can accept it, ask a question or ask for changes.</Text>
+        <Text style={text.support}>This link opens your quote. Keep it private: anyone with it can see the quote.</Text>
+      </Layout>
+    ),
+  }),
+  quote_expiring: define({
+    label: "Quote expiring soon",
+    carriesSecret: true,
+    data: z.object({ reference: z.string(), validUntil: z.string(), url: z.url() }),
+    subject: ({ reference }) => `Your quote ${reference} expires soon`,
+    render: ({ reference, validUntil, url }) => (
+      <Layout preview={`Quote ${reference} expires ${validUntil}`} title="Your quote expires soon" action={{ label: "Review your quote", href: url }}>
+        <Text style={text.body}>
+          Quote {reference} is valid until {validUntil}. After that it can&apos;t be accepted, but you can ask for an updated quote.
+        </Text>
+        <Text style={text.support}>This link opens your quote. Keep it private: anyone with it can see the quote.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

@@ -357,6 +357,12 @@ export function checkRule(type: ProjectType, rule: { condition: RuleCondition; q
 export const projectStatusSchema = z.enum(["DRAFT", "SUBMITTED", "UNDER_REVIEW", "QUOTED", "ORDERED", "COMPLETED", "CANCELLED", "EXPIRED"]);
 export type ProjectStatus = z.infer<typeof projectStatusSchema>;
 
+/** TECH-01 §4 quote statuses. */
+export const quoteStatusSchema = z.enum(["PENDING_REVIEW", "READY", "REVISION_REQUESTED", "ACCEPTED", "DECLINED", "EXPIRED"]);
+export type QuoteStatus = z.infer<typeof quoteStatusSchema>;
+/** The quote a submitted project started (T05-03). */
+export const projectQuoteSummarySchema = z.object({ id: z.string(), reference: z.string(), status: quoteStatusSchema });
+
 export const recommendationStateSchema = z.enum(["SUGGESTED", "INCLUDED", "REMOVED"]);
 export type RecommendationState = z.infer<typeof recommendationStateSchema>;
 
@@ -428,6 +434,10 @@ export const projectSchema = z.object({
   priceState: z.literal("QUOTE_REQUIRED"),
   /** Whether a link to this draft has been emailed. */
   linkEmailed: z.boolean(),
+  submittedAt: isoDate.nullable(),
+  /** Where the quote goes once submitted (masked), and the quote it started. */
+  sentTo: z.string().nullable(),
+  quote: projectQuoteSummarySchema.nullable(),
   version: z.number().int(),
   updatedAt: isoDate,
 });

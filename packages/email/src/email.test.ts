@@ -37,6 +37,9 @@ describe("templates", () => {
       "email_code",
       "guest_link",
       "order_confirmed",
+      "project_submitted",
+      "quote_ready",
+      "quote_expiring",
     ]);
   });
 });

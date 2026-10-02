@@ -16,7 +16,7 @@ import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
 import { findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customersForContact, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { deadlineState, openItems, reconcile, type RuleInput, type SuggestionRow } from "./recommend.js";
 
@@ -113,6 +113,11 @@ export async function projectView(db: Database | Tx, row: Row, now: Date): Promi
     .from(schema.guestLinks)
     .where(and(eq(schema.guestLinks.targetType, "PROJECT"), eq(schema.guestLinks.targetId, row.id)))
     .limit(1);
+  const [quote] = await db
+    .select({ id: schema.quotes.id, reference: schema.quotes.reference, status: schema.quotes.status })
+    .from(schema.quotes)
+    .where(eq(schema.quotes.projectId, row.id));
+  const contact = row.contact as { email: string } | null;
   return {
     id: row.id,
     reference: row.reference,
@@ -128,6 +133,9 @@ export async function projectView(db: Database | Tx, row: Row, now: Date): Promi
     deadline: deadlineState(answers, now),
     priceState: "QUOTE_REQUIRED",
     linkEmailed: Boolean(link),
+    submittedAt: row.submittedAt?.toISOString() ?? null,
+    sentTo: contact ? maskEmail(contact.email) : null,
+    quote: quote ?? null,
     version: row.version,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -467,4 +475,89 @@ export async function emailProjectLink(deps: NotificationDeps & { webOrigin: str
     });
   });
   return { project: await getProject(deps.db, access, id), session: opened.session };
+}
+
+/* ------------------------------------------------------------------ */
+/* Submitting (T05-03; PROJ-FR-010–011)                                */
+/* ------------------------------------------------------------------ */
+
+async function nextProjectReference(tx: Tx, now: Date) {
+  const result = await tx.execute<{ n: string }>(sql`select nextval('project_reference_seq')::text as n`);
+  return `HP-P-${now.getUTCFullYear()}-${String(result.rows[0]!.n).padStart(4, "0")}`;
+}
+
+async function nextQuoteReference(tx: Tx, now: Date) {
+  const result = await tx.execute<{ n: string }>(sql`select nextval('quote_number_seq')::text as n`);
+  return `HP-Q-${now.getUTCFullYear()}-${String(result.rows[0]!.n).padStart(4, "0")}`;
+}
+
+/**
+ * Request Project Quote (PROJ-FR-010–011, Pen 124). In one transaction, under
+ * the project's row lock: the project gets its HP-P reference and becomes
+ * SUBMITTED with a frozen copy of the brief (TECH-01 §5); a quote starts in
+ * PENDING_REVIEW; the customer gets a secure link. Pressing twice returns
+ * the same project and reference (the route is also idempotent, TECH-02 §4).
+ * No account needed.
+ */
+export async function submitProject(
+  deps: NotificationDeps & { webOrigin: string },
+  access: ProjectAccess,
+  id: string,
+  input: { version: number; email?: string; name?: string },
+) {
+  const { actor } = access;
+  const before = await loadProject(deps.db, access, id);
+  if (before.status !== "DRAFT") return getProject(deps.db, access, id);
+  const email = input.email ?? (actor.type === "user" ? actor.session.email : null);
+  if (!email) throw new AppError("VALIDATION_FAILED", { fieldErrors: { email: "Add an email so we can send your quote." } });
+  const view = await projectView(deps.db, before, actor.now);
+  const hasScope = view.items.length > 0 || view.recommendations.some((rec) => rec.state === "INCLUDED") || typeof view.answers.description === "string";
+  if (!hasScope) throw new AppError("RULE_FAILED", { message: "Add at least one item, or describe what you need, before asking for a quote.", context: { reason: "NOTHING_TO_QUOTE" } });
+
+  await deps.db.transaction(async (tx) => {
+    const [locked] = await tx.select().from(schema.projects).where(eq(schema.projects.id, id)).for("update");
+    if (!locked || locked.status !== "DRAFT") return;
+    if (locked.version !== input.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await projectView(tx, locked, actor.now) } });
+    const fresh = await projectView(tx, locked, actor.now);
+    const { owner, recipient } = await customersForContact(tx, actor, { email, name: input.name ?? null });
+    const reference = await nextProjectReference(tx, actor.now);
+    const contact = { name: input.name ?? (actor.type === "user" ? actor.session.name || null : null), email };
+    const { version: _version, linkEmailed: _linked, quote: _quote, sentTo: _sentTo, ...brief } = fresh;
+    void _version;
+    void _linked;
+    void _quote;
+    void _sentTo;
+    const snapshot = { schema: "project-brief/v1", ...brief, reference, status: "SUBMITTED", submittedAt: actor.now.toISOString() };
+    await tx
+      .update(schema.projects)
+      .set({
+        reference,
+        status: "SUBMITTED",
+        submittedAt: actor.now,
+        submittedSnapshot: snapshot,
+        contact,
+        customerId: owner.id,
+        version: sql`${schema.projects.version} + 1`,
+        lastActivityAt: actor.now,
+      })
+      .where(eq(schema.projects.id, id));
+    await tx.insert(schema.quotes).values({
+      reference: await nextQuoteReference(tx, actor.now),
+      customerId: owner.id,
+      projectId: id,
+      requestSnapshot: snapshot,
+      contact: { ...contact, note: null, phone: null },
+    });
+    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "PROJECT", targetType: "PROJECT", targetId: id, customerId: recipient.id, now: actor.now });
+    await queueEmail(deps, tx, {
+      template: "project_submitted",
+      to: email,
+      customerId: recipient.id,
+      data: { reference, title: locked.title || "your project", url: link.url },
+      record: { type: "PROJECT", id, label: reference },
+      linkLabel: "Opens the submitted project",
+      requestId: actor.requestId,
+    });
+  });
+  return getProject(deps.db, access, id);
 }
