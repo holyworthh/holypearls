@@ -1,6 +1,6 @@
 import { type Order, orderSchema } from "@holypearls/contracts";
 import { Notice, StatusChip } from "@holypearls/ui";
-import { Check, CircleAlert, CreditCard, FileText, LifeBuoy, PackageOpen, Pencil, Receipt, XCircle } from "lucide-react";
+import { Check, CircleAlert, CreditCard, FileText, LifeBuoy, PackageOpen, Pencil, Receipt, RotateCcw, XCircle } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OrderRefresh } from "../../../components/orders/OrderRefresh";
@@ -53,6 +53,17 @@ const ITEM_CHIP: Record<Item["status"], { label: string; tone: Tone }> = {
   DISPATCHED: { label: "DISPATCHED", tone: "success" },
   DELIVERED: { label: "DELIVERED", tone: "success" },
   CANCELLED: { label: "CANCELLED", tone: "neutral" },
+};
+
+const SHIPMENT: Record<Order["shipments"][number]["status"], { label: string; tone: Tone }> = {
+  PREPARING: { label: "PREPARING", tone: "neutral" },
+  LABEL_CREATED: { label: "LABEL CREATED", tone: "neutral" },
+  IN_TRANSIT: { label: "IN TRANSIT", tone: "info" },
+  OUT_FOR_DELIVERY: { label: "OUT FOR DELIVERY", tone: "info" },
+  DELIVERED: { label: "DELIVERED", tone: "success" },
+  ATTEMPTED_DELIVERY: { label: "DELIVERY ATTEMPTED", tone: "warning" },
+  EXCEPTION: { label: "DELAYED", tone: "warning" },
+  RETURNED: { label: "RETURNED", tone: "neutral" },
 };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
@@ -313,9 +324,39 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <h2 id="shipments-title" className={s.sectionTitle}>
                 Shipments
               </h2>
-              <p className={s.muted}>
-                <PackageOpen size={16} aria-hidden="true" /> {cancelled ? "Nothing will be shipped." : "Not yet dispatched. Tracking appears here at dispatch."}
-              </p>
+              {order.shipments.length ? (
+                order.shipments.map((shipment, index) => (
+                  <article key={shipment.id} className={s.state} aria-label={`Shipment ${index + 1} of ${order.shipments.length}`}>
+                    <div className={s.row}>
+                      <strong>
+                        Shipment {index + 1} of {order.shipments.length}
+                      </strong>
+                      <StatusChip tone={SHIPMENT[shipment.status].tone}>{SHIPMENT[shipment.status].label}</StatusChip>
+                    </div>
+                    <p className={s.muted}>{shipment.items.map((line) => `${line.name} ×${line.quantity.toLocaleString("en-NG")}`).join(" · ")}</p>
+                    <p className={s.muted}>{shipment.destination}</p>
+                    <p className={s.muted}>
+                      {shipment.trackingNumber ? `${shipment.carrier ? `${shipment.carrier} · ` : ""}Tracking ${shipment.trackingNumber}` : "Tracking appears at dispatch"}
+                      {shipment.deliveredAt ? ` · Delivered ${day(shipment.deliveredAt)}` : shipment.dispatchedAt ? ` · Dispatched ${day(shipment.dispatchedAt)}` : ""}
+                    </p>
+                    <details className={s.activity}>
+                      <summary>Shipment history</summary>
+                      <ol>
+                        {shipment.history.map((event, eventIndex) => (
+                          <li key={`${event.at}-${eventIndex}`}>
+                            <time dateTime={event.at}>{stamp(event.at)}</time>
+                            <span>{SHIPMENT[event.status].label}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  </article>
+                ))
+              ) : (
+                <p className={s.muted}>
+                  <PackageOpen size={16} aria-hidden="true" /> {cancelled ? "Nothing will be shipped." : "Not yet dispatched. Tracking appears here at dispatch."}
+                </p>
+              )}
             </section>
 
             <section className={s.panel} aria-labelledby="records-title">
@@ -349,6 +390,22 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     </a>
                   </li>
                 ))}
+                {order.reorderable.map((position) => (
+                  <li key={`reorder-${position}`}>
+                    <a href={`/orders/${order.id}/items/${position}/reorder`}>
+                      <RotateCcw size={18} aria-hidden="true" />
+                      Order {order.items[position - 1]?.productName ?? "this"} again
+                    </a>
+                  </li>
+                ))}
+                {dispatched ? (
+                  <li>
+                    <a href={`/orders/${order.id}/problem`}>
+                      <CircleAlert size={18} aria-hidden="true" />
+                      Report a problem
+                    </a>
+                  </li>
+                ) : null}
                 {order.canChangeScope ? (
                   <li>
                     <a href={`/orders/${order.id}/change`}>
@@ -372,6 +429,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   </a>
                 </li>
               </ul>
+              {order.problems.length ? (
+                <>
+                  <h3 className={s.stepTitle}>Problems you reported</h3>
+                  {order.problems.map((problem) => (
+                    <p key={problem.id} className={s.muted}>
+                      {problem.number} · {problem.item} · {problem.status === "CLOSED" ? "closed" : problem.status === "TRIAGED" ? "being looked at" : "received"}
+                    </p>
+                  ))}
+                </>
+              ) : null}
               {order.changeRequests.length ? (
                 <>
                   <h3 className={s.stepTitle}>Changes you asked for</h3>

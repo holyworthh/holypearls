@@ -119,6 +119,11 @@ The dev database has three TEST DATA orders (HP-2026-TEST-1 to 3) for trying the
 - **Who can cancel online.** No document sets a cancellation policy. As built, a customer can cancel online only while every item is still waiting or queued (before production). After that they're sent to contact you. **Confirm** this, or name products that can't be cancelled at all once ordered.
 - **Refunds are manual for now.** A cancellation records the amount to refund and tells the customer "our finance team will refund ₦X to your original payment method". Refunds through the admin come with T13-05. Until then, refund in the Paystack dashboard yourself. The amount is in the audit log entry for each cancelled order.
 
+
+### 32. Problem report numbers and response time (T08-01)
+- **Report numbers.** Problem reports are numbered HP-RP-2026-0001 and up, which the design marks "format to be confirmed". **Confirm** the format.
+- **Response time.** Customers are told "We'll look at this within 1 working day and email you". **Confirm** you can keep that promise.
+- **Staff access.** Shipments need the Fulfilment permission and problem reports need Customer support. Grant them to the staff who'll do this work (Staff page, once T13-05 lands; until then, I can grant them for you).
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 

@@ -24,10 +24,14 @@ type VersionRow = typeof schema.proofVersions.$inferSelect;
 const EMPTY_DETAILS: ProofDetails = { placement: "", dimensions: "", colourReference: "", quantity: "", notes: "" };
 const ACKNOWLEDGEMENT = "I have reviewed the artwork, spelling, placement and specifications shown.";
 
-/** Makes the proofs for a new order's items, from each product's rule (OPS-FR-018). Safe to repeat. */
+/**
+ * Makes the proofs for a new order's items, from each product's rule
+ * (OPS-FR-018). An exact reorder skips the proof only where the rule allows
+ * it (FUL-FR-061); a reorder with changes needs one as usual. Safe to repeat.
+ */
 export async function createProofsForOrder(tx: Tx | Database, orderId: string) {
   const items = await tx
-    .select({ id: schema.orderItems.id, rule: schema.productRules.proof })
+    .select({ id: schema.orderItems.id, rule: schema.productRules.proof, exactReorder: schema.configurations.reorderExact, skippable: schema.productRules.proofSkippableOnReorder })
     .from(schema.orderItems)
     .leftJoin(schema.configurations, eq(schema.configurations.id, schema.orderItems.configurationId))
     .leftJoin(schema.productRules, eq(schema.productRules.productId, schema.configurations.productId))
@@ -35,7 +39,12 @@ export async function createProofsForOrder(tx: Tx | Database, orderId: string) {
   if (!items.length) return;
   await tx
     .insert(schema.proofs)
-    .values(items.map((item) => ({ orderItemId: item.id, requirement: item.rule ?? "REQUIRED", status: item.rule === "NOT_REQUIRED" ? ("NOT_REQUIRED" as const) : ("PREPARING" as const) })))
+    .values(
+      items.map((item) => {
+        const skip = item.rule === "NOT_REQUIRED" || (item.exactReorder === true && item.skippable === true);
+        return { orderItemId: item.id, requirement: item.exactReorder && item.skippable ? "SKIPPED_ON_REORDER" : (item.rule ?? "REQUIRED"), status: skip ? ("NOT_REQUIRED" as const) : ("PREPARING" as const) };
+      }),
+    )
     .onConflictDoNothing({ target: schema.proofs.orderItemId });
 }
 

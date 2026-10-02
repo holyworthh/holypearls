@@ -48,6 +48,10 @@ describe("templates", () => {
       "hold_resolved",
       "order_link",
       "order_cancelled",
+      "shipment_dispatched",
+      "shipment_delivered",
+      "problem_received",
+      "problem_reply",
     ]);
   });
 });

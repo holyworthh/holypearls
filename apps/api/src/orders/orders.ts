@@ -6,6 +6,8 @@ import { createGuestLink } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { changeRequestsForOrder } from "../proofs/changes.js";
 import { customerProduction, releaseReadyItems } from "../production/production.js";
+import { customerProblems } from "../shipments/problems.js";
+import { customerShipments } from "../shipments/shipments.js";
 import { trackingView } from "./tracking.js";
 import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
@@ -260,6 +262,10 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
     proofs: await proofsForOrder(db, row.id),
     changeRequests: await changeRequestsForOrder(db, row.id),
     ...(await trackingView(db, row)),
+    shipments: await customerShipments(db, row.id),
+    problems: await customerProblems(db, row.id),
+    // Delivered items made from a design can be ordered again (FUL-FR-060–062); quote lines start a new project.
+    reorderable: items.filter((item) => item.configurationId && item.status === "DELIVERED").map((item) => item.position),
   };
 }
 

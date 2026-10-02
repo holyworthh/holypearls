@@ -61,6 +61,19 @@ export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, own
     if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
     return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
   },
+  /** Problem report photos: support staff, or whoever can open the order (T08-01). */
+  PROBLEM_REPORT: async (db, actor, ownerId) => {
+    if (actor.type === "user" && actor.staff?.permissions.has("CUSTOMER_SUPPORT")) return true;
+    const [row] = await db
+      .select({ orderId: schema.orders.id, owner: schema.orders.ownerUserId, customerUser: schema.customers.userId })
+      .from(schema.problemReports)
+      .innerJoin(schema.orders, eq(schema.orders.id, schema.problemReports.orderId))
+      .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
+      .where(eq(schema.problemReports.id, ownerId));
+    if (!row) return false;
+    if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
+    return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
+  },
   HELP_REQUEST: async (db, actor, ownerId) => {
     const [row] = await db.select().from(schema.helpRequests).where(eq(schema.helpRequests.id, ownerId));
     return Boolean(row) && canViewHelpRequest(actor, row!).outcome === "allow";
