@@ -72,5 +72,25 @@ export async function applyRetention(db: Database, now: Date) {
     return ids.length;
   });
 
-  return { expiredCheckouts: expired.length, purgedCheckouts: purged.length, closedDrafts: stale };
+  // Project drafts nobody touched for as long expire (TECH-01 §4); their files are let go the same way.
+  const staleProjects = await db.transaction(async (tx) => {
+    const expiredProjects = await tx
+      .update(schema.projects)
+      .set({ status: "EXPIRED" })
+      .where(and(eq(schema.projects.status, "DRAFT"), lt(schema.projects.lastActivityAt, new Date(now.getTime() - RETENTION.untouchedDraftDays * DAY))))
+      .returning({ id: schema.projects.id });
+    const ids = expiredProjects.map((project) => project.id);
+    if (ids.length) {
+      const links = await tx.delete(schema.projectFiles).where(inArray(schema.projectFiles.projectId, ids)).returning({ fileId: schema.projectFiles.fileId });
+      if (links.length) {
+        await tx
+          .update(schema.files)
+          .set({ ownerType: null, ownerId: null, attachedAt: null })
+          .where(and(inArray(schema.files.id, links.map((link) => link.fileId)), eq(schema.files.ownerType, "PROJECT")));
+      }
+    }
+    return ids.length;
+  });
+
+  return { expiredCheckouts: expired.length, purgedCheckouts: purged.length, closedDrafts: stale, expiredProjects: staleProjects };
 }

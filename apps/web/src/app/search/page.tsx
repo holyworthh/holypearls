@@ -191,7 +191,7 @@ function Results({ results }: { results: SearchResults }) {
         <div className={r.notSure}>
           <h2>Not sure what you need?</h2>
           <p>Tell us who it&apos;s for and how many. We&apos;ll suggest the right products and a price.</p>
-          <a className={r.redButton} href="/contact?topic=project">
+          <a className={r.redButton} href="/start">
             Start a project
             <ArrowRight size={16} aria-hidden="true" />
           </a>

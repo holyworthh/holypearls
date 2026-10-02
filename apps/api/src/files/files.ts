@@ -38,6 +38,14 @@ const storageFor = (deps: Pick<FileDeps, "storage" | "publicStorage">, row: { bu
 export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, ownerId: string) => Promise<boolean>> = {
   /** Content-page images are public once shown; in admin, content staff manage them. */
   CONTENT_PAGE: async (_db, actor) => actor.type === "user" && Boolean(actor.staff?.permissions.has("CONTENT_MANAGE")),
+  /** Project files: the project's owner or its link's guest; staff who quote it (QUOTE_MANAGE). */
+  PROJECT: async (db, actor, ownerId) => {
+    if (actor.type === "user" && actor.staff?.permissions.has("QUOTE_MANAGE")) return true;
+    if (actor.type === "guest") return actor.guest.targetType === "PROJECT" && actor.guest.targetId === ownerId;
+    if (actor.type !== "user") return false;
+    const [row] = await db.select({ owner: schema.projects.ownerUserId }).from(schema.projects).where(eq(schema.projects.id, ownerId));
+    return row?.owner === actor.session.userId;
+  },
   HELP_REQUEST: async (db, actor, ownerId) => {
     const [row] = await db.select().from(schema.helpRequests).where(eq(schema.helpRequests.id, ownerId));
     return Boolean(row) && canViewHelpRequest(actor, row!).outcome === "allow";

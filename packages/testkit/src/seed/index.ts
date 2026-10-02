@@ -5,6 +5,7 @@ import { seedDelivery } from "./delivery.js";
 import { seedHubs } from "./hubs.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
+import { seedRecommendationRules } from "./projects.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
 
@@ -77,12 +78,16 @@ export const pricingSeedStep: SeedStep = { name: "pricing: product rules, prices
 /** Delivery zones from Pen 108 (T04-01). */
 export const deliverySeedStep: SeedStep = { name: "delivery: zones and rates", run: seedDelivery };
 
+/** Starting recommendation rules for Event and Staff uniforms (T05-01, Pen 110). */
+export const projectsSeedStep: SeedStep = { name: "projects: starting recommendation rules", run: seedRecommendationRules };
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
   pricingSeedStep,
   deliverySeedStep,
   contentSeedStep,
+  projectsSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 
