@@ -5,6 +5,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
 import { displayMoney, nextNumber, type OrderEmailDeps } from "../orders/orders.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
+import { releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder } from "../proofs/proofs.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
@@ -305,6 +306,8 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
         })),
       )
       .returning();
+    // With no deposit to pay, items are queued as soon as their proofs allow (T07-01).
+    await releaseReadyItems(tx, order.id);
     // A dated payment gets its reminder now, for its date (TECH-02 §8: deadlines get their own job).
     for (const part of parts) {
       if (part.trigger === "ON_DATE" && part.dueOn) {

@@ -24,7 +24,7 @@ export const TEST_PEOPLE = {
     name: "Ada Okafor (TEST DATA)",
     email: "ada.staff@holypearls.test",
     password: "test-password-ada-staff",
-    staff: { permissions: ["STAFF_ADMIN", "SECURITY_ADMIN", "AUDIT_VIEW", "PAYMENT_VIEW", "PAYMENT_MANAGE", "CUSTOMER_SUPPORT", "CATALOGUE_MANAGE", "PRICING_MANAGE", "CONTENT_MANAGE", "QUOTE_MANAGE", "PROOF_MANAGE"] },
+    staff: { permissions: ["STAFF_ADMIN", "SECURITY_ADMIN", "AUDIT_VIEW", "PAYMENT_VIEW", "PAYMENT_MANAGE", "CUSTOMER_SUPPORT", "CATALOGUE_MANAGE", "PRICING_MANAGE", "CONTENT_MANAGE", "QUOTE_MANAGE", "PROOF_MANAGE", "PRODUCTION_MANAGE"] },
     totpSecret: "hp-test-totp-secret-ada-0001",
   },
   adminTunde: {

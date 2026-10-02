@@ -221,6 +221,35 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  item_on_hold: define({
+    label: "Item on hold",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), item: z.string(), explanation: z.string(), action: z.string(), url: z.url() }),
+    subject: ({ orderNumber }) => `Order ${orderNumber} is on hold`,
+    render: ({ orderNumber, item, explanation, action, url }) => (
+      <Layout preview={`${item} is on hold`} title={`${item} is on hold`} action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>{explanation}</Text>
+        <Text style={text.body}>
+          {action} (order {orderNumber}).
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  hold_resolved: define({
+    label: "Hold resolved",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), item: z.string(), url: z.url() }),
+    subject: ({ orderNumber }) => `Order ${orderNumber} is moving again`,
+    render: ({ orderNumber, item, url }) => (
+      <Layout preview={`${item} is no longer on hold`} title="Your order is moving again" action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>
+          {item} (order {orderNumber}) is no longer on hold. We&apos;ll keep you updated as it moves through production.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

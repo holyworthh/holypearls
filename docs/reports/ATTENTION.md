@@ -105,6 +105,16 @@ Event branding and Staff uniforms start with rules from Pen 110 and Stage 3.1D. 
 ### 29. Quote defaults (T05-03)
 New quotes are valid for 14 days, with a reminder 3 days before expiry. The default schedule is 50% on acceptance and 50% before dispatch, with default terms "one proof round per item…". These are starting values. **Needed:** confirm or change them in admin (Quotes → Settings, needs your authenticator).
 
+### 30. Production holds and the balance (T07-01)
+- **Hold reasons:** customer information, artwork, materials, equipment, payment, other.
+- **Who acts:** customer or HolyPearls.
+
+**Needed:** confirm both lists, or send the ones you want (PRD-06 leaves them open).
+
+A before-dispatch balance now falls due as soon as the first item passes quality check, and the customer gets the "payment due" email then. **Confirm** that timing; the alternative is to wait until every item is finished.
+
+The dev database has three TEST DATA orders (HP-2026-TEST-1 to 3) for trying the board.
+
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.
 

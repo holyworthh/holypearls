@@ -5,6 +5,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { changeRequestsForOrder } from "../proofs/changes.js";
+import { customerProduction, releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
@@ -99,6 +100,8 @@ export async function orderForCheckout(tx: Tx, checkout: CheckoutRow, now: Date)
     );
   }
   await createProofsForOrder(tx, created.id);
+  // A paid order whose items need no proof or artwork is queued straight away (T07-01).
+  await releaseReadyItems(tx, created.id);
   return created;
 }
 
@@ -217,6 +220,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
         .innerJoin(schema.quotes, eq(schema.quotes.id, schema.quoteVersions.quoteId))
         .where(eq(schema.quoteVersions.id, row.quoteVersionId))
     : [];
+  const production = await customerProduction(db, row.id);
   const contact = row.contact as { name: string };
   const address = row.address as { area?: string; state?: string; country?: string } | null;
   return {
@@ -229,12 +233,14 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
       : receipts.length
         ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false })
         : null,
+    summaryStatus: production.summaryStatus,
     items: items.map((item) => ({
       productName: item.productName,
       summary: item.summary,
       quantity: item.quantity,
       totalMinor: item.totalMinor.toString(),
       status: item.status,
+      hold: production.holdByPosition.get(item.position) ?? null,
       leadDays: (item.leadDays as { min: number; max: number } | null) ?? null,
     })),
     totals: {

@@ -10,6 +10,7 @@ import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { displayMoney, type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
 import { customerPaymentStatus } from "./status.js";
+import { releaseAfterPayment } from "../production/production.js";
 
 /*
  * Payments core (T04-03, TECH-05 §3–7, PAY-FR-001–011).
@@ -363,6 +364,8 @@ async function onInstallmentPaid(tx: Tx, intent: Intent, attemptId: string, quot
   if (!order) return;
   const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
   const receipt = await receiptForAttempt(tx, { attempt: attempt!, intentId: intent.id, order, paidAt: attempt!.paidAt ?? now, now });
+  // A deposit can queue items; the balance releases finished ones, in this transaction (TECH-05 §10).
+  await releaseAfterPayment(tx, order.id);
   if (notify) {
     const [part] = await tx.select().from(schema.installments).where(eq(schema.installments.id, intent.installmentId));
     const paid = await tx

@@ -5,6 +5,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, customerForActor, requireRecentEmailCode } from "../identity/customers.js";
 import { loadOrderFor, type OrderAccess, type OrderEmailDeps } from "../orders/orders.js";
 import { recordAudit } from "../platform/audit.js";
+import { releaseForFile, releaseReadyItems } from "../production/production.js";
 import { queueEmail } from "../platform/notifications.js";
 
 /*
@@ -12,8 +13,8 @@ import { queueEmail } from "../platform/notifications.js";
  * §10). One proof per order item, made with the order; whether it's needed
  * comes from the product rule. Staff publish permanent versions; the customer
  * approves (tick + email code) or asks for changes. Approval never moves the
- * item on by itself: release rules are T07-01's, and the item stays
- * AWAITING_PREREQUISITE until then.
+ * item into production: it queues the item once its other prerequisites are
+ * met too (T07-01).
  */
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
@@ -177,6 +178,9 @@ export async function approveProof(db: Database, access: OrderAccess, orderId: s
     });
     await tx.update(schema.proofVersions).set({ status: "APPROVED", updatedAt: new Date() }).where(eq(schema.proofVersions.id, version.id));
     await tx.update(schema.proofs).set({ status: "APPROVED", version: sql`${schema.proofs.version} + 1`, updatedAt: new Date() }).where(eq(schema.proofs.id, proofId));
+    // Approval can be the last prerequisite: the item is queued in this transaction (T07-01).
+    const [owner] = await tx.select({ orderId: schema.orderItems.orderId }).from(schema.orderItems).where(eq(schema.orderItems.id, proof.orderItemId));
+    await releaseReadyItems(tx, owner!.orderId);
     await recordAudit(tx, actor, { action: "proof.approved", summary: `Proof V${version.number} approved for production`, recordType: "PROOF", recordId: proofId, after: { version: version.number } });
   });
   return getCustomerProof(db, access, orderId, proofId);
@@ -425,6 +429,7 @@ export async function decideFile(db: Database, actor: ActorContext, fileId: stri
   await db.transaction(async (tx) => {
     const [file] = await tx.update(schema.files).set({ status: input.decision, reason: input.note ?? null }).where(and(eq(schema.files.id, fileId), inArray(schema.files.status, ["NEEDS_REVIEW", "PROCESSING"]))).returning();
     if (!file) throw new AppError("CONFLICT", { message: "This file was already reviewed.", context: { reason: "ALREADY_REVIEWED" } });
+    if (input.decision === "READY") await releaseForFile(tx, fileId);
     await recordAudit(tx, actor, { action: input.decision === "READY" ? "file.marked_ready" : "file.rejected", summary: `${file.safeName}: ${input.decision}${input.note ? ` (${input.note})` : ""}`, recordType: "FILE", recordId: fileId, recordLabel: file.safeName, permission: "PROOF_MANAGE" });
   });
   return { ok: true as const };

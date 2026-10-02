@@ -44,6 +44,8 @@ describe("templates", () => {
       "payment_due",
       "payment_received",
       "proof_ready",
+      "item_on_hold",
+      "hold_resolved",
     ]);
   });
 });
