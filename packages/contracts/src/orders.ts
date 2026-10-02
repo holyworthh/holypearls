@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { customerPaymentStatusSchema, paymentChannelSchema } from "./payments.js";
-import { orderProofSummarySchema } from "./proofs.js";
+import { changeRequestSchema, orderProofSummarySchema } from "./proofs.js";
 import { paymentSummarySchema } from "./quotes.js";
 
 /*
@@ -59,6 +59,8 @@ export const orderSchema = z.object({
   quote: z.object({ id: z.string(), reference: z.string(), version: z.number().int() }).nullable(),
   /** Each item's proof (T06-01). */
   proofs: z.array(orderProofSummarySchema),
+  /** Changes asked for after approval (T06-03). */
+  changeRequests: z.array(changeRequestSchema),
 });
 export type Order = z.infer<typeof orderSchema>;
 

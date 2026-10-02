@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
-import { approveProofSchema, fileDecisionSchema, proofQuestionSchema, proofReplySchema, proofRequestSchema, saveProofDraftSchema } from "@holypearls/contracts";
+import { approveProofSchema, decideChangeRequestSchema, fileDecisionSchema, newChangeRequestSchema, proofCommentInputSchema, proofQuestionSchema, proofReplySchema, proofRequestSchema, saveProofDraftSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { deviceKey } from "../configuration/drafts.controller.js";
@@ -9,7 +9,9 @@ import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { PAYMENT_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import { decideChangeRequest, listChangeRequests, requestChange, startChangeReview } from "./changes.js";
 import {
+  addProofComment,
   approveProof,
   askProofQuestion,
   createProofDraft,
@@ -51,6 +53,14 @@ export class CustomerProofsController {
   @RateLimit("COMMERCIAL_WRITE")
   async changes(@Req() request: Request, @Param("orderId", uuid) orderId: string, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(proofRequestSchema)) body: z.infer<typeof proofRequestSchema>) {
     return requestProofChanges(this.deps.db, await access(request), orderId, id, body);
+  }
+
+  /** A comment on the whole proof or a pin (FUL-FR-005). */
+  @Post(":id/comments")
+  @HttpCode(200)
+  @RateLimit("CONTACT")
+  async comment(@Req() request: Request, @Param("orderId", uuid) orderId: string, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(proofCommentInputSchema)) body: z.infer<typeof proofCommentInputSchema>) {
+    return addProofComment(this.deps.db, await access(request), orderId, id, body);
   }
 
   @Post(":id/questions")
@@ -122,5 +132,44 @@ export class FileReviewAdminController {
   @RateLimit("ADMIN_WRITE")
   async decide(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(fileDecisionSchema)) body: z.infer<typeof fileDecisionSchema>) {
     return decideFile(this.deps.db, await request.getActor!(), id, body);
+  }
+}
+
+/** Changes after approval on the customer's order (FUL-FR-007). Same access as the order. */
+@Controller("orders/:orderId/change-requests")
+export class CustomerChangeRequestsController {
+  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
+
+  @Post()
+  @HttpCode(200)
+  @RateLimit("CONTACT")
+  async create(@Req() request: Request, @Param("orderId", uuid) orderId: string, @Body(new ZodValidationPipe(newChangeRequestSchema)) body: z.infer<typeof newChangeRequestSchema>) {
+    return { items: await requestChange(this.deps.db, await access(request), orderId, body) };
+  }
+}
+
+/** Staff review of changes after approval (OPS-FR-054). PROOF_MANAGE. */
+@Controller("admin/change-requests")
+@UseGuards(StaffGuard("PROOF_MANAGE"))
+export class ChangeRequestsAdminController {
+  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
+
+  @Get()
+  list(@Query("view") view?: string) {
+    return listChangeRequests(this.deps.db, view);
+  }
+
+  @Post(":id/review")
+  @HttpCode(200)
+  @RateLimit("ADMIN_WRITE")
+  async review(@Req() request: Request, @Param("id", uuid) id: string) {
+    return startChangeReview(this.deps.db, await request.getActor!(), id);
+  }
+
+  @Post(":id/decision")
+  @HttpCode(200)
+  @RateLimit("ADMIN_WRITE")
+  async decide(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(decideChangeRequestSchema)) body: z.infer<typeof decideChangeRequestSchema>) {
+    return decideChangeRequest(this.deps.db, await request.getActor!(), id, body);
   }
 }

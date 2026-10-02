@@ -116,6 +116,23 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </nav>
           ) : null}
 
+          {order.changeRequests.length ? (
+            <section className={styles.card} aria-labelledby="changes-title">
+              <div className={styles.text}>
+                <h2 id="changes-title" className={styles.next}>
+                  Changes you asked for
+                </h2>
+                {order.changeRequests.map((request) => (
+                  <p key={request.id} className={styles.meta}>
+                    {request.item ? `${request.item}: ` : ""}
+                    {request.description} · {request.status === "OPEN" || request.status === "UNDER_REVIEW" ? "being reviewed" : request.status === "ACCEPTED" ? "accepted" : "declined"}
+                    {request.staffNote ? ` · ${request.staffNote}` : ""}
+                  </p>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <nav className={styles.links} aria-label="Order links">
             {order.receipts.map((receipt) => (
               <a key={receipt.id} href={`/orders/${order.id}/receipts/${receipt.id}`}>

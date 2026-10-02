@@ -46,6 +46,7 @@ export function ProofEditor({ initial }: { initial: AdminProof }) {
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [reply, setReply] = useState("");
+  const [replyTo, setReplyTo] = useState<string | null>(null);
   const [publishKey, setPublishKey] = useState(() => newIdempotencyKey());
 
   const adopt = (next: AdminProof) => {
@@ -117,8 +118,9 @@ export function ProofEditor({ initial }: { initial: AdminProof }) {
     if (!reply.trim()) return;
     setBusy(true);
     try {
-      adopt(await api(`/v1/admin/proofs/${proof.id}/replies`, { method: "POST", body: { versionNumber, body: reply.trim() }, response: adminProofSchema }));
+      adopt(await api(`/v1/admin/proofs/${proof.id}/replies`, { method: "POST", body: { versionNumber, body: reply.trim(), parentId: replyTo }, response: adminProofSchema }));
       setReply("");
+      setReplyTo(null);
     } catch (problem) {
       fail(problem, "We couldn't send the reply. Try again.");
     } finally {
@@ -278,16 +280,26 @@ export function ProofEditor({ initial }: { initial: AdminProof }) {
                 <ul className={styles.plainList}>
                   {latestPublished.comments.map((comment) => (
                     <li key={comment.id}>
-                      <strong>{comment.author}</strong> · {comment.kind.toLowerCase().replace("_", " ")} · {formatTime(comment.createdAt)}
+                      <strong>{comment.author}</strong>
+                      {comment.pin ? ` · pin ${comment.pin.number}` : ""} · {comment.kind.toLowerCase().replace("_", " ")} · {formatTime(comment.createdAt)}
+                      {comment.parentId ? <span className={styles.hint}> · reply</span> : null}
                       <br />
                       {comment.body}
+                      {!comment.fromStaff ? (
+                        <>
+                          {" "}
+                          <button type="button" className={styles.action} onClick={() => setReplyTo(comment.id)}>
+                            Reply{comment.pin ? ` to pin ${comment.pin.number}` : ""}
+                          </button>
+                        </>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className={styles.hint}>No comments yet.</p>
               )}
-              <FormField id="proof-reply" label="Reply to the customer">
+              <FormField id="proof-reply" label={replyTo ? "Reply in the thread (replies never change the proof status)" : "Reply to the customer"}>
                 <TextArea rows={2} value={reply} maxLength={4000} onChange={(event) => setReply(event.target.value)} />
               </FormField>
               <Button type="button" variant="secondary" onClick={() => void sendReply(latestPublished.number)} disabled={busy || !reply.trim()}>

@@ -33,6 +33,9 @@ export const proofCommentSchema = z.object({
   fromStaff: z.boolean(),
   body: z.string(),
   createdAt: isoDate,
+  /** A pin (TECH-04 §11): relative position on a view and its number; null for a whole-proof comment. */
+  pin: z.object({ x: z.number(), y: z.number(), view: z.number().int(), number: z.number().int() }).nullable(),
+  parentId: z.string().nullable(),
 });
 
 export const proofVersionSchema = z.object({
@@ -103,4 +106,51 @@ export type AdminProof = z.infer<typeof adminProofSchema>;
 
 export const saveProofDraftSchema = z.object({ version: z.number().int(), views: z.array(proofViewInputSchema).max(12), details: proofDetailsSchema });
 export const fileDecisionSchema = z.object({ decision: z.enum(["READY", "REJECTED"]), note: z.string().trim().max(500).optional() });
-export const proofReplySchema = z.object({ versionNumber: z.number().int(), body: z.string().trim().min(1).max(4000) });
+export const proofReplySchema = z.object({ versionNumber: z.number().int(), body: z.string().trim().min(1).max(4000), parentId: z.string().uuid().nullable().optional() });
+
+/* ---- Comments and pins (T06-03; FUL-FR-005, OPS-FR-052) ---- */
+
+export const proofCommentInputSchema = z.object({
+  versionNumber: z.number().int(),
+  body: z.string().trim().min(1, "Type your comment").max(4000, "Use 4,000 characters or fewer"),
+  pin: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1), view: z.number().int().min(0).max(11) }).nullable().optional(),
+});
+
+/* ---- Changes after approval (T06-03; FUL-FR-007, OPS-FR-054) ---- */
+
+export const changeStageSchema = z.enum(["BEFORE_PRODUCTION", "AFTER_PRODUCTION_START"]);
+export const changeRequestStatusSchema = z.enum(["OPEN", "UNDER_REVIEW", "ACCEPTED", "DECLINED"]);
+export const changeOutcomeSchema = z.enum(["NEW_PROOF_VERSION", "QUOTE_REVISION", "NONE"]);
+
+export const changeRequestSchema = z.object({
+  id: z.string(),
+  orderId: z.string(),
+  orderNumber: z.string(),
+  proofId: z.string().nullable(),
+  item: z.string().nullable(),
+  stage: changeStageSchema,
+  status: changeRequestStatusSchema,
+  description: z.string(),
+  costImpactMinor: z.string().nullable(),
+  timingImpactDays: z.number().int().nullable(),
+  outcome: changeOutcomeSchema.nullable(),
+  staffNote: z.string().nullable(),
+  decidedAt: isoDate.nullable(),
+  createdAt: isoDate,
+  version: z.number().int(),
+});
+export type ChangeRequest = z.infer<typeof changeRequestSchema>;
+export const changeRequestListSchema = z.object({ items: z.array(changeRequestSchema) });
+
+export const newChangeRequestSchema = z.object({ proofId: z.string().uuid(), description: z.string().trim().min(1, "Describe the change").max(4000) });
+
+export const decideChangeRequestSchema = z
+  .object({
+    version: z.number().int(),
+    decision: z.enum(["ACCEPTED", "DECLINED"]),
+    outcome: changeOutcomeSchema,
+    costImpactMinor: z.string().regex(/^-?\d+$/, "Enter an amount in kobo").nullable(),
+    timingImpactDays: z.number().int().min(-365).max(365).nullable(),
+    note: z.string().trim().min(1, "Explain the decision to the customer").max(2000),
+  })
+  .refine((value) => value.decision === "ACCEPTED" || value.outcome === "NONE", { message: "A declined change has no outcome", path: ["outcome"] });

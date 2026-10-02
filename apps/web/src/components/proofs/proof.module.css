@@ -158,17 +158,104 @@
   touch-action: pinch-zoom;
 }
 
-.stage img {
+.canvas {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  transform-origin: center top;
+}
+
+.canvas img {
+  display: block;
   max-width: 100%;
   max-height: var(--hp-size-720);
   border-radius: var(--hp-space-12);
   background: var(--hp-paper);
-  transform-origin: center top;
 }
 
-.stage[data-zoomed="true"] img {
+.stage[data-zoomed="true"] .canvas img {
   max-width: none;
   max-height: none;
+}
+
+/* Pins sit at relative positions on the image, so they stay in place at every width (TECH-04 §11). */
+.pinMark,
+.pinPlacing {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-space-32);
+  height: var(--hp-space-32);
+  border-radius: 50%;
+  background: var(--hp-marigold);
+  color: var(--hp-ink);
+  font-size: var(--hp-space-14);
+  font-weight: 700;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.pinPlacing {
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
+}
+
+.pinTool {
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-12);
+  border: 0;
+  border-radius: var(--hp-space-6);
+  background: var(--hp-marigold);
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-size-13);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pinForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-16);
+  border-top: var(--hp-border-width) solid var(--hp-footer-rule);
+}
+
+.pinHelp,
+.pinLabel {
+  margin: 0;
+  color: var(--hp-bone);
+  font-size: var(--hp-size-13);
+  line-height: var(--hp-size-19);
+}
+
+.pinLabel {
+  font-weight: 600;
+}
+
+.pinInput {
+  padding: var(--hp-space-8);
+  border: var(--hp-border-width) solid var(--hp-mid);
+  border-radius: var(--hp-space-6);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-space-14);
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reply {
+  margin-top: var(--hp-space-8);
+  padding-left: var(--hp-space-12);
+  border-left: var(--hp-space-2) solid var(--hp-line);
 }
 
 .placeholder {

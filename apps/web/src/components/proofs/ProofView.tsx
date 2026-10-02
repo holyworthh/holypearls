@@ -61,6 +61,12 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
   const [ticked, setTicked] = useState(false);
   const [tickError, setTickError] = useState<string | null>(null);
   const [mode, setMode] = useState<"changes" | "question" | null>(null);
+  const [placing, setPlacing] = useState<{ x: number; y: number } | null>(null);
+  const [pinText, setPinText] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [changeText, setChangeText] = useState("");
+  const [changeSent, setChangeSent] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [noteError, setNoteError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -115,6 +121,52 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
       setNote("");
       setMode(null);
       setTab("comments");
+    } catch (problem) {
+      setFailure(problem instanceof ApiError ? problem.body.message : "We couldn't send that. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** A comment on the whole proof, or a pin at a relative position on this view (FUL-FR-005, TECH-04 §11). */
+  const postComment = async (body: string, pin: { x: number; y: number } | null) => {
+    if (!proof.current) return false;
+    if (!body.trim()) {
+      setCommentError(pin ? "Say what this pin is about." : "Type your comment.");
+      return false;
+    }
+    setBusy(true);
+    setCommentError(null);
+    try {
+      setProof(
+        await api(`${base}/comments`, {
+          method: "POST",
+          body: { versionNumber: proof.current.number, body: body.trim(), pin: pin ? { x: Number(pin.x.toFixed(5)), y: Number(pin.y.toFixed(5)), view: viewIndex } : null },
+          response: customerProofSchema,
+        }),
+      );
+      setTab("comments");
+      return true;
+    } catch (problem) {
+      setCommentError(problem instanceof ApiError ? problem.body.message : "We couldn't post your comment. Your text is still here.");
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** A change after approval (FUL-FR-007): staff review it and say whether it changes the cost or timing. */
+  const askChange = async () => {
+    if (!changeText.trim()) {
+      setFailure("Describe the change.");
+      return;
+    }
+    setBusy(true);
+    setFailure(null);
+    try {
+      await api(`/v1/orders/${proof.order.id}/change-requests`, { method: "POST", body: { proofId: proof.id, description: changeText.trim() }, response: z.object({ items: z.array(z.unknown()) }) });
+      setChangeText("");
+      setChangeSent("We'll review your change and tell you if it affects the cost or delivery date. Your approved proof stays as it is until then.");
     } catch (problem) {
       setFailure(problem instanceof ApiError ? problem.body.message : "We couldn't send that. Try again.");
     } finally {
@@ -178,22 +230,92 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
               {zoom === 1 ? "Fit" : `${Math.round(zoom * 100)}%`}
             </span>
             <span className={s.spacer} />
+            {isCurrent ? (
+              <button type="button" className={s.pinTool} aria-pressed={placing !== null} onClick={() => setPlacing(placing ? null : { x: 0.5, y: 0.5 })}>
+                {placing ? "Cancel pin" : "Add pin"}
+              </button>
+            ) : null}
             {shown!.views.map((item, index) => (
               <button key={`${item.label}-${index}`} type="button" className={s.tool} aria-pressed={index === viewIndex} onClick={() => (setViewIndex(index), setZoom(1))}>
                 {item.label}
               </button>
             ))}
           </div>
-          <div className={s.stage} data-zoomed={zoom > 1 ? "true" : "false"} tabIndex={0} aria-label={`${view?.label ?? "Proof"} view. Use the zoom buttons, or + and - keys.`} onKeyDown={(event) => {
-            if (event.key === "+" || event.key === "=") setZoom((value) => Math.min(4, value + 0.5));
-            if (event.key === "-") setZoom((value) => Math.max(1, value - 0.5));
-          }}>
+          <div
+            className={s.stage}
+            data-zoomed={zoom > 1 ? "true" : "false"}
+            tabIndex={0}
+            aria-label={placing ? "Placing a pin. Use the arrow keys to move it, Enter to place it, Escape to cancel." : `${view?.label ?? "Proof"} view. Use the zoom buttons, or + and - keys.`}
+            onKeyDown={(event) => {
+              if (placing) {
+                const step = 0.02;
+                const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+                const move = moves[event.key];
+                if (move) {
+                  event.preventDefault();
+                  setPlacing({ x: Math.min(1, Math.max(0, placing.x + move[0])), y: Math.min(1, Math.max(0, placing.y + move[1])) });
+                } else if (event.key === "Enter") {
+                  event.preventDefault();
+                  document.getElementById("pin-text")?.focus();
+                } else if (event.key === "Escape") setPlacing(null);
+                return;
+              }
+              if (event.key === "+" || event.key === "=") setZoom((value) => Math.min(4, value + 0.5));
+              if (event.key === "-") setZoom((value) => Math.max(1, value - 0.5));
+            }}
+          >
             {image.url ? (
-              <img src={image.url} alt={`${proof.item.name}, proof V${shown!.number}, ${view?.label ?? ""} view`} style={{ transform: `scale(${zoom})` }} />
+              <div
+                className={s.canvas}
+                style={{ transform: `scale(${zoom})` }}
+                onClick={(event) => {
+                  if (!placing) return;
+                  const box = event.currentTarget.getBoundingClientRect();
+                  setPlacing({ x: Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)), y: Math.min(1, Math.max(0, (event.clientY - box.top) / box.height)) });
+                }}
+              >
+                <img src={image.url} alt={`${proof.item.name}, proof V${shown!.number}, ${view?.label ?? ""} view`} />
+                {isCurrent
+                  ? comments
+                      .filter((comment) => comment.pin && comment.pin.view === viewIndex)
+                      .map((comment) => (
+                        <span key={comment.id} className={s.pinMark} style={{ left: `${comment.pin!.x * 100}%`, top: `${comment.pin!.y * 100}%` }} aria-hidden="true">
+                          {comment.pin!.number}
+                        </span>
+                      ))
+                  : null}
+                {placing ? (
+                  <span className={s.pinPlacing} style={{ left: `${placing.x * 100}%`, top: `${placing.y * 100}%` }} aria-hidden="true">
+                    +
+                  </span>
+                ) : null}
+              </div>
             ) : (
               <p className={s.placeholder}>{image.failed ? "We couldn't load this view. Try again in a moment." : "Loading the proof…"}</p>
             )}
           </div>
+          {placing ? (
+            <div className={s.pinForm}>
+              <p className={s.pinHelp}>Click the artwork, or use the arrow keys to move the marker and press Enter. Esc cancels.</p>
+              <label className={s.pinLabel} htmlFor="pin-text">
+                Pin {comments.filter((comment) => comment.pin).length + 1} comment
+              </label>
+              <textarea id="pin-text" className={s.pinInput} rows={2} maxLength={4000} value={pinText} onChange={(event) => setPinText(event.target.value)} />
+              <button
+                type="button"
+                className={s.pinTool}
+                disabled={busy}
+                onClick={async () => {
+                  if (await postComment(pinText, placing)) {
+                    setPinText("");
+                    setPlacing(null);
+                  }
+                }}
+              >
+                Save pin
+              </button>
+            </div>
+          ) : null}
         </section>
 
         <aside className={s.rail} aria-label="Proof details and decision">
@@ -206,24 +328,55 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
           </div>
           <div className={s.panel} role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === "comments" ? (
-              comments.length ? (
-                comments.map((comment, index) => (
-                  <div key={comment.id} className={s.comment}>
-                    <span className={s.pin} aria-hidden="true">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <span className={s.who}>
-                        {comment.author}
-                        {comment.kind === "CHANGE_REQUEST" ? " · change requested" : comment.kind === "QUESTION" ? " · question" : ""}
-                      </span>
-                      <p className={s.text}>{comment.body}</p>
-                    </div>
+              <>
+                <p className={s.muted}>{isCurrent ? `Comments are saved on V${proof.current.number}.` : `You're looking at V${shownNumber}. Its comments are read only; comments shown here are on V${proof.current.number}.`}</p>
+                {comments.length ? (
+                  <ol className={s.commentList} aria-label={`Comments on V${proof.current.number}`}>
+                    {comments
+                      .filter((comment) => !comment.parentId)
+                      .map((comment) => (
+                        <li key={comment.id} className={s.comment}>
+                          <span className={s.pin} aria-hidden="true">
+                            {comment.pin ? comment.pin.number : "·"}
+                          </span>
+                          <div>
+                            <span className={s.who}>
+                              {comment.author}
+                              {comment.pin
+                                ? ` · pin ${comment.pin.number}${proof.current!.views[comment.pin.view] ? ` · ${proof.current!.views[comment.pin.view]!.label}` : ""}`
+                                : comment.kind === "CHANGE_REQUEST"
+                                  ? " · change requested"
+                                  : comment.kind === "QUESTION"
+                                    ? " · question"
+                                    : " · whole proof"}
+                            </span>
+                            <p className={s.text}>{comment.body}</p>
+                            {comments
+                              .filter((reply) => reply.parentId === comment.id)
+                              .map((reply) => (
+                                <div key={reply.id} className={s.reply}>
+                                  <span className={s.who}>{reply.author}</span>
+                                  <p className={s.text}>{reply.body}</p>
+                                </div>
+                              ))}
+                          </div>
+                        </li>
+                      ))}
+                  </ol>
+                ) : (
+                  <p className={s.muted}>No comments on V{proof.current.number} yet. Add a pin or a comment on the whole proof.</p>
+                )}
+                {isCurrent ? (
+                  <div className={s.ask}>
+                    <FormField id="whole-comment" label="Add a comment on the whole proof" error={commentError ?? undefined}>
+                      <TextArea rows={2} maxLength={4000} value={commentText} onChange={(event) => setCommentText(event.target.value)} />
+                    </FormField>
+                    <button type="button" className={s.secondary} disabled={busy} onClick={async () => (await postComment(commentText, null)) && setCommentText("")}>
+                      Post comment
+                    </button>
                   </div>
-                ))
-              ) : (
-                <p className={s.muted}>{isCurrent ? "No comments yet. Ask us anything about this proof." : "Comments are shown on the current version."}</p>
-              )
+                ) : null}
+              </>
             ) : null}
             {tab === "details" ? (
               <dl className={s.facts}>
@@ -267,9 +420,25 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
 
           <div className={s.decision}>
             {approved ? (
-              <p className={s.locked}>
-                <Lock size={16} aria-hidden="true" /> Approved version is locked. Changes now go through a change request and may affect cost and timing.
-              </p>
+              <>
+                <p className={s.locked}>
+                  <Lock size={16} aria-hidden="true" /> Approved version is locked. Changes now go through a change request and may affect cost and timing.
+                </p>
+                {changeSent ? (
+                  <Notice tone="success" title="Change request sent" live>
+                    <p>{changeSent}</p>
+                  </Notice>
+                ) : (
+                  <div className={s.ask}>
+                    <FormField id="change-after" label="Need a change?" hint="We check what it means for cost and delivery before anything changes.">
+                      <TextArea rows={2} maxLength={4000} value={changeText} onChange={(event) => setChangeText(event.target.value)} />
+                    </FormField>
+                    <button type="button" className={s.secondary} disabled={busy} onClick={() => void askChange()}>
+                      Request a change
+                    </button>
+                  </div>
+                )}
+              </>
             ) : proof.canDecide && isCurrent ? (
               <>
                 <Checkbox id="proof-ack" label="I have reviewed the artwork, spelling, placement and specifications shown." checked={ticked} onChange={(event) => setTicked(event.target.checked)} hint={tickError ?? undefined} />

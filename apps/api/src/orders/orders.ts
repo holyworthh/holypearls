@@ -4,6 +4,7 @@ import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
+import { changeRequestsForOrder } from "../proofs/changes.js";
 import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
@@ -250,6 +251,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
     payments,
     quote: quote ?? null,
     proofs: await proofsForOrder(db, row.id),
+    changeRequests: await changeRequestsForOrder(db, row.id),
   };
 }
 
