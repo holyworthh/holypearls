@@ -106,7 +106,7 @@ export const GUEST_LINK_PATH: Record<GuestLinkPurpose, (id: string) => string> =
   ORDER: (id) => `/orders/${id}`,
   PROOF: (id) => `/proofs/${id}`,
   CONFIGURATION: (id) => `/configure/drafts/${id}`,
-  PROJECT: (id) => `/projects/${id}`,
+  PROJECT: (id) => `/start/${id}`,
   COLLECTION_SUBMISSION: (id) => `/collections/submissions/${id}`,
   HELP_REQUEST: (id) => `/help/${id}`,
 };

@@ -28,6 +28,7 @@ import { CartController, CheckoutController, DeliveryZonesAdminController } from
 import { PaystackWebhookController } from "./payments/payments.controller.js";
 import { PaymentsAdminController } from "./payments/admin.controller.js";
 import { OrdersController } from "./orders/orders.controller.js";
+import { ProjectsController, RecommendationRulesAdminController } from "./projects/projects.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -138,6 +139,8 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       PaymentsAdminController,
       OrdersController,
       ConfigurationsController,
+      ProjectsController,
+      RecommendationRulesAdminController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
