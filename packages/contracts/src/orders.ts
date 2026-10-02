@@ -23,6 +23,31 @@ export const orderItemStatusSchema = z.enum([
   "CANCELLED",
 ]);
 
+/** PRD-00 §8 order summary: worked out from items, holds, installments and shipments, never edited. */
+export const orderSummaryStatusSchema = z.enum([
+  "CONFIRMED",
+  "AWAITING_PREREQUISITE",
+  "IN_PRODUCTION",
+  "PARTIALLY_READY",
+  "BALANCE_REQUIRED",
+  "READY_TO_DISPATCH",
+  "ON_HOLD",
+  "PARTIALLY_DISPATCHED",
+  "DISPATCHED",
+  "PARTIALLY_DELIVERED",
+  "DELIVERED",
+  "CANCELLED",
+]);
+export type OrderSummaryStatus = z.infer<typeof orderSummaryStatusSchema>;
+
+/** What a customer sees of an open hold (FUL-FR-013): never the internal note. */
+export const customerHoldSchema = z.object({
+  explanation: z.string(),
+  whoActs: z.enum(["CUSTOMER", "HOLYPEARLS"]),
+  timingImpactDays: z.number().int().nullable(),
+  since: isoDate,
+});
+
 export const receiptSummarySchema = z.object({
   id: z.string(),
   number: z.string(),
@@ -39,6 +64,8 @@ export const orderSchema = z.object({
   number: z.string(),
   placedAt: isoDate,
   paymentStatus: customerPaymentStatusSchema.nullable(),
+  /** The summary at the top of the order (T07-01). */
+  summaryStatus: orderSummaryStatusSchema,
   items: z.array(
     z.object({
       productName: z.string(),
@@ -46,6 +73,8 @@ export const orderSchema = z.object({
       quantity: z.number().int(),
       totalMinor: minor,
       status: orderItemStatusSchema,
+      /** An open hold shows the item as ON_HOLD (PRD-00 §8). */
+      hold: customerHoldSchema.nullable(),
       leadDays: z.object({ min: z.number().int(), max: z.number().int() }).nullable(),
     }),
   ),

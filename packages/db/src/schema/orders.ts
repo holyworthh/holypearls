@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { bigint, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { amountMinorColumn, createdAt, currencyColumn, idColumn, updatedAt } from "../columns.js";
+import { amountMinorColumn, createdAt, currencyColumn, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
 import { users } from "./identity.js";
@@ -17,7 +17,7 @@ import { checkouts } from "./sales.js";
  * made from this row (an email is never the record).
  */
 
-/** TECH-01 §4 order item statuses. Production moves them from T07-01 on. */
+/** TECH-01 §4 order item statuses; moved by production (T07-01) and shipments. */
 export const orderItemStatus = pgEnum("order_item_status", [
   "AWAITING_PREREQUISITE",
   "QUEUED",
@@ -91,6 +91,7 @@ export const orderItems = pgTable(
     /** What production makes: the checkout's OrderableConfigurationSnapshotV1, unchanged (review P1-06). */
     snapshot: jsonb("snapshot").notNull(),
     status: orderItemStatus("status").notNull().default("AWAITING_PREREQUISITE"),
+    version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

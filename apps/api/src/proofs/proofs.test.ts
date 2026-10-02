@@ -216,7 +216,7 @@ describe("the customer's decisions (FUL-FR-002–004)", () => {
     expectHidden(await as(harness, actors.customerChidi!).get(`/v1/orders/${orderId}/proofs/${proofId}`));
   });
 
-  it("needs the tick and an email code to approve; approval is kept and the item still waits", async () => {
+  it("needs the tick and an email code to approve; approval is kept and queues the paid item (T07-01)", async () => {
     const { orderId, proofId, contact } = await awaiting();
     const { guest, code } = await guestFromProofEmail(orderId, contact.email);
     expect((await guest.post(`/v1/orders/${orderId}/proofs/${proofId}/approve`, { versionNumber: 1, acknowledged: false })).status).toBe(400);
@@ -229,7 +229,7 @@ describe("the customer's decisions (FUL-FR-002–004)", () => {
     expect(approved).toMatchObject({ status: "APPROVED", canDecide: false, current: { status: "APPROVED", decision: { decision: "APPROVED" } } });
     expect(await db().select().from(schema.proofDecisions).innerJoin(schema.proofVersions, eq(schema.proofVersions.id, schema.proofDecisions.proofVersionId)).where(eq(schema.proofVersions.proofId, proofId))).toHaveLength(1);
     const [item] = await db().select({ status: schema.orderItems.status }).from(schema.orderItems).where(eq(schema.orderItems.orderId, orderId));
-    expect(item!.status).toBe("AWAITING_PREREQUISITE");
+    expect(item!.status).toBe("QUEUED");
   });
 
   it("keeps V1 in history when changes are requested and V2 follows; questions leave it undecided", async () => {

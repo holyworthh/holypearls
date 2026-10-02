@@ -17,19 +17,30 @@ const STATUS_LABEL: Record<string, string> = {
   QUEUED: "QUEUED",
   IN_PRODUCTION: "IN PRODUCTION",
   QUALITY_CHECK: "QUALITY CHECK",
-  READY_AWAITING_RELEASE: "READY",
+  READY_AWAITING_RELEASE: "READY — AWAITING RELEASE",
   READY_TO_DISPATCH: "READY TO DISPATCH",
   DISPATCHED: "DISPATCHED",
   DELIVERED: "DELIVERED",
   CANCELLED: "CANCELLED",
 };
 
+/** How far the order has got, from its item statuses (only real milestones, FUL-FR-015). */
+const STAGE_ORDER = ["Proof", "Production", "Quality Check", "Dispatch"] as const;
+function currentStage(statuses: string[]): (typeof STAGE_ORDER)[number] {
+  const live = statuses.filter((status) => status !== "CANCELLED");
+  if (live.some((status) => status === "AWAITING_PREREQUISITE")) return "Proof";
+  if (live.some((status) => status === "QUEUED" || status === "IN_PRODUCTION")) return "Production";
+  if (live.some((status) => status === "QUALITY_CHECK")) return "Quality Check";
+  return "Dispatch";
+}
+
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
 
 /**
  * A customer's order (Pen 52 · fuUCR, confirmation part; COM-FR-085). Opened by
  * the account, the browser that paid, or the order's secure link; anyone else
- * gets 404. Full tracking (holds, shipments, changes) arrives with T07-03.
+ * gets 404. Item holds and the balance release show here (T07-01); full
+ * tracking (timeline, shipments) arrives with T07-03.
  */
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,14 +57,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const fullyPaid = !scheduled || scheduled.next === null;
   const firstPaid = scheduled ? scheduled.installments.find((part) => part.status === "PAID") : null;
   const lead = order.items.reduce<{ min: number; max: number } | null>((widest, item) => (item.leadDays ? { min: Math.max(widest?.min ?? 0, item.leadDays.min), max: Math.max(widest?.max ?? 0, item.leadDays.max) } : widest), null);
+  const now = STAGE_ORDER.indexOf(currentStage(order.items.map((item) => item.status)));
+  const stateOf = (index: number) => (index < now ? "done" : index === now ? "now" : "todo");
   const stages = [
     scheduled
       ? { label: firstPaid ? "Deposit paid" : "Accepted", note: firstPaid?.paidAt ? day(firstPaid.paidAt) : day(order.placedAt), state: "done" }
       : { label: "Paid", note: paidOn, state: "done" },
-    { label: "Proof", note: "Now", state: "now" },
-    { label: "Production", note: "Next", state: "todo" },
-    { label: "Quality Check", note: "", state: "todo" },
-    { label: "Dispatch", note: lead ? `Est. ${lead.min}–${lead.max} working days after proof` : "Confirmed with your proof", state: "todo" },
+    ...STAGE_ORDER.map((label, index) => ({
+      label,
+      note: index === now ? "Now" : index === now + 1 ? "Next" : label === "Dispatch" && index > now ? (lead ? `Est. ${lead.min}–${lead.max} working days after proof` : "Confirmed with your proof") : "",
+      state: stateOf(index),
+    })),
   ] as const;
 
   return (
@@ -63,7 +77,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <p className={styles.eyebrow}>
             ORDER {order.number} · {scheduled ? `PLACED ${day(order.placedAt).toUpperCase()}${order.quote ? ` · QUOTE ${order.quote.reference} V${order.quote.version}` : ""}` : `PAID ${paidOn.toUpperCase()}`}
           </p>
-          <h1 className={styles.title}>{fullyPaid ? "Your order is confirmed" : "Your order is placed"}</h1>
+          <h1 className={styles.title}>{order.summaryStatus === "BALANCE_REQUIRED" ? "Balance required" : order.summaryStatus === "ON_HOLD" ? "Your order is on hold" : fullyPaid ? "Your order is confirmed" : "Your order is placed"}</h1>
           {scheduled ? <PaymentSummary orderId={order.id} summary={scheduled} /> : null}
 
           {order.items.map((item) => (
@@ -75,8 +89,19 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 </p>
                 <p className={styles.meta}>{item.summary}</p>
                 <p className={styles.meta}>{scheduled ? "Total" : "Paid"} {naira(item.totalMinor)}</p>
+                {item.hold ? (
+                  <>
+                    <p className={styles.next}>{item.hold.explanation}</p>
+                    <p className={styles.meta}>
+                      {item.hold.whoActs === "CUSTOMER" ? "Your action needed" : "We're working on it"}
+                      {item.hold.timingImpactDays ? ` · may add ${item.hold.timingImpactDays} working day${item.hold.timingImpactDays === 1 ? "" : "s"}` : ""}
+                    </p>
+                  </>
+                ) : item.status === "READY_AWAITING_RELEASE" ? (
+                  <p className={styles.meta}>Finished. It&apos;s released for delivery when the balance is paid.</p>
+                ) : null}
               </div>
-              <StatusChip tone="info">{STATUS_LABEL[item.status] ?? item.status}</StatusChip>
+              <StatusChip tone={item.hold ? "warning" : item.status === "READY_AWAITING_RELEASE" ? "warning" : "info"}>{item.hold ? "ON HOLD" : (STATUS_LABEL[item.status] ?? item.status)}</StatusChip>
             </div>
           ))}
 
