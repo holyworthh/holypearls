@@ -38,7 +38,7 @@ export default async function ProjectsPage() {
         </div>
         <div className={c.projectsHeadAside}>
           <p className={c.lead}>Pick the closest project. We&apos;ll suggest the items, quantities and a quote, and you can change anything before you pay.</p>
-          <a className={c.red} href="/contact?topic=project">
+          <a className={c.red} href="/start">
             Start a project
             <ArrowRight size={16} aria-hidden="true" />
           </a>

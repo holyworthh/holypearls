@@ -115,7 +115,7 @@ export default async function AboutPage() {
       {page.body ? <div className={`${c.prose} ${c.pad}`} dangerouslySetInnerHTML={{ __html: page.body }} /> : null}
       <section className={`${c.aboutCta} ${c.pad} ${c.onDark}`} aria-labelledby="about-cta">
         <h2 id="about-cta">{data.ctaTitle || "Tell us what you need made."}</h2>
-        <a className={c.outlineLight} href="/contact?topic=project">
+        <a className={c.outlineLight} href="/start">
           Start a project
           <ArrowRight size={16} aria-hidden="true" />
         </a>

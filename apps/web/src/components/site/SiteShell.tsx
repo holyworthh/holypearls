@@ -32,7 +32,7 @@ const FOOTER_COLUMNS: { id: string; head: string; links: [string, string][] }[] 
     id: "projects",
     head: "PROJECTS",
     links: [
-      ["Start a Project", "/contact?topic=project"],
+      ["Start a Project", "/start"],
       ["Staff uniforms", projectHref("staff-team-branding")],
       ["Events", projectHref("event-branding")],
       ["Brand launches", projectHref("business-launch")],
@@ -104,7 +104,7 @@ function SiteFooter() {
             <span className={footer.blurbLong}>Branded uniforms, print and merch for businesses across Nigeria, from brief to delivery.</span>
             <span className={footer.blurbShort}>Branded uniforms, print and merch, from brief to delivery.</span>
           </p>
-          <a className={footer.brickButton} href="/contact?topic=project">
+          <a className={footer.brickButton} href="/start">
             Start a Project
             <Icon name="arrow-right" size={18} />
           </a>
@@ -116,7 +116,7 @@ function SiteFooter() {
               <p className={footer.ctaBody}>Describe it. We reply with a plan and a price.</p>
             </div>
             <div className={footer.ctaActions}>
-              <a className={footer.whiteButton} href="/contact?topic=project">
+              <a className={footer.whiteButton} href="/start">
                 Start a Project
                 <Icon name="arrow-right" size={18} />
               </a>
@@ -170,8 +170,8 @@ function SiteFooter() {
   );
 }
 
-/** The public site's shell: header with menus, main content and footer. */
-export async function SiteShell({ children }: { children: ReactNode }) {
+/** The public site's shell: header with menus, main content and footer. Working tools (the project builder, Pen 24) leave the footer out. */
+export async function SiteShell({ children, footer = true }: { children: ReactNode; footer?: boolean }) {
   const navigation = await getNavigation();
   return (
     <div className={styles.page}>
@@ -183,7 +183,7 @@ export async function SiteShell({ children }: { children: ReactNode }) {
       <main id="main-content" tabIndex={-1} className={styles.main}>
         {children}
       </main>
-      <SiteFooter />
+      {footer ? <SiteFooter /> : null}
     </div>
   );
 }

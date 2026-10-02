@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const PROJECT_HREF = "/contact?topic=project";
+const PROJECT_HREF = "/start";
 const img = (name: string) => `/ledger/${name}.jpg`;
 const index = (i: number) => ({ "--hp-reveal-index": i }) as CSSProperties;
 

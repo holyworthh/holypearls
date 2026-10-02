@@ -321,6 +321,8 @@ export const recommendationRuleSetSchema = z.object({
   rules: z.array(recommendationRuleSchema),
   updatedAt: isoDate.nullable(),
   updatedBy: z.string().nullable(),
+  /** Published products a rule can suggest, for the editor's picker. */
+  products: z.array(z.object({ slug: z.string(), name: z.string() })),
 });
 export type RecommendationRuleSet = z.infer<typeof recommendationRuleSetSchema>;
 

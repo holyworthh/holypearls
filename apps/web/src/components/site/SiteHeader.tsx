@@ -156,7 +156,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           <a className={`${styles.iconLink} ${styles.bagLink}`} href="/cart" aria-label="Your cart" aria-current={pathname === "/cart" ? "page" : undefined}>
             <BagIcon className={styles.icon} />
           </a>
-          <a className={styles.cta} href="/contact?topic=project">
+          <a className={styles.cta} href="/start">
             Start a Project
           </a>
           <HeaderSearch id={`${panelId}-phone-search`} fieldClassName={styles.phoneSearch} iconClassName={styles.icon} popular={popular} iconOnly />
@@ -308,7 +308,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
             </div>
           )}
           <div className={styles.mobileBottom}>
-            <a className={styles.cta} href="/contact?topic=project">
+            <a className={styles.cta} href="/start">
               Start a Project
             </a>
             <div className={styles.quietLinks}>

@@ -34,8 +34,14 @@ export async function getRuleSet(db: Database, type: ProjectType): Promise<Recom
     .leftJoin(schema.products, eq(schema.products.id, schema.recommendationRules.productId))
     .where(eq(schema.recommendationRules.projectType, type))
     .orderBy(asc(schema.recommendationRules.position));
+  const products = await db
+    .select({ slug: schema.products.slug, name: schema.products.name })
+    .from(schema.products)
+    .where(eq(schema.products.status, "PUBLISHED"))
+    .orderBy(asc(schema.products.name));
   return {
     projectType: type,
+    products,
     version: set?.version ?? 0,
     updatedAt: set?.updatedAt.toISOString() ?? null,
     updatedBy: set?.by ?? null,
