@@ -1,5 +1,5 @@
 import type { ChangeRequest } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { customerForActor } from "../identity/customers.js";
@@ -50,9 +50,15 @@ export async function changeRequestsForOrder(db: Database, orderId: string) {
   return views(db, await db.select().from(schema.changeRequests).where(eq(schema.changeRequests.orderId, orderId)).orderBy(desc(schema.changeRequests.createdAt)));
 }
 
-/** The customer asks for a change to an approved proof (FUL-FR-007). One open request per proof at a time. */
-export async function requestChange(db: Database, access: OrderAccess, orderId: string, input: { proofId: string; description: string }) {
+/**
+ * The customer asks for a change to an approved proof (FUL-FR-007), or, with
+ * no proof, a scope change to an order made from a quote (FUL-FR-052): the
+ * accepted quote is never edited; staff may answer with a new quote version.
+ * One open request per proof, or per order for scope changes, at a time.
+ */
+export async function requestChange(db: Database, access: OrderAccess, orderId: string, input: { proofId?: string | null; description: string }) {
   const order = await loadOrderFor(db, access, orderId);
+  if (!input.proofId) return requestScopeChange(db, access, order, input.description);
   const [proof] = await db
     .select({ proof: schema.proofs, itemStatus: schema.orderItems.status })
     .from(schema.proofs)
@@ -67,6 +73,24 @@ export async function requestChange(db: Database, access: OrderAccess, orderId: 
   await db.transaction(async (tx) => {
     const [row] = await tx.insert(schema.changeRequests).values({ orderId: order.id, proofId: input.proofId, stage, description: input.description, customerId: customer?.id ?? null }).returning();
     await recordAudit(tx, access.actor, { action: "change_request.opened", summary: `Change requested after approval on ${order.number} (${stage === "BEFORE_PRODUCTION" ? "before production" : "after production started"})`, recordType: "CHANGE_REQUEST", recordId: row!.id, recordLabel: order.number });
+  });
+  return changeRequestsForOrder(db, order.id);
+}
+
+async function requestScopeChange(db: Database, access: OrderAccess, order: typeof schema.orders.$inferSelect, description: string) {
+  if (!order.quoteVersionId) throw new AppError("RULE_FAILED", { message: "Ask for changes on the item's proof, or contact us.", context: { reason: "NOT_FROM_QUOTE" } });
+  if (order.cancelledAt) throw new AppError("RULE_FAILED", { message: "This order is cancelled.", context: { reason: "CANCELLED" } });
+  const [open] = await db
+    .select({ id: schema.changeRequests.id })
+    .from(schema.changeRequests)
+    .where(and(eq(schema.changeRequests.orderId, order.id), isNull(schema.changeRequests.proofId), inArray(schema.changeRequests.status, ["OPEN", "UNDER_REVIEW"])));
+  if (open) throw new AppError("CONFLICT", { message: "We're already reviewing a change to this order. We'll reply soon.", context: { reason: "ALREADY_OPEN" } });
+  const items = await db.select({ status: schema.orderItems.status }).from(schema.orderItems).where(eq(schema.orderItems.orderId, order.id));
+  const stage = items.some((item) => STARTED.has(item.status)) ? "AFTER_PRODUCTION_START" : "BEFORE_PRODUCTION";
+  const customer = await customerForActor(db, access.actor);
+  await db.transaction(async (tx) => {
+    const [row] = await tx.insert(schema.changeRequests).values({ orderId: order.id, proofId: null, stage, description, customerId: customer?.id ?? null }).returning();
+    await recordAudit(tx, access.actor, { action: "change_request.opened", summary: `Scope change requested on ${order.number} (accepted quote kept)`, recordType: "CHANGE_REQUEST", recordId: row!.id, recordLabel: order.number });
   });
   return changeRequestsForOrder(db, order.id);
 }

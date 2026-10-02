@@ -250,6 +250,33 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  order_link: define({
+    label: "Order link (Find my order)",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), url: z.url() }),
+    subject: ({ orderNumber }) => `Your link to order ${orderNumber}`,
+    render: ({ orderNumber, url }) => (
+      <Layout preview={`Open order ${orderNumber}`} title="Here's your order" action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>Someone asked to track order {orderNumber} with this email address. Use the button to open it. You don&apos;t need an account.</Text>
+        <Text style={text.support}>If that wasn&apos;t you, you can ignore this email. This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  order_cancelled: define({
+    label: "Order cancelled",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), refund: z.string().nullable(), url: z.url() }),
+    subject: ({ orderNumber }) => `Order ${orderNumber} is cancelled`,
+    render: ({ orderNumber, refund, url }) => (
+      <Layout preview={`Order ${orderNumber} is cancelled`} title="Your order is cancelled" action={{ label: "View your order", href: url }}>
+        <Text style={text.body}>
+          Order {orderNumber} is cancelled.{" "}
+          {refund ? `Our finance team will refund ${refund} to your original payment method. Banks usually take a few working days, and we'll email you when it's done.` : "Nothing was paid, so there's nothing to refund."}
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req, UseGuards } from "@nestjs/common";
-import { moveItemSchema, placeHoldSchema, qcResultInputSchema, resolveHoldSchema } from "@holypearls/contracts";
+import { moveItemSchema, placeHoldSchema, qcResultInputSchema, resolveHoldSchema, staffCancelOrderSchema } from "@holypearls/contracts";
 import type { Request } from "express";
 import type { z } from "zod";
 import { StaffGuard } from "../identity/staff.guard.js";
@@ -7,6 +7,7 @@ import type { PaymentDeps } from "../payments/payments.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { PAYMENT_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import { staffCancelOrder } from "../orders/tracking.js";
 import { getProductionItem, moveItem, placeHold, productionBoard, recordQcResult, resolveHold } from "./production.js";
 
 const uuid = new ParseUUIDPipe();
@@ -57,5 +58,13 @@ export class ProductionAdminController {
   @RateLimit("ADMIN_WRITE")
   async resolve(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(resolveHoldSchema)) body: z.infer<typeof resolveHoldSchema>) {
     return resolveHold(this.notify, await request.getActor!(), id, body);
+  }
+
+  /** Cancel after commitment (TECH-03 §9): a reason and an MFA check in the last 15 minutes. */
+  @Post("orders/:id/cancel")
+  @HttpCode(200)
+  @RateLimit("ADMIN_WRITE")
+  async cancelOrder(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(staffCancelOrderSchema)) body: z.infer<typeof staffCancelOrderSchema>) {
+    return staffCancelOrder(this.notify, await request.getActor!(), id, body);
   }
 }

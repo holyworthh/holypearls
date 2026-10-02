@@ -58,6 +58,11 @@ export const orders = pgTable(
     delivery: jsonb("delivery"),
     billing: jsonb("billing"),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull(),
+    /** Cancellation (T07-03, FUL-FR-050): who, when, why, and what has to be refunded (refunds are T13-05). */
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: text("cancelled_by"),
+    cancelReason: text("cancel_reason"),
+    refundDueMinor: bigint("refund_due_minor", { mode: "bigint" }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -68,6 +73,7 @@ export const orders = pgTable(
     index("orders_customer_idx").on(table.customerId, table.placedAt),
     index("orders_owner_user_idx").on(table.ownerUserId),
     check("orders_source", sql`num_nonnulls(${table.checkoutId}, ${table.quoteVersionId}) = 1`),
+    check("orders_cancelled_by", sql`${table.cancelledBy} is null or ${table.cancelledBy} in ('CUSTOMER', 'STAFF')`),
   ],
 );
 

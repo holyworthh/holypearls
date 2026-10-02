@@ -54,7 +54,7 @@ const FOOTER_COLUMNS: { id: string; head: string; links: [string, string][] }[] 
     id: "help",
     head: "HELP",
     links: [
-      ["Track an order", "/contact?topic=order"],
+      ["Track an order", "/track"],
       ["Quotes & payments", "/contact?topic=quote"],
       ["Artwork & proofs", "/contact?topic=artwork"],
       ["Delivery", "/contact?topic=delivery"],

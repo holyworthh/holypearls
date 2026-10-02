@@ -1,10 +1,12 @@
 "use client";
 
-import { ApiError, type ProductionItem, type ProductionMove, productionItemSchema } from "@holypearls/contracts";
+import { ApiError, okResultSchema, type ProductionItem, type ProductionMove, productionItemSchema } from "@holypearls/contracts";
 import { Button, FormField, Notice, Select, StatusChip, TextArea, TextField } from "@holypearls/ui";
 import { api } from "@holypearls/web-kit/api";
 import { Check, Pause, Play } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { StepUpDialog } from "@/components/StepUpDialog";
 import list from "../../../admin-list.module.css";
 import { formatTime, money } from "../../../format";
 import styles from "../../production.module.css";
@@ -49,6 +51,10 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
   const [holdError, setHoldError] = useState<string | null>(null);
   const [resolution, setResolution] = useState("");
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [stepUp, setStepUp] = useState(false);
+  const router = useRouter();
 
   const label = `${item.orderNumber} item ${item.position}`;
   const open = item.hold?.status === "OPEN" ? item.hold : null;
@@ -116,6 +122,31 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
       (next) => ({ tone: "success", title: "Hold resolved", body: `${label} no longer shows ON_HOLD and continues ${next.status}. Customer emailed.` }),
       setResolveError,
     ).then(() => setResolution(""));
+  };
+
+  // Cancel after commitment (TECH-03 §9): a reason, then an authenticator check if the last one is over 15 minutes old.
+  const cancelOrder = async () => {
+    if (!cancelReason.trim()) {
+      setCancelError("Say why the order is cancelled");
+      return;
+    }
+    setCancelError(null);
+    setBusy("cancel");
+    try {
+      await api(`/v1/admin/production/orders/${item.orderId}/cancel`, { method: "POST", body: { reason: cancelReason.trim() }, response: okResultSchema });
+      setStepUp(false);
+      setResult({ tone: "success", title: "Order cancelled", body: `${item.orderNumber} is cancelled. Any refund due is recorded for Finance. Customer emailed.` });
+      router.refresh();
+      setItem(productionItemSchema.parse(await api(`/v1/admin/production/items/${item.id}`, { response: productionItemSchema })));
+    } catch (problem) {
+      if (problem instanceof ApiError && problem.body.code === "RECENT_MFA_REQUIRED") setStepUp(true);
+      else {
+        setStepUp(false);
+        setCancelError(problemText(problem, "We couldn't cancel right now. The order hasn't changed. Try again."));
+      }
+    } finally {
+      setBusy(null);
+    }
   };
 
   const prereq = item.prerequisites;
@@ -298,6 +329,22 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
               </div>
             </section>
           )}
+          {["DISPATCHED", "DELIVERED", "CANCELLED"].includes(item.status) ? null : (
+            <section className={list.panel} aria-labelledby="cancel-title">
+              <h2 id="cancel-title" className={list.panelTitle}>
+                Cancel order {item.orderNumber}
+              </h2>
+              <p className={list.hint}>High-risk: cancels every item not yet dispatched, cancels unpaid payments and records the refund due for Finance. Needs your authenticator if your last check was over 15 minutes ago.</p>
+              <FormField id="cancel-reason" label="Reason (recorded and audited)" error={cancelError ?? undefined}>
+                <TextField maxLength={500} value={cancelReason} onChange={(event) => setCancelReason(event.target.value)} />
+              </FormField>
+              <div>
+                <Button type="button" variant="destructive" loading={busy === "cancel"} onClick={() => void cancelOrder()}>
+                  Cancel order
+                </Button>
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className={styles.side}>
@@ -330,6 +377,7 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
           </section>
         </aside>
       </div>
+      <StepUpDialog open={stepUp} action={`Cancel order ${item.orderNumber} after production started · refund to follow in Refunds`} confirmLabel="Confirm cancel" onClose={() => setStepUp(false)} onVerified={cancelOrder} />
     </>
   );
 }

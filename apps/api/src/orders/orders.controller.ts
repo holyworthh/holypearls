@@ -1,8 +1,15 @@
-import { Controller, Get, Inject, Param, ParseUUIDPipe, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req, Res } from "@nestjs/common";
+import { cancelOrderSchema, findOrderSchema } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
 import type { Request, Response } from "express";
 import { deviceKey } from "../configuration/drafts.controller.js";
-import { DATABASE } from "../tokens.js";
+import type { PaymentDeps } from "../payments/payments.js";
+import { Idempotent } from "../platform/idempotency.js";
+import { RateLimit } from "../platform/rate-limit.js";
+import { DATABASE, PAYMENT_DEPS } from "../tokens.js";
+import { ZodValidationPipe } from "../validation.js";
+import type { z } from "zod";
+import { cancelOrder, findOrder } from "./tracking.js";
 import { getOrder, getReceipt, type OrderAccess } from "./orders.js";
 import { receiptPdf } from "./receipt-pdf.js";
 
@@ -19,7 +26,31 @@ async function access(request: Request): Promise<OrderAccess> {
  */
 @Controller("orders")
 export class OrdersController {
-  constructor(@Inject(DATABASE) private readonly db: Database) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: Database,
+    @Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps,
+  ) {}
+
+  private get notify() {
+    return { db: this.deps.db, jobs: this.deps.jobs, sealKey: this.deps.sealKey, webOrigin: this.deps.webOrigin };
+  }
+
+  /** Find my order (FUL-FR-033): emails the order's secure link to the checkout address. Rate-limited per address. */
+  @Post("find")
+  @HttpCode(200)
+  @RateLimit("GUEST_LINK_VERIFY")
+  async find(@Req() request: Request, @Body(new ZodValidationPipe(findOrderSchema)) body: z.infer<typeof findOrderSchema>) {
+    return findOrder(this.notify, body, (await request.getActor!()).requestId);
+  }
+
+  /** Cancel before production (FUL-FR-050). */
+  @Post(":id/cancel")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async cancel(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(cancelOrderSchema)) body: z.infer<typeof cancelOrderSchema>) {
+    return cancelOrder(this.notify, await access(request), id, body);
+  }
 
   @Get(":id")
   async get(@Req() request: Request, @Res({ passthrough: true }) response: Response, @Param("id", uuid) id: string) {

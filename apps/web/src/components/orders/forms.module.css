@@ -1,0 +1,118 @@
+/*
+ * Single-task order pages: cancel and scope change (Pen 127 · aKwB5) and
+ * Track an order (Pen 53 · m0t8za). Values from the Pen html-css export.
+ */
+
+.page {
+  display: flex;
+  justify-content: center;
+  padding: var(--hp-space-40) var(--hp-space-16) var(--hp-space-80);
+  background: var(--hp-paper);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hp-space-24);
+  width: 100%;
+  max-width: var(--hp-size-760);
+}
+
+.narrow {
+  max-width: var(--hp-size-480);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+.title {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-space-40);
+  font-weight: var(--hp-weight-semibold);
+  letter-spacing: var(--hp-tracking-display);
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+.lead,
+.hint {
+  margin: 0;
+  color: var(--hp-graphite);
+  line-height: var(--hp-leading-body);
+}
+
+.lead {
+  font-size: var(--hp-text-body);
+}
+
+.hint {
+  font-size: var(--hp-text-support);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: var(--hp-size-120) 1fr;
+  gap: var(--hp-space-12);
+  width: 100%;
+  margin: 0;
+  padding: var(--hp-space-20);
+  border-radius: var(--hp-r-button);
+  outline: var(--hp-border-width) solid var(--hp-line);
+  outline-offset: calc(var(--hp-border-width) * -1);
+}
+
+.facts dt {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: var(--hp-text-label);
+}
+
+.facts dd:last-of-type {
+  font-weight: var(--hp-weight-semibold);
+}
+
+.blocked,
+.how {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  width: 100%;
+  padding: var(--hp-space-20);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-bone);
+}
+
+.blockedTitle {
+  margin: 0;
+  font-size: var(--hp-text-body);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-12);
+}
+
+.link {
+  color: var(--hp-ink);
+  font-size: var(--hp-text-support);
+}

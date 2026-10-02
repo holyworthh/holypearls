@@ -89,7 +89,7 @@ async function openHolds(db: Db, itemIds: string[]) {
 }
 
 /** The order's installments, from its checkout or its accepted quote version. */
-async function orderInstallments(db: Db, order: { checkoutId: string | null; quoteVersionId: string | null }) {
+export async function orderInstallments(db: Db, order: { checkoutId: string | null; quoteVersionId: string | null }) {
   const source = order.quoteVersionId ? eq(schema.paymentSchedules.quoteVersionId, order.quoteVersionId) : order.checkoutId ? eq(schema.paymentSchedules.checkoutId, order.checkoutId) : null;
   if (!source) return [];
   return db

@@ -312,7 +312,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
               Start a Project
             </a>
             <div className={styles.quietLinks}>
-              <a href="/contact?topic=order">
+              <a href="/track">
                 <PackageIcon className={styles.icon} />
                 Track an order
               </a>
