@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { amountMinorColumn, createdAt, currencyColumn, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { products } from "./catalogue.js";
+import { customers } from "./customers.js";
 import { staffProfiles } from "./identity.js";
 import { quotes } from "./sales.js";
 
@@ -108,4 +109,52 @@ export const quoteSettings = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [check("quote_settings_single_row", sql`${table.id} = 1`)],
+);
+
+export const quoteRequestKind = pgEnum("quote_request_kind", ["CHANGE", "QUESTION", "DECLINE", "UPDATE"]);
+export const quoteRequestStatus = pgEnum("quote_request_status", ["OPEN", "ANSWERED"]);
+
+/**
+ * What the customer asked about a quote version (QUOTE-FR-003–004,
+ * OPS-FR-034): a change (optionally about one line), a question, a decline
+ * reason, or a request for an updated quote after expiry. Kept with the
+ * version and the project.
+ */
+export const quoteChangeRequests = pgTable(
+  "quote_change_requests",
+  {
+    id: idColumn(),
+    quoteId: uuid("quote_id")
+      .notNull()
+      .references(() => quotes.id, { onDelete: "restrict" }),
+    quoteVersionId: uuid("quote_version_id").references(() => quoteVersions.id, { onDelete: "restrict" }),
+    kind: quoteRequestKind("kind").notNull(),
+    lineId: uuid("line_id").references(() => quoteLineItems.id, { onDelete: "set null" }),
+    changeType: text("change_type"),
+    note: text("note").notNull().default(""),
+    /** Uploaded file ids attached to the request. */
+    fileIds: jsonb("file_ids").notNull().default([]),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    status: quoteRequestStatus("status").notNull().default("OPEN"),
+    createdAt: createdAt(),
+  },
+  (table) => [index("quote_change_requests_quote_idx").on(table.quoteId, table.createdAt)],
+);
+
+/** The customer's acceptance of one version (QUOTE-FR-007): insert-only, one per version. */
+export const quoteAcceptances = pgTable(
+  "quote_acceptances",
+  {
+    id: idColumn(),
+    quoteVersionId: uuid("quote_version_id")
+      .notNull()
+      .references(() => quoteVersions.id, { onDelete: "restrict" }),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    /** USER or GUEST, and when their email code was last checked. */
+    actorType: text("actor_type").notNull(),
+    emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+    acknowledgement: text("acknowledgement").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [uniqueIndex("quote_acceptances_version_unique").on(table.quoteVersionId)],
 );

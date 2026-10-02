@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import { type AnyPgColumn, bigint, boolean, check, index, integer, jsonb, pgEnum, pgTable, smallint, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { amountMinorColumn, createdAt, currencyColumn, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { users } from "./identity.js";
+import { quoteVersions } from "./quotes.js";
 import { checkouts } from "./sales.js";
 
 /*
@@ -45,11 +46,17 @@ export const paymentSchedules = pgTable(
     id: idColumn(),
     /** The direct checkout this schedule pays for. Quotes (T05-05) add their own source. */
     checkoutId: uuid("checkout_id").references(() => checkouts.id, { onDelete: "restrict" }),
+    /** The accepted quote version this schedule pays for (T05-05). */
+    quoteVersionId: uuid("quote_version_id").references(() => quoteVersions.id, { onDelete: "restrict" }),
     currency: currencyColumn(),
     totalMinor: amountMinorColumn("total_minor"),
     createdAt: createdAt(),
   },
-  (table) => [uniqueIndex("payment_schedules_checkout_unique").on(table.checkoutId), check("payment_schedules_source", sql`num_nonnulls(${table.checkoutId}) = 1`)],
+  (table) => [
+    uniqueIndex("payment_schedules_checkout_unique").on(table.checkoutId),
+    uniqueIndex("payment_schedules_quote_version_unique").on(table.quoteVersionId),
+    check("payment_schedules_source", sql`num_nonnulls(${table.checkoutId}, ${table.quoteVersionId}) = 1`),
+  ],
 );
 
 export const installmentStatus = pgEnum("installment_status", ["NOT_DUE", "DUE", "PROCESSING", "PAID", "CANCELLED"]);
@@ -69,6 +76,8 @@ export const installments = pgTable(
     /** ON_ACCEPTANCE, BEFORE_PRODUCTION, BEFORE_DISPATCH or ON_DATE (TECH-05 §3). */
     trigger: text("trigger").notNull(),
     status: installmentStatus("status").notNull().default("NOT_DUE"),
+    /** For ON_DATE: the day it falls due. */
+    dueOn: text("due_on"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

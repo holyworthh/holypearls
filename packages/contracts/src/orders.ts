@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { customerPaymentStatusSchema, paymentChannelSchema } from "./payments.js";
+import { paymentSummarySchema } from "./quotes.js";
 
 /*
  * Orders, receipts and the payments admin (T04-05; COM-FR-082, 085,
@@ -52,6 +53,9 @@ export const orderSchema = z.object({
   contactName: z.string(),
   deliverTo: z.string().nullable(),
   receipts: z.array(receiptSummarySchema),
+  /** For an order from a quote: its payment schedule (PAY-FR-003); null for a paid checkout. */
+  payments: paymentSummarySchema.nullable(),
+  quote: z.object({ id: z.string(), reference: z.string(), version: z.number().int() }).nullable(),
 });
 export type Order = z.infer<typeof orderSchema>;
 

@@ -4,6 +4,7 @@ import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
+import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
 
@@ -31,7 +32,7 @@ export function displayMoney(minor: bigint | string, currency: string): string {
   return `${symbol}${whole.toLocaleString("en-NG")}${fraction ? `.${fraction.toString().padStart(2, "0")}` : ""}`;
 }
 
-async function nextNumber(tx: Tx, sequence: "order_number_seq" | "receipt_number_seq", prefix: string, now: Date) {
+export async function nextNumber(tx: Tx, sequence: "order_number_seq" | "receipt_number_seq", prefix: string, now: Date) {
   const result = await tx.execute<{ n: string }>(sql`select nextval(${sequence}::regclass)::text as n`);
   return `${prefix}${now.getUTCFullYear()}-${String(result.rows[0]!.n).padStart(4, "0")}`;
 }
@@ -175,6 +176,11 @@ async function loadOrder(db: Database, access: OrderAccess, id: string) {
     if (customer?.userId === actor.session.userId) return row;
   }
   if (actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.id) return row;
+  // A quote's link opens the order made from it (T05-05).
+  if (actor.type === "guest" && actor.guest.targetType === "QUOTE" && row.quoteVersionId) {
+    const [version] = await db.select({ quoteId: schema.quoteVersions.quoteId }).from(schema.quoteVersions).where(eq(schema.quoteVersions.id, row.quoteVersionId));
+    if (version?.quoteId === actor.guest.targetId) return row;
+  }
   if (access.deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === deviceHash(access.deviceKey)) return row;
   throw new AppError("NOT_FOUND");
 }
@@ -190,17 +196,36 @@ const receiptSummary = (row: typeof schema.receipts.$inferSelect) => ({
 });
 
 export async function getOrder(db: Database, access: OrderAccess, id: string): Promise<Order> {
-  const row = await loadOrder(db, access, id);
+  return orderView(db, await loadOrder(db, access, id));
+}
+
+export async function loadOrderFor(db: Database, access: OrderAccess, id: string) {
+  return loadOrder(db, access, id);
+}
+
+export async function orderView(db: Database, row: OrderRow): Promise<Order> {
   const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, row.id)).orderBy(asc(schema.orderItems.position));
   const receipts = await db.select().from(schema.receipts).where(eq(schema.receipts.orderId, row.id)).orderBy(desc(schema.receipts.paidAt));
+  const payments = await paymentSummaryForOrder(db, row);
+  const [quote] = row.quoteVersionId
+    ? await db
+        .select({ id: schema.quotes.id, reference: schema.quotes.reference, version: schema.quoteVersions.number })
+        .from(schema.quoteVersions)
+        .innerJoin(schema.quotes, eq(schema.quotes.id, schema.quoteVersions.quoteId))
+        .where(eq(schema.quoteVersions.id, row.quoteVersionId))
+    : [];
   const contact = row.contact as { name: string };
   const address = row.address as { area?: string; state?: string; country?: string } | null;
   return {
     id: row.id,
     number: row.number,
     placedAt: row.placedAt.toISOString(),
-    // A direct order is paid in full when it's made; schedules arrive with quotes (T05-05).
-    paymentStatus: receipts.length ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false }) : null,
+    // A direct order is paid in full when it's made; an order from a quote follows its schedule (T05-05).
+    paymentStatus: payments
+      ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false })
+      : receipts.length
+        ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false })
+        : null,
     items: items.map((item) => ({
       productName: item.productName,
       summary: item.summary,
@@ -220,6 +245,8 @@ export async function getOrder(db: Database, access: OrderAccess, id: string): P
     contactName: contact.name,
     deliverTo: address ? [address.area, address.state, address.country && address.country !== "NG" ? address.country : null].filter(Boolean).join(", ") : null,
     receipts: receipts.map(receiptSummary),
+    payments,
+    quote: quote ?? null,
   };
 }
 

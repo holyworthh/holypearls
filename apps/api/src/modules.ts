@@ -10,3 +10,4 @@ export { refreshSearchIndex } from "./catalogue/search.js";
 export { submitIndexNow } from "./catalogue/indexnow.js";
 export { checkPaymentAttempt, processPaystackEvent } from "./payments/payments.js";
 export { expireQuoteVersion, sendQuoteExpiringReminder } from "./quotes/quotes.js";
+export { sendInstallmentDueReminder } from "./quotes/customer.js";

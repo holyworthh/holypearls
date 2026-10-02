@@ -163,6 +163,50 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  quote_accepted: define({
+    label: "Quote accepted",
+    carriesSecret: true,
+    data: z.object({ reference: z.string(), version: z.number().int(), orderNumber: z.string(), total: z.string(), dueNow: z.array(z.string()).max(8), url: z.url() }),
+    subject: ({ orderNumber }) => `Quote accepted: order ${orderNumber}`,
+    render: ({ reference, version, orderNumber, total, dueNow, url }) => (
+      <Layout preview={`Order ${orderNumber}`} title="Quote accepted" action={{ label: dueNow.length ? "View your order and pay" : "View your order", href: url }}>
+        <Text style={text.body}>
+          You accepted quote {reference}, version {version} ({total}). Your order number is {orderNumber}.
+        </Text>
+        {dueNow.length ? <Text style={text.quote}>{["Due now:", ...dueNow].join("\n")}</Text> : null}
+        <Text style={text.body}>Next, we prepare proofs for you to approve. Nothing is made until you approve them.</Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  payment_due: define({
+    label: "Payment due",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), label: z.string(), amount: z.string(), dueOn: z.string(), url: z.url() }),
+    subject: ({ orderNumber, label }) => `${label} due for order ${orderNumber}`,
+    render: ({ orderNumber, label, amount, dueOn, url }) => (
+      <Layout preview={`${label} ${amount} due`} title={`${label} due`} action={{ label: "Pay now", href: url }}>
+        <Text style={text.body}>
+          The {label.toLowerCase()} of {amount} for order {orderNumber} is due on {dueOn}.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
+  payment_received: define({
+    label: "Payment received",
+    carriesSecret: true,
+    data: z.object({ orderNumber: z.string(), label: z.string(), amount: z.string(), receiptNumber: z.string(), remaining: z.string(), url: z.url() }),
+    subject: ({ label, orderNumber }) => `${label} received for order ${orderNumber}`,
+    render: ({ orderNumber, label, amount, receiptNumber, remaining, url }) => (
+      <Layout preview={`${label} received`} title={`${label} received`} action={{ label: "View your order and receipt", href: url }}>
+        <Text style={text.body}>
+          We received your {label.toLowerCase()} of {amount} for order {orderNumber}. Your receipt number is {receiptNumber}. Still to pay: {remaining}.
+        </Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

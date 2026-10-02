@@ -5,6 +5,7 @@ import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
 import { users } from "./identity.js";
 import { paymentAttempts, paymentIntents } from "./payments.js";
+import { quoteVersions } from "./quotes.js";
 import { checkouts } from "./sales.js";
 
 /*
@@ -37,6 +38,8 @@ export const orders = pgTable(
     number: text("number").notNull(),
     /** The paid checkout it came from; one order per checkout (TECH-05 §8). */
     checkoutId: uuid("checkout_id").references(() => checkouts.id, { onDelete: "restrict" }),
+    /** The accepted quote version it came from; one order per version (TECH-05 §8, QUOTE-FR-008). */
+    quoteVersionId: uuid("quote_version_id").references(() => quoteVersions.id, { onDelete: "restrict" }),
     customerId: uuid("customer_id")
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
@@ -61,9 +64,10 @@ export const orders = pgTable(
   (table) => [
     uniqueIndex("orders_number_unique").on(table.number),
     uniqueIndex("orders_checkout_unique").on(table.checkoutId),
+    uniqueIndex("orders_quote_version_unique").on(table.quoteVersionId),
     index("orders_customer_idx").on(table.customerId, table.placedAt),
     index("orders_owner_user_idx").on(table.ownerUserId),
-    check("orders_source", sql`num_nonnulls(${table.checkoutId}) = 1`),
+    check("orders_source", sql`num_nonnulls(${table.checkoutId}, ${table.quoteVersionId}) = 1`),
   ],
 );
 
