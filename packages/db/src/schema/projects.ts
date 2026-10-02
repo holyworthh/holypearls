@@ -55,6 +55,10 @@ export const projects = pgTable(
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
     lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().defaultNow(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    /** The brief exactly as submitted (TECH-01 §5): staff quote from this, not from later edits. */
+    submittedSnapshot: jsonb("submitted_snapshot"),
+    /** Who the quote goes to: { name, email }. */
+    contact: jsonb("contact"),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

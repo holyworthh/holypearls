@@ -204,6 +204,13 @@
       "when": 1790912585721,
       "tag": "0028_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790932074150,
+      "tag": "0029_quote_versions",
+      "breakpoints": true
     }
   ]
 }

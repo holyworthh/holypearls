@@ -14,7 +14,7 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
   {
     label: "REQUESTS",
     sections: [
-      { slug: "projects", label: "Projects", anyOf: ["QUOTE_MANAGE", "CUSTOMER_SUPPORT"], ticket: "T05-03" },
+      { slug: "projects", label: "Projects", anyOf: ["QUOTE_MANAGE"], ticket: "T05-03" },
       { slug: "quotes", label: "Quotes", anyOf: ["QUOTE_MANAGE"], ticket: "T05-03" },
       { slug: "help", label: "Help inbox", anyOf: ["CUSTOMER_SUPPORT"], ticket: "T01-02" },
       { slug: "problems", label: "Problem reports", anyOf: ["CUSTOMER_SUPPORT"], ticket: "T08-01" },

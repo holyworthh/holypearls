@@ -452,7 +452,7 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
             </Button>
             {preview ? (
               preview.length ? (
-                <ul className={styles.fields} aria-live="polite">
+                <ul className={styles.plainList} aria-live="polite">
                   {preview.map((item) => (
                     <li key={item.key}>
                       <strong>{item.name}</strong> · {RECOMMENDATION_GROUP_LABEL[item.group]} · {item.suggestedQuantity === null ? "quantity after review" : `× ${item.suggestedQuantity.toLocaleString("en-NG")}`}

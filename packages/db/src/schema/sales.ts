@@ -3,6 +3,7 @@ import { bigint, boolean, check, index, integer, jsonb, pgEnum, pgTable, text, t
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
+import { projects } from "./projects.js";
 import { users } from "./identity.js";
 import { deliveryZones, taxSettings } from "./pricing.js";
 
@@ -27,6 +28,8 @@ export const quotes = pgTable(
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
     configurationId: uuid("configuration_id").references(() => configurations.id, { onDelete: "set null" }),
+    /** The submitted project it quotes (T05-03); one quote per project. */
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "restrict" }),
     /** Unchangeable copy of what the customer asked for: product, choices, garment answers, files, price shown (TECH-01 §5). */
     requestSnapshot: jsonb("request_snapshot").notNull(),
     /** The customer's note, phone and preferred contact. */
@@ -35,7 +38,11 @@ export const quotes = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (table) => [uniqueIndex("quotes_reference_unique").on(table.reference), index("quotes_status_idx").on(table.status, table.createdAt)],
+  (table) => [
+    uniqueIndex("quotes_reference_unique").on(table.reference),
+    uniqueIndex("quotes_project_unique").on(table.projectId),
+    index("quotes_status_idx").on(table.status, table.createdAt),
+  ],
 );
 
 /*

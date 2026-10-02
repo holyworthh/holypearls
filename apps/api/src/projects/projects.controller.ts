@@ -4,6 +4,7 @@ import {
   attachProjectFileSchema,
   createProjectSchema,
   emailProjectLinkSchema,
+  submitProjectSchema,
   previewRecommendationsSchema,
   projectTypeSchema,
   saveRecommendationRulesSchema,
@@ -17,6 +18,7 @@ import { DEVICE_COOKIE, deviceKey } from "../configuration/drafts.controller.js"
 import { AppError } from "../errors.js";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { StaffGuard } from "../identity/staff.guard.js";
+import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { HELP_DEPS, type HelpDepsToken } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
@@ -31,6 +33,7 @@ import {
   type ProjectAccess,
   removeProjectFile,
   removeProjectItem,
+  submitProject,
   updateProject,
   updateProjectItem,
   updateRecommendation,
@@ -125,6 +128,15 @@ export class ProjectsController {
   @RateLimit("COMMERCIAL_WRITE")
   async removeFile(@Req() request: Request, @Param("id", uuid) id: string, @Param("fileId", uuid) fileId: string) {
     return removeProjectFile(this.deps.db, await this.access(request), id, fileId);
+  }
+
+  /** Request Project Quote (PROJ-FR-010–011): HP-P reference, quote PENDING_REVIEW, secure link. Pressing twice returns the same project. */
+  @Post(":id/submit")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("CONTACT")
+  async submit(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(submitProjectSchema)) body: z.infer<typeof submitProjectSchema>) {
+    return submitProject(this.deps, await this.access(request), id, body);
   }
 
   /** Emails a link to continue on any device (PROJ-FR-007). */

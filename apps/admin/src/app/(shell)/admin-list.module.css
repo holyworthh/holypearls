@@ -451,3 +451,13 @@
   background-size: 100% var(--hp-size-1);
   background-position: 0 100%;
 }
+
+/* A plain stacked list (items, files, payments) inside a panel. */
+.plainList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

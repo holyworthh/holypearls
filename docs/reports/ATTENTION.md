@@ -2,7 +2,7 @@
 
 One place for everything that needs you. I add to this as I work through tickets. Each item says what's needed and why. When you resolve one, write your answer under it and I'll carry it out and mark it RESOLVED.
 
-Last updated: 2026-10-01 (T04-03 payments).
+Last updated: 2026-10-02 (P05 projects and quotes).
 
 ## Decisions and actions needed
 
@@ -75,7 +75,10 @@ Checkout uses Pen 108's TEST DATA zones: Lagos Mainland ₦5,000, Lagos Island �
 ### 23. ~~Paystack test keys~~ RESOLVED
 The test keys are in your local `.env` and on staging Render (`PAYSTACK_SECRET_KEY`, 2026-10-01).
 
-### 24. Paystack webhook URL (T04-03)
+### 24. ~~Paystack webhook URL~~ RESOLVED (2026-10-02)
+You set the test-mode webhook. Kept below for reference.
+
+#### Was: Paystack webhook URL (T04-03)
 Payments are confirmed by Paystack's webhook (then the verify API), with scheduled checks as the fallback. Without the webhook, a payment still settles, but only at the first check two minutes later. **In the Paystack dashboard** (Settings → API Keys & Webhooks), in **test mode**, set the webhook URL to `https://holypearls-api-staging.onrender.com/v1/webhooks/paystack`. Set the live-mode URL only when production takes payments (item 25).
 
 ### 25. Before production takes payments (T04-03)
@@ -88,6 +91,19 @@ Production accepts only a live key (`sk_live_`) and stays "payment not available
 The staff admin now has its own Vercel project, `holypearls-admin` (ADR-017). New projects take the repository's default branch (`dev`) as production, and the Vercel connector can't change that. **In the Vercel dashboard:** open `holypearls-admin`, go to Settings → Git → Production Branch, and set it to **`main`**. Until then, a guard skips any production build that isn't from `main`, so staging's admin (`dev`) won't build either. Tell me when it's done and I'll deploy staging and check it.
 
 When the domain exists, give the admin its own subdomain (`admin.<domain>`), and I'll update `ADMIN_ORIGIN` on Render to match. Staff sign in at the admin address only. The customer site no longer has `/admin`.
+
+### 27. One staging test payment (T04-03, T04-05)
+Staging payments are switched on (2026-10-02). The in-app browser can't operate Paystack's payment window, so **one checkout needs you**:
+1. On the staging site, add a ready-priced item (for example business cards) to the cart and check out.
+2. Pay with the Paystack test card 4084 0840 8408 4081, any future expiry, CVV 408, PIN 0000 and OTP 123456.
+
+I'll then confirm the webhook, the order, the receipt and the email, and move T04-03 to DONE.
+
+### 28. Recommendation rules and project types (T05-01)
+Event branding and Staff uniforms start with rules from Pen 110 and Stage 3.1D. The other 11 project types have none, so customers add items themselves. **Needed (when you can):** review the starting rules in admin (Projects → Recommendation rules), and add rules for the other types. Also confirm the timing guidance: Comfortable for 6+ weeks, Tight for 3–6 weeks, Production review needed under 3 weeks.
+
+### 29. Quote defaults (T05-03)
+New quotes are valid for 14 days, with a reminder 3 days before expiry. The default schedule is 50% on acceptance and 50% before dispatch, with default terms "one proof round per item…". These are starting values. **Needed:** confirm or change them in admin (Quotes → Settings, needs your authenticator).
 
 ## Open questions from ticket reports
 Each report's "Questions / conflicts found" section has the detail. Unresolved ones are copied here as tickets are finished.

@@ -1,6 +1,6 @@
 import { PROJECT_STEPS, projectSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Builder } from "../../../../components/projects/Builder";
 import { SiteShell } from "../../../../components/site/SiteShell";
 import { hasSessionCookie, serverApi } from "../../../../lib/server-api";
@@ -18,6 +18,8 @@ export default async function ProjectStepPage({ params }: { params: Promise<{ id
   if (!meta || !/^[0-9a-f-]{36}$/.test(id)) notFound();
   const project = await serverApi(`/v1/projects/${id}`, projectSchema);
   if (!project.ok) notFound();
+  // Sent projects can't change here; their link shows the confirmation.
+  if (project.data.status !== "DRAFT") redirect(`/start/${id}`);
   return (
     <SiteShell footer={false}>
       <Builder key={`${meta.key}-${project.data.version}`} initial={project.data} step={meta.key} signedIn={await hasSessionCookie()} />
