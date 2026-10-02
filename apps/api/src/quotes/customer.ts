@@ -5,6 +5,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
 import { displayMoney, nextNumber, type OrderEmailDeps } from "../orders/orders.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
+import { createProofsForOrder } from "../proofs/proofs.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { deviceHash } from "../sales/cart.js";
@@ -286,6 +287,7 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
       );
     }
 
+    await createProofsForOrder(tx, order.id);
     const [schedule] = await tx.insert(schema.paymentSchedules).values({ quoteVersionId: version.id, currency: version.currency, totalMinor: version.totalMinor }).returning();
     const dueNow = (trigger: string) => trigger === "ON_ACCEPTANCE" || trigger === "BEFORE_PRODUCTION";
     const parts = await tx

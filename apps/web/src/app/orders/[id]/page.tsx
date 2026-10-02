@@ -100,6 +100,22 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
+          {order.proofs.some((proof) => proof.status !== "NOT_REQUIRED") ? (
+            <nav className={styles.links} aria-label="Proofs">
+              {order.proofs
+                .filter((proof) => proof.status !== "NOT_REQUIRED")
+                .map((proof) => {
+                  const item = order.items[proof.itemPosition - 1];
+                  const label = proof.status === "AWAITING_APPROVAL" ? `Review proof V${proof.versionNumber}` : proof.status === "APPROVED" ? `Approved proof V${proof.versionNumber}` : "Proof being prepared";
+                  return (
+                    <a key={proof.id} href={`/orders/${order.id}/proofs/${proof.id}`}>
+                      {item?.productName ?? `Item ${proof.itemPosition}`}: {label}
+                    </a>
+                  );
+                })}
+            </nav>
+          ) : null}
+
           <nav className={styles.links} aria-label="Order links">
             {order.receipts.map((receipt) => (
               <a key={receipt.id} href={`/orders/${order.id}/receipts/${receipt.id}`}>

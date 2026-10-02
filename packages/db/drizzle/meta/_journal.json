@@ -218,6 +218,13 @@
       "when": 1790935247409,
       "tag": "0030_quote_acceptance",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1790939198866,
+      "tag": "0031_proofs",
+      "breakpoints": true
     }
   ]
 }
