@@ -19,7 +19,7 @@ vi.setConfig({ testTimeout: 240_000 });
 let harness: Harness;
 let gateway: FakeGateway;
 const db = () => harness.database.db;
-const deps = () => ({ db: db(), gateway });
+const deps = () => ({ db: db(), gateway, notify: null });
 
 const deviceCookie = (response: request.Response) =>
   ((response.headers["set-cookie"] as unknown as string[] | undefined) ?? []).map((cookie) => cookie.split(";")[0]).find((cookie) => cookie.startsWith("hp.device="));
@@ -321,8 +321,8 @@ describe("finding out the result (TECH-05 §6–7)", () => {
     const secondAttempt = await attemptOf(second.reference);
     // Both results arrive at once, as from two tabs.
     const results = await Promise.all([
-      applyResult(db(), firstAttempt.id, await gateway.verify(first.reference), { source: "webhook", now: new Date() }),
-      applyResult(db(), secondAttempt.id, await gateway.verify(second.reference), { source: "webhook", now: new Date() }),
+      applyResult({ db: db(), notify: null }, firstAttempt.id, await gateway.verify(first.reference), { source: "webhook", now: new Date() }),
+      applyResult({ db: db(), notify: null }, secondAttempt.id, await gateway.verify(second.reference), { source: "webhook", now: new Date() }),
     ]);
     expect(results.sort()).toEqual(["duplicate", "succeeded"]);
     const intent = await intentOf(firstAttempt.intentId);

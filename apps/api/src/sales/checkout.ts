@@ -9,6 +9,7 @@ import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from 
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
 import { checkoutExpiry } from "./retention.js";
 import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snapshot.js";
+import { orderOfCheckout } from "../orders/orders.js";
 import { cancelCheckoutPayments, checkoutPayment, checkoutsWithActivePayment, type PaymentDeps, paymentInProgress, paymentSettings, paymentsBlocker, startCheckoutPayment } from "../payments/payments.js";
 
 /*
@@ -86,7 +87,7 @@ function totalsOf(row: Pick<Row, "items" | "delivery" | "vatRateBps" | "vatOnDel
   );
 }
 
-function checkoutView(row: Row): Omit<Checkout, "payment"> {
+function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
   const items = row.items as FrozenItem[];
   const delivery = row.delivery as Delivery | null;
   const address = row.address as Checkout["address"];
@@ -126,7 +127,7 @@ function checkoutView(row: Row): Omit<Checkout, "payment"> {
 
 async function withCartState(deps: CheckoutDeps, row: Row): Promise<Checkout> {
   const db = deps.db;
-  const view: Checkout = { ...checkoutView(row), payment: await checkoutPayment(deps, row) };
+  const view: Checkout = { ...checkoutView(row), payment: await checkoutPayment(deps, row), order: row.status === "COMPLETED" ? await orderOfCheckout(db, row.id) : null };
   const off = row.status === "OPEN" ? paymentsBlocker(deps.gateway, await paymentSettings(db)) : null;
   if (off) view.blockers.push(off);
   if (row.cartId) {

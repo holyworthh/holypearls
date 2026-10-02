@@ -62,6 +62,7 @@ describe("environment configuration", () => {
     };
     const worker = {
       DATABASE_URL: api.DATABASE_URL,
+      BETTER_AUTH_URL: api.BETTER_AUTH_URL,
       DATA_ENCRYPTION_KEY: api.DATA_ENCRYPTION_KEY,
       HP_ENV: "production",
       EMAIL_TRANSPORT: "resend",
@@ -125,9 +126,9 @@ describe("environment configuration", () => {
       void _env;
       expect(loadApiEnv(local).STORAGE_DRIVER).toBe("local");
       expect(loadApiEnv({ ...local, HP_ENV: "staging" }).STORAGE_DRIVER).toBe("local");
-      expect(loadWorkerEnv({ DATABASE_URL: api.DATABASE_URL, DATA_ENCRYPTION_KEY: api.DATA_ENCRYPTION_KEY }).WEB_REVALIDATE).toBe("off");
+      expect(loadWorkerEnv({ DATABASE_URL: api.DATABASE_URL, DATA_ENCRYPTION_KEY: api.DATA_ENCRYPTION_KEY, BETTER_AUTH_URL: "http://localhost:3000" }).WEB_REVALIDATE).toBe("off");
       // Turning refresh on anywhere needs both values.
-      expect(() => loadWorkerEnv({ DATABASE_URL: api.DATABASE_URL, DATA_ENCRYPTION_KEY: api.DATA_ENCRYPTION_KEY, WEB_REVALIDATE: "on" })).toThrow("WEB_REVALIDATE_URL");
+      expect(() => loadWorkerEnv({ DATABASE_URL: api.DATABASE_URL, DATA_ENCRYPTION_KEY: api.DATA_ENCRYPTION_KEY, BETTER_AUTH_URL: "http://localhost:3000", WEB_REVALIDATE: "on" })).toThrow("WEB_REVALIDATE_URL");
     });
   });
 });

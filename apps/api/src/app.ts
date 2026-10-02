@@ -26,6 +26,8 @@ import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
 import { CartController, CheckoutController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
 import { PaystackWebhookController } from "./payments/payments.controller.js";
+import { PaymentsAdminController } from "./payments/admin.controller.js";
+import { OrdersController } from "./orders/orders.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -133,6 +135,8 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       CheckoutController,
       DeliveryZonesAdminController,
       PaystackWebhookController,
+      PaymentsAdminController,
+      OrdersController,
       ConfigurationsController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
@@ -154,7 +158,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
           helpInboxEmail: options.helpInboxEmail,
         },
       },
-      { provide: PAYMENT_DEPS, useValue: { db: options.db, jobs: options.jobs, gateway: options.payments, webOrigin: options.webOrigin } },
+      { provide: PAYMENT_DEPS, useValue: { db: options.db, jobs: options.jobs, gateway: options.payments, webOrigin: options.webOrigin, sealKey: options.sealKey } },
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },

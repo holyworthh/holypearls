@@ -273,11 +273,11 @@ describe("staff access (TECH-03 §8, §10)", () => {
     const response = await http().get("/v1/admin/me").set("cookie", cookie);
     expect(response.status).toBe(200);
     const me = adminMeSchema.parse(response.body);
-    expect(me.permissions).toEqual(["AUDIT_VIEW", "CATALOGUE_MANAGE", "CONTENT_MANAGE", "CUSTOMER_SUPPORT", "PAYMENT_VIEW", "PRICING_MANAGE", "SECURITY_ADMIN", "STAFF_ADMIN"]);
+    expect(me.permissions).toEqual(["AUDIT_VIEW", "CATALOGUE_MANAGE", "CONTENT_MANAGE", "CUSTOMER_SUPPORT", "PAYMENT_MANAGE", "PAYMENT_VIEW", "PRICING_MANAGE", "SECURITY_ADMIN", "STAFF_ADMIN"]);
   });
 
   it("returns 403 when staff lack the route's permission", async () => {
-    const cookie = await harness.signInAs("adminAda");
+    const cookie = await harness.signInAs("financeFolake");
     const response = await http().get("/v1/admin/_probe/payments").set("cookie", cookie);
     expect(response.status).toBe(403);
     expect(errorOf(response.body)).toMatchObject({ code: "FORBIDDEN", context: { permission: "PAYMENT_MANAGE" } });

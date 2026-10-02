@@ -212,17 +212,19 @@ function Paid({ checkout, heading }: { checkout: Checkout } & HeadingRef) {
   const first = checkout.contact?.name.split(" ")[0];
   const days = checkout.productionDays;
   const where = checkout.address ? [checkout.address.area, checkout.address.state].filter(Boolean).join(", ") : null;
+  // The order exists once the payment is confirmed (T04-05, Pen 45 D).
+  const order = checkout.order;
   return (
     <section className={styles.result}>
       <span className={styles.iconPaid} aria-hidden="true">
         <CircleCheck size={28} strokeWidth={2} />
       </span>
       <h1 ref={heading} tabIndex={-1} className={styles.titlePaid}>
-        Payment received
+        {order ? "Order confirmed" : "Payment received"}
       </h1>
-      <p className={styles.body}>{first ? `Thanks, ${first}. ` : "Thank you. "}Your payment is confirmed.</p>
+      <p className={styles.body}>{first ? `Thanks, ${first}. ` : "Thank you. "}{order ? "We've emailed your receipt." : "Your payment is confirmed."}</p>
       <div className={styles.card}>
-        <p className={styles.refLabel}>PAID</p>
+        <p className={styles.refLabel}>{order ? `ORDER ${order.number}` : "PAID"}</p>
         <p className={styles.cardValue}>
           {checkout.items.map((item) => `${item.productName} · ${item.quantity.toLocaleString("en-NG")}`).join(", ")} · paid {naira(checkout.payment.amountMinor)}
         </p>
@@ -236,6 +238,11 @@ function Paid({ checkout, heading }: { checkout: Checkout } & HeadingRef) {
           {where ? <li>Delivered to {where}</li> : null}
         </ol>
       </div>
+      {order ? (
+        <ButtonLink href={`/orders/${order.id}`} fullWidth className={styles.action}>
+          View your order and receipt
+        </ButtonLink>
+      ) : null}
       <ButtonLink href="/" variant="secondary" fullWidth className={styles.action}>
         Continue shopping
       </ButtonLink>

@@ -94,6 +94,34 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  /**
+   * Order confirmed and receipt (T04-05, COM-FR-085, PAY-FR-006). The button is the order's secure
+   * link, so the email carries a secret; the receipt itself is the record in the database.
+   */
+  order_confirmed: define({
+    label: "Order confirmed and receipt",
+    carriesSecret: true,
+    data: z.object({
+      name: z.string().optional(),
+      orderNumber: z.string(),
+      receiptNumber: z.string(),
+      total: z.string(),
+      paidOn: z.string(),
+      lines: z.array(z.string()).max(50),
+      url: z.url(),
+    }),
+    subject: ({ orderNumber }) => `Order ${orderNumber} confirmed`,
+    render: ({ name, orderNumber, receiptNumber, total, paidOn, lines, url }) => (
+      <Layout preview={`Order ${orderNumber} confirmed`} title={`Order ${orderNumber} confirmed`} action={{ label: "View your order and receipt", href: url }}>
+        <Text style={text.body}>
+          {name ? `Thanks, ${name}. ` : "Thanks. "}We received your payment of {total} on {paidOn}. Your receipt number is {receiptNumber}.
+        </Text>
+        <Text style={text.quote}>{lines.join("\n")}</Text>
+        <Text style={text.body}>Next, we check your artwork and send a proof for you to approve. Nothing is printed until you approve it.</Text>
+        <Text style={text.support}>This link opens your order. Keep it private: anyone with it can see the order.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

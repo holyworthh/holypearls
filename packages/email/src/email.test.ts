@@ -36,6 +36,7 @@ describe("templates", () => {
       "sign_in_link",
       "email_code",
       "guest_link",
+      "order_confirmed",
     ]);
   });
 });

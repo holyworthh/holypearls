@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
+import { type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
 import { customerPaymentStatus } from "./status.js";
 
 /*
@@ -28,8 +29,10 @@ export interface PaymentDeps {
   jobs: Jobs;
   /** Null when no Paystack key is set: payments show as not available. */
   gateway: PaymentGateway | null;
-  /** The web app's origin, for Paystack's callback page. */
+  /** The web app's origin, for Paystack's callback page and the order's secure link. */
   webOrigin: string;
+  /** DATA_ENCRYPTION_KEY: order confirmations are stored sealed (they carry the order's link). */
+  sealKey: string;
 }
 
 type Tx = Transaction | Database;
@@ -287,12 +290,19 @@ async function openReview(tx: Tx, intent: Intent, attempt: Attempt, reason: "UNC
   }
 }
 
+/** What a confirmed payment needs besides the database: email for the order confirmation (null in some tests). */
+export interface ResultDeps {
+  db: Database;
+  notify: OrderEmailDeps | null;
+}
+
 /**
  * The intent has its one successful attempt: the installment is paid and the
- * checkout completes. Its designs are ordered and leave the cart. Order,
- * receipt and email are added here by T04-05 (TECH-05 §6, §8).
+ * checkout completes; its designs are ordered and leave the cart. The order
+ * is made from the checkout's snapshot, the receipt from the attempt, and the
+ * confirmation email is queued, all in this transaction (TECH-05 §6, §8, §9).
  */
-async function onIntentSucceeded(tx: Tx, intent: Intent, now: Date) {
+export async function onIntentSucceeded(tx: Tx, intent: Intent, attemptId: string, now: Date, notify: OrderEmailDeps | null, requestId: string) {
   await tx.update(schema.installments).set({ status: "PAID", paidAt: now }).where(eq(schema.installments.id, intent.installmentId));
   const [source] = await tx
     .select({ checkoutId: schema.paymentSchedules.checkoutId })
@@ -310,6 +320,11 @@ async function onIntentSucceeded(tx: Tx, intent: Intent, now: Date) {
     await tx.update(schema.configurations).set({ status: "ORDERED", savedForLaterAt: null }).where(inArray(schema.configurations.id, checkout.configurationIds));
     await tx.delete(schema.cartItems).where(inArray(schema.cartItems.configurationId, checkout.configurationIds));
   }
+  const order = await orderForCheckout(tx, checkout, now);
+  const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
+  const receipt = await receiptForAttempt(tx, { attempt: attempt!, intentId: intent.id, order, paidAt: attempt!.paidAt ?? now, now });
+  if (notify) await queueOrderConfirmation(notify, tx, order, receipt, requestId);
+  return order;
 }
 
 export type ResultSource = "webhook" | "check";
@@ -320,9 +335,9 @@ export type ResultSource = "webhook" | "check";
  * `finalCheck` is the 48-hour check: no final answer by then means UNKNOWN
  * and a staff review.
  */
-export async function applyResult(db: Database, attemptId: string, result: VerifyResult, options: { source: ResultSource; now: Date; finalCheck?: boolean }) {
+export async function applyResult(deps: ResultDeps, attemptId: string, result: VerifyResult, options: { source: ResultSource; now: Date; finalCheck?: boolean; requestId?: string }) {
   const { now } = options;
-  return db.transaction(async (tx) => {
+  return deps.db.transaction(async (tx) => {
     const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId)).for("update");
     if (!attempt) return "missing" as const;
     const intent = await lockIntent(tx, attempt.intentId);
@@ -359,7 +374,7 @@ export async function applyResult(db: Database, attemptId: string, result: Verif
         .update(schema.paymentIntents)
         .set({ status: "SUCCEEDED", succeededAttemptId: attempt.id, version: sql`${schema.paymentIntents.version} + 1` })
         .where(eq(schema.paymentIntents.id, intent.id));
-      await onIntentSucceeded(tx, intent, now);
+      await onIntentSucceeded(tx, intent, attempt.id, now, deps.notify, options.requestId ?? `payment_${options.source}`);
       await recordAudit(tx, null, {
         action: "payment.succeeded",
         summary: `Payment received through ${options.source === "webhook" ? "a verified webhook" : "a payment check"}`,
@@ -397,13 +412,13 @@ export async function applyResult(db: Database, attemptId: string, result: Verif
 }
 
 /** payment.check: asks Paystack about one attempt at its scheduled time. */
-export async function checkPaymentAttempt(deps: Pick<PaymentDeps, "db" | "gateway">, attemptId: string, check: number, now = new Date()) {
+export async function checkPaymentAttempt(deps: Pick<PaymentDeps, "db" | "gateway"> & ResultDeps, attemptId: string, check: number, now = new Date()) {
   const [attempt] = await deps.db.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
   if (!attempt || attempt.status === "SUCCEEDED" || attempt.status === "FAILED" || attempt.status === "ABANDONED") return "skipped" as const;
   // Retried by the queue until the key is back; the result is never guessed (PAY-FR-009).
   if (!deps.gateway) throw new Error("Payments aren't set up here: no Paystack key");
   const result = await deps.gateway.verify(attempt.reference);
-  return applyResult(deps.db, attemptId, result, { source: "check", now, finalCheck: check >= CHECK_SCHEDULE_SECONDS.length });
+  return applyResult(deps, attemptId, result, { source: "check", now, finalCheck: check >= CHECK_SCHEDULE_SECONDS.length });
 }
 
 /**
@@ -435,14 +450,14 @@ export async function receivePaystackWebhook(deps: Pick<PaymentDeps, "db" | "job
 }
 
 /** payment.verify: confirms a webhook's transaction with Paystack, then applies it. */
-export async function processPaystackEvent(deps: Pick<PaymentDeps, "db" | "gateway">, eventId: string, now = new Date()) {
+export async function processPaystackEvent(deps: Pick<PaymentDeps, "db" | "gateway"> & ResultDeps, eventId: string, now = new Date()) {
   const [event] = await deps.db.select().from(schema.paystackEvents).where(eq(schema.paystackEvents.id, eventId));
   if (!event || event.processedAt) return "skipped" as const;
   const [attempt] = event.reference ? await deps.db.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.reference, event.reference)) : [];
   let outcome: string = "not ours";
   if (attempt) {
     if (!deps.gateway) throw new Error("Payments aren't set up here: no Paystack key");
-    outcome = await applyResult(deps.db, attempt.id, await deps.gateway.verify(attempt.reference), { source: "webhook", now });
+    outcome = await applyResult(deps, attempt.id, await deps.gateway.verify(attempt.reference), { source: "webhook", now });
   }
   await deps.db.update(schema.paystackEvents).set({ processedAt: now }).where(eq(schema.paystackEvents.id, eventId));
   return outcome;

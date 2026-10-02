@@ -25096,6 +25096,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -25115,6 +25138,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false
@@ -25614,6 +25638,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -25633,6 +25680,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false
@@ -26172,6 +26220,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -26191,6 +26262,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false
@@ -26775,6 +26847,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -26794,6 +26889,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false
@@ -27349,6 +27445,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -27368,6 +27487,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false
@@ -27924,6 +28044,29 @@
                       ],
                       "additionalProperties": false
                     },
+                    "order": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "number": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "number"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "quoteItemsLeftInCart": {
                       "type": "boolean"
                     }
@@ -27943,6 +28086,7 @@
                     "productionDays",
                     "blockers",
                     "payment",
+                    "order",
                     "quoteItemsLeftInCart"
                   ],
                   "additionalProperties": false

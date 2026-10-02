@@ -24,6 +24,14 @@ export const paymentSettings = pgTable(
     usdEnabled: boolean("usd_enabled").notNull().default(false),
     /** The default schedule for quotes: labelled parts in basis points that add up to 10,000. */
     defaultSchedule: jsonb("default_schedule").notNull().default(sql`'[{"label":"Pay in full","shareBps":10000,"trigger":"ON_ACCEPTANCE"}]'::jsonb`),
+    /**
+     * What the Paystack account supports, as confirmed by staff (TECH-05 §13, OPS-FR-047):
+     * internationalPayments, americanExpress, usd, applePay, with who confirmed and when.
+     * The site never offers a method the account doesn't support.
+     */
+    accountSupports: jsonb("account_supports").notNull().default(sql`'{}'::jsonb`),
+    /** The TECH-05 §14 setup checklist: item key to done, as staff-confirmed notes, not live checks. */
+    checklist: jsonb("checklist").notNull().default(sql`'{}'::jsonb`),
     version: versionColumn(),
     updatedByUserId: uuid("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
     updatedAt: updatedAt(),

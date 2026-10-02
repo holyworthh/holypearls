@@ -20,3 +20,10 @@ export function ago(iso: string, now = Date.now()) {
   const hours = Math.round(minutes / 60);
   return hours < 24 ? `${hours} h` : `${Math.round(hours / 24)} d`;
 }
+
+/** ₦450,000.00 or $2,400.00, from minor units (admin lists always show kobo). */
+export function money(minor: string, currency: string) {
+  const value = BigInt(minor);
+  const symbol = currency.trim() === "USD" ? "$" : "₦";
+  return `${symbol}${(value / 100n).toLocaleString("en-NG")}.${(value % 100n).toString().padStart(2, "0")}`;
+}
