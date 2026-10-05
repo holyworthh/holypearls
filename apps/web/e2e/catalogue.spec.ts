@@ -35,7 +35,7 @@ test("catalogue staff see categories with their products and editor", async ({ p
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.goto(`${ADMIN}/categories`);
   await expect(page.getByRole("heading", { name: "Categories", level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Print & Business Stationery" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Print & business stationery" })).toBeVisible();
   await expect(page.getByLabel("Name")).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);

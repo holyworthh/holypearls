@@ -38,7 +38,7 @@ const ARTWORK: { value: Artwork; title: string; meta: string; Icon: typeof Uploa
   { value: "LATER", title: "I'll send it later", meta: "Held for artwork", Icon: Clock },
 ];
 
-/** Option labels carry an optional second line after " · " ("Smooth matte · 350gsm"), shown as Pen's card meta. */
+/** Option labels carry an optional second line after " · " ("Standard matte · Smooth and practical, 350gsm"), shown as Pen's card meta. */
 const splitLabel = (label: string) => {
   const at = label.indexOf(" · ");
   return at > 0 ? { title: label.slice(0, at), meta: label.slice(at + 3) } : { title: label, meta: null };
