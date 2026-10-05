@@ -1,4 +1,4 @@
-import { adminCategoryListSchema, adminCategorySchema, adminProductPageSchema, adminProductSchema, bulkProductStatusResultSchema } from "@holypearls/contracts";
+import { adminCategoryListSchema, adminCategorySchema, adminProductOptionsSchema, adminProductPageSchema, adminProductSchema, bulkProductStatusResultSchema, publicProductSchema } from "@holypearls/contracts";
 import { eq, schema } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ let harness: Harness;
 let actors: Partial<Actors>;
 let staff: string;
 
+const put = (path: string, body: object) => request(harness.url).put(path).set("origin", TEST_WEB_ORIGIN).set("cookie", staff).send(body);
 const patch = (path: string, body: object) =>
   request(harness.url).patch(path).set("origin", TEST_WEB_ORIGIN).set("cookie", staff).send(body);
 
@@ -202,6 +203,50 @@ describe("product images, text and related products (Pen frames 98 and 104)", ()
       .send({ productIds: [mug.id, product.id] });
     // A product is never related to itself.
     expect(adminProductSchema.parse(related.body).related.map((item) => item.id)).toEqual([mug.id]);
+  });
+});
+
+describe("an image per option value (Pen 21 paper cards; owner, 2026-10-05)", () => {
+  it("sets, shows publicly and removes a value's image", async () => {
+    const product = await productBySlug("business-cards");
+    const base = `/v1/admin/catalogue/products/${product.id}/options`;
+    const listed = adminProductOptionsSchema.parse((await as(harness, staff).get(base)).body);
+    expect(listed.options.find((option) => option.key === "paper")!.values.map((value) => value.key)).toContain("350gsm-matte");
+
+    const photo = await mediaFile("matte-stock.png");
+    const key = `files/preview/${photo.id}/preview-1.webp`;
+    await harness.publicStorage.write(key, Buffer.from("RIFF"), "image/webp");
+    await harness.database.db.insert(schema.fileRenditions).values({ fileId: photo.id, kind: "PREVIEW", storageKey: key, contentType: "image/webp" });
+    expect((await request(harness.url).get(`/v1/media/${photo.id}/preview`)).status).toBe(404);
+
+    const set = await put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "Matte card stock, close up" });
+    expect(set.status).toBe(200);
+    const matte = (body: unknown) => adminProductOptionsSchema.parse(body).options.find((option) => option.key === "paper")!.values.find((value) => value.key === "350gsm-matte")!;
+    expect(matte(set.body).image).toMatchObject({ fileId: photo.id, alt: "Matte card stock, close up" });
+
+    const page = publicProductSchema.parse((await request(harness.url).get("/v1/catalogue/products/business-cards")).body);
+    const shown = page.configurator!.options.find((option) => option.key === "paper")!.values.find((value) => value.key === "350gsm-matte")!;
+    expect(shown.image).toMatchObject({ url: `/api/v1/media/${photo.id}/preview`, alt: "Matte card stock, close up" });
+    expect((await request(harness.url).get(`/v1/media/${photo.id}/preview`)).status).toBe(200);
+
+    const removed = await request(harness.url).delete(`${base}/paper/values/350gsm-matte/image`).set("origin", TEST_WEB_ORIGIN).set("cookie", staff);
+    expect(matte(removed.body).image).toBeNull();
+    expect((await request(harness.url).get(`/v1/media/${photo.id}/preview`)).status).toBe(404);
+  }, 180_000);
+
+  it("refuses other files and unknown values, and anyone without CATALOGUE_MANAGE", async () => {
+    const product = await productBySlug("business-cards");
+    const base = `/v1/admin/catalogue/products/${product.id}/options`;
+    const [artwork] = await harness.database.db
+      .insert(schema.files)
+      .values({ purpose: "ARTWORK", status: "READY", bucket: "private", originalName: "a.png", safeName: "a.png", declaredType: "image/png", declaredSize: 1, storageKey: "k2" })
+      .returning();
+    expectHidden(await put(`${base}/paper/values/350gsm-matte/image`, { fileId: artwork!.id, alt: "x" }));
+    const photo = await mediaFile("unknown-value.png");
+    expectHidden(await put(`${base}/paper/values/no-such-paper/image`, { fileId: photo.id, alt: "x" }));
+    expect((await put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "" })).status).toBe(400);
+    expectHidden(await as(harness, actors.customerChidi!).get(base));
+    expect((await as(harness, await harness.signInAs("adminTunde")).get(base)).status).toBe(403);
   });
 });
 

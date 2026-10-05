@@ -501,6 +501,16 @@ export async function publicMediaFile(db: Database, fileId: string) {
         .where(and(eq(schema.categories.heroFileId, fileId), eq(schema.categories.status, "PUBLISHED")))
         .limit(1);
   if (onCategory) return { file, content: false };
+  // A photo of an option value on a visible product (owner, 2026-10-05).
+  const [onOption] = await db
+    .select({ id: schema.productOptionValues.id })
+    .from(schema.productOptionValues)
+    .innerJoin(schema.productOptions, eq(schema.productOptions.id, schema.productOptionValues.optionId))
+    .innerJoin(schema.products, eq(schema.products.id, schema.productOptions.productId))
+    .where(and(eq(schema.productOptionValues.imageFileId, fileId), inArray(schema.products.status, [...VISIBLE])))
+    .limit(1);
+  // Removing a value's photo takes it off the site within five minutes.
+  if (onOption) return { file, content: true };
   // A product photo reused on a content page is public while that page is.
   if (await isContentMediaPublic(db, fileId)) return { file, content: true };
   throw new AppError("NOT_FOUND");

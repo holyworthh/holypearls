@@ -301,7 +301,9 @@ export function Configurator({ productSlug, productName, family, data, initialDr
       <div id="step-options" className={s.optionGroups} data-no-reveal>
         {data.options.map((option) => {
           // Options whose values carry a spec ("Soft matte · 350gsm") read as a list, spec on the right (Pen "How should it feel?").
-          const listed = option.values.some((value) => splitLabel(value.label).meta) && option.values.length <= 4;
+          // Values with photos read as Pen 21's paper cards: photo, name, second line (owner, 2026-10-05).
+          const photos = option.values.some((value) => value.image);
+          const listed = !photos && option.values.some((value) => splitLabel(value.label).meta) && option.values.length <= 4;
           return (
             <fieldset key={option.key} className={s.group}>
               <legend className={s.legend}>
@@ -314,7 +316,7 @@ export function Configurator({ productSlug, productName, family, data, initialDr
                   const id = `choice-${option.key}-${value.key}`;
                   const label = splitLabel(value.label);
                   return (
-                    <label key={value.key} className={`${s.tile} ${listed ? s.tileRow : ""}`} htmlFor={id}>
+                    <label key={value.key} className={`${s.tile} ${listed ? s.tileRow : ""} ${photos ? s.tilePhoto : ""}`} htmlFor={id}>
                       <input
                         id={id}
                         type="radio"
@@ -325,6 +327,13 @@ export function Configurator({ productSlug, productName, family, data, initialDr
                         aria-describedby={blocked ? `${id}-blocked` : undefined}
                         onChange={() => choose(option.key, value.key)}
                       />
+                      {photos ? (
+                        value.image ? (
+                          <img className={s.tileImage} src={value.image.thumbnailUrl} alt={value.image.alt} loading="lazy" />
+                        ) : (
+                          <span className={s.tileImage} aria-hidden="true" />
+                        )
+                      ) : null}
                       <span className={s.tileTitle}>{label.title}</span>
                       {blocked ? (
                         <span className={s.tileMeta} id={`${id}-blocked`}>

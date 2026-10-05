@@ -161,19 +161,23 @@ export async function productOptions(db: Database, productId: string) {
       valueLabel: schema.productOptionValues.label,
       isDefault: schema.productOptionValues.isDefault,
       swatch: schema.productOptionValues.swatch,
+      imageFileId: schema.productOptionValues.imageFileId,
+      imageAlt: schema.productOptionValues.imageAlt,
     })
     .from(schema.productOptions)
     .innerJoin(schema.productOptionValues, eq(schema.productOptionValues.optionId, schema.productOptions.id))
     .where(eq(schema.productOptions.productId, productId))
     .orderBy(asc(schema.productOptions.position), asc(schema.productOptionValues.position));
-  const options: { key: string; label: string; required: boolean; values: { key: string; label: string; isDefault: boolean; swatch: string | null }[] }[] = [];
+  const options: { key: string; label: string; required: boolean; values: { key: string; label: string; isDefault: boolean; swatch: string | null; image: { url: string; thumbnailUrl: string; alt: string } | null }[] }[] = [];
   for (const row of rows) {
     let option = options.find((item) => item.key === row.key);
     if (!option) {
       option = { key: row.key, label: row.label, required: row.required, values: [] };
       options.push(option);
     }
-    option.values.push({ key: row.valueKey, label: row.valueLabel, isDefault: row.isDefault, swatch: row.swatch });
+    // Served by the public media route while the product is visible (owner, 2026-10-05).
+    const image = row.imageFileId ? { url: `/api/v1/media/${row.imageFileId}/preview`, thumbnailUrl: `/api/v1/media/${row.imageFileId}/thumbnail`, alt: row.imageAlt ?? "" } : null;
+    option.values.push({ key: row.valueKey, label: row.valueLabel, isDefault: row.isDefault, swatch: row.swatch, image });
   }
   return options;
 }

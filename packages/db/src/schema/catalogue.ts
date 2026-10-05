@@ -137,6 +137,9 @@ export const productOptionValues = pgTable(
     isDefault: boolean("is_default").notNull().default(false),
     /** The colour a swatch shows for this value (#RRGGBB), for colour options; product data, not a UI token. */
     swatch: text("swatch"),
+    /** A photo of this choice from the product-media library, shown on its card (owner, 2026-10-05). */
+    imageFileId: uuid("image_file_id").references(() => files.id, { onDelete: "set null" }),
+    imageAlt: text("image_alt"),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
   },

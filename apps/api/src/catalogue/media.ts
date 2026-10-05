@@ -1,4 +1,5 @@
-import { and, type Database, eq, schema, sql } from "@holypearls/db";
+import type { AdminProductOptions } from "@holypearls/contracts";
+import { and, asc, type Database, eq, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { attachFile, findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -85,4 +86,62 @@ export async function reorderProductMedia(db: Database, actor: ActorContext, pro
     await audit(tx, actor, productId, product.name, "catalogue.product_media_reordered", "Images reordered", { mediaIds });
   });
   return getProduct(db, productId);
+}
+
+/* ——— An image per option value (Pen 21 paper cards; owner, 2026-10-05) ——— */
+
+export async function productOptionImages(db: Database, productId: string): Promise<AdminProductOptions> {
+  await getProduct(db, productId);
+  const rows = await db
+    .select({ key: schema.productOptions.key, label: schema.productOptions.label, valueKey: schema.productOptionValues.key, valueLabel: schema.productOptionValues.label, fileId: schema.productOptionValues.imageFileId, alt: schema.productOptionValues.imageAlt, fileStatus: schema.files.status })
+    .from(schema.productOptions)
+    .innerJoin(schema.productOptionValues, eq(schema.productOptionValues.optionId, schema.productOptions.id))
+    .leftJoin(schema.files, eq(schema.files.id, schema.productOptionValues.imageFileId))
+    .where(eq(schema.productOptions.productId, productId))
+    .orderBy(asc(schema.productOptions.position), asc(schema.productOptionValues.position));
+  const options: AdminProductOptions["options"] = [];
+  for (const row of rows) {
+    let option = options.find((item) => item.key === row.key);
+    if (!option) options.push((option = { key: row.key, label: row.label, values: [] }));
+    option.values.push({ key: row.valueKey, label: row.valueLabel, image: row.fileId ? { fileId: row.fileId, alt: row.alt ?? "", fileStatus: row.fileStatus ?? "READY" } : null });
+  }
+  return { options };
+}
+
+async function optionValue(db: Database, productId: string, optionKey: string, valueKey: string) {
+  const [row] = await db
+    .select({ id: schema.productOptionValues.id, label: schema.productOptionValues.label })
+    .from(schema.productOptionValues)
+    .innerJoin(schema.productOptions, eq(schema.productOptions.id, schema.productOptionValues.optionId))
+    .where(and(eq(schema.productOptions.productId, productId), eq(schema.productOptions.key, optionKey), eq(schema.productOptionValues.key, valueKey)));
+  if (!row) throw new AppError("NOT_FOUND");
+  return row;
+}
+
+/** Sets a value's photo: an uploaded product-media image, not rejected. Audited. */
+export async function setOptionImage(db: Database, actor: ActorContext, productId: string, optionKey: string, valueKey: string, input: { fileId: string; alt: string }) {
+  const product = await getProduct(db, productId);
+  const value = await optionValue(db, productId, optionKey, valueKey);
+  const file = await findFileForActor(db, actor, input.fileId);
+  if (file.purpose !== "PRODUCT_MEDIA") throw new AppError("NOT_FOUND");
+  if (file.status === "REJECTED" || file.status === "PENDING_UPLOAD") {
+    throw new AppError("RULE_FAILED", { message: file.reason ?? "This image isn't ready.", context: { reason: file.status } });
+  }
+  await db.transaction(async (tx) => {
+    await tx.update(schema.productOptionValues).set({ imageFileId: input.fileId, imageAlt: input.alt }).where(eq(schema.productOptionValues.id, value.id));
+    await attachFile(tx, input.fileId, { type: "PRODUCT", id: productId });
+    await audit(tx, actor, productId, product.name, "catalogue.option_image_set", `Image set for ${optionKey} · ${value.label}`, { option: optionKey, value: valueKey, fileId: input.fileId, alt: input.alt });
+  });
+  return productOptionImages(db, productId);
+}
+
+/** Removes a value's photo; the file stays, as with product images. */
+export async function removeOptionImage(db: Database, actor: ActorContext, productId: string, optionKey: string, valueKey: string) {
+  const product = await getProduct(db, productId);
+  const value = await optionValue(db, productId, optionKey, valueKey);
+  await db.transaction(async (tx) => {
+    await tx.update(schema.productOptionValues).set({ imageFileId: null, imageAlt: null }).where(eq(schema.productOptionValues.id, value.id));
+    await audit(tx, actor, productId, product.name, "catalogue.option_image_removed", `Image removed for ${optionKey} · ${value.label}`, { option: optionKey, value: valueKey });
+  });
+  return productOptionImages(db, productId);
 }
