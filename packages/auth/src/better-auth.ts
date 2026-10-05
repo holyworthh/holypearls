@@ -11,6 +11,9 @@ const DAY_S = 24 * 60 * 60;
 export const CUSTOMER_SESSION_SECONDS = 30 * DAY_S;
 export const STAFF_SESSION_SECONDS = 12 * 60 * 60;
 export const MAGIC_LINK_SECONDS = 10 * 60;
+/** For the one-off first-admin command (ATTENTION 2). */
+export { hashPassword } from "better-auth/crypto";
+
 export const MIN_PASSWORD_LENGTH = 12;
 
 /** The browser reaches the API through the web app's /api forwarding (TECH-03 §4). */
