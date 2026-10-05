@@ -10,8 +10,8 @@ test("Business Cards: quantities are priced, autosave keeps the draft, and foil 
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
-  // Standard quantity buttons show the per-card price (COM-FR-043).
-  await expect(page.getByText("₦161.25 each").first()).toBeVisible();
+  // Standard quantity buttons show the per-card price before VAT (COM-FR-043; owner, 2026-10-05).
+  await expect(page.getByText(/^₦150(.00)? each$/).first()).toBeVisible();
   await page.getByLabel(/^500/).check();
   await expect(page.getByText("₦69,875").first()).toBeVisible({ timeout: 30_000 });
   await expect(page).toHaveURL(/\?draft=/);
