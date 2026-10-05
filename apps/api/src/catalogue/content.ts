@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   type AdminContentPage,
   type AdminContentSummary,
@@ -500,7 +501,59 @@ export async function contentCardsByIds(db: Database, ids: string[]): Promise<Co
 export async function publicContentPage(db: Database, type: ContentType, slug: string): Promise<PublicContentPage> {
   const [page] = await publishedRows(db, and(eq(schema.contentPages.type, type), sql`${schema.contentPages.published}->>'slug' = ${slug}`));
   if (!page) throw new AppError("NOT_FOUND");
-  const { row, live } = page;
+  return pageView(db, page.row, page.live);
+}
+
+/* ——— Staff preview of a draft (owner, 2026-10-05) ———
+ * The admin is on its own domain (ADR-017), so a staff session never reaches
+ * the customer site. Staff get a signed link instead: page ID and expiry,
+ * HMAC-signed with the server's sealing key. It shows the page's current
+ * draft, and only that draft's images, for an hour; it's never indexed.
+ */
+export const PREVIEW_LINK_MINUTES = 60;
+
+const previewSignature = (sealKey: string, pageId: string, expires: number) => createHmac("sha256", sealKey).update(`content-preview.${pageId}.${expires}`).digest("base64url");
+
+export async function createPreviewLink(db: Database, deps: { sealKey: string; webOrigin: string }, id: string, now: Date) {
+  const [row] = await db.select({ id: schema.contentPages.id, status: schema.contentPages.status }).from(schema.contentPages).where(eq(schema.contentPages.id, id));
+  if (!row) throw new AppError("NOT_FOUND");
+  if (row.status === "ARCHIVED") throw new AppError("CONFLICT", { message: "Restore the page before previewing it.", context: { reason: "ARCHIVED" } });
+  const expires = Math.floor(now.getTime() / 1000) + PREVIEW_LINK_MINUTES * 60;
+  const token = `${id}.${expires}.${previewSignature(deps.sealKey, id, expires)}`;
+  return { url: `${deps.webOrigin}/preview/content/${token}`, expiresAt: new Date(expires * 1000).toISOString() };
+}
+
+/** The page a preview token opens, or 404 for a changed, expired or archived one. */
+async function previewRow(db: Database, sealKey: string, token: string, now: Date) {
+  const [id, expiresText, signature] = token.split(".");
+  const expires = Number(expiresText);
+  if (!id || !signature || !Number.isInteger(expires) || expires * 1000 <= now.getTime()) throw new AppError("NOT_FOUND");
+  const expected = Buffer.from(previewSignature(sealKey, id, expires));
+  const given = Buffer.from(signature);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) throw new AppError("NOT_FOUND");
+  if (!/^[0-9a-f-]{36}$/.test(id)) throw new AppError("NOT_FOUND");
+  const [row] = await db.select().from(schema.contentPages).where(eq(schema.contentPages.id, id));
+  if (!row || row.status === "ARCHIVED") throw new AppError("NOT_FOUND");
+  return row;
+}
+
+export async function previewContentPage(db: Database, sealKey: string, token: string, now: Date): Promise<PublicContentPage> {
+  const row = await previewRow(db, sealKey, token, now);
+  const draft = fieldsOf(row);
+  const view = await pageView(db, row, draft);
+  // Draft images aren't public yet: they're served through the preview link.
+  let json = JSON.stringify({ ...view, seo: { ...view.seo, indexable: false } });
+  for (const fileId of contentMediaIds(draft)) json = json.replaceAll(`/api/v1/media/${fileId}/`, `/api/v1/content/preview/${token}/media/${fileId}/`);
+  return JSON.parse(json) as PublicContentPage;
+}
+
+/** True when the preview token is valid and its draft uses this image. */
+export async function previewMediaAllowed(db: Database, sealKey: string, token: string, fileId: string, now: Date) {
+  const row = await previewRow(db, sealKey, token, now);
+  return contentMediaIds(fieldsOf(row)).includes(fileId);
+}
+
+async function pageView(db: Database, row: Row, live: ContentFields): Promise<PublicContentPage> {
   const data = live.data;
   const slugs = namedProducts(data);
   const [bySlug, byId, linkedPages, hero] = await Promise.all([

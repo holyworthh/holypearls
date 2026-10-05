@@ -8,7 +8,7 @@ import { WEB_IDENTITY } from "./lib/visitor";
  * results, configuration, cart, checkout, quotes, proofs, orders, workspaces,
  * collections, help requests and link pages.
  */
-const PRIVATE = /^\/(account|sign-in|search|configure|cart|checkout|quotes?|proofs?|orders?|workspace|collections?|group|issues?|help|l|dev|design-system|internal)(\/|$)|^\/products\/[^/]+\/configure(\/|$)/;
+const PRIVATE = /^\/(account|sign-in|search|configure|cart|checkout|quotes?|proofs?|orders?|workspace|collections?|group|issues?|help|l|dev|design-system|internal|preview)(\/|$)|^\/products\/[^/]+\/configure(\/|$)/;
 
 export const isPrivatePath = (pathname: string) => PRIVATE.test(pathname);
 
