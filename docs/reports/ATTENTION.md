@@ -6,15 +6,13 @@ The list has two parts:
 - **Part A: needed now.** These block a ticket, or they decide how code that is being built right now behaves. The sooner you answer, the less rework.
 - **Part B: needed before launch.** These are accounts, settings, real content and prices that production needs before real customers arrive. Building can go on without them.
 
-Item numbers stay the same as before, so references in ticket reports still work. The old duplicate numbers 11–13 are now 11b, 12b and 13b.
+Item numbers stay the same, so references in ticket reports still work. What your answers of 5 October changed is in [OWNER-DECISIONS-2026-10-05.md](OWNER-DECISIONS-2026-10-05.md).
 
-Last updated: 2026-10-05 (split into "now" and "before launch").
+Last updated: 2026-10-05 (your answers of 5 October carried out).
 
 ---
 
 # Part A: needed now
-
-## A1. Blocking a ticket
 
 ### 27. One staging test payment (T04-03, T04-05). T04-03 is waiting on this.
 Staging payments are switched on (2026-10-02). The in-app browser can't operate Paystack's payment window, so **one checkout needs you**:
@@ -23,80 +21,18 @@ Staging payments are switched on (2026-10-02). The in-app browser can't operate 
 
 I'll then confirm the webhook, the order, the receipt and the email, and move T04-03 to DONE.
 
-### 26. Admin app on Vercel: one setting (T00-11). Staging admin won't build until this is done.
-The staff admin has its own Vercel project, `holypearls-admin` (ADR-017). New projects take the repository's default branch (`dev`) as production, and the Vercel connector can't change that. **In the Vercel dashboard:**
-1. Open `holypearls-admin`.
-2. Go to Settings → Git → Production Branch.
-3. Set it to **`main`**.
-
-Until then, a guard skips any production build that isn't from `main`, so staging's admin (`dev`) won't build either. Tell me when it's done and I'll deploy staging and check it.
-
-### 5. Sentry. T00-04 is BLOCKED on this.
-T00-04's "Done when" includes an error appearing in Sentry. **Needed:** one of these:
-- a Sentry account (free tier) with two projects (api+worker, web), and their two DSNs sent to me; or
-- tell me to drop Sentry until launch. I'll then mark T00-04 DONE with logs-only monitoring.
-
-## A2. Decisions about behaviour that's already built
-Each of these is built with a working assumption. If you change one, the change is small now and grows as more is built on top of it.
-
 ### 30. Production holds and the balance (T07-01)
 - **Hold reasons:** customer information, artwork, materials, equipment, payment, other.
 - **Who acts:** customer or HolyPearls.
 
 **Needed:** confirm both lists, or send the ones you want (PRD-06 leaves them open).
 
-**Balance timing.** A before-dispatch balance now falls due as soon as the first item passes quality check, and the customer gets the "payment due" email then. **Confirm** that timing; the alternative is to wait until every item is finished.
+**Balance timing.** A before-dispatch balance falls due as soon as the first item passes quality check, and the customer gets the "payment due" email then. **Confirm** that timing; the alternative is to wait until every item is finished.
 
 The dev database has three TEST DATA orders (HP-2026-TEST-1 to 3) for trying the board.
 
-### 31. Cancellation policy (T07-03)
-No document sets a cancellation policy. As built, a customer can cancel online only while every item is still waiting or queued, that is before production. After that, they're sent to contact you. **Confirm** this, or name products that can't be cancelled at all once ordered. Refunds are in Part B.
-
-### 15. Show prices with or without VAT (T03-03)
-Pen shows business-card prices before VAT (₦150 per card). The product page shows prices **including** 7.5% VAT (₦161.25 per card), so the per-card price, the total and what's charged agree. **Decide:** keep the VAT-inclusive display, or show before-VAT prices with "+ VAT".
-
-### 32a. Problem report numbers (T08-01)
-Problem reports are numbered HP-RP-2026-0001 and up. The design marks this format "to be confirmed". **Confirm** the format.
-
-### Open product questions from ticket reports
-Each report's "Questions / conflicts found" section has the detail.
-- **T04-01, delivery by quote:** when an address is in a "Quote required" zone (or abroad), checkout completes but payment waits for the delivery price. How should that price reach the customer: a delivery-only quote, or staff setting the price on the checkout?
-- **T04-01, several quote items:** "Submit quote items" makes one quote request (and email) per item. Fine for now, or should they become one request?
-- **T04-03, closed popup:** Paystack reports an opened but unpaid transaction as "abandoned" straight away, even while the customer may still be choosing a method. The 2-minute and 10-minute checks therefore treat "abandoned" as still in progress, and only the 30-minute check settles it as not paid. The customer sees "Confirming your payment" in that time and can start a new payment after 10 minutes (TECH-05 §6). Fine, or should "abandoned" count from the first check?
-- **T03-08, impossible deadlines:** a date we can't meet even with priority rush keeps the price an estimate, with "we'll review it with you". Should it instead block checkout until staff confirm?
-- **T02-06, anonymous attachments:** visitors who aren't signed in can attach files only after sending a contact enquiry, because uploads need a session (TECH-04). Fine, or should guests get an upload session earlier?
-- **T02-03, "Most ordered":** until orders exist, it follows the admin list's order. When orders exist (T04-05), should it switch to real order counts automatically?
-- **T02-03, server-side rate limit:** pages rendered on Vercel share its IP addresses for API calls. Caching keeps this low, but I suggest giving the web server its own higher limit through a shared secret header. This is planned for T15-01 unless you want it sooner.
-
-## A3. Quick yes/no answers about documents and process
-
-### 16. PRD-02 COM-FR-054 file types (T03-05)
-COM-FR-054 still says JPEG, PNG and PDF only. You approved AI and SVG, and TECH-04 was amended. **Needed:** permission to update COM-FR-054 in PRD-02, or tell me to leave it.
-
-### 10. Proposed document changes (not edited, per CLAUDE.md)
-- TECH-02 §14: add the new CONTACT rate-limit class (5 per 10 min per IP, 10 per hour per person), used by help requests.
-- TECH-07 §1 and §6: record the free-tier single-container set-up (`docs/ops/ENVIRONMENTS.md`) as a temporary deviation.
-- ADR register: a new ADR for the hosting choice (Vercel + Render Frankfurt + Neon eu-central-1, free tier).
-
-### 2. First production staff admin: when to build it
-Production has no staff accounts, and test people are never seeded there. A one-off bootstrap command is needed: it creates one STAFF_ADMIN by email, who then sets a password and authenticator. **Question:** build it now as a small ops task (`pnpm bootstrap:admin --email you@…`), or leave it for T13-05 (staff administration)? The command itself is needed only before launch.
-
-### 21. Draft preview (T02-06)
-Staff can preview a content page only after it's published. **Decide:** add staff-only draft preview links (a small follow-up), or leave it.
-
-### 7. Shared staging secret
-Staging uses the same `BETTER_AUTH_SECRET` as your local `.env`. Staging's test data is a copy of development's, and the test staff's authenticator secrets are encrypted with it. Production has its own secrets. Say if you'd rather I re-seed staging with its own secret; otherwise nothing is needed.
-
-### 9. Pen design file clean-up (low priority)
-Pen frames 96, 98 and 104 still show "Unpublish"; products are now archived instead. The upload hint in Pen should read "PDF, AI, SVG, PNG or JPEG". I haven't edited the design file.
-
-### Design fidelity notes (2026-09-28)
-The public pages were rebuilt from the Pen exports; see [DESIGN-FIDELITY.md](DESIGN-FIDELITY.md). To match Pen exactly, you may want to:
-- rename categories and option values in admin to the Pen labels ("Apparel & garment production", "Standard Matte · Smooth and practical");
-- approve adding an **image per option value** (paper cards) and **product attributes for filters** (sourcing, decoration);
-- supply the **card-stock band** content.
-
-Garments now configure on their own stepped page (`/products/polo-shirt/configure`), as Pen 19 → 22 shows.
+### 33. Instant delivery prices: choose a courier aggregator (new)
+For now, staff set the delivery price for addresses outside the zones (Admin → Delivery prices). To price any Nigerian address at checkout instead, one of these rate APIs is needed: **Shipbubble**, **Terminal Africa**, **Shiip (GoShiip)**, or **GIG Logistics** directly. Details are in the report. **Decide** whether you want this, and which provider; each needs a business account.
 
 ---
 
@@ -139,9 +75,9 @@ Production accepts only a live key (`sk_live_`), and stays "payment not availabl
 - Online payments start **off** in every environment. Staff switch them on in Payment settings (T04-05).
 
 ### 2. First production staff admin
-Production has no staff accounts, so someone needs to be able to sign in to admin. When to build the bootstrap command is asked in Part A.
+The command is built (#75). After the next release, open the production service's **Shell** on Render and run `node apps/api/dist/bootstrap-admin-cli.js --email you@example.com --name "Your Name"`. It prints a one-time password once; sign in at the admin address and set up your authenticator. See `docs/ops/BOOTSTRAP-ADMIN.md`.
 
-### 26 (later part). Admin subdomain
+### 26. Admin subdomain
 When the domain exists, give the admin its own subdomain (`admin.<domain>`), and I'll update `ADMIN_ORIGIN` on Render to match. Staff sign in at the admin address only; the customer site no longer has `/admin`.
 
 ### 18. SEO settings on Render (T02-06)
@@ -229,6 +165,9 @@ Event branding and Staff uniforms start with rules from Pen 110 and Stage 3.1D. 
 - add rules for the other types;
 - confirm the timing guidance: Comfortable for 6+ weeks, Tight for 3–6 weeks, Production review needed under 3 weeks.
 
+### 34. Paper-stock content for the "Choose your card stock" band (Pen 21)
+The band needs real paper-stock content per product (stocks, weights, feel, photos). **Needed:** the content. Option photos can already be added in admin (Products → a product → Images → Option images).
+
 ### 32b. Problem reports: response time and staff (T08-01)
 - **Response time.** Customers are told "We'll look at this within 1 working day and email you". **Confirm** you can keep that promise.
 - **Staff access.** Shipments need the Fulfilment permission, and problem reports need Customer support. Grant them to the staff who'll do this work. The Staff page arrives with T13-05; until then, I can grant them for you.
@@ -236,6 +175,27 @@ Event branding and Staff uniforms start with rules from Pen 110 and Stage 3.1D. 
 ---
 
 # Resolved
+
+**Answered on 5 October 2026** (details in [OWNER-DECISIONS-2026-10-05.md](OWNER-DECISIONS-2026-10-05.md)):
+- **5. Sentry:** dropped until launch; T00-04 DONE with logs-only monitoring.
+- **26. Admin on Vercel:** the production branch is `main`; staging admin builds again.
+- **15. VAT display:** items before VAT, VAT one line at the end on the whole order (#76).
+- **31. Cancellation policy:** confirmed as built: online cancellation only before production.
+- **32a. Problem report numbers:** HP-RP-YYYY-NNNN confirmed.
+- **Delivery by quote:** checkout holds until staff set the price (#80); instant pricing is item 33.
+- **Several quote items:** one request (#79).
+- **Closed popup, impossible deadlines, anonymous attachments:** fine as built.
+- **"Most ordered":** follows real orders (#77).
+- **Server-side rate limit:** waits for T15-01 as planned.
+- **16. COM-FR-054:** PRD-02 updated (#74).
+- **10. Document changes:** TECH-02, TECH-07, ADR-015 and the change log updated (#74).
+- **2. First admin command:** built (#75); running it is in Part B.
+- **21. Draft preview:** built (#78).
+- **7. Staging secret:** left as is.
+- **9. Pen clean-up:** done in the design file.
+- **Design fidelity notes:** Pen labels (#81) and option images (#82) done; the card-stock band needs content (item 34).
+
+**Earlier:**
 
 - **1. Release to production.** Released through PR #21 and again through PR #33 (2026-09-30, commit 2683b36); production is live and healthy. **Keep merging release PRs with a merge commit, not a squash.** Squashing #21 made `dev` and `main` conflict on the next release; PR #34 fixed it.
 - **23. Paystack test keys.** The keys are in your local `.env` and on staging Render (`PAYSTACK_SECRET_KEY`, 2026-10-01).
