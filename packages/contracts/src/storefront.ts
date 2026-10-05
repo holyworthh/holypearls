@@ -216,7 +216,7 @@ export const publishHubSchema = z.object({ version: z.number().int().positive() 
 
 export const MERCHANDISING_LISTS = {
   "menu.popular": { label: "Mega-menu · popular products", max: 8 },
-  "home.most-ordered": { label: "Homepage · most ordered", max: 8 },
+  "home.most-ordered": { label: "Homepage · most ordered (real orders come first; this list fills the rest)", max: 8 },
 } as const;
 export const merchandisingListKeySchema = z.enum(["menu.popular", "home.most-ordered"]);
 export type MerchandisingListKey = z.infer<typeof merchandisingListKeySchema>;

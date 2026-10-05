@@ -14,6 +14,7 @@ import { BUSINESS_TIME_ZONE, businessDate, decorationMethodSchema, hubSchema, li
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { configuratorFor } from "../configuration/pricing.js";
+import { mostOrderedIds } from "./most-ordered.js";
 
 /*
  * Public catalogue reads (T02-03). Only PUBLISHED and TEMPORARILY_UNAVAILABLE
@@ -323,7 +324,7 @@ export async function searchSuggestions(db: Database, q: string): Promise<Search
  * summary and phrase matches; the "Most ordered" list breaks ties, then name.
  */
 export async function suggestedProducts(db: Database, q: string, limit = 3): Promise<PublicProductCard[]> {
-  const popular = await listOrder(db, "home.most-ordered");
+  const popular = await mostOrderedIds(db, await listOrder(db, "home.most-ordered"));
   const rank = sql`case when ${schema.products.name} ilike ${`${escapeLikeText(q)}%`} then 0 when ${schema.products.name} ilike ${escapeLike(q)} then 1 else 2 end`;
   const rows = (await db
     .select(cardColumns)
@@ -388,7 +389,8 @@ export async function publicCategoryTree(db: Database): Promise<PublicCategory[]
 export async function storefrontNavigation(db: Database) {
   const categories = await publicCategoryTree(db);
   const popular = await cardsByIds(db, await listOrder(db, "menu.popular"));
-  const mostOrdered = await cardsByIds(db, await listOrder(db, "home.most-ordered"));
+  // Real order counts first, then the staff list (owner, 2026-10-05).
+  const mostOrdered = await cardsByIds(db, await mostOrderedIds(db, await listOrder(db, "home.most-ordered")));
   return {
     categories,
     popular: popular.map((card) => ({ slug: card.slug, name: card.name })),
