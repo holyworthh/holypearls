@@ -10,6 +10,7 @@ let harness: Harness;
 let actors: Partial<Actors>;
 let staff: string;
 
+const put = (path: string, body: object) => request(harness.url).put(path).set("origin", TEST_WEB_ORIGIN).set("cookie", staff).send(body);
 const patch = (path: string, body: object) =>
   request(harness.url).patch(path).set("origin", TEST_WEB_ORIGIN).set("cookie", staff).send(body);
 
@@ -218,7 +219,7 @@ describe("an image per option value (Pen 21 paper cards; owner, 2026-10-05)", ()
     await harness.database.db.insert(schema.fileRenditions).values({ fileId: photo.id, kind: "PREVIEW", storageKey: key, contentType: "image/webp" });
     expect((await request(harness.url).get(`/v1/media/${photo.id}/preview`)).status).toBe(404);
 
-    const set = await as(harness, staff).put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "Matte card stock, close up" });
+    const set = await put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "Matte card stock, close up" });
     expect(set.status).toBe(200);
     const matte = (body: unknown) => adminProductOptionsSchema.parse(body).options.find((option) => option.key === "paper")!.values.find((value) => value.key === "350gsm-matte")!;
     expect(matte(set.body).image).toMatchObject({ fileId: photo.id, alt: "Matte card stock, close up" });
@@ -240,10 +241,10 @@ describe("an image per option value (Pen 21 paper cards; owner, 2026-10-05)", ()
       .insert(schema.files)
       .values({ purpose: "ARTWORK", status: "READY", bucket: "private", originalName: "a.png", safeName: "a.png", declaredType: "image/png", declaredSize: 1, storageKey: "k2" })
       .returning();
-    expectHidden(await as(harness, staff).put(`${base}/paper/values/350gsm-matte/image`, { fileId: artwork!.id, alt: "x" }));
+    expectHidden(await put(`${base}/paper/values/350gsm-matte/image`, { fileId: artwork!.id, alt: "x" }));
     const photo = await mediaFile("unknown-value.png");
-    expectHidden(await as(harness, staff).put(`${base}/paper/values/no-such-paper/image`, { fileId: photo.id, alt: "x" }));
-    expect((await as(harness, staff).put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "" })).status).toBe(400);
+    expectHidden(await put(`${base}/paper/values/no-such-paper/image`, { fileId: photo.id, alt: "x" }));
+    expect((await put(`${base}/paper/values/350gsm-matte/image`, { fileId: photo.id, alt: "" })).status).toBe(400);
     expectHidden(await as(harness, actors.customerChidi!).get(base));
     expect((await as(harness, await harness.signInAs("adminTunde")).get(base)).status).toBe(403);
   });
