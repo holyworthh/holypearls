@@ -253,6 +253,13 @@
       "when": 1790974433992,
       "tag": "0035_shipments_reorder_problems",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791201458662,
+      "tag": "0036_quote_configuration_ids",
+      "breakpoints": true
     }
   ]
 }
