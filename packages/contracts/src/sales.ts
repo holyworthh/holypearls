@@ -195,6 +195,35 @@ export const checkoutSchema = z.object({
   quoteItemsLeftInCart: z.boolean(),
 });
 
+// ——— Delivery priced by staff (owner, 2026-10-05) ———
+
+/** Checkouts waiting for staff to price delivery to an address outside the zones. */
+export const deliveryPriceQueueSchema = z.object({
+  items: z.array(
+    z.object({
+      checkoutId: z.string(),
+      version: z.number().int(),
+      zoneName: z.string(),
+      /** "Nassarawa, Kano, NG": where it's going (the full address stays on the checkout). */
+      place: z.string(),
+      customer: z.string(),
+      items: z.string(),
+      goodsMinor: z.string(),
+      requestedAt: z.iso.datetime(),
+      expiresAt: z.iso.datetime().nullable(),
+    }),
+  ),
+});
+export const deliveryPriceInputSchema = z
+  .object({
+    rateMinor: z.string().regex(/^\d{1,12}$/, "Enter the delivery price"),
+    transitMinDays: z.number().int().min(1).max(90),
+    transitMaxDays: z.number().int().min(1).max(90),
+    version: z.number().int(),
+  })
+  .refine((input) => input.transitMaxDays >= input.transitMinDays, { message: "The longest time can't be shorter than the shortest", path: ["transitMaxDays"] });
+export type DeliveryPriceQueue = z.infer<typeof deliveryPriceQueueSchema>;
+
 export type DeliveryZone = z.infer<typeof deliveryZoneSchema>;
 export type Cart = z.infer<typeof cartSchema>;
 export type CartItem = z.infer<typeof cartItemSchema>;

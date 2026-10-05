@@ -6,6 +6,7 @@ import {
   checkoutBillingSchema,
   checkoutContactSchema,
   checkoutDeliverySchema,
+  deliveryPriceInputSchema,
   deliveryZoneInputSchema,
   fixedZoneInputSchema,
 } from "@holypearls/contracts";
@@ -23,6 +24,7 @@ import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, reque
 import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
 import { claimDeviceCommerce } from "./claim.js";
 import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
+import { deliveryPriceQueue, requestDeliveryPrice, setDeliveryPrice } from "./delivery-price.js";
 
 const uuid = new ParseUUIDPipe();
 const versioned = <T extends z.ZodType>(schema: T) => new ZodValidationPipe(z.intersection(schema, z.object({ version: z.number().int() })));
@@ -85,7 +87,10 @@ export class CartController {
 export class CheckoutController {
   private readonly db: Database;
 
-  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {
+  constructor(
+    @Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps,
+    @Inject(HELP_DEPS) private readonly help: HelpDepsToken,
+  ) {
     this.db = deps.db;
   }
 
@@ -136,7 +141,30 @@ export class CheckoutController {
   @Put(":id/billing")
   @RateLimit("COMMERCIAL_WRITE")
   async billing(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutBillingSchema)) body: z.infer<typeof checkoutBillingSchema> & { version: number }) {
-    return setBilling(this.deps, await access(this.db, request), id, body);
+    const actor = await request.getActor!();
+    const checkout = await setBilling(this.deps, await access(this.db, request), id, body);
+    // An address outside the zones: staff are asked for the delivery price (owner, 2026-10-05).
+    await requestDeliveryPrice(this.help, id, actor.now, actor.requestId);
+    return checkout;
+  }
+}
+
+/** Delivery prices for addresses outside the zones (owner, 2026-10-05). PRICING_MANAGE; audited. */
+@Controller("admin/delivery-prices")
+@UseGuards(StaffGuard("PRICING_MANAGE"))
+export class DeliveryPricesAdminController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: HelpDepsToken) {}
+
+  @Get()
+  async list(@Req() request: Request) {
+    return deliveryPriceQueue(this.deps, (await request.getActor!()).now);
+  }
+
+  @Post(":checkoutId")
+  @HttpCode(200)
+  @RateLimit("ADMIN_WRITE")
+  async set(@Req() request: Request, @Param("checkoutId", uuid) id: string, @Body(new ZodValidationPipe(deliveryPriceInputSchema)) body: z.infer<typeof deliveryPriceInputSchema>) {
+    return setDeliveryPrice(this.deps, await request.getActor!(), id, body);
   }
 }
 
