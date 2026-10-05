@@ -72,8 +72,8 @@ describe("configuration drafts (COM-FR-010–014)", () => {
     const product = publicProductSchema.parse((await request(harness.url).get("/v1/catalogue/products/business-cards")).body);
     expect(product.configurator).toMatchObject({ moq: 100, currency: "NGN", leadDays: { min: 2, max: 5 } });
     expect(product.configurator!.quantityPresets.map((preset) => preset.quantity)).toEqual([100, 500, 1000]);
-    // ₦150 per card at 100 including VAT = ₦161.25.
-    expect(product.configurator!.quantityPresets[0]!.perUnitMinor).toBe("16125");
+    // ₦150 per card at 100 before VAT (VAT is added once on the order).
+    expect(product.configurator!.quantityPresets[0]!.perUnitMinor).toBe("15000");
     expect(product.configurator!.blocked).toEqual([expect.objectContaining({ ifValue: "350gsm-gloss", thenValues: ["foil"] })]);
     const project = publicProductSchema.parse((await request(harness.url).get("/v1/catalogue/products/team-staff-branding")).body);
     expect(project.configurator).toBeNull();
@@ -88,7 +88,7 @@ describe("configuration drafts (COM-FR-010–014)", () => {
     expect(draft.price).toBeNull();
 
     draft = configurationSchema.parse((await mine.patch(`/v1/configurations/${draft.id}`, { version: draft.version, quantity: 250, step: "quantity" })).body.draft);
-    expect(draft.price).toMatchObject({ state: "PRICE_READY", totalMinor: "4031250", perUnitMinor: "16125" });
+    expect(draft.price).toMatchObject({ state: "PRICE_READY", totalMinor: "4031250", perUnitMinor: "15000" });
     expect(draft.step).toBe("quantity");
 
     // A stale version is refused with the latest draft.

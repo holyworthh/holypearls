@@ -354,11 +354,14 @@ export function calculatePrice(input: CalculationInput): CalculationResult {
   const rate = BigInt(input.tax.vatRateBps);
   let vat: bigint;
   let total: bigint;
+  // Goods before VAT: what "each" shows, since VAT is one line on the whole order (owner, 2026-10-05).
+  let netGoods = goods;
   if (price.includesVat) {
     const gross = goods + (delivery ?? 0n);
     const taxableGross = goods + (input.tax.vatOnDelivery ? (delivery ?? 0n) : 0n);
     vat = mulDivRound(taxableGross, rate, BPS + rate);
     total = gross;
+    netGoods = goods - mulDivRound(goods, rate, BPS + rate);
   } else {
     const taxable = goods + (input.tax.vatOnDelivery ? (delivery ?? 0n) : 0n);
     vat = mulDivRound(taxable, rate, BPS);
@@ -385,7 +388,7 @@ export function calculatePrice(input: CalculationInput): CalculationResult {
     deliveryMinor: delivery,
     vatMinor: vat,
     totalMinor: total,
-    perUnitMinor: mulDivRound(total, 1n, BigInt(quantity)),
+    perUnitMinor: mulDivRound(netGoods, 1n, BigInt(quantity)),
     vatRateBps: input.tax.vatRateBps,
     leadDays,
     proof: rules.proof,

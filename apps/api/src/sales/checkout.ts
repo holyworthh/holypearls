@@ -106,7 +106,8 @@ function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
     status: row.status,
     step: row.step as Step,
     version: row.version,
-    items: items.map(({ productName, summary, quantity, totalMinor, perUnitMinor, cartTotalMinor }) => ({ productName, summary, quantity, totalMinor, perUnitMinor, cartTotalMinor })),
+        // Item lines are before VAT; VAT is one line on the whole order (owner, 2026-10-05).
+    items: items.map(({ productName, summary, quantity, totalMinor, vatMinor, perUnitMinor, cartTotalMinor }) => ({ productName, summary, quantity, totalMinor: (BigInt(totalMinor) - BigInt(vatMinor)).toString(), perUnitMinor, cartTotalMinor })),
     contact: row.contact as Checkout["contact"],
     address,
     delivery: delivery ? { zoneName: delivery.zoneName, pricing: delivery.pricing, rateMinor: delivery.rateMinor, transitDays: delivery.transitDays, chosen: delivery.chosen } : null,
@@ -178,7 +179,10 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
       continue;
     }
     const price = draft.price!;
-    const added = (item.snapshot as Configuration).price?.totalMinor ?? null;
+    const addedPrice = (item.snapshot as Configuration).price;
+    // Compared before VAT, as the cart showed it.
+    const added = addedPrice?.totalMinor != null ? (BigInt(addedPrice.totalMinor) - BigInt(addedPrice.vatMinor ?? "0")).toString() : null;
+    const net = (BigInt(price.totalMinor!) - BigInt(price.vatMinor!)).toString();
     frozen.push({
       configurationId: row.id,
       productName: draft.productName,
@@ -188,7 +192,7 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
       vatMinor: price.vatMinor!,
       totalMinor: price.totalMinor!,
       perUnitMinor: price.perUnitMinor,
-      cartTotalMinor: added !== null && added !== price.totalMinor ? added : null,
+      cartTotalMinor: added !== null && added !== net ? added : null,
       leadDays: price.leadDays,
       priceResultId: price.id,
       snapshot: await orderableSnapshot(db, row, draft, taxSnapshot, now),

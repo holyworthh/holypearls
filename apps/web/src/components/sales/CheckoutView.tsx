@@ -181,14 +181,14 @@ export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedI
               <dd>{naira(checkout.totals.goodsMinor)}</dd>
             </div>
             <div className={styles.sum}>
-              <dt>VAT {percent(checkout.totals.vatRateBps)}</dt>
-              <dd>{naira(checkout.totals.vatMinor)}</dd>
-            </div>
-            <div className={styles.sum}>
               <dt>Delivery</dt>
               <dd className={checkout.totals.deliveryMinor === null ? styles.muted : undefined}>
                 {checkout.totals.deliveryMinor !== null ? naira(checkout.totals.deliveryMinor) : checkout.delivery?.pricing === "QUOTE" ? "Quoted by our team" : checkout.delivery ? "Set at shipping" : "Set after address"}
               </dd>
+            </div>
+            <div className={styles.sum}>
+              <dt>VAT {percent(checkout.totals.vatRateBps)}</dt>
+              <dd>{naira(checkout.totals.vatMinor)}</dd>
             </div>
             <div className={`${styles.sum} ${styles.total}`}>
               <dt>Total</dt>

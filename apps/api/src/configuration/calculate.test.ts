@@ -71,26 +71,27 @@ interface Case {
   reasons?: ReasonCode[];
 }
 
-const amounts = (goods: bigint, vat: bigint, total: bigint, perUnit: bigint) => ({ goodsMinor: goods, vatMinor: vat, totalMinor: total, perUnitMinor: perUnit });
+// "Each" is checked by the property below: goods before VAT ÷ quantity (owner, 2026-10-05).
+const amounts = (goods: bigint, vat: bigint, total: bigint) => ({ goodsMinor: goods, vatMinor: vat, totalMinor: total });
 
 const CASES: Case[] = [
   // Quantity and tiers (per pack of 100).
-  { name: "100 cards: 15,000.00 + 7.5% VAT", expect: { state: "PRICE_READY", valid: true, ...amounts(1_500_000n, 112_500n, 1_612_500n, 16_125n) } },
-  { name: "101 cards: pro-rata pack price", change: (i) => void (i.quantity = 101), expect: amounts(1_515_000n, 113_625n, 1_628_625n, 16_125n) },
-  { name: "150 cards", change: (i) => void (i.quantity = 150), expect: amounts(2_250_000n, 168_750n, 2_418_750n, 16_125n) },
-  { name: "250 cards", change: (i) => void (i.quantity = 250), expect: amounts(3_750_000n, 281_250n, 4_031_250n, 16_125n) },
-  { name: "499 cards stay on the base price", change: (i) => void (i.quantity = 499), expect: amounts(7_485_000n, 561_375n, 8_046_375n, 16_125n) },
-  { name: "500 cards reach the first tier", change: (i) => void (i.quantity = 500), expect: amounts(6_500_000n, 487_500n, 6_987_500n, 13_975n) },
-  { name: "999 cards stay on the first tier", change: (i) => void (i.quantity = 999), expect: amounts(12_987_000n, 974_025n, 13_961_025n, 13_975n) },
-  { name: "1,000 cards reach the second tier", change: (i) => void (i.quantity = 1_000), expect: amounts(11_000_000n, 825_000n, 11_825_000n, 11_825n) },
-  { name: "10,000 cards (the automatic limit) are still priced", change: (i) => void (i.quantity = 10_000), expect: { state: "PRICE_READY", ...amounts(110_000_000n, 8_250_000n, 118_250_000n, 11_825n) } },
+  { name: "100 cards: 15,000.00 + 7.5% VAT", expect: { state: "PRICE_READY", valid: true, ...amounts(1_500_000n, 112_500n, 1_612_500n) } },
+  { name: "101 cards: pro-rata pack price", change: (i) => void (i.quantity = 101), expect: amounts(1_515_000n, 113_625n, 1_628_625n) },
+  { name: "150 cards", change: (i) => void (i.quantity = 150), expect: amounts(2_250_000n, 168_750n, 2_418_750n) },
+  { name: "250 cards", change: (i) => void (i.quantity = 250), expect: amounts(3_750_000n, 281_250n, 4_031_250n) },
+  { name: "499 cards stay on the base price", change: (i) => void (i.quantity = 499), expect: amounts(7_485_000n, 561_375n, 8_046_375n) },
+  { name: "500 cards reach the first tier", change: (i) => void (i.quantity = 500), expect: amounts(6_500_000n, 487_500n, 6_987_500n) },
+  { name: "999 cards stay on the first tier", change: (i) => void (i.quantity = 999), expect: amounts(12_987_000n, 974_025n, 13_961_025n) },
+  { name: "1,000 cards reach the second tier", change: (i) => void (i.quantity = 1_000), expect: amounts(11_000_000n, 825_000n, 11_825_000n) },
+  { name: "10,000 cards (the automatic limit) are still priced", change: (i) => void (i.quantity = 10_000), expect: { state: "PRICE_READY", ...amounts(110_000_000n, 8_250_000n, 118_250_000n) } },
   {
     name: "tiers in any order: 700 uses the 500 tier",
     change: (i) => {
       i.price!.tiers = [...i.price!.tiers].reverse();
       i.quantity = 700;
     },
-    expect: amounts(9_100_000n, 682_500n, 9_782_500n, 13_975n),
+    expect: amounts(9_100_000n, 682_500n, 9_782_500n),
   },
   // 1,234,567 × 150 ÷ 100 = 1,851,850.5 → 1,851,851; VAT 138,888.825 → 138,889; total 1,990,740; ÷150 = 13,271.6 → 13,272.
   {
@@ -99,12 +100,12 @@ const CASES: Case[] = [
       i.price!.baseMinor = 1_234_567n;
       i.quantity = 150;
     },
-    expect: amounts(1_851_851n, 138_889n, 1_990_740n, 13_272n),
+    expect: amounts(1_851_851n, 138_889n, 1_990_740n),
   },
 
   // Add-ons.
-  { name: "double-sided adds 3,000.00 per order", change: (i) => void (i.choices.sides = "both"), expect: amounts(1_800_000n, 135_000n, 1_935_000n, 19_350n) },
-  { name: "soft-touch adds 20.00 per card", change: (i) => void (i.choices.finish = "soft-touch"), expect: amounts(1_700_000n, 127_500n, 1_827_500n, 18_275n) },
+  { name: "double-sided adds 3,000.00 per order", change: (i) => void (i.choices.sides = "both"), expect: amounts(1_800_000n, 135_000n, 1_935_000n) },
+  { name: "soft-touch adds 20.00 per card", change: (i) => void (i.choices.finish = "soft-touch"), expect: amounts(1_700_000n, 127_500n, 1_827_500n) },
   {
     name: "both add-ons on 200 cards",
     change: (i) => {
@@ -113,9 +114,9 @@ const CASES: Case[] = [
       i.quantity = 200;
     },
     // 3,000,000 + 300,000 + 400,000 = 3,700,000; per unit 3,977,500 ÷ 200 = 19,887.5 → 19,888.
-    expect: amounts(3_700_000n, 277_500n, 3_977_500n, 19_888n),
+    expect: amounts(3_700_000n, 277_500n, 3_977_500n),
   },
-  { name: "finish 'none' adds nothing", change: (i) => void (i.choices.finish = "none"), expect: amounts(1_500_000n, 112_500n, 1_612_500n, 16_125n) },
+  { name: "finish 'none' adds nothing", change: (i) => void (i.choices.finish = "none"), expect: amounts(1_500_000n, 112_500n, 1_612_500n) },
 
   // Minimum order quantity.
   { name: "below MOQ is blocked", change: (i) => void (i.quantity = 50), expect: { valid: false }, reasons: ["BELOW_MOQ_BLOCKED"] },
@@ -136,7 +137,7 @@ const CASES: Case[] = [
       i.quantity = 50;
     },
     // 750,000 + 225,000 = 975,000; VAT 73,125; per unit 1,048,125 ÷ 50 = 20,962.5 → 20,963.
-    expect: { state: "PRICE_READY", ...amounts(975_000n, 73_125n, 1_048_125n, 20_963n) },
+    expect: { state: "PRICE_READY", ...amounts(975_000n, 73_125n, 1_048_125n) },
     reasons: ["BELOW_MOQ_SURCHARGE"],
   },
   { name: "exactly the MOQ is fine", change: (i) => void (i.quantity = 100), expect: { valid: true, state: "PRICE_READY" }, reasons: [] },
@@ -148,7 +149,7 @@ const CASES: Case[] = [
     name: "rush adds 25% and shortens the lead time",
     change: (i) => void (i.rush = "RUSH"),
     // 1,500,000 + 375,000; lead 2–5 → 1–4.
-    expect: { ...amounts(1_875_000n, 140_625n, 2_015_625n, 20_156n), leadDays: { min: 1, max: 4 } },
+    expect: { ...amounts(1_875_000n, 140_625n, 2_015_625n), leadDays: { min: 1, max: 4 } },
     reasons: ["RUSH_SURCHARGE"],
   },
   { name: "priority rush needs review", change: (i) => void (i.rush = "PRIORITY"), expect: { state: "QUOTE_REQUIRED" }, reasons: ["RUSH_REVIEW"] },
@@ -158,7 +159,7 @@ const CASES: Case[] = [
       i.rules!.priorityRush = "AVAILABLE";
       i.rush = "PRIORITY";
     },
-    expect: { ...amounts(2_250_000n, 168_750n, 2_418_750n, 24_188n), leadDays: { min: 1, max: 3 } },
+    expect: { ...amounts(2_250_000n, 168_750n, 2_418_750n), leadDays: { min: 1, max: 3 } },
   },
   { name: "rush not offered", change: (i) => void ((i.rules!.rush = "NONE"), (i.rush = "RUSH")), expect: { valid: false }, reasons: ["RUSH_NOT_OFFERED"] },
   {
@@ -170,7 +171,7 @@ const CASES: Case[] = [
       i.rush = "RUSH";
     },
     // 750,000 → +225,000 = 975,000 → +243,750 = 1,218,750; VAT 91,406.25 → 91,406; total 1,310,156; ÷50 = 26,203.12 → 26,203.
-    expect: amounts(1_218_750n, 91_406n, 1_310_156n, 26_203n),
+    expect: amounts(1_218_750n, 91_406n, 1_310_156n),
   },
   { name: "standard lead time is reported", expect: { leadDays: { min: 2, max: 5 } } },
 
@@ -226,13 +227,13 @@ const CASES: Case[] = [
   { name: "fractional quantity", change: (i) => void (i.quantity = 1.5), expect: { valid: false }, reasons: ["INVALID_QUANTITY"] },
 
   // VAT.
-  { name: "0% VAT", change: (i) => void (i.tax!.vatRateBps = 0), expect: amounts(1_500_000n, 0n, 1_500_000n, 15_000n) },
+  { name: "0% VAT", change: (i) => void (i.tax!.vatRateBps = 0), expect: amounts(1_500_000n, 0n, 1_500_000n) },
   // 1,500,000 × 750 ÷ 10,750 = 104,651.16 → 104,651.
-  { name: "prices that include VAT", change: (i) => void (i.price!.includesVat = true), expect: amounts(1_500_000n, 104_651n, 1_500_000n, 15_000n) },
+  { name: "prices that include VAT", change: (i) => void (i.price!.includesVat = true), expect: amounts(1_500_000n, 104_651n, 1_500_000n) },
   {
     name: "delivery is taxed when VAT applies to delivery",
     change: (i) => void (i.delivery = { amountMinor: 800_000n, currency: "NGN" }),
-    expect: { deliveryMinor: 800_000n, ...amounts(1_500_000n, 172_500n, 2_472_500n, 24_725n) },
+    expect: { deliveryMinor: 800_000n, ...amounts(1_500_000n, 172_500n, 2_472_500n) },
   },
   {
     name: "delivery isn't taxed when VAT excludes delivery",
@@ -240,7 +241,7 @@ const CASES: Case[] = [
       i.delivery = { amountMinor: 800_000n, currency: "NGN" };
       i.tax!.vatOnDelivery = false;
     },
-    expect: amounts(1_500_000n, 112_500n, 2_412_500n, 24_125n),
+    expect: amounts(1_500_000n, 112_500n, 2_412_500n),
   },
   {
     name: "inclusive prices with delivery",
@@ -249,7 +250,7 @@ const CASES: Case[] = [
       i.delivery = { amountMinor: 800_000n, currency: "NGN" };
     },
     // 2,300,000 × 750 ÷ 10,750 = 160,465.1 → 160,465.
-    expect: amounts(1_500_000n, 160_465n, 2_300_000n, 23_000n),
+    expect: amounts(1_500_000n, 160_465n, 2_300_000n),
   },
   {
     name: "delivery in another currency is never converted",
@@ -266,7 +267,7 @@ const CASES: Case[] = [
       i.rules!.moq = 10;
       i.quantity = 10;
     },
-    expect: amounts(4_500_000n, 337_500n, 4_837_500n, 483_750n),
+    expect: amounts(4_500_000n, 337_500n, 4_837_500n),
   },
   {
     name: "per unit tier: 50 mugs at 4,000.00",
@@ -275,7 +276,7 @@ const CASES: Case[] = [
       i.rules!.moq = 10;
       i.quantity = 50;
     },
-    expect: amounts(20_000_000n, 1_500_000n, 21_500_000n, 430_000n),
+    expect: amounts(20_000_000n, 1_500_000n, 21_500_000n),
   },
   {
     name: "fixed price is the whole order price",
@@ -285,7 +286,7 @@ const CASES: Case[] = [
       i.quantity = 3;
     },
     // 5,912,500 ÷ 3 = 1,970,833.33 → 1,970,833.
-    expect: amounts(5_500_000n, 412_500n, 5_912_500n, 1_970_833n),
+    expect: amounts(5_500_000n, 412_500n, 5_912_500n),
   },
   {
     name: "a per-unit add-on on a fixed price applies once",
@@ -312,7 +313,7 @@ const CASES: Case[] = [
       i.sample = true;
     },
     // Unit at MOQ 15,000 × 1.5 = 22,500 < minimum 2,500,000.
-    expect: { quantity: 1, ...amounts(2_500_000n, 187_500n, 2_687_500n, 2_687_500n) },
+    expect: { quantity: 1, ...amounts(2_500_000n, 187_500n, 2_687_500n) },
     reasons: ["SAMPLE_PRICE"],
   },
   {
@@ -323,7 +324,7 @@ const CASES: Case[] = [
       i.sample = true;
     },
     // 22,500; VAT 1,687.5 → 1,688.
-    expect: amounts(22_500n, 1_688n, 24_188n, 24_188n),
+    expect: amounts(22_500n, 1_688n, 24_188n),
   },
   {
     name: "a sample ignores the MOQ",
@@ -347,6 +348,18 @@ describe("calculatePrice (table)", () => {
 });
 
 describe("calculatePrice (properties)", () => {
+  it("shows each unit before VAT, since VAT is one line on the whole order", () => {
+    for (const { change } of CASES) {
+      const input = base();
+      change?.(input);
+      const result = calculatePrice(input);
+      if (result.perUnitMinor === null || result.goodsMinor === null || result.vatMinor === null) continue;
+      const rate = BigInt(input.tax!.vatRateBps);
+      const net = input.price!.includesVat ? result.goodsMinor - mulDivRound(result.goodsMinor, rate, 10_000n + rate) : result.goodsMinor;
+      expect(result.perUnitMinor).toBe(mulDivRound(net, 1n, BigInt(result.quantity)));
+    }
+  });
+
   it("has at least 50 table cases", () => {
     expect(CASES.length).toBeGreaterThanOrEqual(50);
   });

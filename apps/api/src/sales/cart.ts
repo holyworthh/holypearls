@@ -5,6 +5,7 @@ import { AppError } from "../errors.js";
 import type { NotificationDeps } from "../platform/notifications.js";
 import { closeCheckoutsWith, type DraftAccess, draftView, loadDraft, quoteIn, quotable } from "../configuration/drafts.js";
 import { configuratorFor, productOptions } from "../configuration/pricing.js";
+import { checkoutTotals } from "./delivery.js";
 
 /*
  * The cart (T04-01, COM-FR-080–081, Pen 41/42). It belongs to the signed-in
@@ -98,7 +99,8 @@ function itemView(item: typeof schema.cartItems.$inferSelect): CartItem {
     summary: snapshot.summary,
     quantity: snapshot.price?.quantity ?? snapshot.quantity,
     artwork: artwork ? `${artwork.name}${artwork.status === "READY" ? " · checked" : ""}` : snapshot.artwork === "LATER" ? "Artwork later" : null,
-    totalMinor: snapshot.price?.totalMinor ?? null,
+    // Before VAT: the cart adds VAT once, on the whole order (owner, 2026-10-05).
+    totalMinor: snapshot.price?.totalMinor != null ? (BigInt(snapshot.price.totalMinor) - BigInt(snapshot.price.vatMinor ?? "0")).toString() : null,
     perUnitMinor: snapshot.price?.perUnitMinor ?? null,
     quantityOptions: snapshot.garment ? [] : [...new Set([...(snapshot.quantityOptions ?? []), ...(snapshot.price?.quantity ? [snapshot.price.quantity] : [])])].sort((a, b) => a - b),
     editHref: editHref(snapshot),
@@ -128,12 +130,16 @@ export async function getCart(db: Db, access: CartAccess): Promise<Cart> {
   const ready = live.filter((item) => item.group === "READY").map((item) => (item.snapshot as Snapshot).price!);
   const sum = (values: (string | null)[]) => values.reduce((total, value) => total + BigInt(value ?? "0"), 0n);
   const quotes = live.filter((item) => item.group === "QUOTE").map((item) => (item.snapshot as Snapshot).price?.totalMinor ?? null);
-  const readyTotal = sum(ready.map((price) => price.totalMinor));
-  const readyVat = sum(ready.map((price) => price.vatMinor));
+  const rate = ready[0]?.vatRateBps ?? null;
+  const totals = checkoutTotals(
+    ready.map((price) => ({ totalMinor: BigInt(price.totalMinor ?? "0"), vatMinor: BigInt(price.vatMinor ?? "0") })),
+    null,
+    { vatRateBps: rate ?? 0, vatOnDelivery: false },
+  );
   return {
     items: views,
     savedForLater: await savedDrafts(db, access),
-    ready: { goodsMinor: (readyTotal - readyVat).toString(), vatMinor: readyVat.toString(), totalMinor: readyTotal.toString(), vatRateBps: ready[0]?.vatRateBps ?? null },
+    ready: { goodsMinor: totals.goodsMinor.toString(), vatMinor: totals.vatMinor.toString(), totalMinor: totals.totalMinor.toString(), vatRateBps: rate },
     quoteEstimateMinor: quotes.some((value) => value !== null) ? sum(quotes).toString() : null,
   };
 }

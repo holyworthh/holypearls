@@ -57,22 +57,21 @@ export function zoneOverlaps(zones: ZoneRule[], candidate: { id: string | null; 
 }
 
 /**
- * Totals for the ready items plus delivery. Each item's VAT is what the price
- * calculator worked out for it (so VAT-inclusive prices stay as shown);
- * delivery rates are before VAT, and get VAT when the setting says so.
+ * Totals for the ready items plus delivery. Items count at their price before
+ * VAT (a VAT-inclusive price has its VAT taken out first); VAT is then worked
+ * out once on the whole order and shown as one line at the end (owner,
+ * 2026-10-05). Delivery rates are before VAT, and get VAT when the setting says so.
  */
 export function checkoutTotals(
   items: { vatMinor: bigint; totalMinor: bigint }[],
   delivery: { amountMinor: bigint } | null,
   tax: { vatRateBps: number; vatOnDelivery: boolean },
 ) {
-  const itemsTotal = items.reduce((sum, item) => sum + item.totalMinor, 0n);
-  const itemsVat = items.reduce((sum, item) => sum + item.vatMinor, 0n);
+  const goodsMinor = items.reduce((sum, item) => sum + item.totalMinor - item.vatMinor, 0n);
   const deliveryMinor = delivery?.amountMinor ?? null;
-  const deliveryVat = deliveryMinor !== null && tax.vatOnDelivery ? (deliveryMinor * BigInt(tax.vatRateBps) + 5_000n) / 10_000n : 0n;
-  const vatMinor = itemsVat + deliveryVat;
-  const totalMinor = itemsTotal + (deliveryMinor ?? 0n) + deliveryVat;
-  return { goodsMinor: totalMinor - vatMinor - (deliveryMinor ?? 0n), deliveryMinor, vatMinor, totalMinor };
+  const taxable = goodsMinor + (tax.vatOnDelivery ? (deliveryMinor ?? 0n) : 0n);
+  const vatMinor = (taxable * BigInt(tax.vatRateBps) + 5_000n) / 10_000n;
+  return { goodsMinor, deliveryMinor, vatMinor, totalMinor: goodsMinor + (deliveryMinor ?? 0n) + vatMinor };
 }
 
 // ——— Stored zones ———
