@@ -62,7 +62,13 @@ Not found in the documents available on 27 Sep 2026\. If the v1 tracker's Decisi
 
 ## ADR-015 — Hosting region
 
-**Status:** To be decided in T00-08. **Decision:** The API, worker and database share one region, the closest to Nigeria that all three platforms offer. Record the chosen region and host here.
+**Status:** Accepted, 5 October 2026 (decided in T00-04, formerly T00-08). **Decision:** The API, worker and database share one region, the closest to Nigeria that all three platforms offer:
+- **API and worker:** Render, Frankfurt (one Docker image).
+- **Database:** Neon PostgreSQL, AWS eu-central-1 (Frankfurt). Branches `staging` and `production`.
+- **Web and admin:** Vercel (global edge).
+- **Files:** Cloudflare R2, Western Europe.
+
+Until there are paying customers, everything runs on free plans: one Render container runs the api and the worker and runs migrations on start, and errors go to logs only, with Sentry added at launch. See `docs/ops/ENVIRONMENTS.md`. **Why:** Frankfurt is offered by all three platforms and is the nearest shared region to Lagos. **Revisit if:** a host opens an African region that all three share, or the free plans stop fitting the load.
 
 ## ADR-016 — Git branch, commit and pull request conventions
 
