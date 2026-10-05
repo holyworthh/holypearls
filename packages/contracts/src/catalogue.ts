@@ -148,3 +148,19 @@ export const adminProductSchema = adminProductBase.extend({
   related: z.array(relatedProductSchema),
 });
 export type AdminProduct = z.infer<typeof adminProductSchema>;
+
+/* An image per option value (Pen 21 paper cards; owner, 2026-10-05). */
+export const adminProductOptionsSchema = z.object({
+  options: z.array(
+    z.object({
+      key: z.string(),
+      label: z.string(),
+      values: z.array(z.object({ key: z.string(), label: z.string(), image: z.object({ fileId: z.string(), alt: z.string(), fileStatus: z.string() }).nullable() })),
+    }),
+  ),
+});
+export const optionImageInputSchema = z.object({
+  fileId: z.uuid(),
+  alt: z.string().trim().min(1, "Describe the image for people who can't see it").max(200),
+});
+export type AdminProductOptions = z.infer<typeof adminProductOptionsSchema>;

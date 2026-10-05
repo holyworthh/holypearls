@@ -597,6 +597,25 @@
   background: var(--hp-brand-tint);
 }
 
+/* Pen 21 paper card: a 96 px photo above the name and second line. */
+.tilePhoto {
+  gap: var(--hp-space-8);
+  padding: var(--hp-space-8);
+}
+
+.tilePhoto:has(input:checked) {
+  padding: calc(var(--hp-space-8) - 0.5px);
+}
+
+.tileImage {
+  display: block;
+  width: 100%;
+  height: var(--hp-space-96);
+  border-radius: var(--hp-r-chip);
+  background: var(--hp-bone);
+  object-fit: cover;
+}
+
 .tile:has(input:disabled) {
   border-style: dashed;
   color: var(--hp-text-3);

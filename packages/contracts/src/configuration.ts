@@ -194,7 +194,16 @@ export const configuratorSchema = z.object({
       key: z.string(),
       label: z.string(),
       required: z.boolean(),
-      values: z.array(z.object({ key: z.string(), label: z.string(), isDefault: z.boolean(), swatch: z.string().nullable() })),
+      values: z.array(
+        z.object({
+          key: z.string(),
+          label: z.string(),
+          isDefault: z.boolean(),
+          swatch: z.string().nullable(),
+          /** A photo of this choice (Pen 21's paper cards, a garment colour), when staff added one. */
+          image: z.object({ url: z.string(), thumbnailUrl: z.string(), alt: z.string() }).nullable(),
+        }),
+      ),
     }),
   ),
   moq: z.number().int(),

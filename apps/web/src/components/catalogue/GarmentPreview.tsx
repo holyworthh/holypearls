@@ -57,21 +57,29 @@ interface Props {
   onToggle: (position: Position) => void;
   /** Swatch of the chosen colour, so the outline shows the garment's colour. */
   fill?: string | null;
+  /** The chosen colour's photo, when staff added one: shown behind the front zones (Pen 22). */
+  photo?: string | null;
 }
 
 /**
  * The garment map (COM-FR-025): tap or use the keyboard on a zone to add or
  * remove a placement. Approximate, never a proof (COM-FR-053).
  */
-export function GarmentPreview({ view, placements, conflicts, onToggle, fill }: Props) {
+export function GarmentPreview({ view, placements, conflicts, onToggle, fill, photo }: Props) {
   const on = (position: Position) => placements.some((placement) => placement.position === position);
   const clash = (position: Position) => conflicts.some((conflict) => conflict.positions.includes(position));
   const style = { "--garment": fill ?? "var(--hp-paper)" } as CSSProperties;
   return (
     <svg className={`${s.map} ${isLight(fill) ? s.mapLight : ""}`} style={style} viewBox="0 0 300 320" role="group" aria-label={`Garment map, ${view}`}>
-      <path className={s.mapBody} d={BODY} />
-      <path className={s.mapBody} d={view === "front" ? COLLAR : BACK_COLLAR} />
-      {view === "front" ? <path className={s.mapSeam} d={PLACKET} /> : null}
+      {photo && view === "front" ? (
+        <image href={photo} x={0} y={0} width={300} height={320} preserveAspectRatio="xMidYMid slice" aria-hidden="true" />
+      ) : (
+        <>
+          <path className={s.mapBody} d={BODY} />
+          <path className={s.mapBody} d={view === "front" ? COLLAR : BACK_COLLAR} />
+        </>
+      )}
+      {view === "front" && !photo ? <path className={s.mapSeam} d={PLACKET} /> : null}
       {ZONES[view].map((zone) => (
         <g key={zone.position}>
           <rect

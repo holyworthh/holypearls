@@ -260,6 +260,13 @@
       "when": 1791201458662,
       "tag": "0036_quote_configuration_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791203344388,
+      "tag": "0037_option_value_images",
+      "breakpoints": true
     }
   ]
 }

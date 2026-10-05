@@ -9,6 +9,7 @@ import css from "../catalogue.module.css";
 import { DECORATION_LABELS, ROUTE_LABELS } from "@holypearls/web-kit/catalogue-labels";
 import { FAMILY_LABELS, MODE_LABELS, STATUS_TONE } from "../labels";
 import { MediaPanel } from "./MediaPanel";
+import { OptionImagesPanel } from "./OptionImagesPanel";
 import { RelatedPanel } from "./RelatedPanel";
 
 type Target = "PUBLISHED" | "TEMPORARILY_UNAVAILABLE" | "ARCHIVED";
@@ -398,6 +399,7 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
 
         <section className={styles.panel} role="tabpanel" id="product-panel-media" aria-labelledby="product-tab-media" hidden={tab !== "media"}>
           <MediaPanel product={product} disabled={archived} onSaved={applied} onError={handle} error={errors.media} />
+          <OptionImagesPanel productId={product.id} disabled={archived} onError={handle} />
         </section>
         <section className={styles.panel} role="tabpanel" id="product-panel-related" aria-labelledby="product-tab-related" hidden={tab !== "related"}>
           <RelatedPanel product={product} disabled={archived} onSaved={applied} onError={handle} />

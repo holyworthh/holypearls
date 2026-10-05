@@ -24,7 +24,7 @@ const FILE_TONE: Record<string, "success" | "info" | "error" | "warning"> = {
 };
 
 /** A short-lived signed thumbnail URL; the worker makes it once the image is checked. */
-function Thumb({ fileId, alt, status }: { fileId: string; alt: string; status: string }) {
+export function Thumb({ fileId, alt, status }: { fileId: string; alt: string; status: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     if (status !== "READY") return;

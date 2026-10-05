@@ -7,6 +7,7 @@ import {
   changeProductStatusSchema,
   createCategorySchema,
   createProductSchema,
+  optionImageInputSchema,
   reorderProductMediaSchema,
   setRelatedProductsSchema,
   updateCategorySchema,
@@ -14,7 +15,7 @@ import {
   updateProductSchema,
 } from "@holypearls/contracts";
 import type { Request } from "express";
-import type { z } from "zod";
+import { z } from "zod";
 import type { ActorContext } from "../identity/actor.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { RateLimit } from "../platform/rate-limit.js";
@@ -22,7 +23,7 @@ import { FILE_DEPS } from "../tokens.js";
 import type { FileDeps } from "../files/files.js";
 import { ZodValidationPipe } from "../validation.js";
 import { changeCategoryStatus, createCategory, getCategory, listCategories, updateCategory } from "./categories.js";
-import { addProductMedia, removeProductMedia, reorderProductMedia, updateProductMedia } from "./media.js";
+import { addProductMedia, productOptionImages, removeOptionImage, removeProductMedia, reorderProductMedia, setOptionImage, updateProductMedia } from "./media.js";
 import {
   bulkChangeStatus,
   changeProductStatus,
@@ -36,6 +37,7 @@ import {
 import { publicChange } from "./public-change.js";
 
 const uuid = new ParseUUIDPipe();
+const optionKey = new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(60));
 
 /** Public pages refresh through cache tags (TECH-02 §6); the search index and IndexNow follow. */
 const revalidate = (deps: FileDeps, actor: ActorContext, tags: string[]) => publicChange(deps.jobs, actor, tags);
@@ -45,6 +47,12 @@ const revalidate = (deps: FileDeps, actor: ActorContext, tags: string[]) => publ
 @UseGuards(StaffGuard("CATALOGUE_MANAGE"))
 export class CatalogueAdminController {
   constructor(@Inject(FILE_DEPS) private readonly deps: FileDeps) {}
+
+  /** The product page shows option photos, so it refreshes. */
+  private async refresh(actor: ActorContext, id: string) {
+    const product = await getProduct(this.deps.db, id);
+    await revalidate(this.deps, actor, [`product:${product.slug}`, "catalogue"]);
+  }
 
   @Get()
   list(@Query(new ZodValidationPipe(adminProductQuerySchema)) query: z.infer<typeof adminProductQuerySchema>) {
@@ -119,6 +127,36 @@ export class CatalogueAdminController {
   @RateLimit("ADMIN_WRITE")
   async removeMedia(@Req() request: Request, @Param("id", uuid) id: string, @Param("mediaId", uuid) mediaId: string) {
     return removeProductMedia(this.deps.db, await request.getActor!(), id, mediaId);
+  }
+
+  /** An image per option value (Pen 21 paper cards; owner, 2026-10-05). */
+  @Get(":id/options")
+  options(@Param("id", uuid) id: string) {
+    return productOptionImages(this.deps.db, id);
+  }
+
+  @Put(":id/options/:option/values/:value/image")
+  @RateLimit("ADMIN_WRITE")
+  async setOptionImage(
+    @Req() request: Request,
+    @Param("id", uuid) id: string,
+    @Param("option", optionKey) option: string,
+    @Param("value", optionKey) value: string,
+    @Body(new ZodValidationPipe(optionImageInputSchema)) body: z.infer<typeof optionImageInputSchema>,
+  ) {
+    const actor = await request.getActor!();
+    const result = await setOptionImage(this.deps.db, actor, id, option, value, body);
+    await this.refresh(actor, id);
+    return result;
+  }
+
+  @Delete(":id/options/:option/values/:value/image")
+  @RateLimit("ADMIN_WRITE")
+  async removeOptionImage(@Req() request: Request, @Param("id", uuid) id: string, @Param("option", optionKey) option: string, @Param("value", optionKey) value: string) {
+    const actor = await request.getActor!();
+    const result = await removeOptionImage(this.deps.db, actor, id, option, value);
+    await this.refresh(actor, id);
+    return result;
   }
 
   @Put(":id/media-order")

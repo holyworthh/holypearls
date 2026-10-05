@@ -304,7 +304,7 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
           </button>
         ))}
       </div>
-      <GarmentPreview view={view} placements={placements} conflicts={serverConflicts} onToggle={togglePlacement} fill={colourValue?.swatch} />
+      <GarmentPreview view={view} placements={placements} conflicts={serverConflicts} onToggle={togglePlacement} fill={colourValue?.swatch} photo={colourValue?.image?.url} />
     </div>
   );
 

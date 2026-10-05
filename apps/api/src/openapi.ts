@@ -3,6 +3,7 @@ import {
   apiErrorSchema,
   adminHelpRequestSchema,
   addProductMediaSchema,
+  optionImageInputSchema,
   adminCategoryListSchema,
   adminCategorySchema,
   bulkProductStatusResultSchema,
@@ -57,6 +58,7 @@ import {
   quoteRequestSchema,
   updateConfigurationSchema,
   adminProductPageSchema,
+  adminProductOptionsSchema,
   adminProductSchema,
   changeProductStatusSchema,
   createProductSchema,
@@ -473,6 +475,22 @@ export function buildOpenApiDocument() {
           summary: "Remove an image; a published product keeps at least one (CATALOGUE_MANAGE, audited)",
           parameters: [uuidParam("id"), uuidParam("mediaId")],
           responses: { 200: { description: "Removed", content: json(adminProductSchema) }, 422: error("Last image of a published product (RULE_FAILED)"), ...staffOnly },
+        },
+      },
+      "/v1/admin/catalogue/products/{id}/options": {
+        get: { summary: "Options and values with their images (CATALOGUE_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Options", content: json(adminProductOptionsSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/catalogue/products/{id}/options/{option}/values/{value}/image": {
+        put: {
+          summary: "Set an option value's photo from product media (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id"), { name: "option", in: "path", required: true, schema: { type: "string" } }, { name: "value", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: json(optionImageInputSchema) },
+          responses: { 200: { description: "Saved", content: json(adminProductOptionsSchema) }, ...staffOnly },
+        },
+        delete: {
+          summary: "Remove an option value's photo (CATALOGUE_MANAGE, audited)",
+          parameters: [uuidParam("id"), { name: "option", in: "path", required: true, schema: { type: "string" } }, { name: "value", in: "path", required: true, schema: { type: "string" } }],
+          responses: { 200: { description: "Removed", content: json(adminProductOptionsSchema) }, ...staffOnly },
         },
       },
       "/v1/admin/catalogue/products/{id}/media-order": {
