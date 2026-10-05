@@ -1,5 +1,5 @@
-import { adminQuoteSchema, cartSchema, checkoutSchema, configurationSchema, deliveryZoneListSchema } from "@holypearls/contracts";
-import { eq, schema } from "@holypearls/db";
+import { adminQuoteSchema, cartSchema, checkoutSchema, configurationSchema, deliveryPriceQueueSchema, deliveryZoneListSchema } from "@holypearls/contracts";
+import { and, eq, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ async function readyCheckout(b: Browser) {
 
 beforeAll(async () => {
   harness = await createHarness();
-  actors = await signInActors(harness, ["customerChidi", "customerAmaka", "adminTunde"]);
+  actors = await signInActors(harness, ["customerChidi", "customerAmaka", "adminTunde", "catalogueNoMfa"]);
   staff = await harness.signInAs("adminAda");
 });
 
@@ -336,6 +336,54 @@ describe("carts and checkouts are private (TECH-03 §17)", () => {
     const draft = await cardsDraft(browser());
     expectHidden(await stranger.post("/v1/cart/items", { configurationId: draft.id }));
     expect(cartSchema.parse((await stranger.get("/v1/cart")).body).items).toEqual([]);
+  });
+});
+
+describe("delivery priced by staff for addresses outside the zones (owner, 2026-10-05)", () => {
+  const staffApi = () => as(harness, staff);
+  const kanoCheckout = async (b: Browser) => {
+    const { checkout } = await readyCheckout(b);
+    let row = checkoutSchema.parse((await b.put(`/v1/checkouts/${checkout.id}/address`, { ...lekki, state: "Kano", area: "Nassarawa", version: checkout.version })).body);
+    row = checkoutSchema.parse((await b.put(`/v1/checkouts/${row.id}/delivery`, { option: "STANDARD", version: row.version })).body);
+    return checkoutSchema.parse((await b.put(`/v1/checkouts/${row.id}/billing`, { sameAsDelivery: true, version: row.version })).body);
+  };
+  const emails = (template: string, recordId: string) =>
+    harness.database.db.select().from(schema.notifications).where(and(eq(schema.notifications.template, template), eq(schema.notifications.recordId, recordId)));
+
+  it("holds payment, tells staff once, and lets them set the price; the customer is emailed and can pay", async () => {
+    const b = browser();
+    const held = await kanoCheckout(b);
+    expect(held.blockers.map((blocker) => blocker.code)).toContain("DELIVERY_QUOTE_REQUIRED");
+    expect((await b.post(`/v1/checkouts/${held.id}/payments`)).status).toBeGreaterThanOrEqual(400);
+    expect(await emails("delivery_price_needed", held.id)).toHaveLength(1);
+
+    const queue = deliveryPriceQueueSchema.parse((await staffApi().get("/v1/admin/delivery-prices")).body);
+    const entry = queue.items.find((item) => item.checkoutId === held.id)!;
+    expect(entry).toMatchObject({ place: expect.stringContaining("Kano"), zoneName: "Other Nigerian states" });
+
+    const priced = await staffApi().post(`/v1/admin/delivery-prices/${held.id}`, { rateMinor: "900000", transitMinDays: 3, transitMaxDays: 5, version: entry.version });
+    expect(priced.status).toBe(200);
+    const view = checkoutSchema.parse((await b.get(`/v1/checkouts/${held.id}`)).body);
+    expect(view.blockers.map((blocker) => blocker.code)).not.toContain("DELIVERY_QUOTE_REQUIRED");
+    expect(view.totals.deliveryMinor).toBe("900000");
+    expect(view.delivery).toMatchObject({ rateMinor: "900000", transitDays: { min: 3, max: 5 } });
+    expect(await emails("delivery_price_ready", held.id)).toHaveLength(1);
+    expect(deliveryPriceQueueSchema.parse((await staffApi().get("/v1/admin/delivery-prices")).body).items.map((item) => item.checkoutId)).not.toContain(held.id);
+
+    // A new address means a new price.
+    const moved = checkoutSchema.parse((await b.put(`/v1/checkouts/${held.id}/address`, { ...lekki, state: "Kano", area: "Fagge", version: view.version })).body);
+    expect(moved.totals.deliveryMinor).toBeNull();
+  });
+
+  it("refuses a stale version, a fixed-rate checkout, and anyone without PRICING_MANAGE", async () => {
+    const b = browser();
+    const held = await kanoCheckout(b);
+    expect((await staffApi().post(`/v1/admin/delivery-prices/${held.id}`, { rateMinor: "900000", transitMinDays: 3, transitMaxDays: 5, version: held.version - 1 })).status).toBe(409);
+    const fixed = (await readyCheckout(browser())).checkout;
+    expect((await staffApi().post(`/v1/admin/delivery-prices/${fixed.id}`, { rateMinor: "1", transitMinDays: 1, transitMaxDays: 1, version: fixed.version })).status).toBe(422);
+    expectHidden(await as(harness, actors.customerChidi!).get("/v1/admin/delivery-prices"));
+    expectForbidden(await as(harness, actors.catalogueNoMfa!).get("/v1/admin/delivery-prices"));
+    expectForbidden(await as(harness, actors.catalogueNoMfa!).post(`/v1/admin/delivery-prices/${held.id}`, { rateMinor: "1", transitMinDays: 1, transitMaxDays: 1, version: held.version }));
   });
 });
 

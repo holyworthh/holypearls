@@ -332,6 +332,33 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  delivery_price_needed: define({
+    label: "Delivery price needed (staff)",
+    carriesSecret: false,
+    data: z.object({ place: z.string(), url: z.url() }),
+    subject: ({ place }) => `Delivery price needed · ${place}`,
+    render: ({ place, url }) => (
+      <Layout preview={`A customer is waiting for a delivery price to ${place}`} title="Delivery price needed" action={{ label: "Set the delivery price", href: url }}>
+        <Text style={text.body}>
+          A customer has finished checkout for delivery to {place}, outside the delivery zones. They can pay once you set the delivery price. Their checkout stays open for 72 hours.
+        </Text>
+      </Layout>
+    ),
+  }),
+  delivery_price_ready: define({
+    label: "Delivery price ready",
+    carriesSecret: false,
+    data: z.object({ delivery: z.string(), total: z.string(), url: z.url() }),
+    subject: () => "Your delivery price is ready",
+    render: ({ delivery, total, url }) => (
+      <Layout preview={`Delivery ${delivery}. Your total is ${total}.`} title="Your delivery price is ready" action={{ label: "Review and pay", href: url }}>
+        <Text style={text.body}>
+          Delivery to your address is {delivery}, so your order total is {total} including VAT. Open your checkout on the device you used to place the order to review and pay.
+        </Text>
+        <Text style={text.support}>Your checkout stays open for 72 hours.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

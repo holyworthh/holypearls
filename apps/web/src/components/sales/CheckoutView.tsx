@@ -58,7 +58,7 @@ export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedI
     setEditing(next.step);
   };
 
-  const total = checkout.totals.deliveryMinor === null && checkout.delivery?.pricing !== "QUOTE" ? `${naira(checkout.totals.totalMinor)} + delivery` : naira(checkout.totals.totalMinor);
+  const total = checkout.totals.deliveryMinor === null && !awaitingPrice(checkout) ? `${naira(checkout.totals.totalMinor)} + delivery` : naira(checkout.totals.totalMinor);
 
   return (
     <div className={styles.page}>
@@ -183,7 +183,7 @@ export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedI
             <div className={styles.sum}>
               <dt>Delivery</dt>
               <dd className={checkout.totals.deliveryMinor === null ? styles.muted : undefined}>
-                {checkout.totals.deliveryMinor !== null ? naira(checkout.totals.deliveryMinor) : checkout.delivery?.pricing === "QUOTE" ? "Quoted by our team" : checkout.delivery ? "Set at shipping" : "Set after address"}
+                {checkout.totals.deliveryMinor !== null ? naira(checkout.totals.deliveryMinor) : awaitingPrice(checkout) ? "Priced by our team" : checkout.delivery ? "Set at shipping" : "Set after address"}
               </dd>
             </div>
             <div className={styles.sum}>
@@ -234,7 +234,8 @@ function doneSummary(step: Step, checkout: Checkout) {
       const delivery = checkout.delivery;
       if (!delivery) return "";
       const days = delivery.transitDays ? ` · ${delivery.transitDays.min}–${delivery.transitDays.max} working days in transit` : "";
-      return delivery.pricing === "QUOTE" ? `${delivery.zoneName} · delivery quoted by our team${days}` : `${delivery.zoneName} · ${naira(delivery.rateMinor)} before VAT${days}`;
+      if (delivery.rateMinor === null) return `${delivery.zoneName} · delivery priced by our team${days}`;
+      return `${delivery.zoneName} · ${naira(delivery.rateMinor)} before VAT${delivery.pricing === "QUOTE" ? ", set by our team" : ""}${days}`;
     }
     case "billing": {
       const billing = checkout.billing;
@@ -412,11 +413,14 @@ function AddressStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
   );
 }
 
+/** Delivery to an address outside the zones waits for our team's price (owner, 2026-10-05). */
+const awaitingPrice = (checkout: Checkout) => checkout.delivery?.pricing === "QUOTE" && checkout.delivery.rateMinor === null;
+
 function DeliveryStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next: Checkout) => void }) {
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const delivery = checkout.delivery!;
-  const quote = delivery.pricing === "QUOTE";
+  const quote = delivery.pricing === "QUOTE" && delivery.rateMinor === null;
   const submit = async () => {
     setSaving(true);
     const result = await put(checkout, "delivery", { option: "STANDARD" });
@@ -435,7 +439,7 @@ function DeliveryStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (nex
             {quote
               ? checkout.international
                 ? "Our team quotes freight to your address before you pay. Customs duties are paid on arrival."
-                : `Delivery to this address is priced by our team (${delivery.zoneName}). We send the price before you pay.`
+                : `Delivery to this address is priced by our team (${delivery.zoneName}). We'll email you the price, then you can pay here.`
               : delivery.transitDays
                 ? `${delivery.transitDays.min}–${delivery.transitDays.max} working days in transit, after production`
                 : "Transit time confirmed when it ships"}

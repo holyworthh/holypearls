@@ -24,7 +24,7 @@ import { ContentAdminController, ContentController } from "./catalogue/content.c
 import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
-import { CartController, CheckoutController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
+import { CartController, CheckoutController, DeliveryPricesAdminController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
 import { PaystackWebhookController } from "./payments/payments.controller.js";
 import { PaymentsAdminController } from "./payments/admin.controller.js";
 import { OrdersController } from "./orders/orders.controller.js";
@@ -140,6 +140,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       CartController,
       CheckoutController,
       DeliveryZonesAdminController,
+      DeliveryPricesAdminController,
       PaystackWebhookController,
       PaymentsAdminController,
       OrdersController,

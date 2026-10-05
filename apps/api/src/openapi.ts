@@ -51,6 +51,8 @@ import {
   checkoutDeliverySchema,
   checkoutSchema,
   deliveryZoneInputSchema,
+  deliveryPriceInputSchema,
+  deliveryPriceQueueSchema,
   deliveryZoneListSchema,
   deliveryZoneSchema,
   fixedZoneInputSchema,
@@ -808,6 +810,23 @@ export function buildOpenApiDocument() {
           parameters: [uuidParam("id")],
           requestBody: { required: true, content: json(z.intersection(checkoutBillingSchema, z.object({ version: z.number().int() }))) },
           responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 400: error("Check the fields"), 404: error("Not yours"), 409: error("Changed elsewhere or closed"), 422: error("Delivery first") },
+        },
+      },
+      "/v1/admin/delivery-prices": {
+        get: { summary: "Checkouts waiting for a delivery price (PRICING_MANAGE)", responses: { 200: { description: "Queue", content: json(deliveryPriceQueueSchema) }, 403: error("Missing PRICING_MANAGE") } },
+      },
+      "/v1/admin/delivery-prices/{checkoutId}": {
+        post: {
+          summary: "Set the delivery price for an address outside the zones; the customer is emailed (audited)",
+          parameters: [uuidParam("checkoutId")],
+          requestBody: { required: true, content: json(deliveryPriceInputSchema) },
+          responses: {
+            200: { description: "Priced", content: json(z.object({ checkoutId: z.string(), version: z.number().int(), totalMinor: z.string() })) },
+            403: error("Missing PRICING_MANAGE"),
+            404: error("No such checkout"),
+            409: error("Changed, closed or being paid"),
+            422: error("Delivery already has a zone rate"),
+          },
         },
       },
       "/v1/admin/delivery-zones": {

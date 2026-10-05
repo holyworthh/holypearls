@@ -56,14 +56,21 @@ interface FrozenItem {
   snapshot: OrderableConfigurationSnapshotV1;
 }
 
-interface Delivery {
+export interface Delivery {
   zoneId: string;
   zoneName: string;
   pricing: "FIXED" | "QUOTE";
+  /** For QUOTE, null until staff set the price (owner, 2026-10-05). */
   rateMinor: string | null;
   transitDays: { min: number; max: number } | null;
   chosen: boolean;
+  /** QUOTE only: when staff were asked to price it, and when they did. */
+  requestedAt?: string | null;
+  quotedAt?: string | null;
 }
+
+/** Delivery to this address waits for staff to set its price. */
+export const awaitingDeliveryPrice = (delivery: Delivery | null) => delivery?.pricing === "QUOTE" && delivery.rateMinor === null;
 
 function canOpen(access: CartAccess, row: Row) {
   if (access.actor.type === "user" && row.ownerUserId === access.actor.session.userId) return true;
@@ -76,10 +83,11 @@ async function load(db: Db, access: CartAccess, id: string) {
   return row;
 }
 
-function totalsOf(row: Pick<Row, "items" | "delivery" | "vatRateBps" | "vatOnDelivery">) {
+export function totalsOf(row: Pick<Row, "items" | "delivery" | "vatRateBps" | "vatOnDelivery">) {
   const items = row.items as FrozenItem[];
   const delivery = row.delivery as Delivery | null;
-  const amount = delivery?.chosen && delivery.pricing === "FIXED" ? { amountMinor: BigInt(delivery.rateMinor!) } : null;
+  // A fixed zone rate, or the price staff set for a quoted address.
+  const amount = delivery?.chosen && delivery.rateMinor !== null ? { amountMinor: BigInt(delivery.rateMinor) } : null;
   return checkoutTotals(
     items.map((item) => ({ vatMinor: BigInt(item.vatMinor), totalMinor: BigInt(item.totalMinor) })),
     amount,
@@ -94,10 +102,10 @@ function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
   const done = (step: Step) => STEPS.indexOf(row.step as Step) > STEPS.indexOf(step);
   const blockers: Checkout["blockers"] = [];
   if (!done("billing")) blockers.push({ code: "STEPS_INCOMPLETE", message: "Finish the steps above to review and pay." });
-  if (delivery?.pricing === "QUOTE") {
+  if (awaitingDeliveryPrice(delivery)) {
     blockers.push({
       code: "DELIVERY_QUOTE_REQUIRED",
-      message: address?.country === "NG" ? "Delivery to this address needs a quote. We'll send the delivery price before you pay." : "International freight is quoted by our team. We'll send the freight price before you pay.",
+      message: address?.country === "NG" ? "Delivery to this address is priced by our team. We'll email you the delivery price, then you can pay here." : "International freight is priced by our team. We'll email you the freight price, then you can pay here.",
     });
   }
   const leads = items.flatMap((item) => (item.leadDays ? [item.leadDays] : []));
