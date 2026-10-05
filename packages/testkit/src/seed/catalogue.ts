@@ -7,15 +7,15 @@ import { eq, schema, type Transaction } from "@holypearls/db";
  */
 
 export const SEED_CATEGORIES = [
-  ["apparel-garment-production", "Apparel & Garment Production", "Ready-made, manufactured and bespoke garments."],
-  ["embroidery-garment-customization", "Embroidery & Garment Customization", "Embroidery, printing and garment decoration."],
-  ["print-business-stationery", "Print & Business Stationery", "Commercial and corporate print."],
-  ["large-format-signage-displays", "Large Format, Signage & Displays", "Oversized print and physical visibility materials."],
-  ["bags-packaging", "Bags & Packaging", "Retail, delivery, merchandise and presentation packaging."],
-  ["stickers-labels-product-branding", "Stickers, Labels & Product Branding", "Adhesive products, garment tags and product identification."],
-  ["promotional-products-corporate-gifts", "Promotional Products & Corporate Gifts", "Branded merchandise and gifts."],
-  ["wall-art-decorative-print", "Wall Art & Decorative Print", "Canvas, framed and decorative applications."],
-  ["custom-multi-product-projects", "Custom & Multi-Product Projects", "Jobs spanning several capabilities."],
+  ["apparel-garment-production", "Apparel & garment production", "Ready-made, manufactured and bespoke garments."],
+  ["embroidery-garment-customization", "Embroidery & garment customization", "Embroidery, printing and garment decoration."],
+  ["print-business-stationery", "Print & business stationery", "Commercial and corporate print."],
+  ["large-format-signage-displays", "Large format, signage & displays", "Oversized print and physical visibility materials."],
+  ["bags-packaging", "Bags & packaging", "Retail, delivery, merchandise and presentation packaging."],
+  ["stickers-labels-product-branding", "Stickers, labels & product branding", "Adhesive products, garment tags and product identification."],
+  ["promotional-products-corporate-gifts", "Promotional products & corporate gifts", "Branded merchandise and gifts."],
+  ["wall-art-decorative-print", "Wall art & decorative print", "Canvas, framed and decorative applications."],
+  ["custom-multi-product-projects", "Custom & multi-product projects", "Jobs spanning several capabilities."],
 ] as const;
 
 type Mode = "SIMPLE_CONFIGURABLE" | "CONFIGURABLE_QUOTE" | "CONSULTATIVE_PROJECT";
@@ -115,8 +115,8 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     summary: "Premium business cards printed on quality card, delivered fast.",
     options: [
       // How the paper feels first, weight second (COM-FR-041); keys stay the same.
-      ["paper", "Paper", ["350gsm-matte|Smooth matte · 350gsm", "350gsm-gloss|Glossy · 350gsm", "400gsm-soft-touch|Soft-touch, thicker · 400gsm"]],
-      ["sides", "Printed sides", ["One side", "Both sides"]],
+      ["paper", "Paper", ["350gsm-matte|Standard matte · Smooth and practical, 350gsm", "350gsm-gloss|Gloss · Bright colours, 350gsm", "400gsm-soft-touch|Premium soft-touch · Thicker and velvety, 400gsm"]],
+      ["sides", "Sides", ["one-side|Front only", "both-sides|Front + back"]],
       ["finish", "Finish", ["None", "Foil", "Spot UV"]],
     ],
   },
