@@ -242,9 +242,9 @@ test("desktop mega-menus open on hover and close when the pointer leaves", async
   const products = page.getByRole("button", { name: "Products", exact: true });
   await products.hover();
   await expect(products).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Apparel & Garment Production" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Apparel & garment production" }).first()).toBeVisible();
   // Moving into the open menu keeps it open; leaving the header closes it.
-  await page.getByRole("link", { name: "Apparel & Garment Production" }).first().hover();
+  await page.getByRole("link", { name: "Apparel & garment production" }).first().hover();
   await expect(products).toHaveAttribute("aria-expanded", "true");
   await page.mouse.move(700, 800);
   await expect(products).toHaveAttribute("aria-expanded", "false");

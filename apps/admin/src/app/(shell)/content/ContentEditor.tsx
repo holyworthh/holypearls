@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { FileUpload } from "@holypearls/web-kit/file-upload";
 import { api } from "@holypearls/web-kit/api";
+import { z } from "zod";
 import { formatTime } from "../format";
 import c from "./content-admin.module.css";
 import { PartsEditor } from "./PartsEditor";
@@ -121,7 +122,7 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
   const [hero, setHero] = useState<FileView | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<Banner | null>(null);
-  const [busy, setBusy] = useState<"save" | "publish" | "status" | null>(null);
+  const [busy, setBusy] = useState<"save" | "publish" | "status" | "preview" | null>(null);
   const [confirm, setConfirm] = useState<"publish" | "unpublish" | "archive" | null>(null);
   const [dirty, setDirty] = useState(false);
   const saving = useRef(false);
@@ -193,6 +194,29 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
       return null;
     } finally {
       saving.current = false;
+      setBusy(null);
+    }
+  };
+
+  /**
+   * Opens the current draft on the customer site through a signed link that
+   * lasts an hour (owner, 2026-10-05). Unsaved changes are saved first. The
+   * tab opens straight away so the browser doesn't block it.
+   */
+  const preview = async () => {
+    const tab = window.open("", "_blank");
+    if (dirty && !(await save(true))) return tab?.close();
+    setBusy("preview");
+    try {
+      const { url } = await api(`/v1/admin/content/${latest.current.page.id}/preview-link`, { method: "POST", response: z.object({ url: z.string(), expiresAt: z.string() }) });
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = url;
+      } else window.location.assign(url);
+    } catch (error) {
+      tab?.close();
+      fail(error, "Preview not available");
+    } finally {
       setBusy(null);
     }
   };
@@ -272,9 +296,14 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
               Save draft
             </Button>
           ) : null}
+          {!archived ? (
+            <Button type="button" variant="secondary" loading={busy === "preview"} disabled={busy !== null && busy !== "preview"} onClick={() => void preview()}>
+              Preview draft
+            </Button>
+          ) : null}
           {page.publishedAt && !archived ? (
-            <ButtonLink variant="secondary" href={liveHref} target="_blank" rel="noopener">
-              Preview
+            <ButtonLink variant="tertiary" href={liveHref} target="_blank" rel="noopener">
+              View live
             </ButtonLink>
           ) : null}
           {!archived ? (
@@ -288,7 +317,6 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
           )}
         </div>
       </header>
-      {!page.publishedAt && !archived ? <p className={c.hint}>Preview opens the live page, so it&apos;s available once the {singular} has been published.</p> : null}
 
       {banner ? (
         <Notice tone={banner.tone} title={banner.title} live>

@@ -36,7 +36,7 @@ test("the Products mega-menu works by keyboard", async ({ page }) => {
   await products.focus();
   await page.keyboard.press("Enter");
   await expect(products).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByRole("link", { name: "Apparel & Garment Production" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Apparel & garment production" }).first()).toBeVisible();
   await expectNoAxeViolations(page);
   await page.keyboard.press("Escape");
   await expect(products).toHaveAttribute("aria-expanded", "false");
@@ -54,7 +54,7 @@ test("the mobile menu drills down with 44 px targets", async ({ page }) => {
   const rows = menu.getByRole("button", { name: "Products" });
   expect((await rows.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await rows.click();
-  await expect(menu.getByRole("link", { name: "Bags & Packaging" })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "Bags & packaging" })).toBeVisible();
   for (const link of await menu.getByRole("link").all()) {
     const box = await link.boundingBox();
     if (box) expect(box.height).toBeGreaterThanOrEqual(44);

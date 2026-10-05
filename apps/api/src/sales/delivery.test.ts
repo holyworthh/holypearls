@@ -73,10 +73,17 @@ describe("checkout totals are worked out by the server (TECH-05 §1, COM-FR-084)
     expect(totals.totalMinor).toBe(5_250_000n + 450_000n + 393_750n + 33_750n);
   });
 
-  it("keeps VAT-inclusive items' VAT as the calculator extracted it", () => {
-    const inclusive = { goodsMinor: 1_000_000n, vatMinor: 69_767n, totalMinor: 1_000_000n };
+  it("works VAT out once on the whole order, not item by item (owner, 2026-10-05)", () => {
+    // Each ₦0.06 item alone rounds to no VAT; together they owe 1 kobo.
+    const small = { vatMinor: 0n, totalMinor: 6n };
+    const totals = checkoutTotals([small, small], null, { vatRateBps: 750, vatOnDelivery: false });
+    expect(totals).toEqual({ goodsMinor: 12n, deliveryMinor: null, vatMinor: 1n, totalMinor: 13n });
+  });
+
+  it("takes a VAT-inclusive item's price before VAT, then adds VAT on the whole order", () => {
+    const inclusive = { vatMinor: 69_767n, totalMinor: 1_000_000n };
     const totals = checkoutTotals([inclusive, cards], null, { vatRateBps: 750, vatOnDelivery: true });
-    expect(totals).toEqual({ goodsMinor: 1_000_000n - 69_767n + 5_250_000n, deliveryMinor: null, vatMinor: 69_767n + 393_750n, totalMinor: 1_000_000n + 5_643_750n });
+    expect(totals).toEqual({ goodsMinor: 930_233n + 5_250_000n, deliveryMinor: null, vatMinor: 463_517n, totalMinor: 6_643_750n });
   });
 
   it("leaves delivery out of the total until it's known", () => {

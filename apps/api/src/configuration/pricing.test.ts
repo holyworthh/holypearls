@@ -31,8 +31,8 @@ describe("public price calculation (COM-FR-004, 005)", () => {
     const response = await price("business-cards", { choices: { paper: "350gsm-matte", sides: "both-sides" }, quantity: 250 });
     expect(response.status).toBe(200);
     const result = priceResultSchema.parse(response.body);
-    // ₦15,000 per 100 × 250 = ₦37,500; VAT 7.5% = ₦2,812.50; total ₦40,312.50; per card ₦161.25.
-    expect(result).toMatchObject({ state: "PRICE_READY", valid: true, currency: "NGN", goodsMinor: "3750000", vatMinor: "281250", totalMinor: "4031250", perUnitMinor: "16125", leadDays: { min: 2, max: 5 } });
+    // ₦15,000 per 100 × 250 = ₦37,500; VAT 7.5% = ₦2,812.50; total ₦40,312.50; per card ₦150 before VAT.
+    expect(result).toMatchObject({ state: "PRICE_READY", valid: true, currency: "NGN", goodsMinor: "3750000", vatMinor: "281250", totalMinor: "4031250", perUnitMinor: "15000", leadDays: { min: 2, max: 5 } });
     const [saved] = await harness.database.db.select().from(schema.priceResults).where(eq(schema.priceResults.id, result.id));
     expect(saved).toMatchObject({ state: "PRICE_READY", totalMinor: 4_031_250n, priceRuleId: result.ruleVersions.priceRuleId, productRulesVersion: 1 });
     expect(saved!.taxSettingId).toBe(result.ruleVersions.taxSettingId);

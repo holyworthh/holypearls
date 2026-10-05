@@ -184,16 +184,16 @@ export function CartView({ initial }: { initial: Cart | null }) {
                     {item.productName}
                     {item.quantity ? ` · ${item.quantity.toLocaleString("en-NG")}` : ""}
                   </dt>
-                  <dd>{naira(item.totalMinor !== null ? (BigInt(item.totalMinor) - vatShare(cart, item)).toString() : null)}</dd>
+                  <dd>{naira(item.totalMinor)}</dd>
                 </div>
               ))}
               <div className={styles.sum}>
-                <dt>{vatLabel}</dt>
-                <dd>{naira(cart.ready.vatMinor)}</dd>
-              </div>
-              <div className={styles.sum}>
                 <dt>Delivery</dt>
                 <dd className={styles.muted}>Set at checkout</dd>
+              </div>
+              <div className={styles.sum}>
+                <dt>{vatLabel}</dt>
+                <dd>{naira(cart.ready.vatMinor)}</dd>
               </div>
               <div className={`${styles.sum} ${styles.total}`}>
                 <dt>Total to pay today</dt>
@@ -253,17 +253,6 @@ export function CartView({ initial }: { initial: Cart | null }) {
   );
 }
 
-/** Each ready item's share of the VAT line, so the item rows plus VAT add up to the total. */
-function vatShare(cart: Cart, item: CartItem): bigint {
-  const ready = cart.items.filter((entry) => entry.group === "READY" && entry.totalMinor !== null);
-  const total = ready.reduce((sum, entry) => sum + BigInt(entry.totalMinor!), 0n);
-  if (!total || item.totalMinor === null) return 0n;
-  const vat = BigInt(cart.ready.vatMinor);
-  const isLast = ready[ready.length - 1]?.id === item.id;
-  if (isLast) return vat - ready.slice(0, -1).reduce((sum, entry) => sum + (BigInt(entry.totalMinor!) * vat) / total, 0n);
-  return (BigInt(item.totalMinor) * vat) / total;
-}
-
 function Item({ item, busy, onRemove, onSave, onQuantity }: { item: CartItem; busy: boolean; onRemove: () => void; onSave: () => void; onQuantity: (quantity: number) => void }) {
   const quote = item.group === "QUOTE";
   return (
@@ -308,7 +297,7 @@ function Item({ item, busy, onRemove, onSave, onQuantity }: { item: CartItem; bu
               <p className={styles.qty}>{item.quantity.toLocaleString("en-NG")}</p>
             ) : null}
             <p className={styles.amount}>{naira(item.totalMinor)}</p>
-            {item.perUnitMinor ? <p className={styles.per}>{naira(item.perUnitMinor)} each, incl. VAT</p> : null}
+            {item.perUnitMinor ? <p className={styles.per}>{naira(item.perUnitMinor)} each, before VAT</p> : null}
           </>
         )}
       </div>

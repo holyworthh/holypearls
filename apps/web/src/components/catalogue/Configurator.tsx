@@ -38,7 +38,7 @@ const ARTWORK: { value: Artwork; title: string; meta: string; Icon: typeof Uploa
   { value: "LATER", title: "I'll send it later", meta: "Held for artwork", Icon: Clock },
 ];
 
-/** Option labels carry an optional second line after " · " ("Smooth matte · 350gsm"), shown as Pen's card meta. */
+/** Option labels carry an optional second line after " · " ("Standard matte · Smooth and practical, 350gsm"), shown as Pen's card meta. */
 const splitLabel = (label: string) => {
   const at = label.indexOf(" · ");
   return at > 0 ? { title: label.slice(0, at), meta: label.slice(at + 3) } : { title: label, meta: null };
@@ -377,7 +377,7 @@ export function Configurator({ productSlug, productName, family, data, initialDr
           </label>
         </div>
         {more ? (
-          <FormField label="Or enter a quantity" id="custom-quantity" hint={`Minimum ${data.moq.toLocaleString("en-NG")}. Prices include VAT.`}>
+          <FormField label="Or enter a quantity" id="custom-quantity" hint={`Minimum ${data.moq.toLocaleString("en-NG")}. Prices are before VAT.`}>
             <TextField
               inputMode="numeric"
               value={custom}
@@ -468,16 +468,16 @@ export function Configurator({ productSlug, productName, family, data, initialDr
             <span>{summary || "Choose your options"}</span>
             <span>{price?.goodsMinor ? naira(price.goodsMinor, price.currency) : "—"}</span>
           </div>
+          <div className={s.line}>
+            <span>Delivery</span>
+            <span>{price?.deliveryMinor ? naira(price.deliveryMinor, price.currency) : "Calculated at checkout"}</span>
+          </div>
           {price?.vatMinor ? (
             <div className={s.line}>
               <span>VAT{vatRate ? ` (${vatRate})` : ""}</span>
               <span>{naira(price.vatMinor, price.currency)}</span>
             </div>
           ) : null}
-          <div className={s.line}>
-            <span>Delivery</span>
-            <span>{price?.deliveryMinor ? naira(price.deliveryMinor, price.currency) : "Calculated at checkout"}</span>
-          </div>
         </div>
         <div className={s.perf} aria-hidden="true" />
         <div className={`${s.ticketBody} ${s.ticketBodyFixed}`}>
@@ -485,7 +485,7 @@ export function Configurator({ productSlug, productName, family, data, initialDr
             <span className={s.totalLabel}>Total</span>
             <span className={s.totalValue}>
               <strong>{price?.totalMinor ? naira(price.totalMinor, price.currency) : "—"}</strong>
-              <span className={s.ticketPer}>{price?.perUnitMinor ? `≈ ${naira(price.perUnitMinor, price.currency)} each incl. VAT` : "Choose a quantity to see the price"}</span>
+              <span className={s.ticketPer}>{price?.perUnitMinor ? `≈ ${naira(price.perUnitMinor, price.currency)} each before VAT` : "Choose a quantity to see the price"}</span>
             </span>
           </div>
           {price?.reasons.some((reason) => reason.code !== "SAMPLE_PRICE") ? (
