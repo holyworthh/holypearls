@@ -96,7 +96,7 @@ Buying modes: SIMPLE\_CONFIGURABLE, CONFIGURABLE\_QUOTE, CONSULTATIVE\_PROJECT (
 
 **COM-FR-053 — Preview is not a proof (P0).** The configurator preview is clearly labelled as approximate. The real proof comes later (PRD 04).
 
-**COM-FR-054 — Accepted file types at launch (P0).** JPEG, PNG and PDF. Other formats (AI, EPS, SVG, PSD) can be sent through "design help" or support and are handled by staff. New formats are added only once they can be checked and previewed safely.
+**COM-FR-054 — Accepted file types at launch (P0).** JPEG, PNG, PDF, AI and SVG (amended 5 October 2026 by the owner, matching TECH-04 §3). AI files are previewed when saved "PDF compatible"; SVG is shown only as a server-drawn preview and never displayed directly. Other formats (EPS, PSD) can be sent through "design help" or support and are handled by staff. New formats are added only once they can be checked and previewed safely.
 
 ## 10\. When a product needs a quote
 
