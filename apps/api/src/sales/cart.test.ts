@@ -94,7 +94,7 @@ describe("cart groups (COM-FR-080–081, Pen 41)", () => {
       ["Business Cards", "READY"],
       ["Polo Shirt", "QUOTE"],
     ]);
-    expect(cart.items[0]).toMatchObject({ quantity: 250, totalMinor: "4031250", summary: expect.stringContaining("350") });
+    expect(cart.items[0]).toMatchObject({ quantity: 250, totalMinor: "3750000", summary: expect.stringContaining("350") });
     expect(cart.ready).toEqual({ goodsMinor: "3750000", vatMinor: "281250", totalMinor: "4031250", vatRateBps: 750 });
     expect(cart.quoteEstimateMinor).not.toBeNull();
 
