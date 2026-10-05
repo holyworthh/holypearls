@@ -28,6 +28,11 @@ export const quotes = pgTable(
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
     configurationId: uuid("configuration_id").references(() => configurations.id, { onDelete: "set null" }),
+    /**
+     * Every design in the request. A cart's quote items go as one request
+     * (owner, 2026-10-05); configurationId is then the first of them.
+     */
+    configurationIds: uuid("configuration_ids").array().notNull().default(sql`'{}'::uuid[]`),
     /** The submitted project it quotes (T05-03); one quote per project. */
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "restrict" }),
     /** Unchangeable copy of what the customer asked for: product, choices, garment answers, files, price shown (TECH-01 §5). */

@@ -58,7 +58,7 @@ export async function loadCustomerQuote(db: Database | Tx, access: QuoteAccess, 
     (actor.type === "guest" &&
       ((actor.guest.targetType === "QUOTE" && actor.guest.targetId === quote.id) ||
         (actor.guest.targetType === "PROJECT" && actor.guest.targetId === quote.projectId) ||
-        (actor.guest.targetType === "CONFIGURATION" && actor.guest.targetId === quote.configurationId))) ||
+        (actor.guest.targetType === "CONFIGURATION" && quote.configurationIds.includes(actor.guest.targetId)))) ||
     (device !== null && (row.projectDevice === device || row.designDevice === device));
   if (!allowed) throw new AppError("NOT_FOUND");
   return quote;
@@ -235,7 +235,9 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
       owner = { userId: project?.ownerUserId ?? null, device: project?.ownerDeviceHash ?? null };
     }
     if (locked!.configurationId) {
-      const [design] = await tx.update(schema.configurations).set({ status: "ORDERED" }).where(eq(schema.configurations.id, locked!.configurationId)).returning();
+      const designs = locked!.configurationIds.length ? locked!.configurationIds : [locked!.configurationId];
+      await tx.update(schema.configurations).set({ status: "ORDERED" }).where(inArray(schema.configurations.id, designs));
+      const [design] = await tx.select().from(schema.configurations).where(eq(schema.configurations.id, locked!.configurationId));
       owner = { userId: design?.ownerUserId ?? null, device: design?.ownerDeviceHash ?? null };
     }
     const [customer] = await tx.select({ userId: schema.customers.userId }).from(schema.customers).where(eq(schema.customers.id, locked!.customerId));
@@ -274,7 +276,8 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
           return {
             orderId: order.id,
             position: index + 1,
-            configurationId: line.source === "CONFIGURATION" ? locked!.configurationId : null,
+            // Each line made from a design keeps that design (a cart request has several).
+            configurationId: line.source === "CONFIGURATION" ? (locked!.configurationIds.includes(line.sourceKey ?? "") ? line.sourceKey : locked!.configurationId) : null,
             productName: line.title,
             summary: line.summary,
             quantity: line.quantity,

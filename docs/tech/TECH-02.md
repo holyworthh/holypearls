@@ -153,6 +153,7 @@ Stored in PostgreSQL (`rate_limit_buckets`), so limits work across several API i
 | SEARCH | 60 / minute / IP |
 | AUTH (sign-in, sign-up, password reset) | 10 / minute / IP and 5 / 15 minutes / account |
 | GUEST\_LINK\_VERIFY (redeem link, request or enter email code, order lookup) | 10 / minute / IP; 5 wrong codes per code |
+| CONTACT (help requests and other public "contact us" writes; added 2026-10-05) | 5 / 10 minutes / IP and 10 / hour / person |
 | UPLOAD\_INTENT | 30 / hour / person |
 | COMMERCIAL\_WRITE (checkout, payment, accept, approve, submit) | 20 / minute / person |
 | ADMIN\_WRITE | 120 / minute / staff member |

@@ -8,13 +8,15 @@
 | :---- | :---- | :---- |
 | web | Vercel | Next.js |
 | admin | Vercel (its own project, on the admin subdomain; ADR-017) | Next.js |
-| api | Railway, Render or Fly.io (choose in T00-08) | Always-on Node service |
+| api | Render, Frankfurt (ADR-015) | Always-on Node service |
 | worker | Same host as api, separate service | Same code image as api |
 | Database | Neon PostgreSQL | Pooled connection for api; **direct** (unpooled) connection for worker and pg-boss |
 | Files | Cloudflare R2 | Private bucket \+ public-media bucket |
 | Email | Resend |  |
 | Payments | Paystack |  |
-| Errors | Sentry | web, api, worker |
+| Errors | Sentry (from launch; logs only before then, owner decision 2026-10-05) | web, api, worker |
+
+**Temporary deviation (free tier, until there are paying customers).** One Render container runs the api and the worker, and it runs the migrations itself on start instead of a separate release step (§6). Free services sleep after 15 minutes. Details and the switch-back steps: `docs/ops/ENVIRONMENTS.md`, "Free-tier trade-offs". Recorded 5 October 2026.
 
 These are defaults. Business code only depends on the interfaces in TECH 00 section 5\.
 
@@ -42,7 +44,7 @@ R2 files: turn on object versioning or a daily copy to a second bucket for proof
 
 ## 6\. Migrations
 
-CI runs every migration from an empty database and from the previous release. Production migrations run as a separate release step, once, before new code starts — never automatically from each running instance. Schema changes must work with both the old and new code during the deploy (TECH 01 section 6). Never rely on rolling back a destructive migration.
+CI runs every migration from an empty database and from the previous release. Production migrations run as a separate release step, once (on the free tier the single container runs them on start; see §1), before new code starts — never automatically from each running instance. Schema changes must work with both the old and new code during the deploy (TECH 01 section 6). Never rely on rolling back a destructive migration.
 
 ## 7\. Web
 

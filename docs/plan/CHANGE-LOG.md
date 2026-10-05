@@ -82,3 +82,10 @@ Every change made in the v2 rewrite, and why. v1 documents are untouched in fold
 
 - Stage 3.1B to 3.1F research documents and wireframe execution briefs: these are completed instructions for the design work, kept as history. Their decisions are carried into the v2 PRDs, and where they conflict (state names above) v2 wins.  
 - Stage 3 Sitemap & SEO Map workbook and the Stage 4.3 content pack (deferred to launch readiness): unchanged.
+
+## 11\. Owner amendments (5 October 2026)
+
+- PRD-02 COM-FR-054: AI and SVG are accepted, matching TECH-04 §3.
+- TECH-02 §14: the CONTACT rate-limit class added.
+- TECH-07 §1 and §6: the free-tier single container recorded as a temporary deviation; Sentry from launch.
+- ADR-015: hosting region and hosts recorded.

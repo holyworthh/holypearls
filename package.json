@@ -14,7 +14,8 @@
     "check:openapi": "pnpm --filter @holypearls/api openapi:check",
     "db:migrate": "dotenv -e .env -- turbo run db:migrate --filter=@holypearls/db",
     "seed": "dotenv -e .env -- turbo run seed --filter=@holypearls/testkit",
-    "openapi:generate": "pnpm --filter @holypearls/api openapi:generate"
+    "openapi:generate": "pnpm --filter @holypearls/api openapi:generate",
+    "bootstrap:admin": "dotenv -e .env -- pnpm --filter @holypearls/api exec tsx src/bootstrap-admin-cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
