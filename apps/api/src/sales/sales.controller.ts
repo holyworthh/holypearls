@@ -71,7 +71,7 @@ export class CartController {
     return forgetSaved(this.deps.db, await access(this.deps.db, request), id);
   }
 
-  /** "Submit quote items": each quote item becomes a quote request. */
+  /** "Submit quote items": the quote items become one quote request. */
   @Post("quote-request")
   @HttpCode(200)
   @RateLimit("CONTACT")

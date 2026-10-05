@@ -138,7 +138,7 @@ export async function draftView(db: Database, row: Row, now: Date): Promise<Conf
   const [quote] = await db
     .select({ reference: schema.quotes.reference, status: schema.quotes.status })
     .from(schema.quotes)
-    .where(eq(schema.quotes.configurationId, row.id))
+    .where(sql`${row.id}::uuid = any(${schema.quotes.configurationIds})`)
     .orderBy(desc(schema.quotes.createdAt))
     .limit(1);
   const personalization = await db
@@ -594,46 +594,57 @@ export async function quotable(db: Database, access: DraftAccess, id: string) {
 
 /**
  * The quote request's changes, inside the caller's transaction, so several
- * designs can be quoted all together or not at all (review P2-02).
+ * designs can be quoted all together or not at all (review P2-02). Several
+ * designs make ONE quote request with one reference and one email (owner,
+ * 2026-10-05); staff then build a line from each.
  */
 export async function quoteIn(
   tx: Tx,
   deps: NotificationDeps & { webOrigin: string },
   access: DraftAccess,
-  checked: { id: string; current: Configuration },
+  checked: { id: string; current: Configuration } | { id: string; current: Configuration }[],
   input: { email: string; name: string; phone?: string; note?: string },
 ) {
-  const { id, current } = checked;
+  const designs = Array.isArray(checked) ? checked : [checked];
+  const ids = designs.map((design) => design.id);
   const now = access.actor.now;
   // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
   const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
   const moved = await tx
     .update(schema.configurations)
     .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
-    .where(and(eq(schema.configurations.id, id), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .where(and(inArray(schema.configurations.id, ids), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
     .returning({ id: schema.configurations.id });
-  if (!moved.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  if (moved.length !== ids.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   // A quote item leaves the cart when its quote is requested (COM-FR-081).
-  await tx.delete(schema.cartItems).where(eq(schema.cartItems.configurationId, id));
-  await closeCheckoutsWith(tx, id);
+  await tx.delete(schema.cartItems).where(inArray(schema.cartItems.configurationId, ids));
+  for (const id of ids) await closeCheckoutsWith(tx, id);
   const ref = await nextQuoteReference(tx, now);
-  const { emailedTo: _emailed, ...snapshot } = current;
-  void _emailed;
+  const snapshots = designs.map(({ id, current }) => {
+    const { emailedTo: _emailed, ...snapshot } = current;
+    void _emailed;
+    return { ...snapshot, id };
+  });
+  const requestSnapshot =
+    snapshots.length === 1
+      ? { ...snapshots[0], requestedAt: now.toISOString() }
+      : { schema: "cart-quote/v1", productName: `${snapshots.length} items`, items: snapshots, requestedAt: now.toISOString() };
   await tx.insert(schema.quotes).values({
     reference: ref,
     customerId: customer.id,
-    configurationId: id,
-    requestSnapshot: { ...snapshot, requestedAt: now.toISOString() },
+    configurationId: ids[0]!,
+    configurationIds: ids,
+    requestSnapshot,
     contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
   });
-  const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: id, customerId: recipient.id, now });
+  const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: ids[0]!, customerId: recipient.id, now });
   await queueEmail(deps, tx, {
     template: "guest_link",
     to: input.email,
     customerId: recipient.id,
     data: { url: link.url, what: "quote request", reference: ref },
-    record: { type: "CONFIGURATION", id, label: `Quote request ${ref}` },
-    linkLabel: "Opens the design the quote is for",
+    record: { type: "CONFIGURATION", id: ids[0]!, label: `Quote request ${ref}` },
+    linkLabel: snapshots.length === 1 ? "Opens the design the quote is for" : "Opens the first design the quote is for",
     requestId: access.actor.requestId,
   });
   return ref;

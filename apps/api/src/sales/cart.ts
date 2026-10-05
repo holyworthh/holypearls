@@ -210,7 +210,7 @@ export async function forgetSaved(db: Db, access: CartAccess, configurationId: s
   return getCart(db, access);
 }
 
-/** "Submit quote items" (Pen 41): one quote request per design, with one set of contact details. */
+/** "Submit quote items" (Pen 41): one quote request for every quote design, with one set of contact details. */
 export async function requestCartQuotes(deps: NotificationDeps & { webOrigin: string }, access: CartAccess, input: { email: string; name: string; phone?: string; note?: string }) {
   const cart = await findCart(deps.db, access, false);
   const items = cart ? await deps.db.select().from(schema.cartItems).where(and(eq(schema.cartItems.cartId, cart.id), eq(schema.cartItems.group, "QUOTE"))).orderBy(asc(schema.cartItems.createdAt)) : [];
@@ -218,13 +218,12 @@ export async function requestCartQuotes(deps: NotificationDeps & { webOrigin: st
   // All or nothing (review P2-02): every design is checked first, then all are quoted in one transaction.
   const checked: Awaited<ReturnType<typeof quotable>>[] = [];
   for (const item of items) checked.push(await quotable(deps.db, access, item.configurationId));
+  // Every item not yet quoted goes as one request with one reference (owner, 2026-10-05).
   return deps.db.transaction(async (tx) => {
-    const references: string[] = [];
-    for (const one of checked) {
-      if (!("reference" in one)) references.push(await quoteIn(tx, deps, access, one, input));
-      else if (one.reference) references.push(one.reference);
-    }
-    return { references };
+    const fresh = checked.filter((one): one is Exclude<typeof one, { reference: string }> => !("reference" in one));
+    const earlier = checked.flatMap((one) => ("reference" in one && one.reference ? [one.reference] : []));
+    const references = fresh.length ? [await quoteIn(tx, deps, access, fresh, input)] : [];
+    return { references: [...new Set([...references, ...earlier])] };
   });
 }
 

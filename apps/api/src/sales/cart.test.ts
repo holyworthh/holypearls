@@ -1,4 +1,4 @@
-import { cartSchema, checkoutSchema, configurationSchema, deliveryZoneListSchema } from "@holypearls/contracts";
+import { adminQuoteSchema, cartSchema, checkoutSchema, configurationSchema, deliveryZoneListSchema } from "@holypearls/contracts";
 import { eq, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
@@ -158,6 +158,32 @@ describe("cart groups (COM-FR-080–081, Pen 41)", () => {
     const cart = cartSchema.parse((await b.get("/v1/cart")).body);
     expect(cart.items.map((item) => item.group)).toEqual(["READY"]);
     expect(configurationSchema.parse((await b.get(`/v1/configurations/${polo.id}`)).body).status).toBe("QUOTE_REQUESTED");
+  });
+
+  it("sends several quote items as ONE quote request with one reference and one email (owner, 2026-10-05)", async () => {
+    const b = browser();
+    const first = await poloDraft(b);
+    const second = await poloDraft(b);
+    await b.post("/v1/cart/items", { configurationId: first.id });
+    await b.post("/v1/cart/items", { configurationId: second.id });
+    const sent = await b.post("/v1/cart/quote-request", { email: "two.items@example.com", name: "Two Items (TEST DATA)" });
+    expect(sent.status).toBe(200);
+    expect(sent.body.references).toHaveLength(1);
+    const reference = sent.body.references[0] as string;
+    for (const design of [first, second]) {
+      const view = configurationSchema.parse((await b.get(`/v1/configurations/${design.id}`)).body);
+      expect(view.status).toBe("QUOTE_REQUESTED");
+      expect(view.quote?.reference).toBe(reference);
+    }
+    const quotes = await harness.database.db.select().from(schema.quotes).where(eq(schema.quotes.reference, reference));
+    expect(quotes).toHaveLength(1);
+    expect([...quotes[0]!.configurationIds].sort()).toEqual([first.id, second.id].sort());
+    const emails = await harness.database.db.select().from(schema.notifications).where(eq(schema.notifications.recordLabel, `Quote request ${reference}`));
+    expect(emails).toHaveLength(1);
+    // Staff can build one line from each design.
+    const admin = adminQuoteSchema.parse((await as(harness, staff).get(`/v1/admin/quotes/${quotes[0]!.id}`)).body);
+    expect(admin.candidates.map((candidate) => candidate.sourceKey).sort()).toEqual([first.id, second.id].sort());
+    expect(admin.candidates.every((candidate) => candidate.source === "CONFIGURATION" && candidate.quantity === 50)).toBe(true);
   });
 
   it("brings the browser's cart into the account on sign-in", async () => {

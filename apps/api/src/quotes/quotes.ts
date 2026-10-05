@@ -340,18 +340,21 @@ function candidatesOf(quote: QuoteRow): AdminQuote["candidates"] {
       })),
     ];
   }
-  const snapshot = quote.requestSnapshot as { productName?: string; quantity?: number | null; choices?: Record<string, string>; price?: { goodsMinor: string | null; quantity: number } | null };
-  const goods = snapshot.price?.goodsMinor ? BigInt(snapshot.price.goodsMinor) : null;
-  return [
-    {
+  type DesignSnapshot = { id?: string; productName?: string; quantity?: number | null; choices?: Record<string, string>; price?: { goodsMinor: string | null; quantity: number } | null };
+  const snapshot = quote.requestSnapshot as DesignSnapshot & { items?: DesignSnapshot[] };
+  // A cart's quote items arrive as one request: one candidate line per design.
+  const designs = snapshot.items ?? [{ ...snapshot, id: quote.configurationId ?? quote.id }];
+  return designs.map((design) => {
+    const goods = design.price?.goodsMinor ? BigInt(design.price.goodsMinor) : null;
+    return {
       source: "CONFIGURATION" as const,
-      sourceKey: quote.configurationId ?? quote.id,
-      title: snapshot.productName ?? "Configuration",
-      summary: Object.values(snapshot.choices ?? {}).join(" · "),
-      quantity: snapshot.quantity ?? null,
-      unitMinor: goods !== null && snapshot.price?.quantity ? (goods / BigInt(snapshot.price.quantity)).toString() : null,
-    },
-  ];
+      sourceKey: design.id ?? quote.configurationId ?? quote.id,
+      title: design.productName ?? "Configuration",
+      summary: Object.values(design.choices ?? {}).join(" · "),
+      quantity: design.quantity ?? null,
+      unitMinor: goods !== null && design.price?.quantity ? (goods / BigInt(design.price.quantity)).toString() : null,
+    };
+  });
 }
 
 export async function getAdminQuote(db: Database, id: string): Promise<AdminQuote> {
