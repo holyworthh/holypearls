@@ -367,3 +367,56 @@ describe("sitemap (PUB-SEO-009)", () => {
     expect(paths.some((path) => /^\/(admin|account|search|configure|cart|checkout|help|l)(\/|$)/.test(path))).toBe(false);
   });
 });
+
+describe("staff preview of a draft on the customer site (owner, 2026-10-05)", () => {
+  const link = async (id: string) => {
+    const response = await staffCall("post", `/v1/admin/content/${id}/preview-link`);
+    expect(response.status).toBe(200);
+    return response.body as { url: string; expiresAt: string };
+  };
+  const tokenOf = (url: string) => new URL(url).pathname.split("/").pop()!;
+
+  it("shows the unpublished draft through a signed, short-lived link, with its draft images", async () => {
+    const photo = await makeImage("preview-photo.jpg");
+    const guide = await save(await createGuide("preview-guide", "Preview me"), { ...READY, body: figure(photo.id, "A draft photo") });
+    expectHidden(await get("/v1/content/GUIDE/preview-guide"));
+    const { url, expiresAt } = await link(guide.id);
+    expect(url.startsWith(`${TEST_WEB_ORIGIN}/preview/content/`)).toBe(true);
+    expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
+    const token = tokenOf(url);
+    const shown = await get(`/v1/content/preview/${token}`);
+    expect(shown.status).toBe(200);
+    expect(shown.headers["cache-control"]).toContain("no-store");
+    const page = publicContentPageSchema.parse(shown.body);
+    expect(page.title).toBe("Preview me");
+    expect(page.seo.indexable).toBe(false);
+    expect(page.body).toContain(`/api/v1/content/preview/${token}/media/${photo.id}/preview`);
+    expect((await get(`/v1/content/preview/${token}/media/${photo.id}/preview`)).status).toBe(200);
+    // Later edits show on the same link.
+    await save(adminContentPageSchema.parse((await staffCall("get", `/v1/admin/content/${guide.id}`)).body), { title: "Preview me again" });
+    expect(publicContentPageSchema.parse((await get(`/v1/content/preview/${token}`)).body).title).toBe("Preview me again");
+  });
+
+  it("refuses a changed, foreign or expired link, and images the page doesn't use", async () => {
+    const other = await makeImage("not-on-page.jpg");
+    const guide = await save(await createGuide("preview-guard"), READY);
+    const token = tokenOf((await link(guide.id)).url);
+    const [id, expires, signature] = token.split(".");
+    expectHidden(await get(`/v1/content/preview/${id}.${Number(expires) + 1000}.${signature}`));
+    expectHidden(await get(`/v1/content/preview/${id}.${expires}.${signature!.slice(0, -2)}xx`));
+    expectHidden(await get(`/v1/content/preview/${token}/media/${other.id}/preview`));
+    harness.now.value = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    try {
+      expectHidden(await get(`/v1/content/preview/${token}`));
+    } finally {
+      harness.now.value = null;
+    }
+  });
+
+  it("only content staff can make a preview link", async () => {
+    const guide = await createGuide("preview-perm");
+    expectHidden(await as(harness, "").post(`/v1/admin/content/${guide.id}/preview-link`, {}));
+    expectHidden(await as(harness, actors.customerChidi!).post(`/v1/admin/content/${guide.id}/preview-link`, {}));
+    expectForbidden(await as(harness, actors.catalogueNoMfa!).post(`/v1/admin/content/${guide.id}/preview-link`, {}));
+  });
+});
