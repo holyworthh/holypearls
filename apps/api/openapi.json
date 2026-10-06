@@ -29867,6 +29867,12 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "courierProblem": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -29878,7 +29884,8 @@
                           "items",
                           "goodsMinor",
                           "requestedAt",
-                          "expiresAt"
+                          "expiresAt",
+                          "courierProblem"
                         ],
                         "additionalProperties": false
                       }
