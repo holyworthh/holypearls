@@ -267,6 +267,13 @@
       "when": 1791203344388,
       "tag": "0037_option_value_images",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791282903578,
+      "tag": "0038_courier_prices",
+      "breakpoints": true
     }
   ]
 }

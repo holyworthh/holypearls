@@ -1,4 +1,4 @@
-import { eq, schema, type Transaction } from "@holypearls/db";
+import { and, eq, schema, type Transaction } from "@holypearls/db";
 
 /*
  * Catalogue TEST DATA (T02-01): the nine canonical categories (Stage 1.2) and
@@ -299,6 +299,73 @@ export async function seedCatalogue(tx: Transaction): Promise<void> {
     }
   }
   await seedProductDetails(tx);
+  await seedShipping(tx);
+}
+
+/**
+ * Shipping weights and boxes for courier prices (T08-05), from research on
+ * 2026-10-06 (sources in docs/reports/T08-05.md). Weights are per unit with
+ * its own wrapping; the box holds `perBox` units. Services and quote-only
+ * custom work have none: they're priced by staff.
+ */
+type Box = { length: number; width: number; height: number };
+export const SEED_SHIPPING: Record<string, { grams: number; box: Box; perBox: number; byValue?: Record<string, { grams: number; box: Box }> }> = {
+  // 220 gsm piqué polo about 230 g; ten folded in a carton.
+  "polo-shirt": { grams: 230, box: { length: 40, width: 30, height: 20 }, perBox: 10 },
+  // 85 × 55 mm on 350 gsm about 1.6 g; 2 g with the box share. 100 per box.
+  "business-cards": { grams: 2, box: { length: 10, width: 7, height: 4 }, perBox: 100 },
+  // Aluminium stand with banner in its carry bag: 2.3–2.6 kg for 85 × 200; one per box.
+  "roll-up-banner": {
+    grams: 2_600,
+    box: { length: 90, width: 12, height: 12 },
+    perBox: 1,
+    byValue: {
+      "100-200-cm": { grams: 3_000, box: { length: 105, width: 12, height: 12 } },
+      "120-200-cm": { grams: 3_500, box: { length: 125, width: 13, height: 13 } },
+    },
+  },
+  // Small kraft bag with handles about 40 g; 50 flat-packed per carton.
+  "small-paper-bag": { grams: 40, box: { length: 35, width: 25, height: 15 }, perBox: 50 },
+  // A 50 mm vinyl label on backing about 1 g; 100 per pack.
+  "label-sticker": { grams: 1, box: { length: 12, width: 12, height: 3 }, perBox: 100 },
+  // 11 oz ceramic mug about 330 g; 450 g in its padded box (15 × 13 × 13 cm).
+  "standard-mug": { grams: 450, box: { length: 15, width: 13, height: 13 }, perBox: 1 },
+  // Stretched canvas on an 18 mm frame: 60 × 90 cm weighs about 2.45 kg; smaller sizes scale with area.
+  "landscape-canvas": {
+    grams: 700,
+    box: { length: 45, width: 35, height: 6 },
+    perBox: 1,
+    byValue: {
+      "60-40-cm": { grams: 1_300, box: { length: 65, width: 45, height: 6 } },
+      "90-60-cm": { grams: 2_500, box: { length: 95, width: 65, height: 6 } },
+    },
+  },
+  // Cotton twill bib apron about 220 g; ten per carton.
+  apron: { grams: 220, box: { length: 40, width: 30, height: 15 }, perBox: 10 },
+  // Cotton twill cap 80–92 g; 100 g with packing. Ten per carton.
+  "baseball-cap": { grams: 100, box: { length: 40, width: 30, height: 20 }, perBox: 10 },
+  // PVC card 6 g, lanyard 15–25 g, holder 4.5 g: about 30 g. 50 per box.
+  "event-badges": { grams: 30, box: { length: 25, width: 20, height: 10 }, perBox: 50 },
+};
+
+/** Adds shipping data where it's missing, so staff edits are kept. */
+async function seedShipping(tx: Transaction): Promise<void> {
+  const products = await tx.select({ id: schema.products.id, slug: schema.products.slug, grams: schema.products.shippingWeightGrams }).from(schema.products);
+  for (const [slug, shipping] of Object.entries(SEED_SHIPPING)) {
+    const product = products.find((row) => row.slug === slug);
+    if (!product) continue;
+    if (product.grams === null) {
+      await tx.update(schema.products).set({ shippingWeightGrams: shipping.grams, packageCm: shipping.box, unitsPerPackage: shipping.perBox }).where(eq(schema.products.id, product.id));
+    }
+    for (const [valueKey, override] of Object.entries(shipping.byValue ?? {})) {
+      const [value] = await tx
+        .select({ id: schema.productOptionValues.id, grams: schema.productOptionValues.shippingWeightGrams })
+        .from(schema.productOptionValues)
+        .innerJoin(schema.productOptions, eq(schema.productOptions.id, schema.productOptionValues.optionId))
+        .where(and(eq(schema.productOptions.productId, product.id), eq(schema.productOptionValues.key, valueKey)));
+      if (value && value.grams === null) await tx.update(schema.productOptionValues).set({ shippingWeightGrams: override.grams, packageCm: override.box }).where(eq(schema.productOptionValues.id, value.id));
+    }
+  }
 }
 
 /** "key|Label" keeps a stable key when the label reads better than the key. */

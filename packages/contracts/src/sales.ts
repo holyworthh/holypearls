@@ -178,7 +178,18 @@ export const checkoutSchema = z.object({
   contact: checkoutContactSchema.nullable(),
   address: z.object({ country: z.string(), name: z.string(), phone: z.string(), street: z.string(), area: z.string(), state: z.string(), landmark: z.string().nullable(), postcode: z.string().nullable() }).nullable(),
   delivery: z
-    .object({ zoneName: z.string(), pricing: z.enum(["FIXED", "QUOTE"]), rateMinor: z.string().nullable(), transitDays: z.object({ min: z.number().int(), max: z.number().int() }).nullable(), chosen: z.boolean() })
+    .object({
+      zoneName: z.string(),
+      pricing: z.enum(["FIXED", "QUOTE"]),
+      rateMinor: z.string().nullable(),
+      transitDays: z.object({ min: z.number().int(), max: z.number().int() }).nullable(),
+      chosen: z.boolean(),
+      /** Where the price came from: the zone rate, a courier (T08-05), or our team (null until set). */
+      source: z.enum(["ZONE", "COURIER", "STAFF"]),
+      courierName: z.string().nullable(),
+      /** The courier's own delivery estimate, e.g. "Within 1 - 4 working days". */
+      courierEta: z.string().nullable(),
+    })
     .nullable(),
   billing: checkoutBillingSchema.nullable(),
   totals: z.object({ goodsMinor: z.string(), deliveryMinor: z.string().nullable(), vatMinor: z.string(), totalMinor: z.string(), vatRateBps: z.number().int() }),
@@ -211,6 +222,8 @@ export const deliveryPriceQueueSchema = z.object({
       goodsMinor: z.string(),
       requestedAt: z.iso.datetime(),
       expiresAt: z.iso.datetime().nullable(),
+      /** Why the courier couldn't price it (T08-05); null when courier prices aren't set up. */
+      courierProblem: z.string().nullable(),
     }),
   ),
 });

@@ -144,3 +144,30 @@ export const priceResultSchema = z.object({
   ruleVersions: z.object({ priceRuleId: z.string().nullable(), productRulesVersion: z.number().int().nullable(), taxSettingId: z.string().nullable() }),
 });
 export type PriceResult = z.infer<typeof priceResultSchema>;
+
+/* ——— Courier prices through Shipbubble (T08-05) ——— */
+
+export const courierRuleSchema = z.enum(["CHEAPEST", "FASTEST"]);
+export const courierSettingsInputSchema = z.object({
+  enabled: z.boolean(),
+  rule: courierRuleSchema,
+  categoryId: z.number().int().positive("Choose what HolyPearls ships"),
+  pickup: z.object({
+    name: z.string().trim().min(1, "Enter the pickup contact's name").max(120),
+    email: z.email("Enter a valid email address").max(254),
+    phone: z.string().trim().min(7, "Enter a phone number").max(40),
+    address: z.string().trim().min(10, "Enter the full pickup address, with area and state").max(300),
+  }),
+  version: z.number().int(),
+});
+export const courierSettingsSchema = z.object({
+  enabled: z.boolean(),
+  rule: courierRuleSchema,
+  categoryId: z.number().int().nullable(),
+  pickup: z.object({ name: z.string(), email: z.string(), phone: z.string(), address: z.string(), addressCode: z.number().int() }).nullable(),
+  /** False when no Shipbubble key is set: checkout falls back to staff pricing. */
+  available: z.boolean(),
+  version: z.number().int(),
+});
+export const courierCategoriesSchema = z.object({ categories: z.array(z.object({ id: z.number().int(), name: z.string() })) });
+export type CourierSettings = z.infer<typeof courierSettingsSchema>;

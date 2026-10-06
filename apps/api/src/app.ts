@@ -24,7 +24,8 @@ import { ContentAdminController, ContentController } from "./catalogue/content.c
 import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
-import { CartController, CheckoutController, DeliveryPricesAdminController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
+import type { Courier } from "./sales/courier.js";
+import { CartController, CheckoutController, CourierSettingsAdminController, DeliveryPricesAdminController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
 import { PaystackWebhookController } from "./payments/payments.controller.js";
 import { PaymentsAdminController } from "./payments/admin.controller.js";
 import { OrdersController } from "./orders/orders.controller.js";
@@ -65,6 +66,8 @@ export interface CreateAppOptions {
   publicStorage: StorageAdapter;
   /** Paystack (TECH-05); null when no key is set, and payments show as not available. */
   payments: PaymentGateway | null;
+  /** Shipbubble courier prices (T08-05); null when no key is set. */
+  courier?: Courier | null;
   /** Serves the T00-04 demo routes. Never on in production. */
   demoSlice?: boolean;
   /** Rate limits (TECH-02 §14). Browser and most API tests turn them off. */
@@ -141,6 +144,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       CheckoutController,
       DeliveryZonesAdminController,
       DeliveryPricesAdminController,
+      CourierSettingsAdminController,
       PaystackWebhookController,
       PaymentsAdminController,
       OrdersController,
@@ -181,7 +185,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
           helpInboxEmail: options.helpInboxEmail,
         },
       },
-      { provide: PAYMENT_DEPS, useValue: { db: options.db, jobs: options.jobs, gateway: options.payments, webOrigin: options.webOrigin, sealKey: options.sealKey } },
+      { provide: PAYMENT_DEPS, useValue: { db: options.db, jobs: options.jobs, gateway: options.payments, webOrigin: options.webOrigin, sealKey: options.sealKey, courier: options.courier ?? null } },
       { provide: DATABASE, useValue: options.db },
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },

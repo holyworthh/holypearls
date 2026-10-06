@@ -52,6 +52,9 @@ import {
   checkoutDeliverySchema,
   checkoutSchema,
   deliveryZoneInputSchema,
+  courierCategoriesSchema,
+  courierSettingsInputSchema,
+  courierSettingsSchema,
   deliveryPriceInputSchema,
   deliveryPriceQueueSchema,
   deliveryZoneListSchema,
@@ -829,6 +832,17 @@ export function buildOpenApiDocument() {
           requestBody: { required: true, content: json(z.intersection(checkoutBillingSchema, z.object({ version: z.number().int() }))) },
           responses: { 200: { description: "Checkout", content: json(checkoutSchema) }, 400: error("Check the fields"), 404: error("Not yours"), 409: error("Changed elsewhere or closed"), 422: error("Delivery first") },
         },
+      },
+      "/v1/admin/courier-settings": {
+        get: { summary: "Courier prices through Shipbubble (PRICING_MANAGE)", responses: { 200: { description: "Settings", content: json(courierSettingsSchema) }, 403: error("Missing PRICING_MANAGE") } },
+        put: {
+          summary: "Save courier settings; the pickup address is checked with the courier (audited)",
+          requestBody: { required: true, content: json(courierSettingsInputSchema) },
+          responses: { 200: { description: "Saved", content: json(courierSettingsSchema) }, 400: error("Pickup address not found"), 403: error("Missing PRICING_MANAGE"), 409: error("Changed by someone else"), 422: error("No courier key") },
+        },
+      },
+      "/v1/admin/courier-settings/categories": {
+        get: { summary: "Shipbubble's package categories (PRICING_MANAGE)", responses: { 200: { description: "Categories", content: json(courierCategoriesSchema) }, 403: error("Missing PRICING_MANAGE"), 422: error("Courier unavailable") } },
       },
       "/v1/admin/delivery-prices": {
         get: { summary: "Checkouts waiting for a delivery price (PRICING_MANAGE)", responses: { 200: { description: "Queue", content: json(deliveryPriceQueueSchema) }, 403: error("Missing PRICING_MANAGE") } },

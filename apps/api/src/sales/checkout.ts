@@ -8,6 +8,8 @@ import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customer
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
 import { checkoutExpiry } from "./retention.js";
+import type { Courier } from "./courier.js";
+import { courierPrice } from "./courier-pricing.js";
 import { type OrderableConfigurationSnapshotV1, orderableSnapshot } from "./snapshot.js";
 import { orderOfCheckout } from "../orders/orders.js";
 import { cancelCheckoutPayments, checkoutPayment, checkoutsWithActivePayment, type PaymentDeps, paymentInProgress, paymentSettings, paymentsBlocker, startCheckoutPayment } from "../payments/payments.js";
@@ -31,7 +33,7 @@ import { cancelCheckoutPayments, checkoutPayment, checkoutsWithActivePayment, ty
 
 type Db = Database;
 /** The database and the payment provider (null when payments aren't set up). */
-export type CheckoutDeps = Pick<PaymentDeps, "db" | "gateway">;
+export type CheckoutDeps = Pick<PaymentDeps, "db" | "gateway"> & { courier?: Courier | null };
 type Row = typeof schema.checkouts.$inferSelect;
 
 /** An open checkout older than this is repriced on the next "Check out". */
@@ -67,7 +69,15 @@ export interface Delivery {
   /** QUOTE only: when staff were asked to price it, and when they did. */
   requestedAt?: string | null;
   quotedAt?: string | null;
+  /** Where the price came from (T08-05). Older checkouts have none: zone for FIXED, staff for QUOTE. */
+  source?: "ZONE" | "COURIER" | "STAFF";
+  /** The courier's offer; the rate reference books it later (T08-06) and never reaches the browser. */
+  courier?: { name: string; serviceCode: string; eta: string | null; requestToken: string; pricedAt: string } | null;
+  /** Why no courier price, for staff. */
+  courierProblem?: string | null;
 }
+
+const sourceOf = (delivery: Delivery) => delivery.source ?? (delivery.pricing === "FIXED" ? "ZONE" : "STAFF");
 
 /** Delivery to this address waits for staff to set its price. */
 export const awaitingDeliveryPrice = (delivery: Delivery | null) => delivery?.pricing === "QUOTE" && delivery.rateMinor === null;
@@ -118,7 +128,18 @@ function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
     items: items.map(({ productName, summary, quantity, totalMinor, vatMinor, perUnitMinor, cartTotalMinor }) => ({ productName, summary, quantity, totalMinor: (BigInt(totalMinor) - BigInt(vatMinor)).toString(), perUnitMinor, cartTotalMinor })),
     contact: row.contact as Checkout["contact"],
     address,
-    delivery: delivery ? { zoneName: delivery.zoneName, pricing: delivery.pricing, rateMinor: delivery.rateMinor, transitDays: delivery.transitDays, chosen: delivery.chosen } : null,
+    delivery: delivery
+      ? {
+          zoneName: delivery.zoneName,
+          pricing: delivery.pricing,
+          rateMinor: delivery.rateMinor,
+          transitDays: delivery.transitDays,
+          chosen: delivery.chosen,
+          source: sourceOf(delivery),
+          courierName: delivery.courier?.name ?? null,
+          courierEta: delivery.courier?.eta ?? null,
+        }
+      : null,
     billing: row.billing as Checkout["billing"],
     totals: {
       goodsMinor: row.goodsMinor.toString(),
@@ -306,6 +327,24 @@ export async function setAddress(deps: CheckoutDeps, access: CartAccess, id: str
       }
     : // No zones set up yet: every delivery is priced by staff (Pen 108 empty state).
       { zoneId: "", zoneName: input.country === "NG" ? "Delivery" : "International", pricing: "QUOTE", rateMinor: null, transitDays: null, chosen: false };
+  delivery.source = delivery.pricing === "FIXED" ? "ZONE" : "STAFF";
+  // Outside the fixed zones: a live courier price when one can be had (T08-05), else staff price it.
+  if (delivery.pricing === "QUOTE") {
+    const contact = row.contact as { name: string; email: string; phone: string };
+    const items = (row.items as FrozenItem[]).map((item) => ({
+      productId: item.snapshot.product.id,
+      productName: item.productName,
+      quantity: item.quantity,
+      goodsMinor: BigInt(item.totalMinor) - BigInt(item.vatMinor),
+      choices: Object.fromEntries(item.snapshot.choices.map((choice) => [choice.option, choice.value])),
+    }));
+    const priced = await courierPrice(db, deps.courier ?? null, { items, contact, address: input, now: access.actor.now });
+    if (priced.ok) {
+      delivery.source = "COURIER";
+      delivery.rateMinor = priced.rateMinor;
+      delivery.courier = { name: priced.courierName, serviceCode: priced.serviceCode, eta: priced.eta, requestToken: priced.requestToken, pricedAt: access.actor.now.toISOString() };
+    } else delivery.courierProblem = priced.problem;
+  }
   const { version: _version, ...address } = input;
   void _version;
   // A new address means choosing delivery again (the rate may differ).
