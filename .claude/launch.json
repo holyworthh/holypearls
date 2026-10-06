@@ -1,0 +1,161 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/api",
+        "dev"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/web",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/admin",
+        "dev"
+      ],
+      "port": 3002
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/worker",
+        "dev"
+      ],
+      "port": 3999
+    },
+    {
+      "name": "api-3011",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "-v",
+        "API_PORT=3011",
+        "-v",
+        "BETTER_AUTH_URL=http://localhost:3100",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/api",
+        "dev"
+      ],
+      "port": 3011
+    },
+    {
+      "name": "web-3100",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "-v",
+        "API_URL=http://localhost:3011",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/web",
+        "exec",
+        "next",
+        "dev",
+        "--port",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "ledger-ref",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4400",
+        "--directory",
+        "C:/Users/ASUS/AppData/Local/Temp/claude/C--Users-ASUS-Desktop-projects-holypearls/303fd136-5cfb-43a2-8049-faaca35c0c7f/scratchpad/artifact-files/bb9ed14f-a7e4-4595-9de0-a83a71dbf3e0"
+      ],
+      "port": 4400
+    },
+    {
+      "name": "web-3005",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/web",
+        "exec",
+        "next",
+        "dev",
+        "--port",
+        "3005"
+      ],
+      "port": 3005
+    },
+    {
+      "name": "api-for-3005",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "exec",
+        "dotenv",
+        "-e",
+        ".env",
+        "-v",
+        "BETTER_AUTH_URL=http://localhost:3005",
+        "--",
+        "pnpm",
+        "--filter",
+        "@holypearls/api",
+        "dev"
+      ],
+      "port": 3001
+    }
+  ]
+}
