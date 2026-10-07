@@ -8,14 +8,8 @@ import { api } from "@holypearls/web-kit/api";
 import styles from "../../admin-list.module.css";
 import css from "../catalogue.module.css";
 import { FAMILY_LABELS, MODE_LABELS } from "../labels";
+import { toSlug } from "../../format";
 
-const toSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
 
 const FIELD_IDS: Record<string, string> = {
   name: "new-name",

@@ -4,6 +4,7 @@ import {
   type AdminRequestSummary,
   BRAND_READINESS,
   COMMON_QUESTIONS,
+  displayMoney,
   NOT_SURE,
   OPEN_ITEM_LABEL,
   type Project,
@@ -21,7 +22,6 @@ import { currentTaxSetting } from "../catalogue/rules.js";
 import { AppError } from "../errors.js";
 import { type ActorContext, requireRecentMfa } from "../identity/actor.js";
 import { createGuestLink, ensureGuestCustomer } from "../identity/customers.js";
-import { displayMoney } from "../orders/orders.js";
 import { recordAudit } from "../platform/audit.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { quoteTotals, schedulePayments } from "./quote-math.js";
@@ -41,8 +41,7 @@ type QuoteRow = typeof schema.quotes.$inferSelect;
 const DAY = 86_400_000;
 const LIST_LIMIT = 100;
 const staffId = (actor: ActorContext) => (actor.type === "user" ? (actor.staff?.staffProfileId ?? null) : null);
-const formatMoney = (minor: bigint, currency: string) => displayMoney(minor, currency);
-const day = (at: Date) => at.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
+export const day = (at: Date) => at.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
 
 /* ------------------------------------------------------------------ */
 /* Settings                                                            */
@@ -562,14 +561,14 @@ export async function sendQuoteVersion(deps: NotificationDeps & { webOrigin: str
       template: "quote_ready",
       to: contact.email,
       customerId: recipient.id,
-      data: { reference: quote.reference, version: row.number, total: formatMoney(row.totalMinor, row.currency), validUntil: day(validUntil), revised: previous.length > 0, url: link.url },
+      data: { reference: quote.reference, version: row.number, total: displayMoney(row.totalMinor, row.currency), validUntil: day(validUntil), revised: previous.length > 0, url: link.url },
       record: { type: "QUOTE", id: quoteId, label: `${quote.reference} V${row.number}` },
       linkLabel: "Opens the quote",
       requestId: actor.requestId,
     });
     await recordAudit(tx, actor, {
       action: "quote.sent",
-      summary: `Sent ${quote.reference} V${row.number} (${formatMoney(row.totalMinor, row.currency)})${previous.length ? `; V${previous[0]!.number} superseded` : ""}`,
+      summary: `Sent ${quote.reference} V${row.number} (${displayMoney(row.totalMinor, row.currency)})${previous.length ? `; V${previous[0]!.number} superseded` : ""}`,
       recordType: "QUOTE",
       recordId: quoteId,
       recordLabel: quote.reference,

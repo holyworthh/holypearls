@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError, type PaymentStart, paymentStartSchema } from "@holypearls/contracts";
-import { api, newIdempotencyKey } from "./api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 
 /*
  * Paystack's hosted checkout (TECH-05 §5, §15). Card details are typed into

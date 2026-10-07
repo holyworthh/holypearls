@@ -4,8 +4,8 @@ import { type PaymentSummary as Summary, TRIGGER_LABEL } from "@holypearls/contr
 import { Notice, StatusChip } from "@holypearls/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { newIdempotencyKey } from "../../lib/api";
-import { naira } from "../../lib/money";
+import { newIdempotencyKey } from "@holypearls/web-kit/api";
+import { naira } from "@holypearls/web-kit/money";
 import { openPaystack, startInstallmentPayment } from "../../lib/paystack";
 import s from "./payment-summary.module.css";
 

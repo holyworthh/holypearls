@@ -1,4 +1,5 @@
-import { configurationSchema, customerPriceState, type PublicProduct } from "@holypearls/contracts";
+import { configurationSchema, customerPriceState, type PublicProduct, slugSchema } from "@holypearls/contracts";
+import { naira } from "@holypearls/web-kit/money";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Configurator } from "../../../components/catalogue/Configurator";
@@ -15,11 +16,10 @@ import { hasSessionCookie, serverApi } from "../../../lib/server-api";
 import { getProduct } from "../../../lib/storefront";
 
 type Params = { params: Promise<{ slug: string }>; searchParams: Promise<{ draft?: string; sourcing?: string; colour?: string }> };
-const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const product = validSlug(slug) ? await getProduct(slug).catch(() => null) : null;
+  const product = slugSchema.safeParse(slug).success ? await getProduct(slug).catch(() => null) : null;
   if (!product) return { title: "Product not found", robots: { index: false } };
   return {
     title: { absolute: product.seoTitle },
@@ -181,7 +181,7 @@ function Related({ product, title, short = false }: { product: PublicProduct; ti
  */
 export default async function ProductPage({ params, searchParams }: Params) {
   const { slug } = await params;
-  if (!validSlug(slug)) notFound();
+  if (!slugSchema.safeParse(slug).success) notFound();
   const product = await getProduct(slug);
   if (!product) notFound();
   const query = await searchParams;
@@ -190,7 +190,7 @@ export default async function ProductPage({ params, searchParams }: Params) {
 
   const priceState = customerPriceState(product);
   const listed = priceState === "PRICE_READY" || priceState === "ESTIMATE_READY" ? product.price : null;
-  const from = listed ? `₦${(BigInt(listed.amountMinor) / 100n).toLocaleString("en-NG")}` : null;
+  const from = listed ? naira(listed.amountMinor, listed.currency) : null;
   const ld = <JsonLd data={[productLd(product), breadcrumbLd([{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: product.name, path: `/products/${product.slug}` }])]} />;
   const garment = product.family === "GARMENT" && product.configurator && product.available;
 

@@ -13,7 +13,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { z } from "zod";
-import { api } from "../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import s from "./start.module.css";
 
 /** Starts a draft (POST /v1/projects) and opens its first step. */

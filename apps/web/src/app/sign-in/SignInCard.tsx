@@ -19,7 +19,7 @@ import {
 } from "@holypearls/ui";
 import { useState, type FormEvent } from "react";
 import styles from "@holypearls/web-kit/auth.module.css";
-import { api, errorCode, safeNext } from "../../lib/api";
+import { api, errorCode, safeNext } from "@holypearls/web-kit/api";
 
 type Tab = "password" | "link";
 type View = "form" | "rate-limited" | "link-sent" | "link-expired";

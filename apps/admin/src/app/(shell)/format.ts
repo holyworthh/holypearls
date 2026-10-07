@@ -27,3 +27,13 @@ export function money(minor: string, currency: string) {
   const symbol = currency.trim() === "USD" ? "$" : "₦";
   return `${symbol}${(value / 100n).toLocaleString("en-NG")}.${(value % 100n).toString().padStart(2, "0")}`;
 }
+
+/** "Crew polo shirts" → "crew-polo-shirts": a slug suggestion from a name, at most 80 characters. */
+export const toSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80)
+    .replace(/-+$/, "");

@@ -3,6 +3,7 @@ import {
   add,
   compare,
   CurrencyMismatchError,
+  displayMoney,
   equals,
   fromMajor,
   money,
@@ -57,5 +58,14 @@ describe("money helpers", () => {
     expect(() => fromMajor("", "NGN")).toThrow(RangeError);
     expect(() => multiply(money(100, "NGN"), 1.5)).toThrow(RangeError);
     expect(() => money(100, "EUR" as never)).toThrow(RangeError);
+  });
+});
+
+describe("displayMoney", () => {
+  it("shows the minor part only when there is one", () => {
+    expect(displayMoney(4_730_000n, "NGN")).toBe("₦47,300");
+    expect(displayMoney("393750", "NGN")).toBe("₦3,937.50");
+    expect(displayMoney("240005", "USD")).toBe("$2,400.05");
+    expect(displayMoney(0n, "NGN")).toBe("₦0");
   });
 });

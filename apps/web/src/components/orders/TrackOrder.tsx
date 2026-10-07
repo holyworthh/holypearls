@@ -3,7 +3,7 @@
 import { ApiError, findOrderResultSchema, findOrderSchema } from "@holypearls/contracts";
 import { Button, ErrorSummary, FormField, Notice, TextField } from "@holypearls/ui";
 import { useState } from "react";
-import { api } from "../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import s from "./forms.module.css";
 
 type Fields = { number?: string; email?: string };

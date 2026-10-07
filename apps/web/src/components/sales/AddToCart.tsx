@@ -5,7 +5,7 @@ import { Button, ButtonLink } from "@holypearls/ui";
 import { ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
-import { api } from "../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 
 /**
  * Puts the saved design in the cart (COM-FR-080) and opens the cart. A design

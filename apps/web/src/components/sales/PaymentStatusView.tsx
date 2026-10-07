@@ -4,8 +4,8 @@ import { type Checkout, checkoutSchema } from "@holypearls/contracts";
 import { Button, ButtonLink, Notice } from "@holypearls/ui";
 import { Check, CircleCheck, CreditCard, LoaderCircle, Lock, ShieldQuestion } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { api, newIdempotencyKey } from "../../lib/api";
-import { naira } from "../../lib/money";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
+import { naira } from "@holypearls/web-kit/money";
 import { openPaystack, startCheckoutPayment } from "../../lib/paystack";
 import styles from "./payment-status.module.css";
 

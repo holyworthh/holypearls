@@ -1,10 +1,9 @@
+import { displayMoney } from "@holypearls/contracts";
+
 /** ₦52,500 or ₦3,937.50: kobo only when there are some. Amounts arrive as kobo strings. */
-export function naira(minor: string | bigint | null | undefined): string {
+export function naira(minor: string | bigint | null | undefined, currency?: string | null): string {
   if (minor === null || minor === undefined || minor === "") return "—";
-  const value = BigInt(minor);
-  const whole = value / 100n;
-  const kobo = value % 100n;
-  return `₦${whole.toLocaleString("en-NG")}${kobo ? `.${kobo.toString().padStart(2, "0")}` : ""}`;
+  return displayMoney(minor, currency ?? "NGN");
 }
 
 /** 7.5% from 750 basis points. */

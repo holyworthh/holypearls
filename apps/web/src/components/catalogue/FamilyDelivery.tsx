@@ -3,7 +3,7 @@
 import { ApiError, type Configuration, type ConfigurationDetails, quoteRequestResultSchema } from "@holypearls/contracts";
 import { Button, Dialog, FormField, Notice, TextField } from "@holypearls/ui";
 import { type ReactNode, useState } from "react";
-import { api } from "../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import styles from "./configurator.module.css";
 
 /*

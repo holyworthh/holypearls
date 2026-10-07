@@ -9,7 +9,7 @@ import { SortSelect } from "../../components/catalogue/SortSelect";
 import { Icon } from "../../components/pen/Icon";
 import { SuggestInput } from "../../components/search/SearchSuggest";
 import { SiteShell } from "../../components/site/SiteShell";
-import { DECORATION_LABELS, PRICE_LABELS, QUANTITY_LABELS, ROUTE_LABELS } from "../../lib/catalogue-labels";
+import { DECORATION_LABELS, PRICE_LABELS, QUANTITY_LABELS, ROUTE_LABELS } from "@holypearls/web-kit/catalogue-labels";
 import { getProducts } from "../../lib/storefront";
 
 type Search = Record<string, string | string[] | undefined>;

@@ -4,7 +4,7 @@ import { ApiError } from "@holypearls/contracts";
 import { Button, ButtonLink, FormField, Notice, StatusChip, TextArea } from "@holypearls/ui";
 import { useState } from "react";
 import { z } from "zod";
-import { api } from "../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import s from "./forms.module.css";
 
 /** Send a scope change (Pen 127 BKgfl → "Scope change sent" B8zjd). */

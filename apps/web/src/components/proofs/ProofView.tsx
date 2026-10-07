@@ -5,7 +5,8 @@ import { Checkbox, FormField, Notice, StatusChip, TextArea } from "@holypearls/u
 import { Lock, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
+import { day } from "../../lib/format";
 import { useEmailCode } from "../EmailCode";
 import s from "./proof.module.css";
 
@@ -18,7 +19,6 @@ import s from "./proof.module.css";
  * code. Questions keep the proof undecided.
  */
 
-const day = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" });
 
 const STATUS: Record<string, { label: string; tone: "warning" | "success" | "info" | "neutral" }> = {
   AWAITING_APPROVAL: { label: "Awaiting your approval", tone: "warning" },

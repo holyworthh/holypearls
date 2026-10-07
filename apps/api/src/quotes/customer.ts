@@ -1,9 +1,9 @@
-import { type CustomerQuote, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
+import { type CustomerQuote, displayMoney, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
-import { displayMoney, nextNumber, type OrderEmailDeps } from "../orders/orders.js";
+import { nextNumber, type OrderEmailDeps } from "../orders/orders.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
 import { releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder } from "../proofs/proofs.js";
@@ -11,6 +11,7 @@ import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { deviceHash } from "../sales/cart.js";
 import { quoteTotals, schedulePayments } from "./quote-math.js";
+import { day } from "./quotes.js";
 
 /*
  * The customer's quote (T05-05; QUOTE-FR-002–008, PAY-FR-001–004, TECH-05 §4,
@@ -64,7 +65,6 @@ export async function loadCustomerQuote(db: Database | Tx, access: QuoteAccess, 
   return quote;
 }
 
-const day = (at: Date) => at.toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
 
 function versionOut(row: VersionRow, lines: (typeof schema.quoteLineItems.$inferSelect)[]): Omit<QuoteVersion, "version" | "sentBy" | "scheduleProblem"> {
   const schedule = row.schedule as ScheduleEntry[];

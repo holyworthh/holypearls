@@ -1,5 +1,5 @@
 import type { Courier } from "../sales/courier.js";
-import type { CheckoutPayment, PaymentChannel, PaymentStart } from "@holypearls/contracts";
+import { type CheckoutPayment, displayMoney, type PaymentChannel, type PaymentStart } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
 import { type PaymentGateway, PaymentStartError, type VerifyResult } from "@holypearls/payments";
@@ -9,7 +9,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
-import { displayMoney, type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
+import { type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
 import { customerPaymentStatus } from "./status.js";
 import { releaseAfterPayment } from "../production/production.js";
 

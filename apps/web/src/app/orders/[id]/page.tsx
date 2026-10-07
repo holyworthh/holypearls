@@ -7,7 +7,7 @@ import { OrderRefresh } from "../../../components/orders/OrderRefresh";
 import s from "../../../components/orders/tracking.module.css";
 import { PaymentSummary } from "../../../components/sales/PaymentSummary";
 import { SiteShell } from "../../../components/site/SiteShell";
-import { naira } from "../../../lib/money";
+import { naira } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../lib/server-api";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false }, referrer: "no-referrer" };

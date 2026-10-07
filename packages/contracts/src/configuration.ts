@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugSchema } from "./catalogue.js";
 import { priceResultSchema } from "./pricing.js";
 
 /* Configuration drafts (T03-03, COM-FR-010–014) and garments (T03-05, COM-FR-020–029, 050–054). */
@@ -158,7 +159,7 @@ export const configurationSchema = z.object({
 export type Configuration = z.infer<typeof configurationSchema>;
 
 export const createConfigurationSchema = z.object({
-  productSlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+  productSlug: slugSchema,
   choices: z.record(key, key).optional(),
   quantity: z.number().int().min(1).max(10_000_000).optional(),
 });

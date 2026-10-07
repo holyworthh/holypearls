@@ -1,11 +1,7 @@
 import { customerPriceState, type PublicProductCard } from "@holypearls/contracts";
+import { naira } from "@holypearls/web-kit/money";
 import { productTransition } from "./transition";
 import styles from "./card.module.css";
-
-const naira = (minor: string, currency: string) => {
-  const whole = BigInt(minor) / 100n;
-  return `${currency === "USD" ? "$" : "₦"}${whole.toLocaleString("en-NG")}`;
-};
 
 const PIECE_FAMILIES = new Set(["GARMENT", "APPAREL_PRINT", "EMBROIDERY", "PROMOTIONAL_ITEM", "PACKAGING"]);
 

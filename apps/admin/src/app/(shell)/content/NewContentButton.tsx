@@ -6,15 +6,8 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { api } from "@holypearls/web-kit/api";
 import c from "./content-admin.module.css";
+import { toSlug } from "../format";
 
-const toSlug = (title: string) =>
-  title
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80)
-    .replace(/-+$/, "");
 
 /** "New guide" and friends: a title and address make a draft, then the editor opens. */
 export function NewContentButton({ type, label }: { type: Exclude<ContentType, "ABOUT">; label: string }) {

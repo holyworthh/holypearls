@@ -1,4 +1,4 @@
-import type { DeliveryPriceQueue, deliveryPriceInputSchema } from "@holypearls/contracts";
+import { type DeliveryPriceQueue, type deliveryPriceInputSchema, displayMoney } from "@holypearls/contracts";
 import { and, eq, gt, isNull, or, schema, sql } from "@holypearls/db";
 import type { z } from "zod";
 import { AppError } from "../errors.js";
@@ -19,7 +19,6 @@ import { checkoutExpiry } from "./retention.js";
  */
 
 type Row = typeof schema.checkouts.$inferSelect;
-const naira = (minor: bigint) => `₦${(Number(minor) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const placeOf = (row: Row) => {
   const address = row.address as { area?: string; state?: string; country?: string } | null;
   return [address?.area, address?.state, address?.country].filter(Boolean).join(", ") || "an address outside the zones";
@@ -103,7 +102,7 @@ export async function setDeliveryPrice(deps: HelpDeps, actor: ActorContext, id: 
       .returning();
     await recordAudit(tx, actor, {
       action: "checkout.delivery_priced",
-      summary: `Delivery priced at ${naira(BigInt(input.rateMinor))} for ${placeOf(row)}`,
+      summary: `Delivery priced at ${displayMoney(input.rateMinor, "NGN")} for ${placeOf(row)}`,
       recordType: "CHECKOUT",
       recordId: row.id,
       before: { rateMinor: null },
@@ -116,7 +115,7 @@ export async function setDeliveryPrice(deps: HelpDeps, actor: ActorContext, id: 
         template: "delivery_price_ready",
         to: contact.email,
         customerId: row.customerId ?? undefined,
-        data: { delivery: naira(BigInt(input.rateMinor)), total: naira(totals.totalMinor), url: `${deps.webOrigin}/checkout/${row.id}` },
+        data: { delivery: displayMoney(input.rateMinor, "NGN"), total: displayMoney(totals.totalMinor, "NGN"), url: `${deps.webOrigin}/checkout/${row.id}` },
         record: { type: "CHECKOUT", id: row.id, label: "Delivery price ready" },
         linkLabel: "Opens the checkout",
         requestId: actor.requestId,

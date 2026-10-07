@@ -4,7 +4,7 @@ import { ApiError, okResultSchema } from "@holypearls/contracts";
 import { Button, ButtonLink, FormField, Notice, TextField } from "@holypearls/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import s from "./forms.module.css";
 
 /** Confirm the cancellation (Pen 127 AnFEQ), with an optional reason; "Cancel failed" leaves the order as it was. */

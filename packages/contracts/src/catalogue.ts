@@ -22,7 +22,12 @@ export const productStatusSchema = z.enum(["DRAFT", "PUBLISHED", "TEMPORARILY_UN
 /** A shipping box in centimetres. */
 export const packageCmSchema = z.object({ length: z.number().min(1).max(500), width: z.number().min(1).max(500), height: z.number().min(0.1).max(500) });
 
-const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, numbers and hyphens").max(80);
+/** A URL slug: lower-case words joined by hyphens. */
+export const slugSchema = z
+  .string()
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, numbers and hyphens")
+  .max(80, "Use 80 characters or fewer");
+const slug = slugSchema;
 
 export const productFieldsSchema = z.object({
   name: z.string().trim().min(1, "Enter a product name").max(120),

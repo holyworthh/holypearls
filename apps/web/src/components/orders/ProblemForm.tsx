@@ -5,7 +5,7 @@ import { Button, ButtonLink, ErrorSummary, FormField, Notice, Select, StatusChip
 import { FileUpload } from "../FileUpload";
 import { useState } from "react";
 import { z } from "zod";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import s from "./forms.module.css";
 
 type Item = { position: number; label: string; quantity: number };

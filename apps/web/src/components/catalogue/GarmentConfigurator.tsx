@@ -17,7 +17,8 @@ import {
 import { Button, Dialog, FormField, Notice, TextArea, TextField } from "@holypearls/ui";
 import { ArrowRight, Check, CircleAlert, CircleDashed, CloudUpload, RefreshCw, Users } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { api } from "../../lib/api";
+import { naira } from "@holypearls/web-kit/money";
+import { api } from "@holypearls/web-kit/api";
 import { FileUpload } from "../FileUpload";
 import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, QuoteRequest } from "./FamilyDelivery";
@@ -80,12 +81,6 @@ const STEPS = [
 /** The step a saved draft reopens on. */
 const STEP_FOR_KEY: Record<string, number> = { product: 0, customize: 2, quantity: 3, artwork: 4, delivery: 5, review: 5 };
 
-const naira = (minor: string | null | undefined) => {
-  if (!minor) return "—";
-  const value = BigInt(minor);
-  const kobo = value % 100n;
-  return `₦${(value / 100n).toLocaleString("en-NG")}${kobo ? `.${kobo.toString().padStart(2, "0")}` : ""}`;
-};
 
 interface Props {
   productSlug: string;

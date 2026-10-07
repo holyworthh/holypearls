@@ -5,8 +5,9 @@ import { Button, Checkbox, Dialog, FormField, Notice, Select, StatusChip, TextAr
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { z } from "zod";
-import { api, newIdempotencyKey } from "../../lib/api";
-import { naira } from "../../lib/money";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
+import { day } from "../../lib/format";
+import { naira } from "@holypearls/web-kit/money";
 import { useEmailCode } from "../EmailCode";
 import s from "./quote.module.css";
 
@@ -17,7 +18,6 @@ import s from "./quote.module.css";
  * opens next. Request changes, ask a question and decline are dialogs.
  */
 
-const day = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" });
 
 const STATUS_TEXT: Record<string, { label: string; tone: "warning" | "success" | "info" | "neutral" }> = {
   READY: { label: "ready for your decision", tone: "warning" },
