@@ -29812,6 +29812,366 @@
         }
       }
     },
+    "/v1/admin/shipments/{id}/courier": {
+      "post": {
+        "summary": "Book a courier-priced order's shipment with Shipbubble, after checking the rate again (FULFILMENT_MANAGE, audited)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booked: LABEL_CREATED with tracking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PREPARING",
+                        "LABEL_CREATED",
+                        "IN_TRANSIT",
+                        "OUT_FOR_DELIVERY",
+                        "DELIVERED",
+                        "ATTEMPTED_DELIVERY",
+                        "EXCEPTION",
+                        "RETURNED"
+                      ]
+                    },
+                    "carrier": {
+                      "type": "string"
+                    },
+                    "trackingNumber": {
+                      "type": "string"
+                    },
+                    "destination": {
+                      "type": "string"
+                    },
+                    "dispatchedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deliveredAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "PREPARING",
+                                  "LABEL_CREATED",
+                                  "IN_TRANSIT",
+                                  "OUT_FOR_DELIVERY",
+                                  "DELIVERED",
+                                  "ATTEMPTED_DELIVERY",
+                                  "EXCEPTION",
+                                  "RETURNED"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PREPARING",
+                              "LABEL_CREATED",
+                              "IN_TRANSIT",
+                              "OUT_FOR_DELIVERY",
+                              "DELIVERED",
+                              "ATTEMPTED_DELIVERY",
+                              "EXCEPTION",
+                              "RETURNED"
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "by": {
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "from",
+                          "status",
+                          "note",
+                          "by",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "orderId": {
+                      "type": "string"
+                    },
+                    "orderNumber": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "next": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "PREPARING",
+                          "LABEL_CREATED",
+                          "IN_TRANSIT",
+                          "OUT_FOR_DELIVERY",
+                          "DELIVERED",
+                          "ATTEMPTED_DELIVERY",
+                          "EXCEPTION",
+                          "RETURNED"
+                        ]
+                      }
+                    },
+                    "courier": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "orderId": {
+                              "type": "string"
+                            },
+                            "service": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "trackingUrl": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "costMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "bookedAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "orderId",
+                            "service",
+                            "trackingUrl",
+                            "costMinor",
+                            "bookedAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "bookable": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "number",
+                    "status",
+                    "carrier",
+                    "trackingNumber",
+                    "destination",
+                    "dispatchedAt",
+                    "deliveredAt",
+                    "items",
+                    "history",
+                    "orderId",
+                    "orderNumber",
+                    "version",
+                    "next",
+                    "courier",
+                    "bookable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing FULFILMENT_MANAGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such shipment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Changed by someone else",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Already booked, not courier-priced, or the courier refused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/shipbubble": {
+      "post": {
+        "summary": "Shipbubble's shipment events, signed with x-ship-signature (HMAC-SHA512 of the raw body); moves shipments along TECH-01 §4 only",
+        "responses": {
+          "200": {
+            "description": "Received"
+          },
+          "403": {
+            "description": "Bad signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/delivery-prices": {
       "get": {
         "summary": "Checkouts waiting for a delivery price (PRICING_MANAGE)",

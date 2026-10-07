@@ -58,11 +58,12 @@ async function views(db: Db, rows: Row[]): Promise<AdminShipment[]> {
       .orderBy(asc(schema.orderItems.position)),
     db.select().from(schema.shipmentEvents).where(inArray(schema.shipmentEvents.shipmentId, ids)).orderBy(desc(schema.shipmentEvents.createdAt)),
     db
-      .select({ id: schema.orders.id, number: schema.orders.number })
+      .select({ id: schema.orders.id, number: schema.orders.number, delivery: schema.orders.delivery })
       .from(schema.orders)
       .where(inArray(schema.orders.id, [...new Set(rows.map((row) => row.orderId))])),
     db.select({ id: schema.staffProfiles.id, name: schema.staffProfiles.displayName }).from(schema.staffProfiles),
   ]);
+  const courierPriced = (orderId: string) => (orders.find((order) => order.id === orderId)?.delivery as { source?: string } | null)?.source === "COURIER";
   return rows.map((row) => ({
     id: row.id,
     number: row.number,
@@ -77,6 +78,11 @@ async function views(db: Db, rows: Row[]): Promise<AdminShipment[]> {
     orderNumber: orders.find((order) => order.id === row.orderId)?.number ?? "",
     version: row.version,
     next: SHIPMENT_NEXT[row.status],
+    courier: row.courierOrderId
+      ? { orderId: row.courierOrderId, service: row.courierService, trackingUrl: row.courierTrackingUrl, costMinor: row.courierCostMinor?.toString() ?? null, bookedAt: row.courierBookedAt?.toISOString() ?? null }
+      : null,
+    // T08-06: a courier-priced order's shipment can be booked with Shipbubble until it has a label.
+    bookable: !row.courierOrderId && row.status === "PREPARING" && courierPriced(row.orderId),
     history: events
       .filter((event) => event.shipmentId === row.id)
       .map((event) => ({ from: event.fromStatus, status: event.toStatus, note: event.note, by: event.staffProfileId ? (staff.find((person) => person.id === event.staffProfileId)?.name ?? "Staff") : "System", at: event.createdAt.toISOString() })),
@@ -96,7 +102,8 @@ export async function customerShipments(db: Db, orderId: string): Promise<Custom
     dispatchedAt: view.dispatchedAt,
     deliveredAt: view.deliveredAt,
     items: view.items,
-    history: view.history.map((event) => ({ status: event.status, at: event.at })),
+    // Notes that changed no status (a courier update staff must check) are for staff only.
+    history: view.history.filter((event) => event.from !== event.status).map((event) => ({ status: event.status, at: event.at })),
   }));
 }
 
@@ -209,6 +216,49 @@ async function syncItems(tx: Tx, orderId: string, staffId: string | null) {
   }
 }
 
+/**
+ * One legal status move, inside the caller's transaction: the shipment, a new
+ * history row, its items, the audit entry and the customer's email when it
+ * leaves or arrives. Staff moves and Shipbubble's webhooks both come here.
+ */
+export async function moveShipment(tx: Tx, deps: OrderEmailDeps, actor: ActorContext, row: Row, to: ShipmentStatus, input: { note?: string | null; carrier?: string; trackingNumber?: string } = {}) {
+  const now = actor.now;
+  const leaving = to === "IN_TRANSIT" && !row.dispatchedAt;
+  const staffId = staffOf(actor);
+  const [saved] = await tx
+    .update(schema.shipments)
+    .set({
+      status: to,
+      ...(input.carrier !== undefined && { carrier: input.carrier }),
+      ...(input.trackingNumber !== undefined && { trackingNumber: input.trackingNumber }),
+      ...(leaving && { dispatchedAt: now }),
+      ...(to === "DELIVERED" && { deliveredAt: now }),
+      version: sql`${schema.shipments.version} + 1`,
+      updatedAt: now,
+    })
+    .where(eq(schema.shipments.id, row.id))
+    .returning();
+  await tx.insert(schema.shipmentEvents).values({ shipmentId: row.id, fromStatus: row.status, toStatus: to, note: input.note?.trim() || null, staffProfileId: staffId });
+  await syncItems(tx, row.orderId, staffId);
+  const [order] = await tx.select().from(schema.orders).where(eq(schema.orders.id, row.orderId));
+  await recordAudit(tx, actor, { action: "shipment.status_changed", summary: `${row.number}: ${row.status} → ${to}`, recordType: "SHIPMENT", recordId: row.id, recordLabel: row.number, before: { status: row.status }, after: { status: to }, permission: staffId ? "FULFILMENT_MANAGE" : null });
+  if (leaving || to === "DELIVERED") {
+    const view = (await views(tx, [saved!]))[0]!;
+    const contact = order!.contact as { email: string };
+    const link = await createGuestLink(tx, deps.webOrigin, { purpose: "ORDER", targetType: "ORDER", targetId: order!.id, customerId: order!.customerId, now });
+    await queueEmail(deps, tx, {
+      template: leaving ? "shipment_dispatched" : "shipment_delivered",
+      to: contact.email,
+      customerId: order!.customerId,
+      data: { orderNumber: order!.number, items: view.items.map((item) => `${item.name} × ${item.quantity}`).join(", "), carrier: view.carrier, trackingNumber: view.trackingNumber, url: link.url },
+      record: { type: "ORDER", id: order!.id, label: order!.number },
+      linkLabel: `Opens order ${order!.number}`,
+      requestId: actor.requestId,
+    });
+  }
+  return saved!;
+}
+
 /** OPS-FR-072–073: the next status by hand, with an optional note; history is only ever added to. */
 export async function updateShipment(deps: OrderEmailDeps, actor: ActorContext, id: string, input: { status: ShipmentStatus; version: number; note?: string; carrier?: string; trackingNumber?: string }) {
   await deps.db.transaction(async (tx) => {
@@ -218,42 +268,13 @@ export async function updateShipment(deps: OrderEmailDeps, actor: ActorContext, 
     if (!SHIPMENT_NEXT[row.status].includes(input.status)) {
       throw new AppError("RULE_FAILED", { message: `${row.number} can't move from ${row.status} to ${input.status}.`, context: { reason: "ILLEGAL_MOVE", allowed: SHIPMENT_NEXT[row.status] } });
     }
-    const now = new Date();
-    const leaving = input.status === "IN_TRANSIT" && !row.dispatchedAt;
-    const staffId = staffOf(actor);
-    await tx
-      .update(schema.shipments)
-      .set({
-        status: input.status,
-        ...(input.carrier !== undefined && { carrier: input.carrier }),
-        ...(input.trackingNumber !== undefined && { trackingNumber: input.trackingNumber }),
-        ...(leaving && { dispatchedAt: now }),
-        ...(input.status === "DELIVERED" && { deliveredAt: now }),
-        version: sql`${schema.shipments.version} + 1`,
-        updatedAt: now,
-      })
-      .where(eq(schema.shipments.id, id));
-    await tx.insert(schema.shipmentEvents).values({ shipmentId: id, fromStatus: row.status, toStatus: input.status, note: input.note?.trim() || null, staffProfileId: staffId });
-    await syncItems(tx, row.orderId, staffId);
-    const [order] = await tx.select().from(schema.orders).where(eq(schema.orders.id, row.orderId));
-    await recordAudit(tx, actor, { action: "shipment.status_changed", summary: `${row.number}: ${row.status} → ${input.status}`, recordType: "SHIPMENT", recordId: id, recordLabel: row.number, before: { status: row.status }, after: { status: input.status }, permission: "FULFILMENT_MANAGE" });
-    if (leaving || input.status === "DELIVERED") {
-      const [saved] = await tx.select().from(schema.shipments).where(eq(schema.shipments.id, id));
-      const view = (await views(tx, [saved!]))[0]!;
-      const contact = order!.contact as { email: string };
-      const link = await createGuestLink(tx, deps.webOrigin, { purpose: "ORDER", targetType: "ORDER", targetId: order!.id, customerId: order!.customerId, now: actor.now });
-      await queueEmail(deps, tx, {
-        template: leaving ? "shipment_dispatched" : "shipment_delivered",
-        to: contact.email,
-        customerId: order!.customerId,
-        data: { orderNumber: order!.number, items: view.items.map((item) => `${item.name} × ${item.quantity}`).join(", "), carrier: view.carrier, trackingNumber: view.trackingNumber, url: link.url },
-        record: { type: "ORDER", id: order!.id, label: order!.number },
-        linkLabel: `Opens order ${order!.number}`,
-        requestId: actor.requestId,
-      });
-    }
+    await moveShipment(tx, deps, actor, row, input.status, { note: input.note, carrier: input.carrier, trackingNumber: input.trackingNumber });
   });
-  const [row] = await deps.db.select().from(schema.shipments).where(eq(schema.shipments.id, id));
-  return (await views(deps.db, [row!]))[0]!;
+  return shipmentView(deps.db, id);
 }
 
+export async function shipmentView(db: Db, id: string) {
+  const [row] = await db.select().from(schema.shipments).where(eq(schema.shipments.id, id));
+  if (!row) throw new AppError("NOT_FOUND");
+  return (await views(db, [row]))[0]!;
+}

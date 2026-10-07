@@ -1,7 +1,8 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
-import { createShipmentSchema, newProblemSchema, problemReplySchema, reorderSchema, triageProblemSchema, updateShipmentSchema } from "@holypearls/contracts";
+import { bookCourierSchema, createShipmentSchema, newProblemSchema, problemReplySchema, reorderSchema, triageProblemSchema, updateShipmentSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import type { z } from "zod";
+import { AppError } from "../errors.js";
 import { DEVICE_COOKIE, deviceKey } from "../configuration/drafts.controller.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import type { PaymentDeps } from "../payments/payments.js";
@@ -9,6 +10,7 @@ import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { PAYMENT_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import { bookCourier, receiveShipbubbleWebhook } from "./courier-booking.js";
 import { getProblem, problemQueue, replyToProblem, reportProblem, triageProblem } from "./problems.js";
 import { reorder, reorderCheck } from "./reorder.js";
 import { createShipment, orderShipping, shippingQueue, updateShipment } from "./shipments.js";
@@ -51,6 +53,34 @@ export class ShipmentsAdminController {
   @RateLimit("ADMIN_WRITE")
   async status(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(updateShipmentSchema)) body: z.infer<typeof updateShipmentSchema>) {
     return updateShipment(notifyOf(this.deps), await request.getActor!(), id, body);
+  }
+
+  /** T08-06: book a courier-priced order's shipment with Shipbubble. */
+  @Post(":id/courier")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("ADMIN_WRITE")
+  async book(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(bookCourierSchema)) body: z.infer<typeof bookCourierSchema>) {
+    return bookCourier({ ...notifyOf(this.deps), courier: this.deps.courier ?? null }, await request.getActor!(), id, body);
+  }
+}
+
+/**
+ * Shipbubble's webhook (T08-06). Shipbubble calls the API directly, without
+ * cookies; the signature over the raw body is the only proof it came from
+ * Shipbubble.
+ */
+@Controller("webhooks/shipbubble")
+export class ShipbubbleWebhookController {
+  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
+
+  @Post()
+  @HttpCode(200)
+  async receive(@Req() request: Request) {
+    const raw = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);
+    const accepted = await receiveShipbubbleWebhook({ ...notifyOf(this.deps), courier: this.deps.courier ?? null }, raw, request.header("x-ship-signature"), request.requestId ?? "webhook");
+    if (!accepted) throw new AppError("FORBIDDEN", { context: { reason: "BAD_SIGNATURE" } });
+    return { received: true };
   }
 }
 

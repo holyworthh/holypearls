@@ -52,6 +52,8 @@ import {
   checkoutDeliverySchema,
   checkoutSchema,
   deliveryZoneInputSchema,
+  adminShipmentSchema,
+  bookCourierSchema,
   courierCategoriesSchema,
   courierSettingsInputSchema,
   courierSettingsSchema,
@@ -843,6 +845,20 @@ export function buildOpenApiDocument() {
       },
       "/v1/admin/courier-settings/categories": {
         get: { summary: "Shipbubble's package categories (PRICING_MANAGE)", responses: { 200: { description: "Categories", content: json(courierCategoriesSchema) }, 403: error("Missing PRICING_MANAGE"), 422: error("Courier unavailable") } },
+      },
+      "/v1/admin/shipments/{id}/courier": {
+        post: {
+          summary: "Book a courier-priced order's shipment with Shipbubble, after checking the rate again (FULFILMENT_MANAGE, audited)",
+          parameters: [uuidParam("id"), idempotencyHeader],
+          requestBody: { required: true, content: json(bookCourierSchema) },
+          responses: { 200: { description: "Booked: LABEL_CREATED with tracking", content: json(adminShipmentSchema) }, 403: error("Missing FULFILMENT_MANAGE"), 404: error("No such shipment"), 409: error("Changed by someone else"), 422: error("Already booked, not courier-priced, or the courier refused") },
+        },
+      },
+      "/v1/webhooks/shipbubble": {
+        post: {
+          summary: "Shipbubble's shipment events, signed with x-ship-signature (HMAC-SHA512 of the raw body); moves shipments along TECH-01 §4 only",
+          responses: { 200: { description: "Received" }, 403: error("Bad signature") },
+        },
       },
       "/v1/admin/delivery-prices": {
         get: { summary: "Checkouts waiting for a delivery price (PRICING_MANAGE)", responses: { 200: { description: "Queue", content: json(deliveryPriceQueueSchema) }, 403: error("Missing PRICING_MANAGE") } },
