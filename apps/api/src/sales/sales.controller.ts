@@ -6,6 +6,7 @@ import {
   checkoutBillingSchema,
   checkoutContactSchema,
   checkoutDeliverySchema,
+  courierSettingsInputSchema,
   deliveryPriceInputSchema,
   deliveryZoneInputSchema,
   fixedZoneInputSchema,
@@ -24,6 +25,9 @@ import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, reque
 import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
 import { claimDeviceCommerce } from "./claim.js";
 import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
+import { CourierError } from "./courier.js";
+import { getCourierSettings, saveCourierSettings } from "./courier-pricing.js";
+import { AppError } from "../errors.js";
 import { deliveryPriceQueue, requestDeliveryPrice, setDeliveryPrice } from "./delivery-price.js";
 
 const uuid = new ParseUUIDPipe();
@@ -146,6 +150,36 @@ export class CheckoutController {
     // An address outside the zones: staff are asked for the delivery price (owner, 2026-10-05).
     await requestDeliveryPrice(this.help, id, actor.now, actor.requestId);
     return checkout;
+  }
+}
+
+/** Courier prices through Shipbubble (T08-05). PRICING_MANAGE; audited. */
+@Controller("admin/courier-settings")
+@UseGuards(StaffGuard("PRICING_MANAGE"))
+export class CourierSettingsAdminController {
+  constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
+
+  @Get()
+  get() {
+    return getCourierSettings(this.deps.db, this.deps.courier ?? null);
+  }
+
+  @Put()
+  @RateLimit("ADMIN_WRITE")
+  async save(@Req() request: Request, @Body(new ZodValidationPipe(courierSettingsInputSchema)) body: z.infer<typeof courierSettingsInputSchema>) {
+    return saveCourierSettings(this.deps.db, this.deps.courier ?? null, await request.getActor!(), body);
+  }
+
+  /** Shipbubble's package categories, for the settings form. */
+  @Get("categories")
+  async categories() {
+    if (!this.deps.courier) return { categories: [] };
+    try {
+      return { categories: await this.deps.courier.categories() };
+    } catch (error) {
+      if (error instanceof CourierError) throw new AppError("RULE_FAILED", { message: error.message, context: { reason: "COURIER_UNAVAILABLE" } });
+      throw error;
+    }
   }
 }
 

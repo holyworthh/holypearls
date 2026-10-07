@@ -52,6 +52,9 @@ const FIELDS: Record<string, { id: string; tab: Tab }> = {
   searchPhrases: { id: "product-search", tab: "details" },
   routes: { id: "product-routes", tab: "details" },
   decorations: { id: "product-decorations", tab: "details" },
+  shippingWeightGrams: { id: "product-weight", tab: "details" },
+  packageCm: { id: "product-box", tab: "details" },
+  unitsPerPackage: { id: "product-per-box", tab: "details" },
   media: { id: "product-media-upload", tab: "media" },
   seoTitle: { id: "product-seo-title", tab: "seo" },
   seoDescription: { id: "product-seo-description", tab: "seo" },
@@ -81,7 +84,16 @@ interface Draft {
   seoTitle: string;
   seoDescription: string;
   slug: string;
+  /** Courier prices (T08-05), as typed. */
+  weight: string;
+  boxLength: string;
+  boxWidth: string;
+  boxHeight: string;
+  perBox: string;
 }
+
+const text = (value: number | null | undefined) => (value == null ? "" : String(value));
+const number = (value: string) => (value.trim() === "" ? null : Number(value));
 
 const draftOf = (product: AdminProduct): Draft => ({
   name: product.name,
@@ -98,6 +110,11 @@ const draftOf = (product: AdminProduct): Draft => ({
   seoTitle: product.seoTitle ?? "",
   seoDescription: product.seoDescription ?? "",
   slug: product.slug,
+  weight: text(product.shippingWeightGrams),
+  boxLength: text(product.packageCm?.length),
+  boxWidth: text(product.packageCm?.width),
+  boxHeight: text(product.packageCm?.height),
+  perBox: text(product.unitsPerPackage),
 });
 
 /** Product editor with draft and publish (Pen frame 98 · CL3n2, states LL1Z5; media per frame 104). */
@@ -155,6 +172,12 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
           seoTitle: draft.seoTitle || null,
           seoDescription: draft.seoDescription || null,
           slug: draft.slug,
+          shippingWeightGrams: number(draft.weight),
+          packageCm:
+            draft.boxLength.trim() || draft.boxWidth.trim() || draft.boxHeight.trim()
+              ? { length: Number(draft.boxLength), width: Number(draft.boxWidth), height: Number(draft.boxHeight) }
+              : null,
+          unitsPerPackage: number(draft.perBox),
         },
         response: adminProductSchema,
       });
@@ -315,6 +338,28 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
                   {errors[key] ? <p className={css.error}>{errors[key]}</p> : null}
                 </fieldset>
               ))}
+              <fieldset className={css.fieldset}>
+                <legend className={styles.panelTitle}>Shipping weight and box</legend>
+                <p className={css.hint}>
+                  For courier prices outside the delivery zones. Weigh one unit with its own wrapping, and measure the box that holds the stated number of units. Leave empty
+                  and our team prices delivery instead.
+                </p>
+                <FormField label="Weight of one unit (grams)" id="product-weight" error={errors.shippingWeightGrams}>
+                  <TextField inputMode="numeric" value={draft.weight} onChange={(event) => set("weight", event.target.value)} />
+                </FormField>
+                <FormField label="Box length (cm)" id="product-box" error={errors.packageCm ?? errors["packageCm.length"]}>
+                  <TextField inputMode="decimal" value={draft.boxLength} onChange={(event) => set("boxLength", event.target.value)} />
+                </FormField>
+                <FormField label="Box width (cm)" id="product-box-width" error={errors["packageCm.width"]}>
+                  <TextField inputMode="decimal" value={draft.boxWidth} onChange={(event) => set("boxWidth", event.target.value)} />
+                </FormField>
+                <FormField label="Box height (cm)" id="product-box-height" error={errors["packageCm.height"]}>
+                  <TextField inputMode="decimal" value={draft.boxHeight} onChange={(event) => set("boxHeight", event.target.value)} />
+                </FormField>
+                <FormField label="Units in one box" id="product-per-box" error={errors.unitsPerPackage}>
+                  <TextField inputMode="numeric" value={draft.perBox} onChange={(event) => set("perBox", event.target.value)} />
+                </FormField>
+              </fieldset>
               <FormField label="Search phrases" id="product-search" hint="Comma-separated. Used by site search." error={errors.searchPhrases}>
                 <TextField value={draft.phrases} onChange={(event) => set("phrases", event.target.value)} />
               </FormField>

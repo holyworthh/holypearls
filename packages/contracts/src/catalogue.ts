@@ -19,6 +19,9 @@ export const makingRouteSchema = z.enum(["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH"
 export const decorationMethodSchema = z.enum(["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER", "PAPER_PRINT", "LARGE_FORMAT_PRINT"]);
 export const productStatusSchema = z.enum(["DRAFT", "PUBLISHED", "TEMPORARILY_UNAVAILABLE", "ARCHIVED"]);
 
+/** A shipping box in centimetres. */
+export const packageCmSchema = z.object({ length: z.number().min(1).max(500), width: z.number().min(1).max(500), height: z.number().min(0.1).max(500) });
+
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, numbers and hyphens").max(80);
 
 export const productFieldsSchema = z.object({
@@ -37,6 +40,10 @@ export const productFieldsSchema = z.object({
   faqs: z.array(z.object({ question: z.string().max(200), answer: z.string().max(2000) })).max(30).optional(),
   seoTitle: z.string().trim().max(70).nullable().optional(),
   seoDescription: z.string().trim().max(170).nullable().optional(),
+  /** Courier prices (T08-05): one unit's weight, and the box for `unitsPerPackage` units. */
+  shippingWeightGrams: z.number().int().min(1, "Enter the weight in grams").max(100_000).nullable().optional(),
+  packageCm: packageCmSchema.nullable().optional(),
+  unitsPerPackage: z.number().int().min(1).max(100_000).nullable().optional(),
 });
 
 export const createProductSchema = productFieldsSchema.extend({ sku: z.string().trim().min(3).max(40) });
@@ -64,6 +71,9 @@ const adminProductBase = z.object({
   faqs: z.array(z.object({ question: z.string(), answer: z.string() })),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
+  shippingWeightGrams: z.number().int().nullable(),
+  packageCm: packageCmSchema.nullable(),
+  unitsPerPackage: z.number().int().nullable(),
   mediaCount: z.number().int(),
   version: z.number().int(),
   updatedAt: z.iso.datetime(),

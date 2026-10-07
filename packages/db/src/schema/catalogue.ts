@@ -81,6 +81,13 @@ export const products = pgTable(
     routes: text("routes").array().notNull().default(sql`'{}'::text[]`),
     /** Decoration methods offered (Pen 17 "Decoration" filter). */
     decorations: text("decorations").array().notNull().default(sql`'{}'::text[]`),
+    /**
+     * For courier prices (T08-05): one unit's shipping weight in grams, and the
+     * box that holds `unitsPerPackage` units, in cm. Null: priced by staff.
+     */
+    shippingWeightGrams: integer("shipping_weight_grams"),
+    packageCm: jsonb("package_cm").$type<{ length: number; width: number; height: number } | null>(),
+    unitsPerPackage: integer("units_per_package"),
     /** Label and value pairs shown on the product page. */
     specifications: jsonb("specifications").notNull().default(sql`'[]'::jsonb`),
     faqs: jsonb("faqs").notNull().default(sql`'[]'::jsonb`),
@@ -140,6 +147,9 @@ export const productOptionValues = pgTable(
     /** A photo of this choice from the product-media library, shown on its card (owner, 2026-10-05). */
     imageFileId: uuid("image_file_id").references(() => files.id, { onDelete: "set null" }),
     imageAlt: text("image_alt"),
+    /** Overrides the product's shipping weight and box for this choice, for sizes (T08-05). */
+    shippingWeightGrams: integer("shipping_weight_grams"),
+    packageCm: jsonb("package_cm").$type<{ length: number; width: number; height: number } | null>(),
     position: integer("position").notNull().default(0),
     createdAt: createdAt(),
   },

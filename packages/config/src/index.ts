@@ -57,6 +57,12 @@ const revalidation = {
  */
 const payments = {
   PAYSTACK_SECRET_KEY: z.string().regex(/^sk_(test|live)_[A-Za-z0-9]+$/, "Expected a Paystack secret key").optional(),
+  /**
+   * Shipbubble courier prices (T08-05), api only. Unset means addresses
+   * outside the delivery zones are priced by staff. Sandbox keys outside
+   * production; production takes only a live key.
+   */
+  SHIPBUBBLE_API_KEY: z.string().regex(/^sb_(sandbox|prod)_[A-Za-z0-9_]+$/, "Expected a Shipbubble API key").optional(),
 };
 
 type Deployed = {
@@ -78,6 +84,7 @@ type Deployed = {
   WEB_REVALIDATE_URL?: string;
   WEB_REVALIDATE_SECRET?: string;
   PAYSTACK_SECRET_KEY?: string;
+  SHIPBUBBLE_API_KEY?: string;
 };
 
 const notReal = (value: string) => /(^|[.@/])localhost([:/]|$)|127\.0\.0\.1|\.test([:/>]|$)/i.test(value);
@@ -97,6 +104,9 @@ function deployedRules(env: Deployed, ctx: z.RefinementCtx) {
   const key = env.PAYSTACK_SECRET_KEY;
   if (key && env.HP_ENV === "production" && !key.startsWith("sk_live_")) fail("PAYSTACK_SECRET_KEY", "must be a live key in production");
   if (key && env.HP_ENV !== "production" && !key.startsWith("sk_test_")) fail("PAYSTACK_SECRET_KEY", "must be a test key outside production");
+  const courier = env.SHIPBUBBLE_API_KEY;
+  if (courier && env.HP_ENV === "production" && !courier.startsWith("sb_prod_")) fail("SHIPBUBBLE_API_KEY", "must be a live key in production");
+  if (courier && env.HP_ENV !== "production" && !courier.startsWith("sb_sandbox_")) fail("SHIPBUBBLE_API_KEY", "must be a sandbox key outside production");
   if (env.HP_ENV !== "production") return;
   if (env.STORAGE_DRIVER !== undefined) {
     if (env.STORAGE_DRIVER !== "s3") fail("STORAGE_DRIVER", "must be s3 in production");
