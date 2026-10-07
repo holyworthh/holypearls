@@ -5,31 +5,43 @@ on:
   push:
     branches: [main, dev]
 
+# One self-hosted runner takes one job at a time, so a newer push replaces the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17.6
-        env:
-          POSTGRES_DB: holypearls_ci
-          POSTGRES_USER: holypearls_ci
-          POSTGRES_PASSWORD: ${{ github.run_id }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U holypearls_ci"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
+    # The repo variable CI_RUNS_ON picks the runner as a JSON label list, for example
+    # ["self-hosted","holypearls"] for the owner's Mac. Unset, the job runs on GitHub's ubuntu-latest.
+    runs-on: ${{ vars.CI_RUNS_ON && fromJSON(vars.CI_RUNS_ON) || 'ubuntu-latest' }}
     env:
       API_URL: http://localhost:3001
       API_PORT: 3001
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-only-secret-${{ github.run_id }}-0123456789abcdef
       DATA_ENCRYPTION_KEY: ci-only-data-key-${{ github.run_id }}-0123456789abcdef
-      DATABASE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_ci
+      # Postgres runs in Docker, started below rather than as a service container, because
+      # service containers only work on Linux runners. Port 55432 leaves a local 5432 free.
+      PG: holypearls-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
+      CI_NET: holypearls-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      PG_PASSWORD: ${{ github.run_id }}
+      DATABASE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:55432/holypearls_ci
     steps:
+      - name: Start Postgres
+        run: |
+          # A cancelled run on a self-hosted runner can leave its containers behind.
+          old=$(docker ps -aq --filter label=holypearls-ci)
+          [ -z "$old" ] || docker rm -f $old
+          old=$(docker network ls -q --filter label=holypearls-ci)
+          [ -z "$old" ] || docker network rm $old
+          docker network create --label holypearls-ci "$CI_NET"
+          docker run -d --name "$PG" --label holypearls-ci --network "$CI_NET" -p 55432:5432 \
+            -e POSTGRES_DB=holypearls_ci -e POSTGRES_USER=holypearls_ci -e POSTGRES_PASSWORD="$PG_PASSWORD" \
+            postgres:17.6
+          # -h localhost waits past the image's socket-only start-up server.
+          for attempt in $(seq 1 30); do docker exec "$PG" pg_isready -q -U holypearls_ci -h localhost && break; sleep 2; done
+          docker exec "$PG" pg_isready -U holypearls_ci -h localhost
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
@@ -64,15 +76,17 @@ jobs:
         # Release reality (review P2-06): production holds main's schema and data, then gets
         # every new migration with the real runner. The result must equal a fresh database.
         env:
-          PG: ${{ job.services.postgres.id }}
-          UPGRADE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_upgrade
-          FRESH_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_fresh
+          UPGRADE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:55432/holypearls_upgrade
+          FRESH_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:55432/holypearls_fresh
+          # The runner's temp folder is emptied after every job; a self-hosted workspace is not.
+          RELEASE_DIR: ${{ runner.temp }}/release
         run: |
           docker exec "$PG" createdb -U holypearls_ci holypearls_upgrade
           docker exec "$PG" createdb -U holypearls_ci holypearls_fresh
           git fetch --no-tags --depth=1 origin main
-          git worktree add ../release FETCH_HEAD
-          (cd ../release && pnpm install --frozen-lockfile && DATABASE_URL="$UPGRADE_URL" TEST_DATABASE_URL="$UPGRADE_URL" pnpm seed)
+          git worktree prune
+          git worktree add "$RELEASE_DIR" FETCH_HEAD
+          (cd "$RELEASE_DIR" && pnpm install --frozen-lockfile && DATABASE_URL="$UPGRADE_URL" TEST_DATABASE_URL="$UPGRADE_URL" pnpm seed)
           DATABASE_URL="$UPGRADE_URL" node packages/db/dist/migrate-cli.js
           DATABASE_URL="$FRESH_URL" node packages/db/dist/migrate-cli.js
           dump() { docker exec "$PG" pg_dump -U holypearls_ci --schema-only --no-owner "$1" | grep -vE '^(--|\\(un)?restrict )'; }
@@ -80,22 +94,32 @@ jobs:
           echo "Upgraded schema matches a fresh migration."
       - name: The production image builds and starts (api, worker and migrations)
         env:
-          PG_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:5432/holypearls_image
+          # The image reaches Postgres by container name on the job's Docker network.
+          PG_URL: postgresql://holypearls_ci:${{ github.run_id }}@holypearls-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}:5432/holypearls_image
+          API_IMAGE: holypearls-ci-api-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          docker exec "${{ job.services.postgres.id }}" createdb -U holypearls_ci holypearls_image
+          docker exec "$PG" createdb -U holypearls_ci holypearls_image
           docker build -t holypearls-api:ci .
           # Whatever happens, show what the container said.
-          trap 'docker logs api-image 2>&1 | tail -n 80' EXIT
-          docker run -d --name api-image --network host \
+          trap 'docker logs "$API_IMAGE" 2>&1 | tail -n 80' EXIT
+          docker run -d --name "$API_IMAGE" --label holypearls-ci --network "$CI_NET" -p 3099:3099 \
             -e DATABASE_URL="$PG_URL" -e API_PORT=3099 -e BETTER_AUTH_URL -e BETTER_AUTH_SECRET -e DATA_ENCRYPTION_KEY \
             holypearls-api:ci sh deploy/start-single.sh
           for attempt in $(seq 1 60); do curl -fsS http://localhost:3099/health/ready && break; sleep 2; done
           curl -fsS http://localhost:3099/health/ready
           # Built code and production dependencies only: no sources, tests or web app.
-          docker exec api-image sh -c 'test ! -d /repo/apps/api/src && test ! -d /repo/apps/web/src && test ! -d /repo/apps/web/node_modules'
-          docker rm -f api-image
+          docker exec "$API_IMAGE" sh -c 'test ! -d /repo/apps/api/src && test ! -d /repo/apps/web/src && test ! -d /repo/apps/web/node_modules'
+          docker rm -f "$API_IMAGE"
           trap - EXIT
       - name: Install Chromium for browser tests
         run: pnpm --filter @holypearls/web exec playwright install --with-deps chromium
       - name: Accessibility, keyboard and viewport tests (375 and 1440 px)
         run: pnpm --filter @holypearls/web test:e2e
+      - name: Remove this run's containers
+        if: always()
+        run: |
+          old=$(docker ps -aq --filter label=holypearls-ci)
+          [ -z "$old" ] || docker rm -f $old
+          old=$(docker network ls -q --filter label=holypearls-ci)
+          [ -z "$old" ] || docker network rm $old
+          docker image prune -f
