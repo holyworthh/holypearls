@@ -12,9 +12,15 @@ Written 2026-10-07 at the end of a cloud session. Read this, then `CLAUDE.md`, b
   - **A dependency pin** (`pnpm-workspace.yaml` → `overrides`): `source-map-js` ^1.2.2 for GHSA-68fv-2mgg-jv7q (high), which reaches `next`, `postcss` and `sanitize-html`. Without it the CI audit fails on every branch. Remove it once `next` and `sanitize-html` ship the patched version themselves.
 - **Tracker:** T08-01, T08-05 and T08-06 are DONE. T04-03 stays IN REVIEW until one manual test-mode payment on staging (ATTENTION 27). Next up: T09-01.
 
-## CI: run it locally until the Actions minutes reset
+## CI: the owner's Mac is a self-hosted runner
 
-GitHub Actions minutes are used up for the month. Every CI run (and Dependabot's rebase jobs) fails in about 2 seconds with no runner, so a red check on GitHub means nothing for now. **Before merging any PR, run the CI steps locally** (they mirror `.github/workflows/ci.yml`):
+GitHub Actions minutes are used up for the month, so since 2026-10-07 CI runs on a self-hosted runner on the owner's Mac (labels `self-hosted, macOS, ARM64, holypearls`; installed in `~/actions-runner` as a login service, with Docker from Colima, also a login service). The repo variable `CI_RUNS_ON` (`["self-hosted","holypearls"]`) sends the job there; delete the variable to go back to `ubuntu-latest` once the minutes reset.
+
+- CI only runs while the Mac is awake and logged in. Jobs queue one at a time, and a newer push to the same branch cancels the older run.
+- E2E tests use ports 3001, 3100 and 3200, the image check 3099, and Postgres 55432. Stop local dev servers on those ports while CI runs.
+- Runner status: `gh api repos/holyworthh/holypearls/actions/runners`. Service: `~/actions-runner/svc.sh status|start|stop`. Docker: `colima status`.
+
+To check a branch without the runner, the CI steps can also be run by hand (they mirror `.github/workflows/ci.yml`):
 
 ```sh
 pnpm install --frozen-lockfile
