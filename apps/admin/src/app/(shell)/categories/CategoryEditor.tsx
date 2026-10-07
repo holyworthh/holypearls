@@ -8,6 +8,7 @@ import { FileUpload } from "@holypearls/web-kit/file-upload";
 import { api } from "@holypearls/web-kit/api";
 import styles from "../admin-list.module.css";
 import css from "../products/catalogue.module.css";
+import { toSlug } from "../format";
 
 const TONE = { DRAFT: "neutral", PUBLISHED: "success", ARCHIVED: "neutral" } as const;
 const FIELD_IDS: Record<string, string> = {
@@ -19,12 +20,6 @@ const FIELD_IDS: Record<string, string> = {
   heroFileId: "category-hero",
 };
 
-const toSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
 
 interface Props {
   category: AdminCategory | null;

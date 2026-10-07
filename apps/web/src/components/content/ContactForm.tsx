@@ -4,7 +4,7 @@ import { createHelpRequestSchema, type FileView, HELP_TOPIC_LABEL, type HelpCont
 import { ErrorSummary, Notice } from "@holypearls/ui";
 import { ArrowRight, Paperclip, Send } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { api, errorCode } from "../../lib/api";
+import { api, errorCode } from "@holypearls/web-kit/api";
 import { FileUpload } from "../FileUpload";
 import s from "./contact.module.css";
 

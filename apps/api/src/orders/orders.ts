@@ -1,4 +1,4 @@
-import type { Order, Receipt } from "@holypearls/contracts";
+import { displayMoney, type Order, type Receipt } from "@holypearls/contracts";
 import { asc, type Database, desc, eq, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -28,15 +28,6 @@ import { deviceHash } from "../sales/cart.js";
 type Tx = Transaction | Database;
 type CheckoutRow = typeof schema.checkouts.$inferSelect;
 type OrderRow = typeof schema.orders.$inferSelect;
-
-/** For emails and labels: ₦47,300 or ₦3,937.50; kobo only when there are some. */
-export function displayMoney(minor: bigint | string, currency: string): string {
-  const value = BigInt(minor);
-  const symbol = currency === "USD" ? "$" : "₦";
-  const whole = value / 100n;
-  const fraction = value % 100n;
-  return `${symbol}${whole.toLocaleString("en-NG")}${fraction ? `.${fraction.toString().padStart(2, "0")}` : ""}`;
-}
 
 export async function nextNumber(tx: Tx, sequence: "order_number_seq" | "receipt_number_seq", prefix: string, now: Date) {
   const result = await tx.execute<{ n: string }>(sql`select nextval(${sequence}::regclass)::text as n`);

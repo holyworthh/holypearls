@@ -3,7 +3,7 @@
 import { type AnswerConflict, ApiError, type Configuration, configurationSchema } from "@holypearls/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { api, errorCode, errorReason } from "../../lib/api";
+import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
 

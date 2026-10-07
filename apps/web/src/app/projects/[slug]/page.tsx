@@ -1,3 +1,4 @@
+import { slugSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getContentPage } from "../../../lib/content";
@@ -5,10 +6,9 @@ import { pageMetadata } from "../../../lib/seo";
 import { ProjectView } from "../../../components/content/views/ProjectView";
 
 type Params = { params: Promise<{ slug: string }> };
-const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 
 async function load(slug: string) {
-  return validSlug(slug) ? getContentPage("PROJECT", slug) : null;
+  return slugSchema.safeParse(slug).success ? getContentPage("PROJECT", slug) : null;
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {

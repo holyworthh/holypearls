@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { CancelForm } from "../../../../components/orders/CancelForm";
 import s from "../../../../components/orders/forms.module.css";
 import { SiteShell } from "../../../../components/site/SiteShell";
-import { naira } from "../../../../lib/money";
+import { naira } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../../lib/server-api";
 
 export const metadata: Metadata = { title: "Cancel your order", robots: { index: false }, referrer: "no-referrer" };

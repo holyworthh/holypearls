@@ -13,10 +13,10 @@ import { Button, Checkbox, ErrorSummary, FormField, Notice, Select, TextField } 
 import { Check, ChevronDown, CreditCard, Landmark, Lock, ShoppingBag, Smartphone, User, Wallet } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import type { z } from "zod";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { openPaystack, startCheckoutPayment } from "../../lib/paystack";
 import { countryOptions } from "../../lib/countries";
-import { naira, percent } from "../../lib/money";
+import { naira, percent } from "@holypearls/web-kit/money";
 import styles from "./checkout.module.css";
 
 type Step = Checkout["step"];

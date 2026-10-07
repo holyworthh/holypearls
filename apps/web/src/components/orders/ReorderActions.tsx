@@ -4,7 +4,7 @@ import { ApiError, reorderResultSchema } from "@holypearls/contracts";
 import { Button, ButtonLink, Notice } from "@holypearls/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import s from "./forms.module.css";
 
 /** Reorder exactly (to the cart) or with changes (a new draft to edit), Pen 128. */

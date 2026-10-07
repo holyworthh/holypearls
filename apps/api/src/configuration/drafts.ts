@@ -1,9 +1,8 @@
 import type { AnswerConflict, Configuration } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
-import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
 import { cancelCheckoutPayments, checkoutsWithActivePayment, paymentInProgress } from "../payments/payments.js";
@@ -24,7 +23,6 @@ import { priceProduct, pricingInputs, productOptions } from "./pricing.js";
  */
 
 type Row = typeof schema.configurations.$inferSelect;
-const hash = (value: string) => createHash("sha256").update(value).digest("base64url");
 
 export interface DraftAccess {
   actor: ActorContext;
@@ -72,7 +70,7 @@ export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   const { actor, deviceKey } = access;
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
   if (actor.type === "guest" && actor.guest.targetType === "CONFIGURATION" && actor.guest.targetId === row.id) return true;
-  return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === hash(deviceKey));
+  return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === sha256(deviceKey));
 }
 
 export async function loadDraft(db: Database, access: DraftAccess, id: string): Promise<Row> {
@@ -324,7 +322,7 @@ export async function createDraft(
       .values({
         productId: product.id,
         ownerUserId: actor.type === "user" ? actor.session.userId : null,
-        ownerDeviceHash: actor.type === "user" || !deviceKey ? null : hash(deviceKey),
+        ownerDeviceHash: actor.type === "user" || !deviceKey ? null : sha256(deviceKey),
         customerId: actor.type === "guest" ? actor.guest.customerId : null,
         quantity: input.quantity ?? null,
       })

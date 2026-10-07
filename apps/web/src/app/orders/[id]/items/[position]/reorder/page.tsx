@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import s from "../../../../../../components/orders/forms.module.css";
 import { ReorderActions } from "../../../../../../components/orders/ReorderActions";
 import { SiteShell } from "../../../../../../components/site/SiteShell";
-import { naira } from "../../../../../../lib/money";
+import { naira } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../../../../lib/server-api";
 
 export const metadata: Metadata = { title: "Order again", robots: { index: false }, referrer: "no-referrer" };

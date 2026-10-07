@@ -4,7 +4,7 @@ import { redeemResultSchema } from "@holypearls/contracts";
 import { ButtonLink, IconBadge, PageLoading } from "@holypearls/ui";
 import { useEffect, useState } from "react";
 import styles from "@holypearls/web-kit/auth.module.css";
-import { api, errorCode, errorReason } from "../../lib/api";
+import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 
 type State = "opening" | "expired" | "revoked" | "invalid";
 

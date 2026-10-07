@@ -21,7 +21,7 @@ import { Button, ErrorSummary, FormField, Notice, TextField } from "@holypearls/
 import { ArrowLeft, ArrowRight, CloudCheck, Headset } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { api, newIdempotencyKey } from "../../lib/api";
+import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { FileUpload } from "../FileUpload";
 import { NeedHelp } from "../NeedHelp";
 import { QuestionField } from "./Questions";

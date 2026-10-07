@@ -1,12 +1,12 @@
 import type { ReorderCheck } from "@holypearls/contracts";
 import { and, type Database, eq, inArray, schema } from "@holypearls/db";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { AppError } from "../errors.js";
 import { type DraftAccess, reprice } from "../configuration/drafts.js";
 import { priceProduct, productOptions } from "../configuration/pricing.js";
 import { loadOrderFor, type OrderAccess } from "../orders/orders.js";
 import { recordAudit } from "../platform/audit.js";
-import { addToCart } from "../sales/cart.js";
+import { addToCart, deviceHash } from "../sales/cart.js";
 
 /*
  * Reorder (T08-01; FUL-FR-061–062, OPS-FR-018, TECH-01 §5). The ordered
@@ -24,7 +24,6 @@ import { addToCart } from "../sales/cart.js";
  *   turns it into a reorder with changes (see drafts.ts).
  */
 
-const hash = (value: string) => createHash("sha256").update(value).digest("base64url");
 
 async function source(db: Database, access: OrderAccess, orderId: string, position: number) {
   const order = await loadOrderFor(db, access, orderId);
@@ -94,7 +93,7 @@ async function copyConfiguration(db: Database, access: DraftAccess, original: ty
       .values({
         productId: original.productId,
         ownerUserId: actor.type === "user" ? actor.session.userId : null,
-        ownerDeviceHash: actor.type === "user" ? null : hash(deviceKey!),
+        ownerDeviceHash: actor.type === "user" ? null : deviceHash(deviceKey!),
         customerId: actor.type === "guest" ? actor.guest.customerId : original.customerId,
         quantity: original.quantity,
         rush: "STANDARD",

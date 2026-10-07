@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   checkAnswers,
   type Project,
@@ -16,7 +15,7 @@ import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
 import { findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customersForContact, maskEmail, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { deadlineState, openItems, reconcile, type RuleInput, type SuggestionRow } from "./recommend.js";
 
@@ -30,7 +29,6 @@ import { deadlineState, openItems, reconcile, type RuleInput, type SuggestionRow
 
 type Row = typeof schema.projects.$inferSelect;
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
-const hash = (value: string) => createHash("sha256").update(value).digest("base64url");
 
 export interface ProjectAccess {
   actor: ActorContext;
@@ -41,7 +39,7 @@ export function canOpenProject(access: ProjectAccess, row: Pick<Row, "id" | "own
   const { actor, deviceKey } = access;
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
   if (actor.type === "guest" && actor.guest.targetType === "PROJECT" && actor.guest.targetId === row.id) return true;
-  return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === hash(deviceKey));
+  return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === sha256(deviceKey));
 }
 
 export async function loadProject(db: Database | Tx, access: ProjectAccess, id: string): Promise<Row> {
@@ -154,7 +152,7 @@ export async function currentProject(db: Database, access: ProjectAccess) {
       : actor.type === "guest" && actor.guest.targetType === "PROJECT"
         ? eq(schema.projects.id, actor.guest.targetId)
         : deviceKey
-          ? eq(schema.projects.ownerDeviceHash, hash(deviceKey))
+          ? eq(schema.projects.ownerDeviceHash, sha256(deviceKey))
           : null;
   if (!owner) return null;
   const [row] = await db
@@ -172,7 +170,7 @@ export async function claimDeviceProjects(db: Database, access: ProjectAccess): 
   await db
     .update(schema.projects)
     .set({ ownerUserId: access.actor.session.userId, ownerDeviceHash: null })
-    .where(eq(schema.projects.ownerDeviceHash, hash(access.deviceKey)));
+    .where(eq(schema.projects.ownerDeviceHash, sha256(access.deviceKey)));
 }
 
 /* ------------------------------------------------------------------ */
@@ -292,7 +290,7 @@ export async function createProject(
         title: input.title || null,
         answers,
         ownerUserId: actor.type === "user" ? actor.session.userId : null,
-        ownerDeviceHash: actor.type === "user" || !deviceKey ? null : hash(deviceKey),
+        ownerDeviceHash: actor.type === "user" || !deviceKey ? null : sha256(deviceKey),
         customerId: actor.type === "guest" ? actor.guest.customerId : null,
         lastActivityAt: actor.now,
       })

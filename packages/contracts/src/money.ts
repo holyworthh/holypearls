@@ -60,6 +60,15 @@ export function toMajorString(value: Money): string {
   return `${negative ? "-" : ""}${whole}${digits > 0 ? `.${fraction}` : ""}`;
 }
 
+/** For people to read: ₦47,300 or $3,937.50; the minor part only when there is one. */
+export function displayMoney(minor: bigint | string, currency: string): string {
+  const value = BigInt(minor);
+  const symbol = currency === "USD" ? "$" : "₦";
+  const whole = value / 100n;
+  const fraction = value % 100n;
+  return `${symbol}${whole.toLocaleString("en-NG")}${fraction ? `.${fraction.toString().padStart(2, "0")}` : ""}`;
+}
+
 function assertSameCurrency(left: Money, right: Money): void {
   if (left.currency !== right.currency) {
     throw new CurrencyMismatchError(left.currency, right.currency);

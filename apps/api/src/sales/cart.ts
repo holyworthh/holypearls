@@ -1,7 +1,7 @@
 import type { Cart, CartItem, Configuration } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNotNull, schema, sql } from "@holypearls/db";
-import { createHash } from "node:crypto";
 import { AppError } from "../errors.js";
+import { sha256 } from "../identity/customers.js";
 import type { NotificationDeps } from "../platform/notifications.js";
 import { closeCheckoutsWith, type DraftAccess, draftView, loadDraft, quoteIn, quotable } from "../configuration/drafts.js";
 import { configuratorFor, productOptions } from "../configuration/pricing.js";
@@ -19,7 +19,7 @@ import { checkoutTotals } from "./delivery.js";
  */
 
 type Db = Database;
-export const deviceHash = (key: string) => createHash("sha256").update(key).digest("base64url");
+export const deviceHash = sha256;
 
 export type CartAccess = DraftAccess;
 

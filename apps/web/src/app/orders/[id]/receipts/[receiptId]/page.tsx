@@ -3,7 +3,7 @@ import { ButtonLink } from "@holypearls/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SiteShell } from "../../../../../components/site/SiteShell";
-import { naira, percent } from "../../../../../lib/money";
+import { naira, percent } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../../../lib/server-api";
 import styles from "../../order.module.css";
 

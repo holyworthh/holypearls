@@ -6,8 +6,8 @@ import { CircleCheck, FileText, Info, Lock, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
-import { api } from "../../lib/api";
-import { naira, percent } from "../../lib/money";
+import { api } from "@holypearls/web-kit/api";
+import { naira, percent } from "@holypearls/web-kit/money";
 import styles from "./cart.module.css";
 
 const newKey = () => `web_${crypto.randomUUID().replaceAll("-", "")}`;

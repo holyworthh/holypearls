@@ -1,7 +1,7 @@
 # HolyPearls — Stage 4.1 High-Fidelity System Review (Claude run)
 
 **Board:** `C:\Users\ASUS\Desktop\design\holypeals-design\untitled.pen` → top-level frame **"STAGE 4.1 — HIGH-FIDELITY SYSTEM + 18 ANCHORS (Claude run)"**.
-**PDF:** `docs/HolyPearls — Stage 4.1 High-Fidelity Board (Claude run).pdf` (42 pages; the homepage is exported as stitched section pages).
+**PDF:** removed on 2026-10-07 (T00-12); it is in git history. The Stage 4.2 board (`docs/HolyPearls — Stage 4.2 Full High-Fidelity System Board.pdf`) and the Pen file replace it.
 **Revision:** correction and art-direction pass, 26 Sep 2026. Stage 4.1 was not restarted; the same frame, tokens (`hp-*`) and components (`HP/*`) were corrected in place.
 **Codex board:** untouched (`hf-*` / `HF/*`, frame "STAGE 4.1 — HIGH-FIDELITY VISUAL SYSTEM + 18 ANCHORS").
 

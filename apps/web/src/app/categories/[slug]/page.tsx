@@ -1,3 +1,4 @@
+import { slugSchema } from "@holypearls/contracts";
 import type { HubSection, PublicHub } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,11 +13,10 @@ import { getHub } from "../../../lib/storefront";
 type Params = { params: Promise<{ slug: string }> };
 type Of<T extends HubSection["type"]> = Extract<HubSection, { type: T }>;
 
-const validSlug = (slug: string) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const hub = validSlug(slug) ? await getHub(slug).catch(() => null) : null;
+  const hub = slugSchema.safeParse(slug).success ? await getHub(slug).catch(() => null) : null;
   if (!hub) return { title: "Category not found", robots: { index: false } };
   return {
     title: { absolute: hub.seoTitle },
@@ -421,7 +421,7 @@ function Grid({ section, hub }: { section: Of<"grid">; hub: PublicHub }) {
  */
 export default async function CategoryHubPage({ params }: Params) {
   const { slug } = await params;
-  if (!validSlug(slug)) notFound();
+  if (!slugSchema.safeParse(slug).success) notFound();
   const hub = await getHub(slug);
   if (!hub) notFound();
   // The layout is the hub's own setting (staff choose it in the hub editor), not the category's address.

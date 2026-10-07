@@ -4,7 +4,7 @@ import { revokeAllResultSchema, type SessionList } from "@holypearls/contracts";
 import { Button, ButtonLink, Dialog, Notice, StatusChip } from "@holypearls/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "../../../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import styles from "./security.module.css";
 
 type Session = SessionList["sessions"][number];

@@ -3,7 +3,7 @@
 import { createHelpRequestSchema, type HelpContext, helpRequestSchema, toFieldErrors } from "@holypearls/contracts";
 import { Button, ButtonLink, Dialog, ErrorSummary, FormField, Notice, TextArea, TextField } from "@holypearls/ui";
 import { useState, type FormEvent } from "react";
-import { api } from "../lib/api";
+import { api } from "@holypearls/web-kit/api";
 import styles from "@holypearls/web-kit/auth.module.css";
 
 export interface NeedHelpProps {

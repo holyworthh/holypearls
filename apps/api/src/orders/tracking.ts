@@ -1,4 +1,4 @@
-import type { Order } from "@holypearls/contracts";
+import { displayMoney, type Order } from "@holypearls/contracts";
 import { and, asc, type Database, eq, inArray, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { type ActorContext, requireRecentMfa } from "../identity/actor.js";
@@ -6,7 +6,7 @@ import { createGuestLink, customerForActor, normalizeEmail } from "../identity/c
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { orderInstallments } from "../production/production.js";
-import { displayMoney, loadOrderFor, type OrderAccess, type OrderEmailDeps } from "./orders.js";
+import { loadOrderFor, type OrderAccess, type OrderEmailDeps } from "./orders.js";
 
 /*
  * Order tracking, Find my order and cancellation (T07-03; FUL-FR-010–011,

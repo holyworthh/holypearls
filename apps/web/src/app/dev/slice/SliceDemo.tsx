@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useEmailCode } from "../../../components/EmailCode";
 import { FileUpload } from "../../../components/FileUpload";
 import { NeedHelp } from "../../../components/NeedHelp";
-import { api, errorCode } from "../../../lib/api";
+import { api, errorCode } from "@holypearls/web-kit/api";
 
 const TONE = { PENDING: "info", DONE: "success", FAILED: "error" } as const;
 

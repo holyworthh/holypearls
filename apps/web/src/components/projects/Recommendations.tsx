@@ -13,8 +13,8 @@ import { Button, FormField, TextArea, TextField } from "@holypearls/ui";
 import { FileUpload } from "../FileUpload";
 import { Check, Minus, Plus, Search } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { api } from "../../lib/api";
-import { naira } from "../../lib/money";
+import { api } from "@holypearls/web-kit/api";
+import { naira } from "@holypearls/web-kit/money";
 import s from "./builder.module.css";
 
 /*

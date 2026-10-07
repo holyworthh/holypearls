@@ -4,7 +4,8 @@ import { type AnswerConflict, ApiError, type Configuration, type ConfigurationDe
 import { Button, Dialog, FormField, Notice, TextField } from "@holypearls/ui";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { api, errorCode, errorReason } from "../../lib/api";
+import { naira } from "@holypearls/web-kit/money";
+import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 import s from "./ledger-pdp.module.css";
 import { ArrowRight, Check, Clock, Lock, PenTool, Upload } from "lucide-react";
 import { AddToCart } from "../sales/AddToCart";
@@ -23,14 +24,6 @@ interface Pending {
   rush?: "STANDARD" | "RUSH" | "PRIORITY";
 }
 
-const naira = (minor: string | null | undefined, currency: string | null) => {
-  if (!minor) return "—";
-  const value = BigInt(minor);
-  const whole = value / 100n;
-  const kobo = value % 100n;
-  const symbol = currency === "USD" ? "$" : "₦";
-  return `${symbol}${whole.toLocaleString("en-NG")}${kobo ? `.${kobo.toString().padStart(2, "0")}` : ""}`;
-};
 
 const ARTWORK: { value: Artwork; title: string; meta: string; Icon: typeof Upload }[] = [
   { value: "UPLOAD", title: "Upload my design", meta: "PDF · we check it", Icon: Upload },

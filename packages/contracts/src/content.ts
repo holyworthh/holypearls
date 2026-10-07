@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { slugSchema } from "./catalogue.js";
 import { publicImageSchema, publicProductCardSchema } from "./storefront.js";
 
 /*
@@ -41,11 +42,7 @@ export const GUIDE_TOPIC_LABEL: Record<GuideTopic, string> = {
   ORDERING: "Ordering and artwork",
 };
 
-const slug = z
-  .string()
-  .trim()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lower-case letters, numbers and hyphens")
-  .max(80, "Use 80 characters or fewer");
+const slug = z.string().trim().pipe(slugSchema);
 const line = (max: number) => z.string().trim().max(max, `Use ${max} characters or fewer`);
 const pair = z.object({ label: line(40), value: line(160) }).strict();
 

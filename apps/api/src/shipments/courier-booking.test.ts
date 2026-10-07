@@ -160,7 +160,7 @@ describe("booking a courier from Shipments (T08-06)", () => {
     const [before] = await db().select().from(schema.orders).where(eq(schema.orders.id, orderId));
     const view = adminShipmentSchema.parse((await book(shipment)).body);
     expect(view.courier!.costMinor).toBe("550000");
-    expect(view.history[0]!.note).toContain("Delivery was priced at ₦4,500.00; the ₦1,000.00 difference is HolyPearls' cost.");
+    expect(view.history[0]!.note).toContain("Delivery was priced at ₦4,500; the ₦1,000 difference is HolyPearls' cost.");
     const [after] = await db().select().from(schema.orders).where(eq(schema.orders.id, orderId));
     expect(after!.totalMinor).toBe(before!.totalMinor);
     expect(after!.deliveryMinor).toBe(before!.deliveryMinor);

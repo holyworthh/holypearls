@@ -3,7 +3,7 @@
 import { ApiError, type EmailCodePurpose, emailCodeSentSchema, emailCodeVerifiedSchema } from "@holypearls/contracts";
 import { Button, Dialog, Notice, OtpInput } from "@holypearls/ui";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { api, errorCode, errorReason } from "../lib/api";
+import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 
 type Step = "sending" | "enter" | "locked" | "error";
 

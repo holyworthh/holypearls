@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { SHIPMENT_NEXT, type ShipmentStatus } from "@holypearls/contracts";
+import { displayMoney, SHIPMENT_NEXT, type ShipmentStatus } from "@holypearls/contracts";
 import { asc, type Database, eq, schema } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -24,7 +24,6 @@ import { moveShipment, shipmentView } from "./shipments.js";
 
 export type CourierBookingDeps = OrderEmailDeps & { courier?: Courier | null };
 
-const naira = (minor: bigint) => `₦${(Number(minor) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 interface CheckoutDelivery {
   source?: string;
@@ -96,9 +95,9 @@ export async function bookCourier(deps: CourierBookingDeps, actor: ActorContext,
 
     const costMinor = rate.totalMinor - rate.vatMinor;
     const pricedMinor = delivery.rateMinor ? BigInt(delivery.rateMinor) : null;
-    const notes = [`Booked with ${rate.courierName} (${booking.orderId}) for ${naira(costMinor)} before VAT.`];
+    const notes = [`Booked with ${rate.courierName} (${booking.orderId}) for ${displayMoney(costMinor, "NGN")} before VAT.`];
     if (delivery.courier && delivery.courier.serviceCode !== rate.serviceCode) notes.push(`${delivery.courier.name} no longer collects for this address.`);
-    if (pricedMinor !== null && costMinor > pricedMinor) notes.push(`Delivery was priced at ${naira(pricedMinor)}; the ${naira(costMinor - pricedMinor)} difference is HolyPearls' cost.`);
+    if (pricedMinor !== null && costMinor > pricedMinor) notes.push(`Delivery was priced at ${displayMoney(pricedMinor, "NGN")}; the ${displayMoney(costMinor - pricedMinor, "NGN")} difference is HolyPearls' cost.`);
     await tx
       .update(schema.shipments)
       .set({ courierOrderId: booking.orderId, courierService: rate.serviceCode, courierTrackingUrl: booking.trackingUrl, courierCostMinor: costMinor, courierBookedAt: actor.now })
