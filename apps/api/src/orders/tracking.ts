@@ -98,8 +98,10 @@ export async function trackingView(db: Database | Tx, order: OrderRow): Promise<
     activity.push({ at: change.createdAt, text: `You asked for a change: ${change.description.length > 80 ? `${change.description.slice(0, 80)}…` : change.description}` });
     if (change.decidedAt) activity.push({ at: change.decidedAt, text: `Your change request was ${change.status === "ACCEPTED" ? "accepted" : "declined"}` });
   }
-  if (order.cancelledAt) activity.push({ at: order.cancelledAt, text: order.cancelledBy === "STAFF" ? "Order cancelled by HolyPearls" : "You cancelled the order" });
-  activity.sort((a, b) => b.at.getTime() - a.at.getTime());
+  const cancelled = order.cancelledAt ? { at: order.cancelledAt, text: order.cancelledBy === "STAFF" ? "Order cancelled by HolyPearls" : "You cancelled the order" } : null;
+  if (cancelled) activity.push(cancelled);
+  // The cancellation shares its time with the item cancellations it causes, and leads them.
+  activity.sort((a, b) => b.at.getTime() - a.at.getTime() || Number(b === cancelled) - Number(a === cancelled));
 
   return {
     cancellation: order.cancelledAt ? { at: order.cancelledAt.toISOString(), by: order.cancelledBy as "CUSTOMER" | "STAFF", refundDueMinor: (order.refundDueMinor ?? 0n).toString() } : null,
@@ -155,7 +157,7 @@ async function cancelInTx(tx: Tx, deps: OrderEmailDeps, order: OrderRow, input: 
       .update(schema.orderItems)
       .set({ status: "CANCELLED", version: sql`${schema.orderItems.version} + 1`, updatedAt: now })
       .where(eq(schema.orderItems.id, item.id));
-    await tx.insert(schema.orderItemEvents).values({ orderItemId: item.id, fromStatus: item.status, toStatus: "CANCELLED", kind: "STATUS", note: input.by === "STAFF" ? `Cancelled by staff: ${input.reason}` : `Cancelled by the customer${input.reason ? `: ${input.reason}` : ""}`, staffProfileId: input.staffId });
+    await tx.insert(schema.orderItemEvents).values({ orderItemId: item.id, fromStatus: item.status, toStatus: "CANCELLED", kind: "STATUS", note: input.by === "STAFF" ? `Cancelled by staff: ${input.reason}` : `Cancelled by the customer${input.reason ? `: ${input.reason}` : ""}`, staffProfileId: input.staffId, createdAt: now });
     await tx.update(schema.holds).set({ status: "RESOLVED", resolution: "Order cancelled", resolvedByStaffId: input.staffId, resolvedAt: now }).where(and(eq(schema.holds.orderItemId, item.id), eq(schema.holds.status, "OPEN")));
   }
   const unpaid = parts.filter((part) => part.status === "NOT_DUE" || part.status === "DUE").map((part) => part.id);
