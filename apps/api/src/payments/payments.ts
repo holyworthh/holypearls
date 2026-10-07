@@ -1,3 +1,4 @@
+import type { Courier } from "../sales/courier.js";
 import type { CheckoutPayment, PaymentChannel, PaymentStart } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
@@ -36,6 +37,8 @@ export interface PaymentDeps {
   webOrigin: string;
   /** DATA_ENCRYPTION_KEY: order confirmations are stored sealed (they carry the order's link). */
   sealKey: string;
+  /** Shipbubble (T08-05); null when no key is set, and addresses outside the zones are priced by staff. */
+  courier?: Courier | null;
 }
 
 type Tx = Transaction | Database;

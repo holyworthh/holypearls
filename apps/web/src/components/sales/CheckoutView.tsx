@@ -235,6 +235,7 @@ function doneSummary(step: Step, checkout: Checkout) {
       if (!delivery) return "";
       const days = delivery.transitDays ? ` · ${delivery.transitDays.min}–${delivery.transitDays.max} working days in transit` : "";
       if (delivery.rateMinor === null) return `${delivery.zoneName} · delivery priced by our team${days}`;
+      if (delivery.source === "COURIER") return `${delivery.courierName ?? "Courier"} · ${naira(delivery.rateMinor)} before VAT${delivery.courierEta ? ` · ${delivery.courierEta} after dispatch` : ""}`;
       return `${delivery.zoneName} · ${naira(delivery.rateMinor)} before VAT${delivery.pricing === "QUOTE" ? ", set by our team" : ""}${days}`;
     }
     case "billing": {
@@ -434,15 +435,25 @@ function DeliveryStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (nex
       <div className={styles.option} role="group" aria-label="Delivery option">
         <span className={styles.radio} aria-hidden="true" />
         <div>
-          <p className={styles.optionTitle}>{quote ? (checkout.international ? "International freight" : "Delivery by quote") : `Standard delivery · ${delivery.zoneName}`}</p>
+          <p className={styles.optionTitle}>
+            {quote
+              ? checkout.international
+                ? "International freight"
+                : "Delivery by quote"
+              : delivery.source === "COURIER"
+                ? `Courier delivery · ${delivery.courierName ?? delivery.zoneName}`
+                : `Standard delivery · ${delivery.zoneName}`}
+          </p>
           <p className={styles.optionMeta}>
             {quote
               ? checkout.international
                 ? "Our team quotes freight to your address before you pay. Customs duties are paid on arrival."
                 : `Delivery to this address is priced by our team (${delivery.zoneName}). We'll email you the price, then you can pay here.`
-              : delivery.transitDays
-                ? `${delivery.transitDays.min}–${delivery.transitDays.max} working days in transit, after production`
-                : "Transit time confirmed when it ships"}
+              : delivery.source === "COURIER"
+                ? `${delivery.courierEta ? `${delivery.courierEta}, ` : ""}after production. Live courier price for your address.`
+                : delivery.transitDays
+                  ? `${delivery.transitDays.min}–${delivery.transitDays.max} working days in transit, after production`
+                  : "Transit time confirmed when it ships"}
           </p>
         </div>
         <p className={styles.optionPrice}>{quote ? "Quoted" : naira(delivery.rateMinor)}</p>

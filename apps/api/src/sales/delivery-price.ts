@@ -72,6 +72,7 @@ export async function deliveryPriceQueue(deps: Pick<HelpDeps, "db">, now: Date):
         goodsMinor: row.goodsMinor.toString(),
         requestedAt: delivery.requestedAt!,
         expiresAt: row.expiresAt?.toISOString() ?? null,
+        courierProblem: delivery.courierProblem ?? null,
       };
     }),
   };
@@ -92,7 +93,7 @@ export async function setDeliveryPrice(deps: HelpDeps, actor: ActorContext, id: 
     if ((await checkoutsWithActivePayment(tx, [row.id])).length) {
       throw new AppError("CONFLICT", { message: "The customer is paying right now. Try again in a few minutes.", context: { reason: "PAYMENT_IN_PROGRESS" } });
     }
-    const priced: Delivery = { ...delivery, rateMinor: input.rateMinor, transitDays: { min: input.transitMinDays, max: input.transitMaxDays }, quotedAt: now.toISOString() };
+    const priced: Delivery = { ...delivery, rateMinor: input.rateMinor, transitDays: { min: input.transitMinDays, max: input.transitMaxDays }, quotedAt: now.toISOString(), source: "STAFF" };
     const totals = totalsOf({ ...row, delivery: priced });
     const later = checkoutExpiry(now);
     const [saved] = await tx

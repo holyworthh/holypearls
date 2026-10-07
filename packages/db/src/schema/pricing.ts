@@ -200,3 +200,21 @@ export const deliveryZones = pgTable(
     check("delivery_zones_rate", sql`(${table.pricing} = 'FIXED' and ${table.rateMinor} >= 0) or (${table.pricing} = 'QUOTE' and ${table.rateMinor} is null)`),
   ],
 );
+
+/**
+ * Courier prices through Shipbubble (T08-05). One row. The pickup address is
+ * checked with the courier when saved, and its code kept for rate requests.
+ */
+export const courierSettings = pgTable("courier_settings", {
+  id: idColumn(),
+  enabled: boolean("enabled").notNull().default(false),
+  /** Which courier a checkout gets: the cheapest or the fastest that collects from the workshop. */
+  rule: text("rule").notNull().default("CHEAPEST"),
+  /** Shipbubble's package category for HolyPearls' goods. */
+  categoryId: integer("category_id"),
+  /** { name, email, phone, address, addressCode }. */
+  pickup: jsonb("pickup"),
+  version: versionColumn(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

@@ -12,6 +12,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../app.js";
+import type { Courier } from "../sales/courier.js";
 import { findActiveStaff } from "../identity/actor.js";
 import { createLogger } from "../logger.js";
 
@@ -56,6 +57,8 @@ export async function createHarness(
     jobs?: boolean;
     /** The payment provider; a FakeGateway by default, null for "not set up". */
     payments?: PaymentGateway | null;
+    /** The courier for prices outside the zones (T08-05); none by default, so staff price them. */
+    courier?: Courier | null;
     /** Share another harness's database, for example to run two API instances. */
     database?: TestDatabase;
   } = {},
@@ -101,6 +104,7 @@ export async function createHarness(
   const payments = options.payments === undefined ? new FakeGateway() : options.payments;
   const app = await createApp({
     payments,
+    courier: options.courier ?? null,
     storage,
     publicStorage,
     db: database.db,

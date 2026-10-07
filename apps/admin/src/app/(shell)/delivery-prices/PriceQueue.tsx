@@ -50,6 +50,7 @@ export function PriceQueue({ initial }: { initial: Item[] }) {
                   {" "}
                   · {item.zoneName} · {item.customer}
                 </span>
+                {item.courierProblem ? <span className={styles.hint}> · No courier price: {item.courierProblem}</span> : null}
               </td>
               <td>{item.items}</td>
               <td className={styles.mono}>{naira(item.goodsMinor)}</td>
