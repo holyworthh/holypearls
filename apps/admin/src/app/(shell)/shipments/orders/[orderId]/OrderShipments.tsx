@@ -3,6 +3,7 @@
 import { type AdminShipment, adminShipmentSchema, ApiError, type OrderShipping, orderShippingSchema } from "@holypearls/contracts";
 import { Button, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
 import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
+import { naira } from "@holypearls/web-kit/money";
 import { useState } from "react";
 import list from "../../../admin-list.module.css";
 import { formatTime } from "../../../format";
@@ -15,6 +16,8 @@ type Result = { tone: "success" | "error"; title: string; body: string } | null;
  * Create a shipment from ready items, then move each shipment along by hand
  * (Pen 115). "Ship now" can't exceed what is ready and not already shipped;
  * only the next statuses TECH-01 allows are offered; history is never erased.
+ * A courier-priced order's shipment can be booked with Shipbubble instead
+ * (T08-06); its webhooks then move the shipment on.
  */
 export function OrderShipments({ initial }: { initial: OrderShipping }) {
   const [data, setData] = useState(initial);
@@ -147,6 +150,21 @@ function ShipmentCard({ shipment, onSaved, onResult }: { shipment: AdminShipment
   const [note, setNote] = useState("");
   const [tracking, setTracking] = useState(shipment.trackingNumber);
   const [busy, setBusy] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const [bookKey] = useState(() => newIdempotencyKey());
+
+  const book = async () => {
+    setBooking(true);
+    try {
+      const saved = await api(`/v1/admin/shipments/${shipment.id}/courier`, { method: "POST", body: { version: shipment.version }, headers: { "idempotency-key": bookKey }, response: adminShipmentSchema });
+      onResult({ tone: "success", title: "Courier booked", body: `${saved.number} is booked with ${saved.carrier} for ${naira(saved.courier?.costMinor)} before VAT. Its status now follows the courier.` });
+      await onSaved();
+    } catch (problem) {
+      onResult({ tone: "error", title: "Courier not booked", body: problem instanceof ApiError ? (problem.body.code === "VERSION_CONFLICT" ? "Someone else updated this shipment. Reload and try again." : problem.body.message) : "Try again." });
+    } finally {
+      setBooking(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -171,6 +189,27 @@ function ShipmentCard({ shipment, onSaved, onResult }: { shipment: AdminShipment
           {shipment.items.map((item) => `${item.name} × ${item.quantity.toLocaleString("en-NG")}`).join(", ")} · {[shipment.carrier, shipment.trackingNumber].filter(Boolean).join(" · ") || "no carrier yet"}
         </span>
       </div>
+      {shipment.courier ? (
+        <p className={list.hint}>
+          Shipbubble {shipment.courier.orderId} · {naira(shipment.courier.costMinor)} before VAT
+          {shipment.courier.trackingUrl ? (
+            <>
+              {" · "}
+              <a className={styles.viewLink} href={shipment.courier.trackingUrl} target="_blank" rel="noreferrer">
+                Track parcel
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
+      {shipment.bookable ? (
+        <div>
+          <Button type="button" loading={booking} onClick={() => void book()}>
+            Book courier
+          </Button>
+          <p className={list.hint}>Checks the courier&apos;s price again and books it for pickup on the next working day.</p>
+        </div>
+      ) : null}
       {shipment.next.length ? (
         <>
           <div className={styles.row}>

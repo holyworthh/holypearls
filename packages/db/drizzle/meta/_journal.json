@@ -274,6 +274,13 @@
       "when": 1791282903578,
       "tag": "0038_courier_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791393156622,
+      "tag": "0039_courier_booking",
+      "breakpoints": true
     }
   ]
 }

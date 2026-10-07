@@ -33,7 +33,7 @@ import { ProjectsController, RecommendationRulesAdminController } from "./projec
 import { QuoteSettingsAdminController, QuotesAdminController, RequestsAdminController } from "./quotes/quotes.controller.js";
 import { CustomerQuotesController, OrderPaymentsController } from "./quotes/customer.controller.js";
 import { ProductionAdminController } from "./production/production.controller.js";
-import { CustomerAfterDeliveryController, ProblemsAdminController, ShipmentsAdminController } from "./shipments/shipments.controller.js";
+import { CustomerAfterDeliveryController, ProblemsAdminController, ShipbubbleWebhookController, ShipmentsAdminController } from "./shipments/shipments.controller.js";
 import { ChangeRequestsAdminController, CustomerChangeRequestsController, CustomerProofsController, FileReviewAdminController, ProofsAdminController } from "./proofs/proofs.controller.js";
 import { FilesController } from "./files/files.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
@@ -146,6 +146,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       DeliveryPricesAdminController,
       CourierSettingsAdminController,
       PaystackWebhookController,
+      ShipbubbleWebhookController,
       PaymentsAdminController,
       OrdersController,
       ConfigurationsController,
@@ -241,6 +242,8 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   if (localStores.length) app.use(localStorageRefused);
   // Paystack signs the exact bytes it sent, so its webhook keeps the raw body (TECH-02 §9).
   app.use("/v1/webhooks/paystack", rawBody(1024 * 1024));
+  // Shipbubble signs the exact bytes too (T08-06).
+  app.use("/v1/webhooks/shipbubble", rawBody(1024 * 1024));
   app.useBodyParser("json", { limit: "1mb" });
   // TECH-02 §1: every API route lives under /v1; health checks stay at the root (TECH-07 §8).
   app.setGlobalPrefix("v1", {

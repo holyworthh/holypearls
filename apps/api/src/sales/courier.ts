@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 /*
  * Courier prices through Shipbubble (T08-05; owner, 2026-10-05). Shipbubble
  * is an aggregator: given a checked pickup and delivery address and the
@@ -31,6 +33,8 @@ export interface Parcel {
 }
 
 export interface CourierRate {
+  /** Shipbubble's ID for the courier, needed to book it. */
+  courierId: string;
   courierName: string;
   serviceCode: string;
   /** "pickup": the courier collects from the workshop; "dropoff": someone takes it to a station. */
@@ -47,12 +51,24 @@ export interface CourierQuote {
   rates: CourierRate[];
 }
 
+/** A booked shipment (T08-06). The tracking code can come later, in a webhook. */
+export interface CourierBooking {
+  orderId: string;
+  status: string;
+  trackingCode: string | null;
+  trackingUrl: string | null;
+}
+
 export interface Courier {
   readonly name: string;
   /** Checks an address and returns the courier's code for it. Throws CourierError when it can't. */
   validateAddress(address: CourierAddress): Promise<number>;
   rates(input: { senderCode: number; receiverCode: number; pickupDate: string; categoryId: number; parcel: Parcel }): Promise<CourierQuote>;
   categories(): Promise<{ id: number; name: string }[]>;
+  /** Books a rate from `rates()`; its request token must still be valid (7 days). */
+  book(input: { requestToken: string; serviceCode: string; courierId: string }): Promise<CourierBooking>;
+  /** Whether a webhook body carries the courier's signature. */
+  verifyWebhook(rawBody: Buffer, signature: string | undefined): boolean;
 }
 
 /** The courier refused or failed; the message is safe to show staff. */
@@ -67,6 +83,18 @@ export class CourierError extends Error {
 export const COURIER_TIMEOUT_MS = 8_000;
 
 const naira = (value: number | string) => BigInt(Math.round(Number(value) * 100));
+
+/** Shipbubble signs each webhook body with HMAC-SHA512, keyed with the API key, in x-ship-signature. */
+export function shipbubbleSignature(rawBody: Buffer, key: string) {
+  return createHmac("sha512", key).update(rawBody).digest("hex");
+}
+
+function signatureMatches(rawBody: Buffer, signature: string | undefined, key: string) {
+  if (!signature) return false;
+  const expected = Buffer.from(shipbubbleSignature(rawBody, key), "utf8");
+  const given = Buffer.from(signature.trim().toLowerCase(), "utf8");
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
 
 /** Shipbubble's API (https://docs.shipbubble.com). Test keys start sb_sandbox_, live keys sb_prod_. */
 export class ShipbubbleCourier implements Courier {
@@ -101,7 +129,7 @@ export class ShipbubbleCourier implements Courier {
   }
 
   async rates(input: { senderCode: number; receiverCode: number; pickupDate: string; categoryId: number; parcel: Parcel }): Promise<CourierQuote> {
-    type Raw = { courier_name: string; service_code: string; service_type: string; total: number | string; vat?: number | string; delivery_eta?: string | null; delivery_eta_time?: string | null };
+    type Raw = { courier_id: string | number; courier_name: string; service_code: string; service_type: string; total: number | string; vat?: number | string; delivery_eta?: string | null; delivery_eta_time?: string | null };
     const data = await this.call<{ request_token: string; couriers: Raw[] }>("POST", "/shipping/fetch_rates", {
       sender_address_code: input.senderCode,
       reciever_address_code: input.receiverCode,
@@ -119,6 +147,7 @@ export class ShipbubbleCourier implements Courier {
     return {
       requestToken: data.request_token,
       rates: data.couriers.map((raw) => ({
+        courierId: String(raw.courier_id),
         courierName: raw.courier_name,
         serviceCode: raw.service_code,
         serviceType: raw.service_type === "dropoff" ? "dropoff" : "pickup",
@@ -133,6 +162,16 @@ export class ShipbubbleCourier implements Courier {
   async categories() {
     const data = await this.call<{ category_id: number; category: string }[]>("GET", "/shipping/labels/categories");
     return data.map((row) => ({ id: row.category_id, name: row.category }));
+  }
+
+  async book(input: { requestToken: string; serviceCode: string; courierId: string }): Promise<CourierBooking> {
+    type Raw = { order_id: string; status?: string; tracking_url?: string | null; courier?: { tracking_code?: string | null } | null };
+    const data = await this.call<Raw>("POST", "/shipping/labels", { request_token: input.requestToken, service_code: input.serviceCode, courier_id: input.courierId });
+    return { orderId: data.order_id, status: data.status ?? "pending", trackingCode: data.courier?.tracking_code || null, trackingUrl: data.tracking_url || null };
+  }
+
+  verifyWebhook(rawBody: Buffer, signature: string | undefined) {
+    return signatureMatches(rawBody, signature, this.options.apiKey);
   }
 }
 
@@ -186,12 +225,22 @@ export function chooseRate(rates: CourierRate[], rule: "CHEAPEST" | "FASTEST"): 
 export class FakeCourier implements Courier {
   readonly name = "Fake courier";
   readonly pickupCode = 11_000_001;
+  /** Signs the fake's webhooks, as the API key signs Shipbubble's. */
+  static readonly webhookKey = "sb_sandbox_fake_webhook_key";
   rateCalls: { receiverCode: number; parcel: Parcel }[] = [];
+  bookings: { requestToken: string; serviceCode: string; courierId: string }[] = [];
   lastToken: string | null = null;
+  /** Added to every rate, in kobo with VAT, to test a price that changed after checkout. */
+  priceChangeMinor = 0n;
+  /** Leave a service out of the rates, to test one that's no longer offered. */
+  withdrawn: string | null = null;
   private failure: string | null = null;
 
   reset() {
     this.rateCalls = [];
+    this.bookings = [];
+    this.priceChangeMinor = 0n;
+    this.withdrawn = null;
     this.failure = null;
   }
 
@@ -218,10 +267,13 @@ export class FakeCourier implements Courier {
       requestToken: this.lastToken,
       rates: [
         // ₦4,837.50 with VAT is ₦4,500 before VAT.
-        { courierName: "Cheap Collect", serviceCode: "cheap", serviceType: "pickup", totalMinor: 483_750n, vatMinor: 33_750n, deliveryEta: "Within 2 - 4 working days", deliveryEtaTime: "2026-10-12 12:00:00" },
-        { courierName: "Quick Collect", serviceCode: "quick", serviceType: "pickup", totalMinor: 860_000n, vatMinor: 60_000n, deliveryEta: "Within 1 working day", deliveryEtaTime: "2026-10-08 12:00:00" },
-        { courierName: "Station Drop", serviceCode: "station", serviceType: "dropoff", totalMinor: 200_000n, vatMinor: 14_000n, deliveryEta: "Within 5 working days", deliveryEtaTime: "2026-10-14 12:00:00" },
-      ],
+        { courierId: "101", courierName: "Cheap Collect", serviceCode: "cheap", serviceType: "pickup" as const, totalMinor: 483_750n, vatMinor: 33_750n, deliveryEta: "Within 2 - 4 working days", deliveryEtaTime: "2026-10-12 12:00:00" },
+        { courierId: "102", courierName: "Quick Collect", serviceCode: "quick", serviceType: "pickup" as const, totalMinor: 860_000n, vatMinor: 60_000n, deliveryEta: "Within 1 working day", deliveryEtaTime: "2026-10-08 12:00:00" },
+        { courierId: "103", courierName: "Station Drop", serviceCode: "station", serviceType: "dropoff" as const, totalMinor: 200_000n, vatMinor: 14_000n, deliveryEta: "Within 5 working days", deliveryEtaTime: "2026-10-14 12:00:00" },
+      ]
+        .filter((rate) => rate.serviceCode !== this.withdrawn)
+        // VAT stays 7.5% of the price before VAT.
+        .map((rate) => (this.priceChangeMinor ? { ...rate, totalMinor: rate.totalMinor + this.priceChangeMinor, vatMinor: rate.vatMinor + (this.priceChangeMinor * 75n) / 1075n } : rate)),
     };
   }
 
@@ -230,5 +282,16 @@ export class FakeCourier implements Courier {
       { id: 98246239, name: "Fashion wears" },
       { id: 90097994, name: "Accessories" },
     ];
+  }
+
+  async book(input: { requestToken: string; serviceCode: string; courierId: string }): Promise<CourierBooking> {
+    this.takeFailure();
+    this.bookings.push(input);
+    const orderId = `SB-FAKE${String(this.bookings.length).padStart(4, "0")}${Date.now().toString(36).toUpperCase()}`;
+    return { orderId, status: "pending", trackingCode: null, trackingUrl: `https://track.example.test/${orderId}` };
+  }
+
+  verifyWebhook(rawBody: Buffer, signature: string | undefined) {
+    return signatureMatches(rawBody, signature, FakeCourier.webhookKey);
   }
 }

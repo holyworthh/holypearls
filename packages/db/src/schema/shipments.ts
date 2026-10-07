@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { customers } from "./customers.js";
 import { files } from "./files.js";
@@ -9,9 +9,10 @@ import { orderItems, orders } from "./orders.js";
 /*
  * Shipments and problem reports (T08-01; FUL-FR-030–032, 060, 070,
  * OPS-FR-070–073, TECH-01 §4). Staff make shipments from ready items and
- * update their status by hand (no courier integration at launch). Every
- * status change is a new event row; history is never erased. A customer can
- * report a problem on their own order; staff triage it.
+ * update their status by hand. A shipment of a courier-priced order can be
+ * booked with Shipbubble instead (T08-06), whose webhooks then move it on.
+ * Every status change is a new event row; history is never erased. A
+ * customer can report a problem on their own order; staff triage it.
  */
 
 export const shipmentStatus = pgEnum("shipment_status", ["PREPARING", "LABEL_CREATED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "ATTEMPTED_DELIVERY", "EXCEPTION", "RETURNED"]);
@@ -32,12 +33,23 @@ export const shipments = pgTable(
     /** When it left us (first IN_TRANSIT) and when it arrived. */
     dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    /** Shipbubble booking (T08-06): its order ID, the service booked, the tracking page and what it cost before VAT. */
+    courierOrderId: text("courier_order_id"),
+    courierService: text("courier_service"),
+    courierTrackingUrl: text("courier_tracking_url"),
+    courierCostMinor: bigint("courier_cost_minor", { mode: "bigint" }),
+    courierBookedAt: timestamp("courier_booked_at", { withTimezone: true }),
     createdByStaffId: uuid("created_by_staff_id").references(() => staffProfiles.id, { onDelete: "set null" }),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (table) => [uniqueIndex("shipments_number_unique").on(table.number), index("shipments_order_idx").on(table.orderId), index("shipments_status_idx").on(table.status, table.updatedAt)],
+  (table) => [
+    uniqueIndex("shipments_number_unique").on(table.number),
+    uniqueIndex("shipments_courier_order_unique").on(table.courierOrderId),
+    index("shipments_order_idx").on(table.orderId),
+    index("shipments_status_idx").on(table.status, table.updatedAt),
+  ],
 );
 
 /** What is in a shipment: items and how many of each (FUL-FR-031). */
@@ -70,6 +82,27 @@ export const shipmentEvents = pgTable(
     createdAt: createdAt(),
   },
   (table) => [index("shipment_events_shipment_idx").on(table.shipmentId, table.createdAt)],
+);
+
+/**
+ * Shipbubble webhook events (T08-06), kept as sent. Shipbubble gives events no
+ * ID and resends a failed one unchanged, so the key is a hash of the body: a
+ * resend is stored once and applied once.
+ */
+export const courierEvents = pgTable(
+  "courier_events",
+  {
+    id: idColumn(),
+    eventKey: text("event_key").notNull(),
+    event: text("event").notNull(),
+    courierOrderId: text("courier_order_id"),
+    rawBody: text("raw_body").notNull(),
+    /** What it did: the status moves made, or why nothing changed. */
+    outcome: text("outcome"),
+    receivedAt: createdAt(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+  },
+  (table) => [uniqueIndex("courier_events_key_unique").on(table.eventKey), index("courier_events_order_idx").on(table.courierOrderId)],
 );
 
 export const problemType = pgEnum("problem_type", ["DAMAGED", "MISSING_OR_SHORT", "WRONG_ITEM_OR_SIZE", "INCORRECT_PRINTING", "QUALITY"]);

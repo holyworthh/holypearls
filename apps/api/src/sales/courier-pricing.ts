@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
-import { chooseRate, type Courier, CourierError, parcelFor, type ShippingLine } from "./courier.js";
+import { chooseRate, type Courier, CourierError, type CourierQuote, parcelFor, type ShippingLine } from "./courier.js";
 
 /*
  * Courier prices at checkout (T08-05). Called when a checkout address falls
@@ -120,16 +120,22 @@ export type CourierResult =
   | { ok: true; rateMinor: string; courierName: string; serviceCode: string; eta: string | null; requestToken: string }
   | { ok: false; problem: string | null };
 
+export interface CourierRequest {
+  items: CourierItem[];
+  contact: { name: string; email: string; phone: string };
+  address: { street: string; area: string; state: string; country: string; landmark?: string | null };
+  now: Date;
+}
+
+export type LiveQuote = { ok: true; quote: CourierQuote; rule: "CHEAPEST" | "FASTEST" } | { ok: false; problem: string | null };
+
 /**
- * A live courier price for a Nigerian address outside the zones, before VAT
- * (VAT on delivery follows the tax setting, as for zone rates). `problem` is
- * for staff; null means courier prices simply aren't set up.
+ * Every courier's live rate for these items and this address (T08-05), and
+ * the rule for choosing one. Booking a shipment (T08-06) asks again, because
+ * a checkout's rate goes stale. `problem` is for staff; null means courier
+ * prices simply aren't set up.
  */
-export async function courierPrice(
-  db: Database,
-  courier: Courier | null,
-  input: { items: CourierItem[]; contact: { name: string; email: string; phone: string }; address: { street: string; area: string; state: string; country: string; landmark?: string | null }; now: Date },
-): Promise<CourierResult> {
+export async function liveQuote(db: Database, courier: Courier | null, input: CourierRequest): Promise<LiveQuote> {
   if (!courier || input.address.country !== "NG") return { ok: false, problem: null };
   const settings = await settingsRow(db);
   const pickup = settings?.pickup as Pickup | null;
@@ -144,11 +150,21 @@ export async function courierPrice(
       address: [input.address.street, input.address.area, input.address.state, "Nigeria"].filter(Boolean).join(", "),
     });
     const quote = await courier.rates({ senderCode: pickup.addressCode, receiverCode, pickupDate: pickupDate(input.now), categoryId: settings.categoryId, parcel: parcelFor(lines) });
-    const rate = chooseRate(quote.rates, settings.rule === "FASTEST" ? "FASTEST" : "CHEAPEST");
-    if (!rate) return { ok: false, problem: "No courier collects from the workshop for this address." };
-    return { ok: true, rateMinor: (rate.totalMinor - rate.vatMinor).toString(), courierName: rate.courierName, serviceCode: rate.serviceCode, eta: rate.deliveryEta, requestToken: quote.requestToken };
+    return { ok: true, quote, rule: settings.rule === "FASTEST" ? "FASTEST" : "CHEAPEST" };
   } catch (error) {
     if (error instanceof CourierError) return { ok: false, problem: error.message };
     throw error;
   }
+}
+
+/**
+ * A live courier price for a Nigerian address outside the zones, before VAT
+ * (VAT on delivery follows the tax setting, as for zone rates).
+ */
+export async function courierPrice(db: Database, courier: Courier | null, input: CourierRequest): Promise<CourierResult> {
+  const live = await liveQuote(db, courier, input);
+  if (!live.ok) return live;
+  const rate = chooseRate(live.quote.rates, live.rule);
+  if (!rate) return { ok: false, problem: "No courier collects from the workshop for this address." };
+  return { ok: true, rateMinor: (rate.totalMinor - rate.vatMinor).toString(), courierName: rate.courierName, serviceCode: rate.serviceCode, eta: rate.deliveryEta, requestToken: live.quote.requestToken };
 }
