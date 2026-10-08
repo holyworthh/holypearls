@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { createApp } from "../app.js";
 import type { Courier } from "../sales/courier.js";
 import { findActiveStaff } from "../identity/actor.js";
+import { accountEvents } from "../identity/account.js";
 import { createLogger } from "../logger.js";
 
 export const TEST_WEB_ORIGIN = "http://localhost:3000";
@@ -88,6 +89,7 @@ export async function createHarness(
     now: () => now.value ?? new Date(),
     log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
+  ...accountEvents(database.db),
   });
   const jobs = new Jobs({
     connectionString: database.url,

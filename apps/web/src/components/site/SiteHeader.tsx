@@ -150,7 +150,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
         </nav>
         <div className={styles.actions}>
           <HeaderSearch id={`${panelId}-search`} fieldClassName={`${styles.search} ${styles.searchTrigger}`} iconClassName={styles.icon} popular={popular} />
-          <a className={styles.iconLink} href="/account/security" aria-label="Your account">
+          <a className={styles.iconLink} href="/account" aria-label="Your account">
             <UserIcon className={styles.icon} />
           </a>
           <a className={`${styles.iconLink} ${styles.bagLink}`} href="/cart" aria-label="Your cart" aria-current={pathname === "/cart" ? "page" : undefined}>
@@ -316,7 +316,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
                 <PackageIcon className={styles.icon} />
                 Track an order
               </a>
-              <a href="/account/security">
+              <a href="/account">
                 <UserIcon className={styles.icon} />
                 Your account
               </a>

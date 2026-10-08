@@ -50,7 +50,7 @@ export interface SignInCardProps {
 
 /** Customer sign-in (Pen frame 87 · PJmAF). An account is never required to order. */
 export function SignInCard({ next, linkExpired = false }: SignInCardProps) {
-  const destination = safeNext(next, "/account/security");
+  const destination = safeNext(next, "/account");
   const [tab, setTab] = useState<Tab>(linkExpired ? "link" : "password");
   const [view, setView] = useState<View>(linkExpired ? "link-expired" : "form");
   const [email, setEmail] = useState("");

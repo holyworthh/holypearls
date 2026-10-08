@@ -8,6 +8,8 @@ describe("templates", () => {
   it("render every template to HTML and plain text", async () => {
     const samples = {
       sign_in_link: { url: "https://holypearls.test/api/v1/auth/magic-link/verify?token=abc" },
+      verify_email: { url: "https://holypearls.test/api/v1/auth/verify-email?token=abc" },
+      password_reset: { url: "https://holypearls.test/api/v1/auth/reset-password/abc?callbackURL=%2Freset-password" },
       email_code: { code: "391072", purpose: "accept your quote" },
       guest_link: { url: "https://holypearls.test/l#secret", what: "quote", reference: "HP-Q-2026-0142" },
       help_request_staff: { reference: "HR-2026-0001", from: "Bisi (guest)", where: "Polo configurator", url: "https://holypearls.test/admin/help" },
@@ -34,6 +36,8 @@ describe("templates", () => {
   it("mark every template that carries a secret", () => {
     expect(Object.entries(TEMPLATES).filter(([, t]) => t.carriesSecret).map(([name]) => name)).toEqual([
       "sign_in_link",
+      "verify_email",
+      "password_reset",
       "email_code",
       "guest_link",
       "order_confirmed",

@@ -28,6 +28,30 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  verify_email: define({
+    label: "Email check after sign-up",
+    carriesSecret: true,
+    data: z.object({ url: z.url() }),
+    subject: () => "Verify your HolyPearls email",
+    render: ({ url }) => (
+      <Layout preview="Verify your email" title="Verify your email" action={{ label: "Verify email", href: url }}>
+        <Text style={text.body}>Verify this email to finish your account. Orders you placed as a guest with this email are added after you verify. The link expires in 24 hours.</Text>
+        <Text style={text.support}>Didn&apos;t create an account? Ignore this email.</Text>
+      </Layout>
+    ),
+  }),
+  password_reset: define({
+    label: "Password reset link",
+    carriesSecret: true,
+    data: z.object({ url: z.url() }),
+    subject: () => "Reset your HolyPearls password",
+    render: ({ url }) => (
+      <Layout preview="Reset your password" title="Reset your password" action={{ label: "Choose a new password", href: url }}>
+        <Text style={text.body}>Use this button to choose a new password. It expires in 1 hour. Saving a new password signs you out on every other device.</Text>
+        <Text style={text.support}>Didn&apos;t ask for this? Ignore this email; your password stays the same.</Text>
+      </Layout>
+    ),
+  }),
   email_code: define({
     label: "Email code",
     carriesSecret: true,

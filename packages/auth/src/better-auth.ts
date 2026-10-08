@@ -11,6 +11,8 @@ const DAY_S = 24 * 60 * 60;
 export const CUSTOMER_SESSION_SECONDS = 30 * DAY_S;
 export const STAFF_SESSION_SECONDS = 12 * 60 * 60;
 export const MAGIC_LINK_SECONDS = 10 * 60;
+export const VERIFY_EMAIL_SECONDS = DAY_S;
+export const PASSWORD_RESET_SECONDS = 60 * 60;
 /** For the one-off first-admin command (ATTENTION 2). */
 export { hashPassword } from "better-auth/crypto";
 
@@ -32,6 +34,10 @@ export interface BetterAuthIdentityOptions {
   secureCookies: boolean;
   /** Staff sessions last 12 hours from sign-in and are never extended. */
   isStaff(userId: string): Promise<boolean>;
+  /** Runs when an account's email is verified, by its check link or a sign-in link (TECH-03 §6). */
+  onEmailVerified?(user: { id: string; email: string; name: string }): Promise<void>;
+  /** Runs after a password reset, which has already ended the account's other sessions. */
+  onPasswordReset?(user: { id: string; email: string; name: string }): Promise<void>;
   /** Clock, for tests. */
   now?: () => Date;
   /** Receives the library's warnings and errors (message only; details can hold personal data). */
@@ -79,10 +85,28 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
     },
     emailAndPassword: {
       enabled: true,
-      // Customer sign-up screens arrive in T09-01; staff accounts are created by STAFF_ADMIN.
-      disableSignUp: true,
+      // Customers sign up on the customer site (T09-01); the API refuses sign-up anywhere else,
+      // and staff accounts are created by STAFF_ADMIN.
       minPasswordLength: MIN_PASSWORD_LENGTH,
+      // An unverified account can sign in; it just links nothing until it verifies (TECH-03 §6).
+      requireEmailVerification: false,
+      resetPasswordTokenExpiresIn: PASSWORD_RESET_SECONDS,
+      // TECH-03 §4: a new password ends every other session.
       revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ user, url }) => {
+        await options.outbox.send({ kind: "PASSWORD_RESET", to: user.email.toLowerCase(), url, sentAt: now() });
+      },
+      onPasswordReset: async ({ user }) => {
+        await options.onPasswordReset?.({ id: user.id, email: user.email, name: user.name });
+      },
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      expiresIn: VERIFY_EMAIL_SECONDS,
+      sendVerificationEmail: async ({ user, url }) => {
+        await options.outbox.send({ kind: "VERIFY_EMAIL", to: user.email.toLowerCase(), url, sentAt: now() });
+      },
     },
     // The API applies the AUTH limit in PostgreSQL, shared by every instance (TECH-02 §14,
     // ADR-013); the library's in-memory limiter would count each instance separately.
@@ -108,6 +132,14 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
       }),
     ],
     databaseHooks: {
+      user: {
+        update: {
+          // Verifying by the check link or by a sign-in link both land here.
+          after: async (user) => {
+            if (user.emailVerified) await options.onEmailVerified?.({ id: user.id, email: user.email, name: user.name });
+          },
+        },
+      },
       session: {
         create: {
           before: async (session) => {

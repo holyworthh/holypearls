@@ -1,5 +1,5 @@
-import { displayMoney, type Order, type Receipt } from "@holypearls/contracts";
-import { asc, type Database, desc, eq, schema, sql, type Transaction } from "@holypearls/db";
+import { type AccountOrder, type AccountReceipt, displayMoney, type Order, type Receipt } from "@holypearls/contracts";
+import { and, asc, type Database, desc, eq, lt, or, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
@@ -197,6 +197,50 @@ const receiptSummary = (row: typeof schema.receipts.$inferSelect) => ({
 
 export async function getOrder(db: Database, access: OrderAccess, id: string): Promise<Order> {
   return orderView(db, await loadOrder(db, access, id));
+}
+
+/** Whose orders an account sees: its own, and its linked customer record's (TECH-03 §6). */
+const accountOwns = (userId: string) => or(eq(schema.orders.ownerUserId, userId), eq(schema.customers.userId, userId));
+
+/** The account's newest orders for its overview (Pen frame 92), with the statuses its order pages show. */
+export async function accountOrders(db: Database, userId: string, limit = 10): Promise<AccountOrder[]> {
+  const rows = await db
+    .select({ order: schema.orders })
+    .from(schema.orders)
+    .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
+    .where(accountOwns(userId))
+    .orderBy(desc(schema.orders.placedAt))
+    .limit(limit);
+  return Promise.all(
+    rows.map(async ({ order }) => {
+      const view = await orderView(db, order);
+      const [first] = view.items;
+      const title = !first ? "Order" : view.items.length === 1 ? `${first.productName} · ${first.quantity.toLocaleString("en-NG")}` : `${first.productName} and ${view.items.length - 1} more`;
+      return { id: order.id, number: order.number, title, summaryStatus: view.summaryStatus, paymentStatus: view.paymentStatus, placedAt: order.placedAt.toISOString() };
+    }),
+  );
+}
+
+/** The account's newest receipts, from its orders. */
+export async function accountReceipts(db: Database, userId: string, limit = 10): Promise<AccountReceipt[]> {
+  const rows = await db
+    .select({ receipt: schema.receipts })
+    .from(schema.receipts)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.receipts.orderId))
+    .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
+    .where(accountOwns(userId))
+    .orderBy(desc(schema.receipts.paidAt))
+    .limit(limit);
+  return rows.map(({ receipt }) => ({ ...receiptSummary(receipt), orderId: receipt.orderId }));
+}
+
+/** Orders placed with a customer record before an account existed: the ones linking added. */
+export async function ordersBefore(db: Database, customerId: string, before: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.orders)
+    .where(and(eq(schema.orders.customerId, customerId), lt(schema.orders.placedAt, before)));
+  return row?.n ?? 0;
 }
 
 export async function loadOrderFor(db: Database, access: OrderAccess, id: string) {

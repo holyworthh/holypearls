@@ -8,6 +8,7 @@ import { createStorage } from "@holypearls/storage";
 import { createApp } from "./app.js";
 import { createCourier } from "./sales/courier.js";
 import { findActiveStaff } from "./identity/actor.js";
+import { accountEvents } from "./identity/account.js";
 import { createLogger } from "./logger.js";
 import { flushMonitoring, initMonitoring } from "./monitoring.js";
 import { queueEmail } from "./platform/notifications.js";
@@ -33,15 +34,14 @@ const jobs = new Jobs({
 await jobs.start();
 const notify = { db: database.db, jobs, sealKey: env.DATA_ENCRYPTION_KEY };
 // Sign-in links go out as notifications through the email.send job (TECH-02 §10).
+const AUTH_TEMPLATES = {
+  MAGIC_LINK: { template: "sign_in_link", linkLabel: "Signs the person in" },
+  VERIFY_EMAIL: { template: "verify_email", linkLabel: "Verifies the account email" },
+  PASSWORD_RESET: { template: "password_reset", linkLabel: "Opens the new password form" },
+} as const;
 const outbox: AuthOutbox = {
   send: async (email) => {
-    await queueEmail(notify, database.db, {
-      template: "sign_in_link",
-      to: email.to,
-      data: { url: email.url },
-      linkLabel: "Signs the person in",
-      requestId: "auth",
-    });
+    await queueEmail(notify, database.db, { ...AUTH_TEMPLATES[email.kind], to: email.to, data: { url: email.url }, requestId: "auth" });
   },
 };
 const identity = createBetterAuthIdentity({
@@ -54,6 +54,7 @@ const identity = createBetterAuthIdentity({
   outbox,
   log: (level, message) => logger[level]({ source: "identity" }, message),
   isStaff: async (userId) => (await findActiveStaff(database.db, userId)) !== null,
+  ...accountEvents(database.db),
 });
 // Local storage URLs go through the web app's /api forwarding, like everything else in the browser.
 const { storage, publicStorage } = createStorage(env, {

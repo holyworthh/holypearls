@@ -9,6 +9,7 @@ import { PaymentSummary } from "../../../components/sales/PaymentSummary";
 import { SiteShell } from "../../../components/site/SiteShell";
 import { naira } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../lib/server-api";
+import { ORDER_SUMMARY as SUMMARY } from "../../../components/orders/status";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
@@ -16,20 +17,6 @@ export const dynamic = "force-dynamic";
 type Item = Order["items"][number];
 type Tone = "success" | "info" | "neutral" | "warning" | "error";
 
-const SUMMARY: Record<Order["summaryStatus"], { label: string; tone: Tone }> = {
-  CONFIRMED: { label: "CONFIRMED", tone: "neutral" },
-  AWAITING_PREREQUISITE: { label: "PREPARING", tone: "neutral" },
-  IN_PRODUCTION: { label: "IN PRODUCTION", tone: "info" },
-  PARTIALLY_READY: { label: "PARTLY READY", tone: "info" },
-  BALANCE_REQUIRED: { label: "BALANCE REQUIRED", tone: "warning" },
-  READY_TO_DISPATCH: { label: "READY TO DISPATCH", tone: "success" },
-  ON_HOLD: { label: "ON HOLD", tone: "warning" },
-  PARTIALLY_DISPATCHED: { label: "PARTLY DISPATCHED", tone: "info" },
-  DISPATCHED: { label: "DISPATCHED", tone: "success" },
-  PARTIALLY_DELIVERED: { label: "PARTLY DELIVERED", tone: "info" },
-  DELIVERED: { label: "DELIVERED", tone: "success" },
-  CANCELLED: { label: "CANCELLED", tone: "neutral" },
-};
 
 const PRODUCTION: Record<Item["status"], string> = {
   AWAITING_PREREQUISITE: "Not started",

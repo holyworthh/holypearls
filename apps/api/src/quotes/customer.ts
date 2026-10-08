@@ -1,5 +1,5 @@
-import { type CustomerQuote, displayMoney, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { type AccountQuote, type CustomerQuote, displayMoney, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
+import { and, asc, type Database, desc, eq, inArray, isNotNull, lt, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
@@ -35,6 +35,49 @@ export interface QuoteAccess {
  * quote, or whoever can open the project or design it quotes (their owner,
  * browser or link). Anyone else gets 404 (TECH-03 §12).
  */
+/** The account's newest quotes, through its linked customer record (TECH-03 §6), for its overview. */
+export async function accountQuotes(db: Database, userId: string, limit = 10): Promise<AccountQuote[]> {
+  const rows = await db
+    .select({ quote: schema.quotes, projectTitle: schema.projects.title })
+    .from(schema.quotes)
+    .innerJoin(schema.customers, eq(schema.customers.id, schema.quotes.customerId))
+    .leftJoin(schema.projects, eq(schema.projects.id, schema.quotes.projectId))
+    .where(eq(schema.customers.userId, userId))
+    .orderBy(desc(schema.quotes.updatedAt))
+    .limit(limit);
+  return Promise.all(
+    rows.map(async ({ quote, projectTitle }) => {
+      // The newest version the customer has received.
+      const [sent] = await db
+        .select({ number: schema.quoteVersions.number, validUntil: schema.quoteVersions.validUntil })
+        .from(schema.quoteVersions)
+        .where(and(eq(schema.quoteVersions.quoteId, quote.id), isNotNull(schema.quoteVersions.sentAt)))
+        .orderBy(desc(schema.quoteVersions.number))
+        .limit(1);
+      const snapshot = quote.requestSnapshot as { productName?: string };
+      return {
+        kind: "QUOTE" as const,
+        id: quote.id,
+        reference: quote.reference,
+        version: sent?.number ?? null,
+        title: projectTitle || snapshot.productName || "Your project",
+        status: quote.status,
+        validUntil: sent?.validUntil?.toISOString() ?? null,
+        href: `/quotes/${quote.id}`,
+      };
+    }),
+  );
+}
+
+/** Quotes asked for with a customer record before an account existed: the ones linking added. */
+export async function quotesBefore(db: Database, customerId: string, before: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.quotes)
+    .where(and(eq(schema.quotes.customerId, customerId), lt(schema.quotes.createdAt, before)));
+  return row?.n ?? 0;
+}
+
 export async function loadCustomerQuote(db: Database | Tx, access: QuoteAccess, id: string): Promise<QuoteRow> {
   const [row] = await db
     .select({

@@ -32,6 +32,8 @@ export const meSchema = z.object({
   userId: z.string(),
   name: z.string(),
   email: z.string(),
+  emailVerified: z.boolean(),
+  phone: z.string().nullable(),
   isStaff: z.boolean(),
   mfa: z.object({ enabled: z.boolean(), verifiedAt: isoDate.nullable() }),
   session: z.object({ createdAt: isoDate, expiresAt: isoDate }),
@@ -73,6 +75,34 @@ export const magicLinkRequestSchema = z.object({
   email: z.email("Enter an email like name@example.com"),
   callbackURL: z.string().startsWith("/"),
   errorCallbackURL: z.string().startsWith("/").optional(),
+});
+
+const newPassword = z.string().min(12, "Use at least 12 characters").max(128, "Use 128 characters or fewer");
+
+/** Customer sign-up (Pen frame 88). The verification link brings the person back to `callbackURL`. */
+export const signUpRequestSchema = z.object({
+  name: z.string().trim().min(1, "Enter your name").max(120, "Use 120 characters or fewer"),
+  email: z.email("Enter an email like name@example.com"),
+  password: newPassword,
+  callbackURL: z.string().startsWith("/"),
+});
+
+export const sendVerificationRequestSchema = z.object({
+  email: z.email("Enter an email like name@example.com"),
+  callbackURL: z.string().startsWith("/"),
+});
+
+/** Asks for a reset link (Pen frame 89). The answer is the same whether or not an account uses the email. */
+export const passwordResetRequestSchema = z.object({
+  email: z.email("Enter an email like name@example.com"),
+  redirectTo: z.string().startsWith("/"),
+});
+
+export const newPasswordRequestSchema = z.object({ token: z.string().min(1), newPassword });
+
+export const changePasswordRequestSchema = z.object({
+  currentPassword: z.string().min(1, "Enter your current password"),
+  newPassword,
 });
 
 export const totpCodeSchema = z.object({
