@@ -68,42 +68,42 @@ export const TEST_PEOPLE = {
   acmeOwner: {
     key: "acmeOwner",
     name: "Ngozi Okafor (TEST DATA)",
-    email: "ngozi.owner@acme.test",
+    email: "ngozi.acme-owner@holypearls.test",
     password: "test-password-acmeowner",
   },
   /** ACME Hospitality Group (TEST DATA): Admin, all locations (TECH-08 §11). */
   acmeAdmin: {
     key: "acmeAdmin",
     name: "Bola Martins (TEST DATA)",
-    email: "bola.admin@acme.test",
+    email: "bola.acme-admin@holypearls.test",
     password: "test-password-acmeadmin",
   },
   /** ACME Hospitality Group (TEST DATA): Buyer, Victoria Island (TECH-08 §11). */
   acmeBuyer: {
     key: "acmeBuyer",
     name: "Tunde Ojo (TEST DATA)",
-    email: "tunde.buyer@acme.test",
+    email: "tunde.acme-buyer@holypearls.test",
     password: "test-password-acmebuyer",
   },
   /** ACME Hospitality Group (TEST DATA): Location Manager, Lekki (TECH-08 §11). */
   acmeLekkiManager: {
     key: "acmeLekkiManager",
     name: "Adaeze Eze (TEST DATA)",
-    email: "adaeze.manager@acme.test",
+    email: "adaeze.acme-manager@holypearls.test",
     password: "test-password-acmelekkimanager",
   },
   /** ACME Hospitality Group (TEST DATA): Approver, all locations (TECH-08 §11). */
   acmeApprover: {
     key: "acmeApprover",
     name: "Kemi Adebayo (TEST DATA)",
-    email: "kemi.approver@acme.test",
+    email: "kemi.acme-approver@holypearls.test",
     password: "test-password-acmeapprover",
   },
   /** ACME Hospitality Group (TEST DATA): Viewer, Lekki (TECH-08 §11). */
   acmeViewer: {
     key: "acmeViewer",
     name: "Sam Etim (TEST DATA)",
-    email: "sam.viewer@acme.test",
+    email: "sam.acme-viewer@holypearls.test",
     password: "test-password-acmeviewer",
   },
 } as const satisfies Record<string, TestPerson>;
