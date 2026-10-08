@@ -178,7 +178,7 @@ export async function inviteMember(deps: OrganizationDeps, actor: ActorContext, 
     await queueEmail(deps, tx, {
       template: "organization_invitation",
       to: input.email,
-      data: { organization: manager.organizationName, role: ROLE_LABELS[input.role], invitedBy: inviter, expires: longDate(invitation.expiresAt), url: `${deps.webOrigin}/invitations/${token}` },
+      data: { organization: manager.organizationName, role: ROLE_LABELS[input.role], invitedBy: inviter, expires: longDate(invitation.expiresAt), url: `${deps.webOrigin}/invitations#${token}` },
       record: { type: "ORGANIZATION", id: organizationId, label: manager.organizationName },
       linkLabel: "Accept the invitation",
       requestId: actor.requestId,

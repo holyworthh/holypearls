@@ -10,12 +10,13 @@ const ACCOUNT_NAV = [
   ["Projects", "/account#quotes"],
   ["Drafts", "/account#drafts"],
   ["Receipts", "/account#receipts"],
+  ["Workspace", "/workspace"],
   ["Profile", "/account/profile"],
   ["Security", "/account/security"],
 ] as const;
 
 /** The signed-in account area (Pen frames 90–92): navigation beside one column of cards. */
-export function AccountShell({ current, children }: { current: "/account" | "/account/profile" | "/account/security"; children: ReactNode }) {
+export function AccountShell({ current, children }: { current: "/account" | "/account/profile" | "/account/security" | "/account/workspace"; children: ReactNode }) {
   return (
     <SiteShell>
       <div className={styles.body}>
@@ -24,7 +25,7 @@ export function AccountShell({ current, children }: { current: "/account" | "/ac
           <ul className={styles.navList}>
             {ACCOUNT_NAV.map(([label, href]) => (
               <li key={label}>
-                <a className={styles.navItem} href={href} aria-current={href === current ? "page" : undefined}>
+                <a className={styles.navItem} href={href} aria-current={href === current || (href === "/workspace" && current === "/account/workspace") ? "page" : undefined}>
                   {label}
                 </a>
               </li>

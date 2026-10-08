@@ -39,7 +39,7 @@ const securityHeaders = [
 ];
 
 /** Pages a guest link opens never pass their address on (review P2-07). */
-const GUEST_PAGES = ["/l", "/l/:path*", "/quotes/:path*", "/proofs/:path*", "/orders/:path*", "/configure/:path*", "/collections/:path*", "/help/:path*"];
+const GUEST_PAGES = ["/l", "/l/:path*", "/invitations", "/quotes/:path*", "/proofs/:path*", "/orders/:path*", "/configure/:path*", "/collections/:path*", "/help/:path*"];
 
 export default {
   reactStrictMode: true,

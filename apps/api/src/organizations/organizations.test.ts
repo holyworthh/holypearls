@@ -370,7 +370,7 @@ describe("deactivation (B2B-FR-093)", () => {
 describe("invitations (B2B-FR-090, TECH-03 §11)", () => {
   const latestInvitation = async (email: string) => {
     const mail = await latestMail("organization_invitation", email);
-    return mail!.data.url!.split("/invitations/")[1]!;
+    return mail!.data.url!.split("/invitations#")[1]!;
   };
 
   it("invite, open, and accept only with the invited, verified email; one use", async () => {

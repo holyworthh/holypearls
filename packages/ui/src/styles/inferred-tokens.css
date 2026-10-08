@@ -233,4 +233,18 @@
   --hp-swatch-hover-scale: 1.1;
   --hp-icon-stroke: 1.6;
   --hp-thread-dash: repeating-linear-gradient(90deg, var(--hp-brand) 0 10px, transparent 10px 18px);
+  /* Brand Workspace (T10-01): exact values from Pen 70 Team (HLbMo), 71 Locations (fEByF) and HP/Nav/WorkspaceSidebar (Mmc8t). */
+  --hp-workspace-sidebar-width: 264px;
+  --hp-workspace-mobile-header-height: 60px;
+  --hp-workspace-list-width: 360px;
+  --hp-workspace-column: 180px;
+  --hp-workspace-actions-column: 60px;
+  --hp-workspace-active-rule: 3px;
+  --hp-workspace-control-height: 36px;
+  --hp-avatar-sm: 32px;
+  --hp-avatar-lg: 40px;
+  --hp-icon-sm: 16px;
+  --hp-icon-md: 18px;
+  --hp-tracking-workspace-title: -0.8px;
+  --hp-text-workspace-title-m: 24px;
 }
