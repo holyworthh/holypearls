@@ -1,5 +1,5 @@
-import type { AnswerConflict, Configuration } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import type { AccountDraft, AnswerConflict, Configuration } from "@holypearls/contracts";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, customersForContact, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
@@ -71,6 +71,39 @@ export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
   if (actor.type === "guest" && actor.guest.targetType === "CONFIGURATION" && actor.guest.targetId === row.id) return true;
   return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === sha256(deviceKey));
+}
+
+/** Designs a customer started as a guest join the account once its email is verified (TECH-03 §6). */
+export async function linkCustomerDrafts(db: Database, customerIds: string[], userId: string) {
+  if (!customerIds.length) return;
+  await db
+    .update(schema.configurations)
+    .set({ ownerUserId: userId })
+    .where(and(inArray(schema.configurations.customerId, customerIds), isNull(schema.configurations.ownerUserId)));
+}
+
+/** The account's designs to resume, newest first (Pen frame 92). */
+export async function accountDrafts(db: Database, userId: string, now: Date, limit = 5): Promise<AccountDraft[]> {
+  const rows = await db
+    .select()
+    .from(schema.configurations)
+    .where(and(eq(schema.configurations.ownerUserId, userId), eq(schema.configurations.status, "DRAFT")))
+    .orderBy(desc(schema.configurations.updatedAt))
+    .limit(limit);
+  return Promise.all(
+    rows.map(async (row) => {
+      const view = await draftView(db, row, now);
+      return {
+        kind: "CONFIGURATION" as const,
+        id: row.id,
+        title: view.productName,
+        detail: view.quantity ? `${view.quantity.toLocaleString("en-NG")} units` : "Quantity not chosen yet",
+        status: view.price?.state ?? "DRAFT",
+        savedAt: row.updatedAt.toISOString(),
+        href: `/configure/drafts/${row.id}`,
+      };
+    }),
+  );
 }
 
 export async function loadDraft(db: Database, access: DraftAccess, id: string): Promise<Row> {

@@ -37,13 +37,15 @@ const ALLOWED = new Set([
   "/change-password",
   "/request-password-reset",
   "/reset-password",
-  // Closed by configuration until customer sign-up exists (T09-01).
+  // Customer sign-up and its email check (T09-01); the admin never serves these (front-ends.ts).
   "/sign-up/email",
+  "/verify-email",
+  "/send-verification-email",
 ]);
 export const isAllowedAuthPath = (path: string) => ALLOWED.has(path) || /^\/reset-password\/[^/]+$/.test(path);
 
 /** Sign-in, sign-up and reset routes share the AUTH limit (TECH-02 §14). */
-const AUTH_LIMITED = ["/sign-in/email", "/sign-in/magic-link", "/two-factor/verify-totp", "/sign-up/email", "/request-password-reset"];
+const AUTH_LIMITED = ["/sign-in/email", "/sign-in/magic-link", "/two-factor/verify-totp", "/sign-up/email", "/request-password-reset", "/reset-password", "/send-verification-email"];
 /** Routes whose security events are audited need the state before the change. */
 const AUDITED = ["/two-factor/verify-totp", "/change-password"];
 const MAX_BODY_BYTES = 64 * 1024;

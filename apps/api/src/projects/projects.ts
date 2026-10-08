@@ -1,4 +1,6 @@
 import {
+  type AccountDraft,
+  type AccountQuote,
   checkAnswers,
   type Project,
   type ProjectAnswers,
@@ -6,11 +8,12 @@ import {
   type ProjectRecommendation,
   type ProjectType,
   projectAnswersSchema,
+  PROJECT_TYPE_INFO,
   type PublicProductCard,
   type RuleCondition,
   type RuleQuantity,
 } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
 import { findFileForActor } from "../files/files.js";
@@ -40,6 +43,37 @@ export function canOpenProject(access: ProjectAccess, row: Pick<Row, "id" | "own
   if (actor.type === "user" && row.ownerUserId === actor.session.userId) return true;
   if (actor.type === "guest" && actor.guest.targetType === "PROJECT" && actor.guest.targetId === row.id) return true;
   return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === sha256(deviceKey));
+}
+
+/** Projects a customer started as a guest join the account once its email is verified (TECH-03 §6). */
+export async function linkCustomerProjects(db: Database, customerIds: string[], userId: string) {
+  if (!customerIds.length) return;
+  await db.update(schema.projects).set({ ownerUserId: userId }).where(and(inArray(schema.projects.customerId, customerIds), isNull(schema.projects.ownerUserId)));
+}
+
+/** The account's projects for its overview: drafts to resume, and the ones sent to HolyPearls (Pen frame 92). */
+export async function accountProjects(db: Database, userId: string, limit = 10): Promise<{ drafts: AccountDraft[]; sent: AccountQuote[] }> {
+  const rows = await db.select().from(schema.projects).where(eq(schema.projects.ownerUserId, userId)).orderBy(desc(schema.projects.lastActivityAt)).limit(limit);
+  const counts = rows.length
+    ? await db
+        .select({ projectId: schema.projectItems.projectId, n: sql<number>`count(*)::int` })
+        .from(schema.projectItems)
+        .where(inArray(schema.projectItems.projectId, rows.map((row) => row.id)))
+        .groupBy(schema.projectItems.projectId)
+    : [];
+  const items = new Map(counts.map((count) => [count.projectId, count.n]));
+  const title = (row: Row) => row.title || PROJECT_TYPE_INFO[row.type].label;
+  return {
+    drafts: rows
+      .filter((row) => row.status === "DRAFT")
+      .map((row) => {
+        const n = items.get(row.id) ?? 0;
+        return { kind: "PROJECT" as const, id: row.id, title: title(row), detail: `${n} product${n === 1 ? "" : "s"}`, status: row.status, savedAt: row.lastActivityAt.toISOString(), href: `/start/${row.id}` };
+      }),
+    sent: rows
+      .filter((row) => row.status !== "DRAFT")
+      .map((row) => ({ kind: "PROJECT" as const, id: row.id, reference: row.reference ?? "", version: null, title: title(row), status: row.status, validUntil: null, href: `/start/${row.id}` })),
+  };
 }
 
 export async function loadProject(db: Database | Tx, access: ProjectAccess, id: string): Promise<Row> {

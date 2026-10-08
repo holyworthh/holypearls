@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
   await page.locator("#sign-in-email").fill(TEST_PEOPLE.customerChidi.email);
   await page.locator("#sign-in-password").fill(TEST_PEOPLE.customerChidi.password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account\/security$/);
+  await page.waitForURL((url) => url.pathname === "/account");
 });
 
 test("uploads a file straight to storage and hands it over for checking", async ({ page }) => {

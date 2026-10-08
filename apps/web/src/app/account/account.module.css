@@ -1,4 +1,4 @@
-/* Account security (Pen frame 90: desktop sEBQQ, mobile tneO8). */
+/* The account area (Pen frames 90–92): navigation, cards, rows and states. */
 
 .body {
   display: flex;
@@ -66,7 +66,12 @@
   color: var(--hp-ink);
 }
 
+.navItem {
+  border: var(--hp-border-width) solid transparent;
+}
+
 .navItem[aria-current="page"] {
+  border-color: var(--hp-line);
   background: var(--hp-paper);
   color: var(--hp-ink);
   font-weight: var(--hp-weight-semibold);
@@ -178,4 +183,100 @@
 
 .fullButton {
   min-height: var(--hp-control-height);
+}
+
+/* Overview rows (Pen frame 92 · TPpY8): reference, title, status chips, action. */
+
+.card[id] {
+  scroll-margin-top: var(--hp-space-96);
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-8) var(--hp-space-16);
+  padding: var(--hp-space-14) 0;
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+}
+
+.rowText {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+  min-width: 0;
+}
+
+.ref {
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  letter-spacing: var(--hp-tracking-mono);
+  text-transform: uppercase;
+}
+
+.rowTitle {
+  margin: 0;
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--hp-space-6);
+  min-height: var(--hp-touch-target);
+  color: var(--hp-accent);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+  text-decoration: none;
+}
+
+.action:hover {
+  color: var(--hp-accent-hover);
+}
+
+.action:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-space-2);
+}
+
+.empty {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+/* Profile and password forms (Pen frames 90–91). */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+}
+
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-16);
+}
+
+.saveState {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
 }

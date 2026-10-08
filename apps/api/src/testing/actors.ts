@@ -29,6 +29,7 @@ export function as(harness: Harness, cookie: string) {
     post: (path: string, body: object = {}, key?: string) =>
       withHeaders(agent.post(path)).set("idempotency-key", key ?? `test_${randomUUID().replaceAll("-", "")}`).send(body),
     delete: (path: string) => withHeaders(agent.delete(path)),
+    patch: (path: string) => withHeaders(agent.patch(path)),
   };
 }
 

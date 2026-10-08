@@ -49,8 +49,8 @@ export const originFor = (surface: Surface, fronts: FrontEnds) => (surface === "
 
 /** Admin routes and the authenticator steps of staff sign-in. */
 const ADMIN_ONLY = /^\/v1\/(admin|auth\/two-factor)(\/|$)/;
-/** Customer-only sign-in (email links): never on the admin. */
-const CUSTOMER_ONLY = /^\/v1\/auth\/(sign-in\/magic-link|magic-link\/verify)(\/|$)/;
+/** Customer-only sign-in (email links) and customer sign-up: never on the admin. */
+const CUSTOMER_ONLY = /^\/v1\/auth\/(sign-in\/magic-link|magic-link\/verify|sign-up\/email|verify-email|send-verification-email)(\/|$)/;
 
 /** 404 for routes that belong to the other front end, so neither learns the other's routes exist (TECH-03 §12). */
 export function frontEndBoundary(fronts: FrontEnds) {

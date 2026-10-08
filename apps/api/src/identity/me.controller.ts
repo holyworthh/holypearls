@@ -1,6 +1,7 @@
-import { Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Req } from "@nestjs/common";
 import type { IdentityAdapter } from "@holypearls/auth";
-import type { Me, SessionList } from "@holypearls/contracts";
+import { type AccountHistory, type Me, type Profile, profileInputSchema, type SessionList } from "@holypearls/contracts";
+import type { z } from "zod";
 import type { Request } from "express";
 import { and, type Database, eq, gt, schema, sql } from "@holypearls/db";
 import { recordAudit } from "../platform/audit.js";
@@ -8,6 +9,8 @@ import { enforce, findOrHide } from "../platform/policy.js";
 import { DATABASE, IDENTITY } from "../tokens.js";
 import { canRevokeSession, findSessionForActor } from "./policies.js";
 import { requireUser, toHeaders } from "./actor.js";
+import { accountHistory, getProfile, updateProfile } from "./account.js";
+import { ZodValidationPipe } from "../validation.js";
 
 /** Describes a session by browser and system, never by raw user agent. */
 export function describeDevice(userAgent: string | null): string {
@@ -50,14 +53,28 @@ export class MeController {
   async me(@Req() request: Request): Promise<Me> {
     const actor = requireUser(await request.getActor!());
     const { session } = actor;
+    const profile = await getProfile(this.db, actor);
     return {
       userId: session.userId,
       name: session.name,
       email: session.email,
+      emailVerified: session.emailVerified,
+      phone: profile.phone,
       isStaff: actor.staff !== null,
       mfa: { enabled: session.mfaEnabled, verifiedAt: session.mfaVerifiedAt?.toISOString() ?? null },
       session: { createdAt: session.createdAt.toISOString(), expiresAt: session.expiresAt.toISOString() },
     };
+  }
+
+  /** The account overview: drafts, orders, quotes and projects, receipts and guest linking (TECH-03 §6). */
+  @Get("history")
+  async history(@Req() request: Request): Promise<AccountHistory> {
+    return accountHistory(this.db, requireUser(await request.getActor!()));
+  }
+
+  @Patch("profile")
+  async profile(@Req() request: Request, @Body(new ZodValidationPipe(profileInputSchema)) body: z.infer<typeof profileInputSchema>): Promise<Profile> {
+    return updateProfile(this.db, requireUser(await request.getActor!()), body);
   }
 
   @Get("sessions")

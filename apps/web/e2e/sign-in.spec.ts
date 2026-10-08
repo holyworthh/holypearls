@@ -14,12 +14,12 @@ async function expectNoHorizontalScroll(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-async function signInCustomer(page: Page, person: { email: string; password: string }) {
-  await page.goto("/sign-in");
+async function signInCustomer(page: Page, person: { email: string; password: string }, next = "/account/security") {
+  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
   await page.locator("#sign-in-email").fill(person.email);
   await page.locator("#sign-in-password").fill(person.password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/account\/security$/);
+  await page.waitForURL((url) => url.pathname === next);
 }
 
 async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {

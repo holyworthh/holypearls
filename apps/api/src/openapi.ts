@@ -1,4 +1,7 @@
 import {
+  accountHistorySchema,
+  profileInputSchema,
+  profileSchema,
   adminMeSchema,
   apiErrorSchema,
   adminHelpRequestSchema,
@@ -182,6 +185,24 @@ export function buildOpenApiDocument() {
         get: {
           summary: "The signed-in person",
           responses: { 200: { description: "Signed in", content: json(meSchema) }, ...signedIn },
+        },
+      },
+      "/v1/me/history": {
+        get: {
+          summary: "The account overview: drafts, orders, quotes and projects, receipts, and guest linking (TECH-03 §6)",
+          responses: { 200: { description: "Overview", content: json(accountHistorySchema) }, ...signedIn },
+        },
+      },
+      "/v1/me/profile": {
+        patch: {
+          summary: "Change your name and phone",
+          requestBody: { required: true, content: json(profileInputSchema) },
+          responses: {
+            200: { description: "Saved", content: json(profileSchema) },
+            ...signedIn,
+            400: error("Invalid name or phone (VALIDATION_FAILED)"),
+            422: error("A phone needs a verified email first (RULE_FAILED, reason VERIFY_EMAIL_FIRST)"),
+          },
         },
       },
       "/v1/me/sessions": {

@@ -108,13 +108,13 @@ describe("sign-in (TECH-03 §3)", () => {
     }
   });
 
-  it("does not allow sign-up before the customer sign-up screens exist", async () => {
-    const response = await post("/v1/auth/sign-up/email").send({
-      email: "new.person@holypearls.test",
-      password: "a-long-enough-password",
-      name: "New",
-    });
-    expect(response.status).toBeGreaterThanOrEqual(400);
+  it("never creates an account from a sign-in link; accounts come from the sign-up form (T09-01)", async () => {
+    const email = "no.account.yet@holypearls.test";
+    expect((await post("/v1/auth/sign-in/magic-link").send({ email, callbackURL: "/account" })).status).toBe(200);
+    const link = harness.outbox.latestTo(email);
+    if (link) await http().get(link.url.replace(`${TEST_WEB_ORIGIN}/api`, "")).set("origin", TEST_WEB_ORIGIN);
+    const users = await harness.database.db.select().from(schema.users).where(eq(schema.users.email, email));
+    expect(users).toEqual([]);
   });
 
   it("signs in with a magic link sent to the outbox", async () => {

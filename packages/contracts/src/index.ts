@@ -23,3 +23,4 @@ export * from "./quotes.js";
 export * from "./proofs.js";
 export * from "./production.js";
 export * from "./shipments.js";
+export * from "./account.js";

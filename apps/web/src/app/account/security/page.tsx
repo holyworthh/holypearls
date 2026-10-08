@@ -3,23 +3,13 @@ import { meSchema, sessionListSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { serverApi } from "../../../lib/server-api";
-import styles from "./security.module.css";
+import styles from "../account.module.css";
+import { ChangePassword } from "./ChangePassword";
 import { SessionsCard } from "./SessionsCard";
-import { SiteShell } from "../../../components/site/SiteShell";
+import { AccountShell } from "../../../components/account/AccountShell";
 
 export const metadata: Metadata = { title: "Security", robots: { index: false } };
 export const dynamic = "force-dynamic";
-
-const ACCOUNT_NAV = [
-  ["Overview", "/account"],
-  ["Orders", "/account/orders"],
-  ["Quotes", "/account/quotes"],
-  ["Projects", "/account/projects"],
-  ["Drafts", "/account/drafts"],
-  ["Receipts", "/account/receipts"],
-  ["Profile", "/account/profile"],
-  ["Security", "/account/security"],
-] as const;
 
 /** Signed-in account security (Pen frame 90 · KReiI): a server-rendered signed-in page. */
 export default async function SecurityPage() {
@@ -31,39 +21,14 @@ export default async function SecurityPage() {
   const sessions = await serverApi("/v1/me/sessions", sessionListSchema);
 
   return (
-    <SiteShell>
-      <div className={styles.body}>
-        <nav className={styles.nav} aria-label="Account">
-          <p className={styles.navLabel}>ACCOUNT</p>
-          <ul className={styles.navList}>
-            {ACCOUNT_NAV.map(([label, href]) => (
-              <li key={href}>
-                <a
-                  className={styles.navItem}
-                  href={href}
-                  aria-current={href === "/account/security" ? "page" : undefined}
-                >
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className={styles.main}>
-          <div>
-            <h1 className={styles.title}>Security</h1>
-            <p className={styles.subtitle}>Signed in as {me.data.email}</p>
-          </div>
-          <section className={styles.card} aria-labelledby="password-title">
-            <h2 id="password-title" className={styles.cardTitle}>
-              Password
-            </h2>
-            <p className={styles.support}>Changing your password signs you out everywhere else.</p>
-          </section>
-          <SessionsCard initial={sessions.ok ? sessions.data.sessions : null} total={sessions.ok ? sessions.data.total : 0} />
-          <p className={styles.note}>Sessions last 30 days and extend while you use them.</p>
-        </div>
+    <AccountShell current="/account/security">
+      <div>
+        <h1 className={styles.title}>Security</h1>
+        <p className={styles.subtitle}>Signed in as {me.data.email}</p>
       </div>
-    </SiteShell>
+      <ChangePassword />
+      <SessionsCard initial={sessions.ok ? sessions.data.sessions : null} total={sessions.ok ? sessions.data.total : 0} />
+      <p className={styles.note}>Sessions last 30 days and extend while you use them.</p>
+    </AccountShell>
   );
 }
