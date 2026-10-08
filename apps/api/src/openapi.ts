@@ -117,6 +117,30 @@ import {
   updateContentPageSchema,
   publishContentPageSchema,
   changeContentStatusSchema,
+  acceptInvitationSchema,
+  acceptedInvitationSchema,
+  adminOrganizationListSchema,
+  adminOrganizationRequestListSchema,
+  adminOrganizationRequestSchema,
+  adminOrganizationSchema,
+  declineOrganizationRequestSchema,
+  invitationPreviewSchema,
+  inviteInputSchema,
+  locationDetailSchema,
+  locationInputSchema,
+  locationListSchema,
+  locationUpdateSchema,
+  memberChangeSchema,
+  memberStatusChangeSchema,
+  myOrganizationRequestSchema,
+  myOrganizationSchema,
+  myOrganizationsSchema,
+  organizationRequestInputSchema,
+  organizationRequestSchema,
+  ownershipTransferSchema,
+  teamInvitationSchema,
+  teamMemberSchema,
+  teamSchema,
 } from "@holypearls/contracts";
 import { z } from "zod";
 
@@ -152,6 +176,152 @@ const highRisk = {
 const staffOnly = {
   403: error("Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)"),
   404: error("Not staff (NOT_FOUND)"),
+};
+
+/** Organizations, team and invitations (T10-01; PRD-05 B2B-FR-001–003, 090–093; TECH-03 §7, §9, §11). */
+const member = { ...signedIn, 404: error("Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)") };
+const teamWrite = {
+  ...member,
+  400: error("Invalid input (VALIDATION_FAILED)"),
+  403: error("Missing the permission, or granting more than you hold (FORBIDDEN, reason such as PERMISSION_REQUIRED, OWNER_REQUIRED, CANNOT_GRANT_WHAT_YOU_DONT_HOLD, OUTSIDE_YOUR_LOCATIONS); raising access without a recent email code (RECENT_EMAIL_CODE_REQUIRED)"),
+  409: error("Someone else changed this member first (VERSION_CONFLICT)"),
+  422: error("Needs confirming (RULE_FAILED, reason CONFIRMATION_REQUIRED, with what it adds), or a rule such as LAST_OWNER, SELF, MEMBER_DEACTIVATED"),
+};
+const orgParam = uuidParam("organizationId");
+const organizationPaths = {
+  "/v1/me/organizations": {
+    get: { summary: "Your workspaces: each ACTIVE membership with its role, permissions and locations", responses: { 200: { description: "Workspaces", content: json(myOrganizationsSchema) }, ...signedIn } },
+  },
+  "/v1/me/organization-request": {
+    get: { summary: "Your latest workspace request, or null (owner decision 2026-10-08)", responses: { 200: { description: "Request", content: json(myOrganizationRequestSchema) }, ...signedIn } },
+    post: {
+      summary: "Ask HolyPearls for a workspace: company, locations, team size and a note. Needs a verified email; one request waits at a time.",
+      parameters: [idempotencyHeader],
+      requestBody: { required: true, content: json(organizationRequestInputSchema) },
+      responses: { 200: { description: "Sent to staff", content: json(organizationRequestSchema) }, ...signedIn, 400: error("Invalid input"), 422: error("VERIFY_EMAIL_FIRST or REQUEST_PENDING (RULE_FAILED)"), 429: error("CONTACT limit (RATE_LIMITED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}": {
+    get: { summary: "The organization and your place in it (display only; the server checks every action)", parameters: [orgParam], responses: { 200: { description: "Organization", content: json(myOrganizationSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/locations": {
+    get: { summary: "Locations you can see: all of them with All locations, otherwise only yours", parameters: [orgParam], responses: { 200: { description: "Locations", content: json(locationListSchema) }, ...member } },
+    post: {
+      summary: "Add a location (MANAGE_TEAM and All locations)",
+      parameters: [orgParam, idempotencyHeader],
+      requestBody: { required: true, content: json(locationInputSchema) },
+      responses: { 200: { description: "Added", content: json(locationDetailSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/locations/{locationId}": {
+    get: { summary: "A location and the members who can reach it; outside your locations is 404", parameters: [orgParam, uuidParam("locationId")], responses: { 200: { description: "Location", content: json(locationDetailSchema) }, ...member } },
+    patch: {
+      summary: "Rename a location (MANAGE_TEAM and All locations)",
+      parameters: [orgParam, uuidParam("locationId")],
+      requestBody: { required: true, content: json(locationUpdateSchema) },
+      responses: { 200: { description: "Saved", content: json(locationDetailSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/members": {
+    get: { summary: "The team and its waiting or expired invitations, within your locations (MANAGE_TEAM)", parameters: [orgParam], responses: { 200: { description: "Team", content: json(teamSchema) }, ...member, 403: error("No MANAGE_TEAM (FORBIDDEN)") } },
+  },
+  "/v1/organizations/{organizationId}/invitations": {
+    post: {
+      summary: "Invite someone with a role and locations; the email carries a one-time link that expires after 7 days (B2B-FR-090)",
+      parameters: [orgParam, idempotencyHeader],
+      requestBody: { required: true, content: json(inviteInputSchema) },
+      responses: { 200: { description: "Invited", content: json(teamInvitationSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/invitations/{invitationId}/revoke": {
+    post: { summary: "Cancel a waiting invitation", parameters: [orgParam, uuidParam("invitationId")], responses: { 200: { description: "Revoked" }, ...teamWrite } },
+  },
+  "/v1/organizations/{organizationId}/members/{membershipId}": {
+    patch: {
+      summary: "Change a member's role, permissions (Owners only) and locations. Raising access needs confirmed: true and an email code in the last 24 hours (TECH-03 §9).",
+      parameters: [orgParam, uuidParam("membershipId")],
+      requestBody: { required: true, content: json(memberChangeSchema) },
+      responses: { 200: { description: "Changed", content: json(teamMemberSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/members/{membershipId}/deactivate": {
+    post: {
+      summary: "Deactivate a member: access ends on their next request; history stays (B2B-FR-093). The last Owner can't be deactivated.",
+      parameters: [orgParam, uuidParam("membershipId")],
+      requestBody: { required: true, content: json(memberStatusChangeSchema) },
+      responses: { 200: { description: "Deactivated", content: json(teamMemberSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/members/{membershipId}/reactivate": {
+    post: {
+      summary: "Reactivate a member (raising access: confirmation and a recent email code)",
+      parameters: [orgParam, uuidParam("membershipId")],
+      requestBody: { required: true, content: json(memberStatusChangeSchema) },
+      responses: { 200: { description: "Reactivated", content: json(teamMemberSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/organizations/{organizationId}/ownership-transfer": {
+    post: {
+      summary: "Make another member an Owner, optionally stepping down to Admin (Owner only; confirmation and a recent email code)",
+      parameters: [orgParam],
+      requestBody: { required: true, content: json(ownershipTransferSchema) },
+      responses: { 200: { description: "The team after the transfer", content: json(teamSchema) }, ...teamWrite },
+    },
+  },
+  "/v1/invitations/preview": {
+    get: {
+      summary: "What an invitation link opens: organization, role, masked email and status. The secret goes in the x-hp-invitation header, never the URL.",
+      parameters: [{ name: "x-hp-invitation", in: "header", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Invitation", content: json(invitationPreviewSchema) }, 404: error("Unknown link (NOT_FOUND)"), 429: error("GUEST_LINK_VERIFY limit (RATE_LIMITED)") },
+    },
+  },
+  "/v1/invitations/accept": {
+    post: {
+      summary: "Accept an invitation: signed in, with the invited email verified; works once (TECH-03 §11)",
+      requestBody: { required: true, content: json(acceptInvitationSchema) },
+      responses: {
+        200: { description: "Joined", content: json(acceptedInvitationSchema) },
+        ...signedIn,
+        404: error("Unknown link (NOT_FOUND)"),
+        422: error("RULE_FAILED, reason INVITATION_ACCEPTED, INVITATION_EXPIRED, INVITATION_REVOKED, VERIFY_EMAIL_FIRST, WRONG_ACCOUNT or ALREADY_MEMBER"),
+      },
+    },
+  },
+  "/v1/admin/organizations": {
+    get: {
+      summary: "Staff support view: search organizations by name (ORGANIZATION_SUPPORT, read only)",
+      parameters: [{ name: "q", in: "query", required: false, schema: { type: "string" } }],
+      responses: { 200: { description: "Organizations", content: json(adminOrganizationListSchema) }, ...staffOnly },
+    },
+  },
+  "/v1/admin/organizations/{id}": {
+    get: { summary: "Staff support view: locations, members and invitations (ORGANIZATION_SUPPORT, read only)", parameters: [uuidParam("id")], responses: { 200: { description: "Organization", content: json(adminOrganizationSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/organization-requests": {
+    get: {
+      summary: "Workspace requests, newest first (ORGANIZATION_APPROVE)",
+      parameters: [{ name: "status", in: "query", required: false, schema: { type: "string", enum: ["PENDING", "APPROVED", "DECLINED"] } }],
+      responses: { 200: { description: "Requests", content: json(adminOrganizationRequestListSchema) }, ...staffOnly },
+    },
+  },
+  "/v1/admin/organization-requests/{id}": {
+    get: { summary: "One workspace request (ORGANIZATION_APPROVE)", parameters: [uuidParam("id")], responses: { 200: { description: "Request", content: json(adminOrganizationRequestSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/organization-requests/{id}/approve": {
+    post: {
+      summary: "Approve: creates the organization and its locations, and makes the requester its ACTIVE Owner (ORGANIZATION_APPROVE; audited; emails the requester)",
+      parameters: [uuidParam("id"), idempotencyHeader],
+      responses: { 200: { description: "Approved", content: json(adminOrganizationRequestSchema) }, ...staffOnly, 422: error("ALREADY_DECIDED or REQUESTER_UNVERIFIED (RULE_FAILED)") },
+    },
+  },
+  "/v1/admin/organization-requests/{id}/decline": {
+    post: {
+      summary: "Decline with a reason the requester sees (ORGANIZATION_APPROVE; audited; emails the requester)",
+      parameters: [uuidParam("id"), idempotencyHeader],
+      requestBody: { required: true, content: json(declineOrganizationRequestSchema) },
+      responses: { 200: { description: "Declined", content: json(adminOrganizationRequestSchema) }, ...staffOnly, 400: error("No reason"), 422: error("ALREADY_DECIDED (RULE_FAILED)") },
+    },
+  },
 };
 
 /**
@@ -985,6 +1155,7 @@ export function buildOpenApiDocument() {
           responses: { 200: { description: "Result", content: json(personalizationResultSchema) }, 404: error("Not yours"), 422: error("File still being checked") },
         },
       },
+      ...organizationPaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

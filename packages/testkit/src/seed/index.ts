@@ -5,6 +5,7 @@ import { seedDelivery } from "./delivery.js";
 import { seedHubs } from "./hubs.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
+import { seedOrganizations } from "./organizations.js";
 import { seedRecommendationRules } from "./projects.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
@@ -81,6 +82,9 @@ export const deliverySeedStep: SeedStep = { name: "delivery: zones and rates", r
 /** Starting recommendation rules for Event and Staff uniforms (T05-01, Pen 110). */
 export const projectsSeedStep: SeedStep = { name: "projects: starting recommendation rules", run: seedRecommendationRules };
 
+/** ACME Hospitality Group with Lekki and Victoria Island and one member per role (T10-01, TECH-08 §11). */
+export const organizationsSeedStep: SeedStep = { name: "organizations: ACME, Lekki and Victoria Island, one member per role", run: seedOrganizations };
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
@@ -88,6 +92,7 @@ export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   deliverySeedStep,
   contentSeedStep,
   projectsSeedStep,
+  organizationsSeedStep,
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 
