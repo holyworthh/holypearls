@@ -32346,6 +32346,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -33109,6 +33144,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -33482,6 +33518,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -34245,6 +34316,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -35077,6 +35149,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -35840,6 +35947,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -36352,6 +36460,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -37115,6 +37258,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -37497,6 +37641,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -38260,6 +38439,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -38656,6 +38836,41 @@
                         "null"
                       ]
                     },
+                    "fromTemplate": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "templateId": {
+                              "type": "string"
+                            },
+                            "organizationId": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "editable": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "templateId",
+                            "organizationId",
+                            "name",
+                            "editable"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "garment": {
                       "anyOf": [
                         {
@@ -39419,6 +39634,7 @@
                     "version",
                     "price",
                     "emailedTo",
+                    "fromTemplate",
                     "garment",
                     "files",
                     "details",
@@ -50894,6 +51110,932 @@
           },
           "422": {
             "description": "ALREADY_ARCHIVED (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/templates/{templateId}/order": {
+      "get": {
+        "summary": "What a buyer may change on a template order: editable choices, quantity, allowed locations, and why it's blocked (T11-01c)",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order form",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "DRAFT",
+                            "AWAITING_APPROVAL",
+                            "APPROVED",
+                            "NEEDS_REVIEW",
+                            "ARCHIVED"
+                          ]
+                        },
+                        "productName": {
+                          "type": "string"
+                        },
+                        "productSlug": {
+                          "type": "string"
+                        },
+                        "image": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "thumbnailUrl": {
+                                  "type": "string"
+                                },
+                                "alt": {
+                                  "type": "string"
+                                },
+                                "width": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "height": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "url",
+                                "thumbnailUrl",
+                                "alt",
+                                "width",
+                                "height"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "assetLabel": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "allLocations": {
+                          "type": "boolean"
+                        },
+                        "locations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string",
+                                "maxLength": 80
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              },
+                              "control": {
+                                "type": "string",
+                                "enum": [
+                                  "LOCKED",
+                                  "EDITABLE"
+                                ]
+                              },
+                              "reason": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "label",
+                              "value",
+                              "control",
+                              "reason"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "assets": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "assetId": {
+                                "type": "string"
+                              },
+                              "assetName": {
+                                "type": "string"
+                              },
+                              "versionId": {
+                                "type": "string"
+                              },
+                              "number": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PROCESSING",
+                                  "NEEDS_REVIEW",
+                                  "PRODUCTION_READY",
+                                  "SUPERSEDED",
+                                  "RETIRED",
+                                  "ARCHIVED"
+                                ]
+                              },
+                              "currentNumber": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "assetId",
+                              "assetName",
+                              "versionId",
+                              "number",
+                              "status",
+                              "currentNumber"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "reviewNote": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "sourceLabel": {
+                          "type": "string"
+                        },
+                        "canManage": {
+                          "type": "boolean"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "status",
+                        "productName",
+                        "productSlug",
+                        "image",
+                        "assetLabel",
+                        "allLocations",
+                        "locations",
+                        "updatedAt",
+                        "fields",
+                        "assets",
+                        "reviewNote",
+                        "sourceLabel",
+                        "canManage",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "choices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "options": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "reason",
+                          "value",
+                          "options"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quantity": {
+                      "type": "object",
+                      "properties": {
+                        "editable": {
+                          "type": "boolean"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reason": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "editable",
+                        "value",
+                        "reason"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "template",
+                    "choices",
+                    "quantity",
+                    "locations",
+                    "blocked"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/templates/{templateId}/price": {
+      "post": {
+        "summary": "Today's price for the buyer's choices; nothing is saved",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "choices": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 80
+                    }
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [
+                  "choices",
+                  "quantity"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Price",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": [
+                        "PRICE_READY",
+                        "ESTIMATE_READY",
+                        "QUOTE_REQUIRED",
+                        "CONSULTATION_REQUIRED"
+                      ]
+                    },
+                    "valid": {
+                      "type": "boolean"
+                    },
+                    "currency": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NGN",
+                            "USD"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "quantity": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "lines": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "amountMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "goodsMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "deliveryMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "totalMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "perUnitMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "vatRateBps": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "leadDays": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "min": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "max": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "min",
+                            "max"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "proof": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NOT_REQUIRED",
+                            "OPTIONAL",
+                            "REQUIRED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "artworkLater": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "blocking": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "message",
+                          "blocking"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "ruleVersions": {
+                      "type": "object",
+                      "properties": {
+                        "priceRuleId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "productRulesVersion": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "taxSettingId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "priceRuleId",
+                        "productRulesVersion",
+                        "taxSettingId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state",
+                    "valid",
+                    "currency",
+                    "quantity",
+                    "lines",
+                    "goodsMinor",
+                    "deliveryMinor",
+                    "vatMinor",
+                    "totalMinor",
+                    "perUnitMinor",
+                    "vatRateBps",
+                    "leadDays",
+                    "proof",
+                    "artworkLater",
+                    "reasons",
+                    "ruleVersions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LOCKED_FIELD (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/templates/{templateId}/orders": {
+      "post": {
+        "summary": "Order from an approved template (CREATE_REQUESTS): only editable fields change; a direct price goes to the cart, anything else becomes a quote for the location",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "choices": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 80
+                    }
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000
+                  },
+                  "locationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "templateVersion": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "choices",
+                  "quantity",
+                  "locationId",
+                  "templateVersion"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "route": {
+                      "type": "string",
+                      "enum": [
+                        "CHECKOUT",
+                        "QUOTE"
+                      ]
+                    },
+                    "configurationId": {
+                      "type": "string"
+                    },
+                    "next": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "route",
+                    "configurationId",
+                    "next",
+                    "reference"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown field or quantity (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No CREATE_REQUESTS, or LOCATION_NOT_ALLOWED (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The template changed (VERSION_CONFLICT)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LOCKED_FIELD, TEMPLATE_BLOCKED or TEMPLATE_NOT_APPROVED (RULE_FAILED)",
             "content": {
               "application/json": {
                 "schema": {

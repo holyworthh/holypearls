@@ -228,7 +228,7 @@ test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; sta
   await expectNoAxeViolations(page);
 });
 
-test("templates: the Owner turns a saved design into a template; HolyPearls approves it; a Viewer sees it", async ({ page }) => {
+test("templates: the Owner makes a template; HolyPearls approves it; a Lekki manager orders from it; a Viewer only sees it", async ({ page }) => {
   await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   // A saved business-cards design to start from (the configurator is covered elsewhere).
@@ -275,6 +275,21 @@ test("templates: the Owner turns a saved design into a template; HolyPearls appr
   await page.getByRole("button", { name: "Approve template" }).click();
   await expect(page.getByText("Approved. The organization's allowed locations can order from it now.")).toBeVisible();
 
+  // A Lekki manager orders from it (T11-01c, Pen 131): today's price, then checkout placed for Lekki.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(detail);
+  await page.getByRole("link", { name: "Order from template" }).click();
+  await expect(page.getByRole("heading", { name: `Order ${name}` })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set by your company (locked)" })).toBeVisible();
+  await page.getByLabel("Quantity").fill("500");
+  await expect(page.getByText("PRICE READY")).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Go to checkout" }).click();
+  await page.waitForURL(/\/checkout\//);
+  await expect(page.getByLabel("Who's this order for?").locator("option:checked")).toHaveText(/Lekki/);
+
   // A Viewer sees the approved template but can't change it.
   await page.context().clearCookies();
   await signIn(page, TEST_PEOPLE.acmeViewer, "/workspace");
@@ -284,4 +299,5 @@ test("templates: the Owner turns a saved design into a template; HolyPearls appr
   await page.goto(detail);
   await expect(page.getByText("APPROVED", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit controls" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Order from template" })).toHaveCount(0);
 });

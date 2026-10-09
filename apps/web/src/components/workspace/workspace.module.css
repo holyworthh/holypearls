@@ -1246,3 +1246,32 @@
   color: var(--hp-ink);
   font-weight: var(--hp-weight-semibold);
 }
+
+/* Order from a template (Pen 131 · ARNyh) */
+
+.orderLayout {
+  display: grid;
+  gap: var(--hp-space-20);
+}
+
+@media (min-width: 1024px) {
+  .orderLayout {
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.orderTotal {
+  margin: 0;
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-card-title);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-compact);
+}
+
+.orderDone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-24);
+}

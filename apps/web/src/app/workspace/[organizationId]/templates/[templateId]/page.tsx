@@ -69,6 +69,11 @@ export default async function TemplatePage({ params }: { params: Promise<{ organ
                   <p>{template.reviewNote}</p>
                 </Notice>
               ) : null}
+              {template.status === "APPROVED" && organization.me.permissions.includes("CREATE_REQUESTS") ? (
+                <div className={styles.quickActions}>
+                  <ButtonLink href={`/workspace/${organizationId}/templates/${templateId}/order`}>Order from template</ButtonLink>
+                </div>
+              ) : null}
               {template.canManage && assets?.ok ? <TemplateActions organizationId={organizationId} initial={template} me={organization.me} assets={assets.data.assets} /> : null}
               <div className={styles.assetDetail}>
                 <section className={`${styles.panel} ${styles.assetHero}`} aria-label="Approved preview">
