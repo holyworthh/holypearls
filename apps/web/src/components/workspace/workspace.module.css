@@ -11,6 +11,17 @@
   background: var(--hp-bone);
 }
 
+/* A field scrolled into view stops above the 390 px bottom tabs, never behind them. */
+:global(html):has(.app) {
+  scroll-padding-bottom: calc(var(--hp-workspace-mobile-header-height) + var(--hp-space-16));
+}
+
+@media (min-width: 1024px) {
+  :global(html):has(.app) {
+    scroll-padding-bottom: 0;
+  }
+}
+
 @media (min-width: 1024px) {
   .app {
     flex-direction: row;
