@@ -21,3 +21,7 @@ export async function loadWorkspace(organizationId: string, path: string) {
   }
   return { me: me.data, organization: organization.data };
 }
+
+/** The location chosen in the switcher, if it's one of the person's own; anything else shows all of theirs. */
+export const chosenLocation = (organization: { me: { locations: readonly { id: string }[] } }, raw: string | undefined) =>
+  raw && organization.me.locations.some((location) => location.id === raw) ? raw : null;

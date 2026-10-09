@@ -22,8 +22,8 @@ export default async function LocationsPage({ params, searchParams }: { params: 
   const selectedId = list.ok ? (list.data.locations.find((location) => location.id === chosen) ?? list.data.locations[0])?.id : undefined;
   const detail = selectedId ? await serverApi(`/v1/organizations/${organizationId}/locations/${selectedId}`, locationDetailSchema) : null;
   return (
-    <WorkspaceShell organization={organization} userName={me.name}>
-      <SettingsTabs organizationId={organizationId} current="locations" showTeam={canManageTeam} />
+    <WorkspaceShell organization={organization} userName={me.name} section="settings">
+      <SettingsTabs organizationId={organizationId} current="locations" me={organization.me} />
       {!list.ok || (detail && !detail.ok) ? (
         <ErrorState
           title="We couldn't load locations"

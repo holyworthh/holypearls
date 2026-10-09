@@ -16,8 +16,8 @@ export default async function TeamPage({ params }: { params: Promise<{ organizat
   const canManageTeam = organization.me.permissions.includes("MANAGE_TEAM");
   const team = canManageTeam ? await serverApi(`/v1/organizations/${organizationId}/members`, teamSchema) : null;
   return (
-    <WorkspaceShell organization={organization} userName={me.name}>
-      <SettingsTabs organizationId={organizationId} current="team" showTeam />
+    <WorkspaceShell organization={organization} userName={me.name} section="settings">
+      <SettingsTabs organizationId={organizationId} current="team" me={organization.me} />
       {!team || (!team.ok && team.status === 403) ? (
         <PageState
           eyebrow="403 · PERMISSION REQUIRED"

@@ -1,4 +1,4 @@
-import type { Checkout, checkoutAddressSchema, checkoutBillingSchema, checkoutContactSchema, Configuration } from "@holypearls/contracts";
+import type { Checkout, checkoutAddressSchema, checkoutBillingSchema, checkoutContactSchema, Configuration, PlacedForInput } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
 import type { z } from "zod";
 import { AppError } from "../errors.js";
@@ -7,6 +7,7 @@ import { draftView, reprice } from "../configuration/drafts.js";
 import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
+import { checkPlacement, placementView } from "../organizations/scope.js";
 import { checkoutExpiry } from "./retention.js";
 import type { Courier } from "./courier.js";
 import { courierPrice } from "./courier-pricing.js";
@@ -105,7 +106,7 @@ export function totalsOf(row: Pick<Row, "items" | "delivery" | "vatRateBps" | "v
   );
 }
 
-function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
+function checkoutView(row: Row): Omit<Checkout, "payment" | "order" | "placedFor"> {
   const items = row.items as FrozenItem[];
   const delivery = row.delivery as Delivery | null;
   const address = row.address as Checkout["address"];
@@ -157,7 +158,12 @@ function checkoutView(row: Row): Omit<Checkout, "payment" | "order"> {
 
 async function withCartState(deps: CheckoutDeps, row: Row): Promise<Checkout> {
   const db = deps.db;
-  const view: Checkout = { ...checkoutView(row), payment: await checkoutPayment(deps, row), order: row.status === "COMPLETED" ? await orderOfCheckout(db, row.id) : null };
+  const view: Checkout = {
+    ...checkoutView(row),
+    payment: await checkoutPayment(deps, row),
+    order: row.status === "COMPLETED" ? await orderOfCheckout(db, row.id) : null,
+    placedFor: await placementView(db, row),
+  };
   const off = row.status === "OPEN" ? paymentsBlocker(deps.gateway, await paymentSettings(db)) : null;
   if (off) view.blockers.push(off);
   if (row.cartId) {
@@ -298,6 +304,17 @@ const advance = (current: string, step: Step): Step => {
   const next = STEPS[STEPS.indexOf(step) + 1]!;
   return STEPS.indexOf(current as Step) > STEPS.indexOf(next) ? (current as Step) : next;
 };
+
+/**
+ * Who the order is for (T10-03): an organization and one of its locations, or
+ * null for a personal order. Needs a signed-in member with CREATE_REQUESTS
+ * whose locations include it; the order made from the checkout keeps it.
+ */
+export async function setPlacedFor(deps: CheckoutDeps, access: CartAccess, id: string, input: { placedFor: PlacedForInput; version: number }) {
+  const row = await load(deps.db, access, id);
+  const placement = await checkPlacement(deps.db, access.actor, input.placedFor);
+  return save(deps, row, input.version, { organizationId: placement?.organizationId ?? null, locationId: placement?.locationId ?? null });
+}
 
 /** One transaction: a stale version leaves no customer record behind (review P2-01). */
 export async function setContact(deps: CheckoutDeps, access: CartAccess, id: string, input: z.infer<typeof checkoutContactSchema> & { version: number }) {

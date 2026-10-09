@@ -1,11 +1,12 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { amountMinorColumn, createdAt, currencyColumn, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
 import { users } from "./identity.js";
 import { paymentAttempts, paymentIntents } from "./payments.js";
 import { quoteVersions } from "./quotes.js";
+import { locations } from "./organizations.js";
 import { checkouts } from "./sales.js";
 
 /*
@@ -47,6 +48,9 @@ export const orders = pgTable(
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "set null" }),
     ownerDeviceHash: text("owner_device_hash"),
     currency: currencyColumn(),
+    /** The organization and location it was placed for (T10-03); both null for a personal purchase. */
+    organizationId: uuid("organization_id"),
+    locationId: uuid("location_id"),
     goodsMinor: amountMinorColumn("goods_minor"),
     deliveryMinor: bigint("delivery_minor", { mode: "bigint" }),
     vatMinor: amountMinorColumn("vat_minor"),
@@ -72,6 +76,9 @@ export const orders = pgTable(
     uniqueIndex("orders_quote_version_unique").on(table.quoteVersionId),
     index("orders_customer_idx").on(table.customerId, table.placedAt),
     index("orders_owner_user_idx").on(table.ownerUserId),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "orders_location_fk" }).onDelete("restrict"),
+    check("orders_placement", sql`(${table.organizationId} is null) = (${table.locationId} is null)`),
+    index("orders_organization_idx").on(table.organizationId, table.locationId),
     check("orders_source", sql`num_nonnulls(${table.checkoutId}, ${table.quoteVersionId}) = 1`),
     check("orders_cancelled_by", sql`${table.cancelledBy} is null or ${table.cancelledBy} in ('CUSTOMER', 'STAFF')`),
   ],

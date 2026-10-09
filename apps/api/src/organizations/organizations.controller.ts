@@ -10,6 +10,7 @@ import {
   memberStatusChangeSchema,
   organizationRequestInputSchema,
   ownershipTransferSchema,
+  workspaceOrderViewSchema,
 } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import type { z } from "zod";
@@ -22,6 +23,7 @@ import { ZodValidationPipe } from "../validation.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
 import { approveOrganizationRequest, declineOrganizationRequest, getOrganizationRequest, listOrganizationRequests, myOrganizationRequest, submitOrganizationRequest } from "./requests.js";
 import { searchOrganizations, supportOrganization } from "./support.js";
+import { workspaceBilling, workspaceOrders, workspaceOverview, workspaceProjects, workspaceSearch } from "./workspace.js";
 import {
   acceptInvitation,
   changeMember,
@@ -38,6 +40,12 @@ import {
 const uuid = new ParseUUIDPipe();
 const actorOf = (request: Request) => request.getActor!();
 const noStore = (response: Response) => response.setHeader("cache-control", "private, no-store");
+/** A malformed location is treated like one outside the member's locations: 404. */
+const locationParam = (value?: string) => {
+  if (!value) return null;
+  if (!/^[0-9a-f-]{36}$/i.test(value)) throw new AppError("NOT_FOUND");
+  return value;
+};
 
 /** The signed-in person's workspaces and workspace request (owner decision 2026-10-08). */
 @Controller("me")
@@ -75,6 +83,35 @@ export class OrganizationsController {
   @Get()
   async organization(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
     return getOrganization(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  /** The overview: Needs Attention, active orders and projects (B2B-FR-010). `location` narrows it to one of yours. */
+  @Get("overview")
+  async overview(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("location") location?: string) {
+    return workspaceOverview(this.deps.db, await actorOf(request), organizationId, locationParam(location));
+  }
+
+  @Get("orders")
+  async orders(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("view") view?: string, @Query("location") location?: string) {
+    const chosen = workspaceOrderViewSchema.safeParse(view ?? "all");
+    return workspaceOrders(this.deps.db, await actorOf(request), organizationId, chosen.success ? chosen.data : "all", locationParam(location));
+  }
+
+  @Get("projects")
+  async projects(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("location") location?: string) {
+    return workspaceProjects(this.deps.db, await actorOf(request), organizationId, locationParam(location));
+  }
+
+  /** Owner and Admin only (VIEW_BILLING; B2B-FR-012). */
+  @Get("billing")
+  async billing(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("location") location?: string) {
+    return workspaceBilling(this.deps.db, await actorOf(request), organizationId, locationParam(location));
+  }
+
+  @Get("search")
+  @RateLimit("SEARCH")
+  async search(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("q") q?: string, @Query("location") location?: string) {
+    return workspaceSearch(this.deps.db, await actorOf(request), organizationId, q ?? "", locationParam(location));
   }
 
   @Get("locations")

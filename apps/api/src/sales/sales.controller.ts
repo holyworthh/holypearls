@@ -10,6 +10,7 @@ import {
   deliveryPriceInputSchema,
   deliveryZoneInputSchema,
   fixedZoneInputSchema,
+  setPlacedForSchema,
 } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
 import type { Request } from "express";
@@ -22,7 +23,7 @@ import type { PaymentDeps } from "../payments/payments.js";
 import { DATABASE, HELP_DEPS, type HelpDepsToken, PAYMENT_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, requestCartQuotes } from "./cart.js";
-import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, startCheckout } from "./checkout.js";
+import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, setPlacedFor, startCheckout } from "./checkout.js";
 import { claimDeviceCommerce } from "./claim.js";
 import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
 import { CourierError } from "./courier.js";
@@ -140,6 +141,13 @@ export class CheckoutController {
   @RateLimit("COMMERCIAL_WRITE")
   async delivery(@Req() request: Request, @Param("id", uuid) id: string, @Body(versioned(checkoutDeliverySchema)) body: z.infer<typeof checkoutDeliverySchema> & { version: number }) {
     return setDelivery(this.deps, await access(this.db, request), id, body);
+  }
+
+  /** Who the order is for: an organization and location, or null (T10-03). */
+  @Put(":id/placed-for")
+  @RateLimit("COMMERCIAL_WRITE")
+  async placedFor(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(setPlacedForSchema)) body: z.infer<typeof setPlacedForSchema>) {
+    return setPlacedFor(this.deps, await access(this.db, request), id, body);
   }
 
   @Put(":id/billing")

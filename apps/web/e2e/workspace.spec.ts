@@ -19,9 +19,14 @@ async function signIn(page: Page, person: { email: string; password: string }, n
 
 const desktop = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
 
-test("the Owner sees the team, invites someone and cancels the invitation", async ({ page }) => {
+async function openTeam(page: Page) {
   await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await page.goto(page.url().replace(/\/workspace\/([^/?]+).*$/, "/workspace/$1/team"));
   await expect(page.getByRole("heading", { name: /^Team/ })).toBeVisible();
+}
+
+test("the Owner sees the team, invites someone and cancels the invitation", async ({ page }) => {
+  await openTeam(page);
   await expect(page.getByText("You're the only Owner.")).toBeVisible();
   const list = desktop(page) ? page.getByRole("table", { name: "Members and invitations" }) : page.getByRole("list", { name: "Members and invitations" });
   await expect(list.getByText("Adaeze Eze (TEST DATA)")).toBeVisible();
@@ -52,7 +57,7 @@ test("the Owner sees the team, invites someone and cancels the invitation", asyn
 });
 
 test("raising someone's role asks for confirmation first", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await openTeam(page);
   if (desktop(page)) {
     await page.getByLabel("Role for Sam Etim (TEST DATA)").selectOption("APPROVER");
   } else {
@@ -69,7 +74,7 @@ test("raising someone's role asks for confirmation first", async ({ page }) => {
 });
 
 test("locations: the Owner sees both; a Lekki manager sees only Lekki and no team", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await openTeam(page);
   await page.getByRole("navigation", { name: "Team & Settings" }).getByRole("link", { name: "Locations" }).click();
   await expect(page.getByRole("heading", { name: "Locations", exact: true })).toBeVisible();
   const locations = page.getByRole("list", { name: "Locations" });
@@ -81,7 +86,7 @@ test("locations: the Owner sees both; a Lekki manager sees only Lekki and no tea
 
   await page.context().clearCookies();
   await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
-  await expect(page).toHaveURL(/\/locations$/);
+  await page.goto(`${page.url().split("?")[0]}/locations`);
   await expect(page.getByRole("list", { name: "Locations" }).getByRole("link")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Lekki", level: 2 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a location" })).toHaveCount(0);
@@ -143,4 +148,40 @@ test("staff see organizations read only", async ({ page }) => {
   await expect(page.getByRole("main").getByRole("button")).toHaveCount(0);
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
+});
+
+test("the overview: Needs Attention first; a switcher only for people with more than one location", async ({ page }) => {
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Ngozi\.$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
+  if (desktop(page)) await expect(page.getByLabel("Location")).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  // Orders, Projects and Billing from the navigation.
+  const sections = page.getByRole("navigation", { name: "Workspace sections" }).filter({ visible: true });
+  await sections.getByRole("link", { name: "Orders" }).click();
+  await expect(page.getByRole("heading", { name: "Orders", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Order filters" }).getByRole("link", { name: /^Active/ })).toHaveAttribute("aria-current", "page");
+  await expectNoAxeViolations(page);
+  await sections.getByRole("link", { name: "Projects" }).click();
+  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
+  await page.goto(page.url().replace(/\/projects.*$/, "/billing"));
+  await expect(page.getByRole("heading", { name: "Billing", exact: true })).toBeVisible();
+  await expect(page.getByText("Balances due").first()).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  // Search with nothing found says so, in the person's locations.
+  await page.goto(page.url().replace(/\/billing.*$/, "/search?q=zzzz-nothing"));
+  await expect(page.getByText('No results for “zzzz-nothing” in your locations.')).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  // One location: no switcher, and billing is for Owners and Admins.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
+  await expect(page.getByLabel("Location")).toHaveCount(0);
+  await page.goto(`${page.url().split("?")[0]}/billing`);
+  await expect(page.getByRole("heading", { name: "You don't have access to this" })).toBeVisible();
 });

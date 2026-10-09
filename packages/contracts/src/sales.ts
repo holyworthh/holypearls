@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { checkoutPaymentSchema } from "./payments.js";
+import { placedForSchema } from "./placed-for.js";
 
 /*
  * Cart, checkout and delivery zones (T04-01; COM-FR-080–084, OPS-FR-100–101).
@@ -204,6 +205,8 @@ export const checkoutSchema = z.object({
   order: z.object({ id: z.string(), number: z.string() }).nullable(),
   /** True when the quote items stayed in the cart. */
   quoteItemsLeftInCart: z.boolean(),
+  /** The organization and location it is placed for (T10-03), or null for a personal order. */
+  placedFor: placedForSchema.nullable().default(null),
 });
 
 // ——— Delivery priced by staff (owner, 2026-10-05) ———

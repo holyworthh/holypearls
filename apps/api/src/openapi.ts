@@ -141,6 +141,14 @@ import {
   teamInvitationSchema,
   teamMemberSchema,
   teamSchema,
+  checkoutSchema as placedCheckoutSchema,
+  projectSchema as placedProjectSchema,
+  setPlacedForSchema,
+  workspaceBillingSchema,
+  workspaceOrderListSchema,
+  workspaceOverviewSchema,
+  workspaceProjectListSchema,
+  workspaceSearchSchema,
 } from "@holypearls/contracts";
 import { z } from "zod";
 
@@ -320,6 +328,49 @@ const organizationPaths = {
       parameters: [uuidParam("id"), idempotencyHeader],
       requestBody: { required: true, content: json(declineOrganizationRequestSchema) },
       responses: { 200: { description: "Declined", content: json(adminOrganizationRequestSchema) }, ...staffOnly, 400: error("No reason"), 422: error("ALREADY_DECIDED (RULE_FAILED)") },
+    },
+  },
+};
+
+const locationQuery = { name: "location", in: "query", required: false, description: "Narrow to one of your locations (the switcher); another location is 404.", schema: { type: "string", format: "uuid" } };
+const workspacePaths = {
+  "/v1/checkouts/{id}/placed-for": {
+    put: {
+      summary: "Who the order is for: an organization and one of your locations, or null for a personal order (T10-03). Needs CREATE_REQUESTS; the order keeps it.",
+      parameters: [uuidParam("id")],
+      requestBody: { required: true, content: json(setPlacedForSchema) },
+      responses: { 200: { description: "Saved", content: json(placedCheckoutSchema) }, 403: error("No CREATE_REQUESTS (FORBIDDEN)"), 404: error("Not your checkout, not a member, or a location outside yours (NOT_FOUND)"), 409: error("Changed in another tab, or closed (CONFLICT)") },
+    },
+  },
+  "/v1/projects/{id}/placed-for": {
+    put: {
+      summary: "Who the project is for, while it is a draft (T10-03). Its quote and order keep it.",
+      parameters: [uuidParam("id")],
+      requestBody: { required: true, content: json(setPlacedForSchema) },
+      responses: { 200: { description: "Saved", content: json(placedProjectSchema) }, 403: error("No CREATE_REQUESTS (FORBIDDEN)"), 404: error("Not yours, not a member, or a location outside yours (NOT_FOUND)"), 409: error("VERSION_CONFLICT") },
+    },
+  },
+  "/v1/organizations/{organizationId}/overview": {
+    get: { summary: "The workspace overview: Needs Attention, active orders and projects (B2B-FR-010)", parameters: [orgParam, locationQuery], responses: { 200: { description: "Overview", content: json(workspaceOverviewSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/orders": {
+    get: {
+      summary: "The organization's orders in your locations: needs attention, active, complete or all (B2B-FR-011). Buyers see only their own.",
+      parameters: [orgParam, { name: "view", in: "query", required: false, schema: { type: "string", enum: ["attention", "active", "complete", "all"] } }, locationQuery],
+      responses: { 200: { description: "Orders", content: json(workspaceOrderListSchema) }, ...member },
+    },
+  },
+  "/v1/organizations/{organizationId}/projects": {
+    get: { summary: "The organization's projects in your locations, grouped by status (Pen 64)", parameters: [orgParam, locationQuery], responses: { 200: { description: "Projects", content: json(workspaceProjectListSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/billing": {
+    get: { summary: "Balances due, receipts and payment history across the organization (VIEW_BILLING: Owner and Admin; B2B-FR-012)", parameters: [orgParam, locationQuery], responses: { 200: { description: "Billing", content: json(workspaceBillingSchema) }, ...member, 403: error("No VIEW_BILLING (FORBIDDEN)") } },
+  },
+  "/v1/organizations/{organizationId}/search": {
+    get: {
+      summary: "Search orders and projects you may see; never another location (B2B-FR-013)",
+      parameters: [orgParam, { name: "q", in: "query", required: true, schema: { type: "string" } }, locationQuery],
+      responses: { 200: { description: "Results", content: json(workspaceSearchSchema) }, ...member, 429: error("SEARCH limit (RATE_LIMITED)") },
     },
   },
 };
@@ -1156,6 +1207,7 @@ export function buildOpenApiDocument() {
         },
       },
       ...organizationPaths,
+      ...workspacePaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

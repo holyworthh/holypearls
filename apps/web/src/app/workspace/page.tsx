@@ -9,13 +9,11 @@ import styles from "../account/account.module.css";
 export const metadata: Metadata = { title: "Your workspaces", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-const landing = (organization: { id: string; me: { permissions: string[] } }) =>
-  `/workspace/${organization.id}/${organization.me.permissions.includes("MANAGE_TEAM") ? "team" : "locations"}`;
+const landing = (organization: { id: string }) => `/workspace/${organization.id}`;
 
 /**
  * Into the Brand Workspace. One workspace opens straight away; several are
  * listed; none sends the person to ask for one (owner decision 2026-10-08).
- * T10-03 adds the workspace overview.
  */
 export default async function WorkspacePage() {
   const mine = await serverApi("/v1/me/organizations", myOrganizationsSchema);
