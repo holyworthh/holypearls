@@ -1148,3 +1148,73 @@
   gap: var(--hp-space-10);
   min-width: 0;
 }
+
+/* Brand assets (Pen 65 · bZMif, 66 · sgg2F) */
+
+.assetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--hp-card-min-width), 1fr));
+  gap: var(--hp-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assetCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-button);
+  overflow: hidden;
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  text-decoration: none;
+  transition: border-color var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+.assetCard:hover {
+  border-color: var(--hp-line-strong);
+}
+
+.assetThumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-body-lg);
+  letter-spacing: var(--hp-tracking-mono);
+}
+
+.assetThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.assetCardBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hp-space-6);
+  padding: var(--hp-space-16);
+}
+
+.assetDetail {
+  display: grid;
+  gap: var(--hp-space-20);
+}
+
+@media (min-width: 1024px) {
+  .assetDetail {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.assetHero {
+  padding: var(--hp-space-20);
+}

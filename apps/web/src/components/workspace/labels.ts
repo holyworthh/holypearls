@@ -1,3 +1,4 @@
+import type { AssetVersionStatus } from "@holypearls/contracts";
 import type { StatusTone } from "@holypearls/ui";
 
 /** Status chips on the Team page (frame 70): members and invitations share one column. */
@@ -32,4 +33,14 @@ export const REFUSAL: Record<string, string> = {
   MEMBER_DEACTIVATED: "Reactivate this member first.",
   ALREADY_OWNER: "This member is already an Owner.",
   NOT_PENDING: "This invitation is no longer waiting.",
+};
+
+/** Brand asset version chips (frames 65, 66, 116). */
+export const VERSION_STATUS: Record<AssetVersionStatus, { label: string; tone: StatusTone }> = {
+  PROCESSING: { label: "PROCESSING", tone: "neutral" },
+  NEEDS_REVIEW: { label: "NEEDS REVIEW", tone: "warning" },
+  PRODUCTION_READY: { label: "PRODUCTION READY", tone: "success" },
+  SUPERSEDED: { label: "SUPERSEDED", tone: "neutral" },
+  RETIRED: { label: "RETIRED", tone: "error" },
+  ARCHIVED: { label: "ARCHIVED", tone: "neutral" },
 };

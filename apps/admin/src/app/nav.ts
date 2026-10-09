@@ -25,6 +25,7 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
     sections: [
       { slug: "organizations", label: "Organizations", anyOf: ["ORGANIZATION_SUPPORT"], ticket: "T10-01" },
       { slug: "organization-requests", label: "Workspace requests", anyOf: ["ORGANIZATION_APPROVE"], ticket: "T10-01" },
+      { slug: "brand-assets", label: "Brand assets review", anyOf: ["STAFF_ADMIN"], ticket: "T11-01" },
     ],
   },
   {

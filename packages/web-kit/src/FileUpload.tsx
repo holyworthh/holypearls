@@ -14,13 +14,15 @@ type Phase =
   | { kind: "failed"; message: string };
 
 export interface FileUploadProps {
-  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROOF" | "PROBLEM_PHOTO" | "PRODUCT_MEDIA" | "CONTENT_MEDIA" | "CSV_IMPORT";
+  purpose: "ARTWORK" | "PROJECT_ATTACHMENT" | "PROOF" | "PROBLEM_PHOTO" | "PRODUCT_MEDIA" | "CONTENT_MEDIA" | "CSV_IMPORT" | "BRAND_ASSET";
   label?: string;
   /** Allowed types in words, matching the purpose's rule (TECH-04 §4). */
   hint?: string;
   accept?: string;
   owner?: { type: string; id: string };
   onChange?: (file: FileView | null) => void;
+  /** As soon as the upload is complete, before the server's check finishes (for records whose own status follows the check). */
+  onUploaded?: (file: FileView) => void;
 }
 
 /** PUT with progress events; fetch can't report upload progress. */
@@ -56,6 +58,7 @@ export function FileUpload({
   accept = "application/pdf,.ai,image/svg+xml,.svg,image/png,image/jpeg",
   owner,
   onChange,
+  onUploaded,
 }: FileUploadProps) {
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -94,6 +97,7 @@ export function FileUpload({
       await putWithProgress(created.uploadUrl, file, (percent) => setPhase({ kind: "uploading", percent }));
       const done = await api(`/v1/files/${created.file.id}/complete`, { method: "POST", response: fileViewSchema });
       setPhase({ kind: "checking", file: done });
+      onUploaded?.(done);
     } catch (error) {
       const code = errorCode(error);
       const body = (error as { body?: { fieldErrors?: Record<string, string> } }).body;
