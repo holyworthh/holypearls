@@ -15,7 +15,7 @@
 
 ## 2\. Tables by module
 
-**identity:** `users`, `sessions` (Better Auth), `staff_profiles`, `staff_permission_grants`, `customers` (one per person, with or without a user account; normalized email and phone), `guest_links` (hash of secret, purpose, target type and ID, customer ID, expires\_at, revoked\_at, last\_used\_at), `email_codes` (hash, purpose, attempts, expires\_at), `invitations`.
+**identity:** `users`, `sessions` (Better Auth), `staff_profiles`, `staff_permission_grants`, `customers` (one per person, with or without a user account; normalized email and phone), `guest_links` (hash of secret, purpose, target type and ID, customer ID, expires\_at, revoked\_at, last\_used\_at), `email_codes` (hash, purpose, attempts, expires\_at), `invitations` and `invitation_locations` (organization invitations; the schema file keeps them beside the organizations tables they reference).
 
 **catalogue:** `categories`, `products`, `product_options`, `product_option_values`, `product_rules` (compatibility, MOQ, lead time, artwork later, sample, proof requirement), `price_rules` (base, tiers, add-ons, effective\_from), `tax_settings`, `delivery_zones`, `installation_rules`, `product_media`, `product_relations`, `content_pages` (project pages, guides, case studies, about), `navigation_lists`, `search_documents`, `search_phrases`.
 
@@ -29,7 +29,7 @@
 
 **orders:** `orders` (with commercial snapshot), `order_items` (with production spec snapshot), `order_item_events`, `holds`, `qc_results`, `proofs`, `proof_versions`, `proof_comments`, `proof_decisions`, `change_requests`, `shipments`, `shipment_items`, `shipment_events`, `reorders`, `problem_reports`.
 
-**organizations:** `organizations`, `locations`, `memberships`, `membership_locations`, `membership_permissions`, `approval_policies`, `order_requests`, `organization_approvals`, `brand_assets`, `brand_asset_versions`, `templates`, `template_fields`, `template_asset_links`.
+**organizations:** `organizations`, `locations`, `memberships`, `membership_locations`, `membership_permissions`, `organization_requests` (workspace requests, PRD 05 B2B-FR-005), `approval_policies`, `order_requests`, `organization_approvals`, `brand_assets`, `brand_asset_versions`, `templates`, `template_fields`, `template_asset_links`.
 
 **groups:** `group_collections`, `participants`, `participant_submissions`, `import_batches`, `import_rows`, `order_drafts`, `company_stores`, `company_store_items`, `allowance_policies`, `allowance_ledger`.
 
@@ -89,7 +89,7 @@ Anything not listed below is not allowed.
 
 **Problem report:** NEW → TRIAGED → CLOSED. **Help request:** OPEN → ANSWERED → CLOSED.
 
-**Organization membership:** ACTIVE ⇄ DEACTIVATED. **Invitation:** PENDING → ACCEPTED | EXPIRED | REVOKED.
+**Organization membership:** ACTIVE ⇄ DEACTIVATED. **Invitation:** PENDING → ACCEPTED | EXPIRED | REVOKED. **Organization request (workspace request):** PENDING → APPROVED (staff; creates the organization) | DECLINED (staff, with a reason). One PENDING request per person.
 
 **Order request:** DRAFT → PENDING\_APPROVAL → APPROVED | REJECTED. APPROVED → SENT\_TO\_HOLYPEARLS (becomes a project or quote request). If no approval is needed: DRAFT → SENT\_TO\_HOLYPEARLS. Any before SENT\_TO\_HOLYPEARLS → CANCELLED. **Organization approval:** insert-only record with decision APPROVED or REJECTED, approved amount and scope. Re-approval creates a new record; the old one is kept.
 

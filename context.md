@@ -4,13 +4,16 @@ Written 2026-10-07 at the end of a cloud session. Read this, then `CLAUDE.md`, b
 
 ## Where things stand
 
-- **`dev`** has everything up to T08-06. `main` hasn't been released to since 1 October.
-- **Merged on 2026-10-07:**
-  - **#85, T08-05 (courier prices):** Shipbubble prices checkout addresses outside the fixed zones.
-  - **#84, Dependabot:** 23 minor and patch updates (next 16.3.8, NestJS 12.1.2, better-auth 1.7.7 and others).
-  - **#86, T08-06 (book couriers):** Book courier from Shipments; Shipbubble webhooks move shipments along TECH-01 §4. Report: `docs/reports/T08-06.md`.
-  - **A dependency pin** (`pnpm-workspace.yaml` → `overrides`): `source-map-js` ^1.2.2 for GHSA-68fv-2mgg-jv7q (high), which reaches `next`, `postcss` and `sanitize-html`. Without it the CI audit fails on every branch. Remove it once `next` and `sanitize-html` ship the patched version themselves.
-- **Tracker:** T08-01, T08-05 and T08-06 are DONE. T04-03 stays IN REVIEW until one manual test-mode payment on staging (ATTENTION 27). Next up: T09-01.
+Updated 2026-10-08 after T10-01.
+
+- **`dev`** has everything up to T10-01: organizations, team, invitations and workspace requests (#91). T09-01 (#90) is DONE.
+- **Documents updated with T10-01:** PRD-05 B2B-FR-005 (workspace request and approval), PRD-06 OPS-FR-084, TECH-01 §2 and §4, TECH-03 §7, §8 and §11, CHANGE-LOG §12, and `docs/reports/OWNER-DECISIONS-2026-10-08.md`.
+- **Tracker:** T10-01 is marked DONE in the next ticket's PR (the pattern since T09-01). T04-03 stays IN REVIEW until one manual test-mode payment on staging (ATTENTION 27). Next up: T10-03.
+- **Test people for organizations:** ACME Hospitality Group (TEST DATA), with Lekki and Victoria Island and one member per role, all `*.acme-<role>@holypearls.test` (see `packages/auth/src/test-people.ts`). The seeded staff admin also holds `ORGANIZATION_SUPPORT` and `ORGANIZATION_APPROVE`.
+- **Workspace code to build on:** `apps/api/src/organizations/`:
+  - `requireMember` builds the organization part of the ActorContext.
+  - `policies.ts` has the location-scope and grant rules.
+  - `apps/web/src/components/workspace/WorkspaceShell.tsx` is the shell. T10-03 adds the rest of the sidebar, search and the location switcher.
 
 ## CI: the owner's Mac is a self-hosted runner
 
@@ -50,7 +53,7 @@ E2E_API_PORT=3011 node --env-file=../../.env node_modules/@playwright/test/cli.j
 
 ## Next tickets
 
-The order is fixed by dependencies: T09-01 → T10-01 → T10-03 → T11-01. All of them have customer or workspace screens, so the Pen MCP must be connected (it's why these are local sessions). For each screen, open its Pen frame first and compare at 375 and 1440 px after building (`CLAUDE.md`, Design fidelity).
+The order is fixed by dependencies: T09-01 → T10-01 → T10-03 → T11-01. T09-01 and T10-01 are done. All of them have customer or workspace screens, so the Pen MCP must be connected (it's why these are local sessions). For each screen, open its Pen frame first and compare at 375 and 1440 px after building (`CLAUDE.md`, Design fidelity).
 
 ### T09-01: customer accounts, history and guest linking (XL)
 - **Build:** sign up; sign in (password and magic link); email verification; password reset; sign out everywhere; profile; security page. Then link guest records on a verified email, and an account dashboard with orders, quotes, projects, drafts to resume and receipts.
@@ -103,6 +106,9 @@ The order is fixed by dependencies: T09-01 → T10-01 → T10-03 → T11-01. All
 - The rest of `docs/reports/ATTENTION.md` (Part B) is needed before launch.
 
 ## Known quirks
+
+- **Local browser tests:** cookies aren't separated by port, so a staff sign-in on `localhost:3200` replaces a customer session on `localhost:3100` in the same test. Sign the customer in again after a staff step.
+- **Running the app locally without `.env`'s Neon URL:** export `DATABASE_URL`, `TEST_DATABASE_URL`, throwaway `BETTER_AUTH_SECRET` and `DATA_ENCRYPTION_KEY`, and `API_PORT=3011` before any command. `dotenv -e .env` never overrides an exported variable. Use a docker `postgres:17.6` on port 55433.
 
 - **`apps/admin/next-env.d.ts`** is rewritten by every `next build` or `next dev` (`.next/types` vs `.next/dev/types`). Don't commit that change; `git checkout -- apps/admin/next-env.d.ts`.
 - **`.claude/launch.json` and `.claude/settings.local.json`** are local tool settings. Keep them out of commits.

@@ -8,7 +8,7 @@ The list has two parts:
 
 Item numbers stay the same, so references in ticket reports still work. What your answers of 5 October changed is in [OWNER-DECISIONS-2026-10-05.md](OWNER-DECISIONS-2026-10-05.md).
 
-Last updated: 2026-10-05 (your answers of 5 October carried out).
+Last updated: 2026-10-08 (T10-01: your decision on how organizations are created; see [OWNER-DECISIONS-2026-10-08.md](OWNER-DECISIONS-2026-10-08.md)).
 
 ---
 
@@ -31,12 +31,20 @@ I'll then confirm the webhook, the order, the receipt and the email, and move T0
 
 The dev database has three TEST DATA orders (HP-2026-TEST-1 to 3) for trying the board.
 
-### 33. Instant delivery prices: choose a courier aggregator (new)
+### 33. Instant delivery prices: choose a courier aggregator. RESOLVED
+**Answer:** Shipbubble, built in T08-05 and T08-06. The Shipbubble key and webhook setup are in `context.md` under "Waiting on the owner".
+
 For now, staff set the delivery price for addresses outside the zones (Admin → Delivery prices). To price any Nigerian address at checkout instead, one of these rate APIs is needed: **Shipbubble**, **Terminal Africa**, **Shiip (GoShiip)**, or **GIG Logistics** directly. Details are in the report. **Decide** whether you want this, and which provider; each needs a business account.
+
+### 35. How organizations are created (T10-01). RESOLVED
+**Answer (2026-10-08):** by request and approval. A verified customer asks for a workspace from their account, and staff approve or decline it in Admin → Workspace requests. Built in T10-01 and written into PRD-05 B2B-FR-005, PRD-06 OPS-FR-084 and TECH-03 §8.
 
 ---
 
 # Part B: needed before launch (production)
+
+### 36. Who approves workspace requests (T10-01)
+Approving needs the new `ORGANIZATION_APPROVE` staff permission, and the read-only Organizations view needs `ORGANIZATION_SUPPORT`. No production staff member holds either yet. Staff management in the admin comes with T13-05. Until then, **tell me who should hold them** and I'll grant them with a one-off, audited database change.
 
 ## B1. Infrastructure and accounts
 
