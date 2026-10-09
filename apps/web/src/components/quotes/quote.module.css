@@ -543,3 +543,38 @@
     margin: 0 var(--hp-layout-gutter-mobile);
   }
 }
+
+/* Organization re-approval (Pen 48 · Oe5Uk) */
+
+.orgApproval {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-20);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-warning-tint);
+}
+
+.orgFigures {
+  display: grid;
+  gap: var(--hp-space-12);
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .orgFigures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.orgFigures dd {
+  margin: 0;
+}
+
+.reapproval {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hp-space-10);
+}

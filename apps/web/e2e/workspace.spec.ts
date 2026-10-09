@@ -357,6 +357,55 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
   await expectNoHorizontalScroll(page);
   await page.getByRole("button", { name: /^Approve/ }).click();
   await expect(page.getByText(/Approved and sent to HolyPearls for a quote \(HP-Q-/)).toBeVisible();
+  const quoteReference = (await page.getByText(/HP-Q-\d{4}-\d+/).first().textContent())!.match(/HP-Q-\d{4}-\d+/)![0];
+
+  // T11-04b: HolyPearls quotes ₦200,000 plus VAT, above the approved estimate (Pen 48, 73B).
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  const quoteId = await page.evaluate(async (reference) => {
+    const headers = { "content-type": "application/json", "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` };
+    const list = await fetch("/api/v1/admin/quotes").then((response) => response.json());
+    const id = list.items.find((item: { reference: string }) => item.reference === reference).id as string;
+    const quote = await fetch(`/api/v1/admin/quotes/${id}/versions`, { method: "POST", headers }).then((response) => response.json());
+    const draft = quote.versions.find((version: { status: string }) => version.status === "DRAFT");
+    const candidate = quote.candidates[0];
+    const saved = await fetch(`/api/v1/admin/quotes/${id}/versions/${draft.id}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        version: draft.version,
+        currency: "NGN",
+        lines: [{ source: candidate.source, sourceKey: candidate.sourceKey, title: candidate.title, summary: candidate.summary, quantity: 1, unitMinor: "20000000" }],
+        fees: { designMinor: "0", deliveryMinor: "0", deliveryNote: "", installationMinor: "0", installationNote: "", otherMinor: "0", otherLabel: "" },
+        validDays: 14,
+        terms: "Terms",
+        assumptions: "",
+        productionSequence: "",
+        schedule: [{ label: "Payment", kind: "PERCENT", value: "10000", trigger: "ON_ACCEPTANCE" }],
+      }),
+    }).then((response) => response.json());
+    await fetch(`/api/v1/admin/quotes/${id}/versions/${draft.id}/send`, { method: "POST", headers: { ...headers, "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` }, body: JSON.stringify({ version: saved.version }) });
+    return id;
+  }, quoteReference);
+
+  // The requester sees the block and sends it for re-approval.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(`/quotes/${quoteId}`);
+  await expect(page.getByRole("heading", { name: "New approval needed before you can accept" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Send for reapproval" }).click();
+  await expect(page.getByText(/Sent for re-approval\. Accept unlocks once/)).toBeVisible();
+
+  // The Approver approves the new total.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeApprover, "/workspace");
+  await page.goto(requestUrl);
+  await expect(page.getByText("REAPPROVAL REQUIRED")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "HolyPearls' quote came back higher" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: /^Approve/ }).click();
+  await expect(page.getByText("Approved the new total. The quote can be accepted now.")).toBeVisible();
 
   // Leave the rule as the seed has it.
   await page.context().clearCookies();

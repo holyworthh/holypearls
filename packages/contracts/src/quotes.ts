@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { quoteOrganizationApprovalSchema } from "./approvals.js";
 import { projectQuoteSummarySchema, projectStatusSchema, projectTypeSchema, quoteStatusSchema } from "./projects.js";
 
 /*
@@ -235,7 +236,7 @@ export const adminQuoteListSchema = z.object({
 /* The customer's quote page (T05-05; QUOTE-FR-002–008, Pen 25/46/47)  */
 /* ------------------------------------------------------------------ */
 
-export const quoteBlockerSchema = z.enum(["NOT_READY", "NOT_CURRENT_VERSION", "EXPIRED", "EMAIL_CODE_REQUIRED", "ALREADY_ACCEPTED"]);
+export const quoteBlockerSchema = z.enum(["NOT_READY", "NOT_CURRENT_VERSION", "EXPIRED", "EMAIL_CODE_REQUIRED", "ALREADY_ACCEPTED", "ORGANIZATION_PERMISSION", "ORGANIZATION_REAPPROVAL_REQUIRED"]);
 
 export const customerQuoteSchema = z.object({
   id: z.string(),
@@ -250,6 +251,8 @@ export const customerQuoteSchema = z.object({
   changes: z.array(z.string()),
   canAccept: z.boolean(),
   blockers: z.array(z.object({ code: quoteBlockerSchema, message: z.string() })),
+  /** For a quote an organization approved (T11-04b): the approved amount against this quote. */
+  organizationApproval: quoteOrganizationApprovalSchema.nullable().default(null),
   order: z.object({ id: z.string(), number: z.string() }).nullable(),
   requests: z.array(z.object({ kind: z.enum(["CHANGE", "QUESTION", "DECLINE", "UPDATE"]), note: z.string(), line: z.string().nullable(), createdAt: isoDate, status: z.enum(["OPEN", "ANSWERED"]) })),
 });

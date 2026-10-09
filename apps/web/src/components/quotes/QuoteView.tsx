@@ -9,6 +9,7 @@ import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { day } from "../../lib/format";
 import { naira } from "@holypearls/web-kit/money";
 import { useEmailCode } from "../EmailCode";
+import { OrganizationApprovalSummary, SendForReapproval } from "./OrganizationApproval";
 import s from "./quote.module.css";
 
 /*
@@ -137,6 +138,7 @@ export function QuoteView({ initial }: { initial: CustomerQuote }) {
       ) : (
         <div className={s.body}>
           <div className={s.document}>
+            {quote.organizationApproval ? <OrganizationApprovalSummary approval={quote.organizationApproval} /> : null}
             {sent ? (
               <Notice tone="success" title="Sent" live>
                 <p>{sent}</p>
@@ -313,6 +315,7 @@ export function QuoteView({ initial }: { initial: CustomerQuote }) {
                 <button type="button" className={s.accept} onClick={() => void accept()} disabled={!quote.canAccept || busy}>
                   {busy ? "Accepting…" : `Accept Quote V${version.number}`}
                 </button>
+                {quote.organizationApproval ? <SendForReapproval approval={quote.organizationApproval} /> : null}
                 {quote.blockers.length ? (
                   <p className={s.muted} role="status">
                     {quote.blockers[0]!.message}
