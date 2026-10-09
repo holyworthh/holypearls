@@ -348,6 +348,9 @@ export function TemplateOrderForm({ organizationId, form }: { organizationId: st
   }, [base, changesKey, count, form.blocked, validQuantity]);
 
   const direct = price?.state === "PRICE_READY" && price.valid;
+  // The organization's approval rule (T11-04): over it, the order becomes an order request for an approver.
+  const needsApproval =
+    form.approval.applies === "ALWAYS" || (form.approval.applies === "ABOVE_AMOUNT" && form.approval.thresholdMinor !== null && (!price?.totalMinor || BigInt(price.totalMinor) > BigInt(form.approval.thresholdMinor)));
   const submit = async () => {
     if (!validQuantity) {
       setFailure("Enter a quantity.");
@@ -362,6 +365,10 @@ export function TemplateOrderForm({ organizationId, form }: { organizationId: st
         headers: { [IDEMPOTENCY_KEY_HEADER]: key },
         response: templateOrderResultSchema,
       });
+      if (result.route === "APPROVAL") {
+        window.location.assign(result.next);
+        return;
+      }
       if (result.route === "QUOTE") {
         setQuoted(result.reference);
         setBusy(false);
@@ -447,8 +454,13 @@ export function TemplateOrderForm({ organizationId, form }: { organizationId: st
                 <p>{failure}</p>
               </Notice>
             ) : null}
+            {needsApproval && price ? (
+              <Notice tone="info" title="Approval needed">
+                <p>{form.approval.applies === "ALWAYS" ? "Your workspace approves every order" : "Over your workspace's approval limit"} — this becomes an order request for approval.</p>
+              </Notice>
+            ) : null}
             <Button loading={busy} disabled={!price || !locationId || Boolean(price.reasons.find((reason) => reason.blocking))} onClick={() => void submit()}>
-              {direct ? "Go to checkout" : "Request a quote"}
+              {needsApproval ? "Send for approval" : direct ? "Go to checkout" : "Request a quote"}
             </Button>
           </>
         )}

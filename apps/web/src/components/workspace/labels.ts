@@ -1,4 +1,4 @@
-import type { AssetVersionStatus } from "@holypearls/contracts";
+import type { AssetVersionStatus, OrderRequestStatus } from "@holypearls/contracts";
 import type { StatusTone } from "@holypearls/ui";
 
 /** Status chips on the Team page (frame 70): members and invitations share one column. */
@@ -52,4 +52,14 @@ export const TEMPLATE_STATUS: Record<"DRAFT" | "AWAITING_APPROVAL" | "APPROVED" 
   APPROVED: { label: "APPROVED", tone: "success" },
   NEEDS_REVIEW: { label: "BLOCKED · NEEDS REVIEW", tone: "warning" },
   ARCHIVED: { label: "ARCHIVED", tone: "neutral" },
+};
+
+/** Order request chips (frames 72–73). */
+export const ORDER_REQUEST_STATUS: Record<OrderRequestStatus, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "CHANGES REQUESTED", tone: "warning" },
+  PENDING_APPROVAL: { label: "AWAITING APPROVAL", tone: "info" },
+  APPROVED: { label: "APPROVED", tone: "success" },
+  REJECTED: { label: "DECLINED", tone: "error" },
+  SENT_TO_HOLYPEARLS: { label: "SENT TO HOLYPEARLS", tone: "success" },
+  CANCELLED: { label: "CANCELLED", tone: "neutral" },
 };

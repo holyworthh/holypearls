@@ -1275,3 +1275,22 @@
   gap: var(--hp-space-12);
   padding: var(--hp-space-24);
 }
+
+/* Approval review (Pen 72 · hirBW, 73 · mZWyB) */
+
+.requestMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hp-space-12);
+  margin: 0;
+}
+
+@media (min-width: 1024px) {
+  .requestMeta {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.requestMeta dd {
+  margin: 0;
+}
