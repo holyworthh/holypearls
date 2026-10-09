@@ -2,7 +2,7 @@ import { myOrganizationsSchema, PROJECT_STEPS, projectSchema } from "@holypearls
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Builder } from "../../../../components/projects/Builder";
-import { placeableWorkspaces } from "../../../../components/workspace/PlacedForPicker";
+import { placeableWorkspaces } from "../../../../components/workspace/placeable";
 import { SiteShell } from "../../../../components/site/SiteShell";
 import { hasSessionCookie, serverApi } from "../../../../lib/server-api";
 
