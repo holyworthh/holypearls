@@ -359,8 +359,17 @@ export async function cardsByIds(db: Database, ids: string[]): Promise<PublicPro
 /** Each product's main image by ID, whatever its listing state (workspace templates show the product photo first, Pen 68). */
 export async function productMainImages(db: Database | Transaction, ids: readonly string[]): Promise<Map<string, PublicImage | null>> {
   if (!ids.length) return new Map();
-  const rows = await db.select({ id: schema.products.id, main: mainImage }).from(schema.products).where(inArray(schema.products.id, [...ids]));
-  return new Map(rows.map((row) => [row.id, row.main ? image(row.main.fileId, row.main.alt, row.main.width, row.main.height) : null]));
+  const rows = await db.execute<{ id: string; file_id: string | null; alt: string | null; width: number | null; height: number | null }>(sql`
+    select p.id, main.file_id, main.alt, main.width, main.height
+    from products p
+    left join lateral (
+      select m.file_id, m.alt, (f.metadata->>'width')::int as width, (f.metadata->>'height')::int as height
+      from product_media m join files f on f.id = m.file_id
+      where m.product_id = p.id and f.status = 'READY'
+      order by m.position, m.created_at limit 1
+    ) main on true
+    where p.id in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})`);
+  return new Map(rows.rows.map((row) => [row.id, image(row.file_id, row.alt, row.width, row.height)]));
 }
 
 /** Published categories as a two-level tree with visible product counts (menus, homepage, directory chips). */

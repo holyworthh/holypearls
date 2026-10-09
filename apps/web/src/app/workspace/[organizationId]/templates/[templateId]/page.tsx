@@ -99,7 +99,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ organ
                         <div className={styles.detailText}>
                           <span className={styles.detailLabel}>{field.label}</span>
                           <span className={styles.detailValue}>{field.value}</span>
-                          <span className={styles.rowMeta}>{field.reason}</span>
+                          {field.reason !== field.value ? <span className={styles.rowMeta}>{field.reason}</span> : null}
                         </div>
                       </div>
                     ))}
@@ -115,7 +115,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ organ
                         <div className={styles.detailText}>
                           <span className={styles.detailLabel}>{field.label}</span>
                           <span className={styles.detailValue}>{field.value}</span>
-                          <span className={styles.rowMeta}>{field.reason}</span>
+                          {field.reason !== field.value ? <span className={styles.rowMeta}>{field.reason}</span> : null}
                         </div>
                       </div>
                     ))}

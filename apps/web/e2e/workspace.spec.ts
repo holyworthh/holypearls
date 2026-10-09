@@ -236,7 +236,7 @@ test("templates: the Owner turns a saved design into a template; HolyPearls appr
     const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "business-cards", choices: { paper: "350gsm-matte", sides: "both-sides" } }) });
     return response.status;
   });
-  expect(saved).toBe(200);
+  expect(saved).toBe(201);
   await page.goto(`${workspace}/templates`);
   await expect(page.getByRole("heading", { name: "Templates", exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
