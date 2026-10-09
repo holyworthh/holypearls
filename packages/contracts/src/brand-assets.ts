@@ -226,3 +226,38 @@ export const decideTemplateSchema = z.object({
   note: z.string().trim().max(1000).nullable().default(null),
   version: z.number().int(),
 });
+
+/* Order from a template (T11-01c; PRD-05 B2B-FR-033; frame 131). */
+
+export const templateOrderFormSchema = z.object({
+  template: templateSchema,
+  /** Option fields the buyer may change, with the choices the product offers today. */
+  choices: z.array(z.object({ key: z.string(), label: z.string(), reason: z.string(), value: z.string().nullable(), options: z.array(z.object({ value: z.string(), label: z.string() })) })),
+  quantity: z.object({ editable: z.boolean(), value: z.number().int().nullable(), reason: z.string() }),
+  /** Where it can be delivered: the template's locations that are also the buyer's. */
+  locations: z.array(z.object({ id: z.string(), name: z.string() })),
+  /** Why it can't be ordered now ("Blocked — asset review required", no permission, no allowed location), or null. */
+  blocked: z.string().nullable(),
+});
+export type TemplateOrderForm = z.infer<typeof templateOrderFormSchema>;
+
+const orderChoices = z.record(z.string().max(80), z.string().max(80)).default({});
+export const templatePriceInputSchema = z.object({ choices: orderChoices, quantity: z.number().int().positive("Enter a quantity").max(1_000_000) });
+
+export const templateOrderInputSchema = z.object({
+  choices: orderChoices,
+  quantity: z.number().int().positive("Enter a quantity").max(1_000_000),
+  locationId: z.uuid("Choose where it's for"),
+  /** The template version the buyer saw; a newer one is refused so nobody orders a superseded specification. */
+  templateVersion: z.number().int(),
+});
+export type TemplateOrderInput = z.infer<typeof templateOrderInputSchema>;
+
+export const templateOrderResultSchema = z.object({
+  route: z.enum(["CHECKOUT", "QUOTE"]),
+  configurationId: z.string(),
+  /** Where to go next: the cart for a direct price, or the quote's confirmation. */
+  next: z.string(),
+  reference: z.string().nullable(),
+});
+export type TemplateOrderResult = z.infer<typeof templateOrderResultSchema>;

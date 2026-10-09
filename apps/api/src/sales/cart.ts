@@ -84,8 +84,13 @@ function refuseUnorderable(draft: Configuration) {
   if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });
 }
 
-const editHref = (draft: { productSlug: string; id: string; family: string }) =>
-  draft.family === "GARMENT" ? `/products/${draft.productSlug}/configure?draft=${draft.id}` : `/products/${draft.productSlug}?draft=${draft.id}`;
+const editHref = (draft: { productSlug: string; id: string; family: string; fromTemplate?: { templateId: string; organizationId: string } | null }) =>
+  // A template design is changed by ordering from the template again (T11-01c).
+  draft.fromTemplate
+    ? `/workspace/${draft.fromTemplate.organizationId}/templates/${draft.fromTemplate.templateId}/order`
+    : draft.family === "GARMENT"
+      ? `/products/${draft.productSlug}/configure?draft=${draft.id}`
+      : `/products/${draft.productSlug}?draft=${draft.id}`;
 
 function itemView(item: typeof schema.cartItems.$inferSelect): CartItem {
   const snapshot = item.snapshot as Snapshot;

@@ -3,17 +3,23 @@
 import {
   ApiError,
   type BrandAssetSummary,
+  checkoutSchema,
+  displayMoney,
   type FieldControl,
   IDEMPOTENCY_KEY_HEADER,
   type MyOrganization,
+  type PriceResult,
+  priceResultSchema,
   type Template,
+  type TemplateOrderForm as TemplateOrderFormData,
+  templateOrderResultSchema,
   templateSchema,
   type TemplateSourceList,
 } from "@holypearls/contracts";
-import { Button, Checkbox, Dialog, FormField, Notice, Select, TextField } from "@holypearls/ui";
+import { Button, Checkbox, Dialog, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorCode, errorReason, newIdempotencyKey } from "@holypearls/web-kit/api";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Lock, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import styles from "./workspace.module.css";
 
 type Scope = { allLocations: boolean; locationIds: string[] };
@@ -289,5 +295,166 @@ export function TemplateActions({ organizationId, initial, me, assets }: { organ
         </div>
       </Dialog>
     </>
+  );
+}
+
+const ORDER_MESSAGES: Record<string, string> = {
+  LOCKED_FIELD: "That's set by your company and can't be changed on this order.",
+  TEMPLATE_BLOCKED: "Blocked — asset review required. Ask your workspace Admin to update the template.",
+  TEMPLATE_NOT_APPROVED: "This template isn't approved by HolyPearls yet.",
+  LOCATION_NOT_ALLOWED: "Choose one of your allowed locations.",
+};
+
+/**
+ * Order from a template (Pen 131 · ARNyh): the company's locked settings, the
+ * buyer's choices, and today's price. A direct price goes to checkout;
+ * anything else becomes a quote request (B2B-FR-033).
+ */
+export function TemplateOrderForm({ organizationId, form }: { organizationId: string; form: TemplateOrderFormData }) {
+  const { template } = form;
+  const [choices, setChoices] = useState<Record<string, string>>(() => Object.fromEntries(form.choices.flatMap((choice) => (choice.value ? [[choice.key, choice.value]] : []))));
+  const [quantity, setQuantity] = useState(String(form.quantity.value ?? ""));
+  const [locationId, setLocationId] = useState(form.locations[0]?.id ?? "");
+  const [price, setPrice] = useState<PriceResult | null>(null);
+  const [pricing, setPricing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string>();
+  const [quoted, setQuoted] = useState<string | null>(null);
+  const [key] = useState(() => newIdempotencyKey());
+  const base = `/v1/organizations/${organizationId}/templates/${template.id}`;
+  const count = Number(quantity);
+  const validQuantity = Number.isInteger(count) && count > 0;
+  // Only the buyer's changes are sent; unchanged choices stay as the template has them.
+  const changes = Object.fromEntries(Object.entries(choices).filter(([option, value]) => form.choices.find((choice) => choice.key === option)?.value !== value));
+  const changesKey = JSON.stringify(changes);
+
+  useEffect(() => {
+    if (form.blocked || !validQuantity) {
+      setPrice(null);
+      return;
+    }
+    let live = true;
+    setPricing(true);
+    const timer = setTimeout(() => {
+      api(`${base}/price`, { method: "POST", body: { choices: JSON.parse(changesKey) as Record<string, string>, quantity: count }, response: priceResultSchema })
+        .then((result) => live && setPrice(result))
+        .catch(() => live && setPrice(null))
+        .finally(() => live && setPricing(false));
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [base, changesKey, count, form.blocked, validQuantity]);
+
+  const direct = price?.state === "PRICE_READY" && price.valid;
+  const submit = async () => {
+    if (!validQuantity) {
+      setFailure("Enter a quantity.");
+      return;
+    }
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      const result = await api(`${base}/orders`, {
+        method: "POST",
+        body: { choices: changes, quantity: count, locationId, templateVersion: template.version },
+        headers: { [IDEMPOTENCY_KEY_HEADER]: key },
+        response: templateOrderResultSchema,
+      });
+      if (result.route === "QUOTE") {
+        setQuoted(result.reference);
+        setBusy(false);
+        return;
+      }
+      const started = await api("/v1/checkouts", { method: "POST", response: checkoutSchema, headers: { [IDEMPOTENCY_KEY_HEADER]: newIdempotencyKey() } }).catch(() => null);
+      window.location.assign(started ? `/checkout/${started.id}` : result.next);
+    } catch (error) {
+      setBusy(false);
+      setFailure(errorCode(error) === "VERSION_CONFLICT" ? "This template changed. Reload the page to see the current version." : (ORDER_MESSAGES[errorReason(error) ?? ""] ?? "We couldn't place this order. Try again."));
+    }
+  };
+
+  const locked = template.fields.filter((field) => field.control === "LOCKED");
+  if (quoted) {
+    return (
+      <section className={styles.panel} aria-live="polite">
+        <div className={styles.orderDone}>
+          <h2 className={styles.panelTitle}>Quote request {quoted} sent</h2>
+          <p className={styles.dialogText}>This order needs a person to price it. We&apos;ll email you the quote; it&apos;s for {form.locations.find((location) => location.id === locationId)?.name}.</p>
+          <a className={styles.rowLink} href="/account">
+            See your quotes
+          </a>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <div className={styles.orderLayout}>
+      <div className={styles.templateSpec}>
+        <section className={styles.detail} aria-labelledby="order-locked">
+          <h2 id="order-locked" className={styles.detailTitle}>
+            Set by your company (locked)
+          </h2>
+          {locked.map((field) => (
+            <div key={field.key} className={styles.detailRow}>
+              <Lock aria-label="Locked" />
+              <div className={styles.detailText}>
+                <span className={styles.detailLabel}>{field.label}</span>
+                <span className={styles.detailValue}>{field.value}</span>
+              </div>
+            </div>
+          ))}
+          <p className={styles.dialogText}>Brand settings can&apos;t be changed here.</p>
+        </section>
+        <section className={styles.detail} aria-labelledby="order-choices">
+          <h2 id="order-choices" className={styles.detailTitle}>
+            Your choices
+          </h2>
+          <div className={styles.form}>
+            {form.choices.map((choice) => (
+              <FormField key={choice.key} id={`order-${choice.key}`} label={choice.label} hint={choice.reason}>
+                <Select value={choices[choice.key] ?? ""} onChange={(event) => setChoices({ ...choices, [choice.key]: event.target.value })} options={choice.options} disabled={Boolean(form.blocked)} />
+              </FormField>
+            ))}
+            <FormField id="order-quantity" label="Quantity" hint={form.quantity.editable ? form.quantity.reason : `${form.quantity.reason} · set by your company`} error={quantity && !validQuantity ? "Enter a whole number" : undefined}>
+              <TextField inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={quantity} onChange={(event) => setQuantity(event.target.value)} disabled={!form.quantity.editable || Boolean(form.blocked)} />
+            </FormField>
+            <FormField id="order-location" label="Deliver to" hint="Only your allowed locations are listed.">
+              <Select value={locationId} onChange={(event) => setLocationId(event.target.value)} options={form.locations.map((location) => ({ value: location.id, label: location.name }))} disabled={Boolean(form.blocked) || !form.locations.length} />
+            </FormField>
+          </div>
+        </section>
+      </div>
+      <aside className={styles.detail} aria-labelledby="order-price">
+        <h2 id="order-price" className={styles.detailTitle}>
+          Price
+        </h2>
+        {form.blocked ? (
+          <Notice tone="warning">
+            <p>{form.blocked}</p>
+          </Notice>
+        ) : (
+          <>
+            {price ? <StatusChip tone={direct ? "success" : "warning"}>{direct ? "PRICE READY" : "QUOTE REQUIRED"}</StatusChip> : null}
+            <p className={styles.orderTotal} aria-busy={pricing}>
+              {direct && price?.totalMinor && price.currency ? displayMoney(price.totalMinor, price.currency) : price ? `${count.toLocaleString("en-NG")} needs a person to price it.` : validQuantity ? "Checking the price…" : "Enter a quantity to see the price."}
+            </p>
+            {direct && price?.vatRateBps != null ? <p className={styles.rowMeta}>Incl. VAT {price.vatRateBps / 100}% · delivery at checkout</p> : null}
+            {price?.reasons.find((reason) => reason.blocking) ? <p className={styles.rowMeta}>{price.reasons.find((reason) => reason.blocking)!.message}</p> : null}
+            {failure ? (
+              <Notice tone="error" live>
+                <p>{failure}</p>
+              </Notice>
+            ) : null}
+            <Button loading={busy} disabled={!price || !locationId || Boolean(price.reasons.find((reason) => reason.blocking))} onClick={() => void submit()}>
+              {direct ? "Go to checkout" : "Request a quote"}
+            </Button>
+          </>
+        )}
+        <p className={styles.dialogText}>A saved copy of this template&apos;s settings goes with your order.</p>
+        <p className={styles.dialogText}>Template orders use today&apos;s template and prices. To repeat a past order exactly, use Reorder on that order.</p>
+      </aside>
+    </div>
   );
 }

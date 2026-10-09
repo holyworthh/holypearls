@@ -3,6 +3,8 @@ import {
   acceptInvitationSchema,
   addAssetVersionSchema,
   createTemplateSchema,
+  templateOrderInputSchema,
+  templatePriceInputSchema,
   decideTemplateSchema,
   templateActionSchema,
   updateTemplateSchema,
@@ -38,6 +40,7 @@ import {
   reviewBrandAssetVersion,
   staffChangeBrandAssetVersion,
 } from "./assets.js";
+import { orderFromTemplate, previewTemplateOrder, templateOrderForm } from "./template-orders.js";
 import { adminTemplate, adminTemplateQueue, archiveTemplate, createTemplate, decideTemplate, getTemplate, listTemplates, submitTemplate, templateSources, updateTemplate } from "./templates.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
 import { approveOrganizationRequest, declineOrganizationRequest, getOrganizationRequest, listOrganizationRequests, myOrganizationRequest, submitOrganizationRequest } from "./requests.js";
@@ -217,6 +220,38 @@ export class OrganizationsController {
     @Body(new ZodValidationPipe(updateTemplateSchema)) body: z.infer<typeof updateTemplateSchema>,
   ) {
     return updateTemplate(this.deps.db, await actorOf(request), organizationId, templateId, body);
+  }
+
+  /* Order from a template (T11-01c; frame 131). */
+
+  @Get("templates/:templateId/order")
+  async templateOrderForm(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("templateId", uuid) templateId: string) {
+    return templateOrderForm(this.deps.db, await actorOf(request), organizationId, templateId);
+  }
+
+  @Post("templates/:templateId/price")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async templatePrice(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("templateId", uuid) templateId: string,
+    @Body(new ZodValidationPipe(templatePriceInputSchema)) body: z.infer<typeof templatePriceInputSchema>,
+  ) {
+    return previewTemplateOrder(this.deps.db, await actorOf(request), organizationId, templateId, body);
+  }
+
+  @Post("templates/:templateId/orders")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async orderFromTemplate(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("templateId", uuid) templateId: string,
+    @Body(new ZodValidationPipe(templateOrderInputSchema)) body: z.infer<typeof templateOrderInputSchema>,
+  ) {
+    return orderFromTemplate(this.deps, await actorOf(request), organizationId, templateId, body);
   }
 
   @Post("templates/:templateId/:action")

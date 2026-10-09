@@ -160,6 +160,10 @@ import {
   decideTemplateSchema,
   templateActionSchema,
   templateListSchema,
+  templateOrderFormSchema,
+  templateOrderInputSchema,
+  templateOrderResultSchema,
+  templatePriceInputSchema,
   templateSchema,
   templateSourceListSchema,
   updateTemplateSchema,
@@ -446,6 +450,20 @@ const templatePaths = {
   },
   "/v1/organizations/{organizationId}/templates/{templateId}/archive": {
     post: { summary: "Archive a template; it stays in history (MANAGE_BRAND)", parameters: [orgParam, templateParam], requestBody: { required: true, content: json(templateActionSchema) }, responses: { 200: { description: "Archived", content: json(templateSchema) }, ...templateWrite, 422: error("ALREADY_ARCHIVED (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}/order": {
+    get: { summary: "What a buyer may change on a template order: editable choices, quantity, allowed locations, and why it's blocked (T11-01c)", parameters: [orgParam, templateParam], responses: { 200: { description: "Order form", content: json(templateOrderFormSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}/price": {
+    post: { summary: "Today's price for the buyer's choices; nothing is saved", parameters: [orgParam, templateParam], requestBody: { required: true, content: json(templatePriceInputSchema) }, responses: { 200: { description: "Price", content: json(priceResultSchema) }, ...member, 400: error("Unknown field (VALIDATION_FAILED)"), 422: error("LOCKED_FIELD (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}/orders": {
+    post: {
+      summary: "Order from an approved template (CREATE_REQUESTS): only editable fields change; a direct price goes to the cart, anything else becomes a quote for the location",
+      parameters: [orgParam, templateParam, idempotencyHeader],
+      requestBody: { required: true, content: json(templateOrderInputSchema) },
+      responses: { 200: { description: "Ordered", content: json(templateOrderResultSchema) }, ...member, 400: error("Unknown field or quantity (VALIDATION_FAILED)"), 403: error("No CREATE_REQUESTS, or LOCATION_NOT_ALLOWED (FORBIDDEN)"), 409: error("The template changed (VERSION_CONFLICT)"), 422: error("LOCKED_FIELD, TEMPLATE_BLOCKED or TEMPLATE_NOT_APPROVED (RULE_FAILED)") },
+    },
   },
   "/v1/admin/templates": {
     get: { summary: "Templates by status for HolyPearls' approval (STAFF_ADMIN until a permission is chosen)", parameters: [{ name: "status", in: "query", required: false, schema: { type: "string", enum: ["AWAITING_APPROVAL", "NEEDS_REVIEW", "APPROVED", "DRAFT", "ARCHIVED"] } }], responses: { 200: { description: "Templates", content: json(adminTemplateListSchema) }, ...staffOnly } },

@@ -185,6 +185,19 @@ export async function payCheckout(deps: PaymentDeps, access: CartAccess, id: str
 
 const sameSet = (a: string[], b: string[]) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
 
+/**
+ * Items ordered from a company template (T11-01c) are for the template
+ * order's location: when every item agrees and the buyer may still order for
+ * it, the checkout starts placed there. The buyer can change it as usual.
+ */
+async function templatePlacement(db: CheckoutDeps["db"], access: CartAccess, configurationIds: string[]) {
+  if (!configurationIds.length) return null;
+  const rows = await db.select({ controls: schema.configurations.controls }).from(schema.configurations).where(inArray(schema.configurations.id, configurationIds));
+  const first = rows[0]?.controls;
+  if (!first || rows.some((row) => row.controls?.organizationId !== first.organizationId || row.controls?.locationId !== first.locationId)) return null;
+  return checkPlacement(db, access.actor, { organizationId: first.organizationId, locationId: first.locationId }).catch(() => null);
+}
+
 /** "Check out ready items" (Pen 41). Returns the cart's open checkout when nothing changed. */
 export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Promise<Checkout> {
   const db = deps.db;
@@ -238,6 +251,7 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
   // The customer's answers carry over from the open checkout, or the one a change just closed.
   const [previous] = open ? [open] : await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "ABANDONED"))).orderBy(desc(schema.checkouts.createdAt)).limit(1);
   const earlier = previous ?? null;
+  const placedByTemplate = await templatePlacement(db, access, frozen.map((item) => item.configurationId));
   try {
     // Regrouping, closing the old checkout and opening the new one happen together (review P1-07):
     // when nothing is ready any more, the old checkout still closes.
@@ -264,6 +278,7 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
         deliveryZoneId: earlier?.deliveryZoneId ?? null,
         delivery: earlier?.delivery ? { ...(earlier.delivery as Delivery), chosen: false } : null,
         billing: earlier?.billing ?? null,
+        ...(placedByTemplate && { organizationId: placedByTemplate.organizationId, locationId: placedByTemplate.locationId }),
         step: earlier ? (earlier.address ? "delivery" : earlier.contact ? "address" : "contact") : "contact",
       };
       const totals = totalsOf(base);

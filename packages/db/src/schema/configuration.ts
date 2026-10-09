@@ -52,6 +52,13 @@ export const configurations = pgTable(
     /** Reorder (T08-01, FUL-FR-061–062): the order item this was copied from, and whether it's still exactly the same. Any change clears reorderExact. */
     reorderOfItemId: uuid("reorder_of_item_id"),
     reorderExact: boolean("reorder_exact").notNull().default(false),
+    /**
+     * Template controls (T11-01c; PRD-05 B2B-FR-031): set on a configuration
+     * made from a Workspace Product Template. `editable` lists the only field
+     * keys a buyer may change ("quantity", "sizes", "option:<key>"); every
+     * other answer is locked by the company.
+     */
+    controls: jsonb("controls").$type<{ templateId: string; organizationId: string; locationId: string; name: string; editable: string[] }>(),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

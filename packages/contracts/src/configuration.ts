@@ -110,6 +110,8 @@ export const configurationSchema = z.object({
   price: priceResultSchema.nullable(),
   /** A draft link was emailed to this address (masked). */
   emailedTo: z.string().nullable(),
+  /** Made from a Workspace Product Template (T11-01c): only `editable` field keys may change; the rest is locked by the company. */
+  fromTemplate: z.object({ templateId: z.string(), organizationId: z.string(), name: z.string(), editable: z.array(z.string()) }).nullable().default(null),
   /** Garment answers; null for other products. */
   garment: z
     .object({
