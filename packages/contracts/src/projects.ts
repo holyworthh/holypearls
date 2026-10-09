@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { placedForSchema } from "./placed-for.js";
 import { publicProductCardSchema } from "./storefront.js";
 
 /*
@@ -438,6 +439,8 @@ export const projectSchema = z.object({
   /** Where the quote goes once submitted (masked), and the quote it started. */
   sentTo: z.string().nullable(),
   quote: projectQuoteSummarySchema.nullable(),
+  /** The organization and location it is placed for (T10-03), or null for a personal project. */
+  placedFor: placedForSchema.nullable().default(null),
   version: z.number().int(),
   updatedAt: isoDate,
 });

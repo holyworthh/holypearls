@@ -8,6 +8,7 @@ import {
   DEADLINE_LABEL,
   NOT_SURE,
   OPEN_ITEM_LABEL,
+  type MyOrganization,
   type Project,
   type ProjectAnswers,
   PROJECT_QUESTIONS,
@@ -24,6 +25,7 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from "react"
 import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { FileUpload } from "../FileUpload";
 import { NeedHelp } from "../NeedHelp";
+import { PlacedForPicker } from "../workspace/PlacedForPicker";
 import { QuestionField } from "./Questions";
 import { fromPrice, type RecommendationActions, Recommendations } from "./Recommendations";
 import s from "./builder.module.css";
@@ -214,7 +216,7 @@ function SubmitPanel({ project, signedIn, flush, version }: { project: Project; 
   );
 }
 
-export function Builder({ initial, step, signedIn }: { initial: Project; step: ProjectStep; signedIn: boolean }) {
+export function Builder({ initial, step, signedIn, workspaces = [] }: { initial: Project; step: ProjectStep; signedIn: boolean; workspaces?: readonly MyOrganization[] }) {
   const router = useRouter();
   const [project, setProject] = useState(initial);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -569,6 +571,18 @@ export function Builder({ initial, step, signedIn }: { initial: Project; step: P
                   <p className={s.hint}>No items yet. Add some from Recommendations, or describe them in a custom item.</p>
                 )}
               </section>
+              {workspaces.length ? (
+                <PlacedForPicker
+                  id="project-placed-for"
+                  label="Who's this project for?"
+                  workspaces={workspaces}
+                  current={project.placedFor}
+                  onChange={async (placedFor) => {
+                    const saved = await run((current) => api(`/v1/projects/${project.id}/placed-for`, { method: "PUT", body: { placedFor, version: current }, response: projectSchema }));
+                    if (!saved) throw new Error("Not saved");
+                  }}
+                />
+              ) : null}
               <SubmitPanel project={project} signedIn={signedIn} flush={flush} version={() => version.current} />
             </>
           ) : null}

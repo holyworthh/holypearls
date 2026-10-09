@@ -6,12 +6,14 @@ import {
   checkoutAddressSchema,
   checkoutContactSchema,
   checkoutSchema,
+  type MyOrganization,
   NIGERIA_LGAS,
   NIGERIA_STATES,
 } from "@holypearls/contracts";
 import { Button, Checkbox, ErrorSummary, FormField, Notice, Select, TextField } from "@holypearls/ui";
 import { Check, ChevronDown, CreditCard, Landmark, Lock, ShoppingBag, Smartphone, User, Wallet } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { PlacedForPicker } from "../workspace/PlacedForPicker";
 import type { z } from "zod";
 import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { openPaystack, startCheckoutPayment } from "../../lib/paystack";
@@ -46,7 +48,7 @@ function issues(error: z.ZodError): Errors {
  * server, which recalculates the total; the summary always shows the server's
  * numbers. The last step starts the payment on Paystack (T04-03).
  */
-export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedIn: boolean }) {
+export function CheckoutView({ initial, signedIn, workspaces = [] }: { initial: Checkout; signedIn: boolean; workspaces?: readonly MyOrganization[] }) {
   const [checkout, setCheckout] = useState(initial);
   const [editing, setEditing] = useState<Step>(initial.step);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -107,6 +109,17 @@ export function CheckoutView({ initial, signedIn }: { initial: Checkout; signedI
               <a href={`/sign-in?next=${encodeURIComponent(`/checkout/${checkout.id}`)}`}>Sign in (optional)</a>
             </div>
           )}
+          {workspaces.length && checkout.status === "OPEN" ? (
+            <PlacedForPicker
+              id="checkout-placed-for"
+              label="Who's this order for?"
+              workspaces={workspaces}
+              current={checkout.placedFor}
+              onChange={async (placedFor) => {
+                setCheckout(await api(`/v1/checkouts/${checkout.id}/placed-for`, { method: "PUT", body: { placedFor, version: checkout.version }, response: checkoutSchema }));
+              }}
+            />
+          ) : null}
           {checkout.status !== "OPEN" ? (
             <Notice tone="warning" title="This checkout is closed">
               <p>

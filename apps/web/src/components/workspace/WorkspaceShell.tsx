@@ -1,7 +1,8 @@
 import { type MyOrganization, ROLE_LABELS } from "@holypearls/contracts";
 import { BrandLockup, SkipLink } from "@holypearls/ui";
-import { ChevronLeft, LifeBuoy, Settings } from "lucide-react";
+import { ChevronLeft, House, Layers, LifeBuoy, Package, Search, Settings } from "lucide-react";
 import type { ReactNode } from "react";
+import { LocationSwitcher } from "./LocationSwitcher";
 import styles from "./workspace.module.css";
 
 export const initials = (name: string) =>
@@ -16,15 +17,40 @@ export const initials = (name: string) =>
 /** "Lekki · Location Manager", as the Pen's organization block reads. */
 export const scopeLine = (me: MyOrganization["me"]) => `${me.allLocations ? "All locations" : me.locations.map((location) => location.name).join(", ")} · ${ROLE_LABELS[me.role]}`;
 
+export type WorkspaceSection = "overview" | "orders" | "projects" | "settings" | "search";
+
+/** A workspace address, keeping the chosen location (B2B-FR-004). */
+export const workspaceHref = (organizationId: string, path: string, location?: string | null) => `/workspace/${organizationId}${path}${location ? `?location=${location}` : ""}`;
+
+/** Only people with more than one location get a switcher (B2B-FR-004; Stage 3.1F W03, W04). */
+export const hasSwitcher = (me: MyOrganization["me"]) => me.locations.length > 1;
+
+const NAV = [
+  { section: "overview", label: "Overview", path: "", Icon: House },
+  { section: "orders", label: "Orders", path: "/orders", Icon: Package },
+  { section: "projects", label: "Projects", path: "/projects", Icon: Layers },
+] as const;
+
 /**
- * The Brand Workspace shell (Pen HP/Nav/WorkspaceSidebar · Mmc8t, and the
- * 390 px workspace header in frame 70). T10-01 builds only what Team and
- * Locations need: the organization block, "Team & Settings", the producer
- * link and the top bar's person. T10-03 adds the other workspace sections,
- * search and the location switcher.
+ * The Brand Workspace shell (Pen HP/Nav/WorkspaceSidebar · Mmc8t; frame 28
+ * top bar; frame 62's 390 px bottom tabs). Templates, Groups, Brand Assets
+ * and Company Store arrive with T11 and T12 and aren't shown until then.
  */
-export function WorkspaceShell({ organization, userName, children }: { organization: MyOrganization; userName: string; children: ReactNode }) {
-  const base = `/workspace/${organization.id}`;
+export function WorkspaceShell({
+  organization,
+  userName,
+  section,
+  location = null,
+  children,
+}: {
+  organization: MyOrganization;
+  userName: string;
+  section: WorkspaceSection;
+  location?: string | null;
+  children: ReactNode;
+}) {
+  const id = organization.id;
+  const settingsHref = workspaceHref(id, organization.me.permissions.includes("MANAGE_TEAM") ? "/team" : "/locations");
   return (
     <div className={styles.app}>
       <SkipLink />
@@ -41,8 +67,16 @@ export function WorkspaceShell({ organization, userName, children }: { organizat
         </div>
         <nav aria-label="Workspace sections">
           <ul className={styles.navList}>
+            {NAV.map(({ section: key, label, path, Icon }) => (
+              <li key={key}>
+                <a className={styles.navItem} href={workspaceHref(id, path, location)} aria-current={section === key ? "page" : undefined}>
+                  <Icon aria-hidden className={styles.navIcon} />
+                  {label}
+                </a>
+              </li>
+            ))}
             <li>
-              <a className={styles.navItem} href={`${base}/team`} aria-current="page">
+              <a className={styles.navItem} href={settingsHref} aria-current={section === "settings" ? "page" : undefined}>
                 <Settings aria-hidden className={styles.navIcon} />
                 Team &amp; Settings
               </a>
@@ -66,7 +100,16 @@ export function WorkspaceShell({ organization, userName, children }: { organizat
 
       <div className={styles.main}>
         <div className={styles.topbar}>
+          <form className={styles.search} action={`/workspace/${id}/search`} role="search" aria-label="Search this workspace">
+            <Search aria-hidden className={styles.searchIcon} />
+            <label className="hp-visually-hidden" htmlFor="workspace-search">
+              Search orders and projects
+            </label>
+            <input id="workspace-search" name="q" type="search" placeholder="Search orders and projects" autoComplete="off" />
+            {location ? <input type="hidden" name="location" value={location} /> : null}
+          </form>
           <span className={styles.spacer} />
+          {hasSwitcher(organization.me) ? <LocationSwitcher locations={organization.me.locations} current={location} allLocations={organization.me.allLocations} /> : null}
           <span className={styles.user}>
             <span className={styles.userAvatar} aria-hidden="true">
               {initials(userName)}
@@ -78,13 +121,30 @@ export function WorkspaceShell({ organization, userName, children }: { organizat
           {children}
         </main>
       </div>
+
+      <nav className={`${styles.bottomTabs} hp-surface-dark`} aria-label="Workspace sections">
+        {NAV.map(({ section: key, label, path, Icon }) => (
+          <a key={key} className={styles.bottomTab} href={workspaceHref(id, path, location)} aria-current={section === key ? "page" : undefined}>
+            <Icon aria-hidden className={styles.navIcon} />
+            {label}
+          </a>
+        ))}
+        <a className={styles.bottomTab} href={settingsHref} aria-current={section === "settings" || section === "search" ? "page" : undefined}>
+          <Settings aria-hidden className={styles.navIcon} />
+          More
+        </a>
+      </nav>
     </div>
   );
 }
 
-/** Team and Locations sit under "Team & Settings". */
-export function SettingsTabs({ organizationId, current, showTeam }: { organizationId: string; current: "team" | "locations"; showTeam: boolean }) {
-  const tabs = [...(showTeam ? [["team", "Team"] as const] : []), ["locations", "Locations"] as const];
+/** Team, Locations and Billing sit under "Team & Settings" (frame 130: TEAM & SETTINGS · BILLING). */
+export function SettingsTabs({ organizationId, current, me }: { organizationId: string; current: "team" | "locations" | "billing"; me: MyOrganization["me"] }) {
+  const tabs = [
+    ...(me.permissions.includes("MANAGE_TEAM") ? [["team", "Team"] as const] : []),
+    ["locations", "Locations"] as const,
+    ...(me.permissions.includes("VIEW_BILLING") ? [["billing", "Billing"] as const] : []),
+  ];
   return (
     <nav className={styles.tabs} aria-label="Team & Settings">
       {tabs.map(([key, label]) => (

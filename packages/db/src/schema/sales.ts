@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { locations } from "./organizations.js";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
@@ -35,6 +36,9 @@ export const quotes = pgTable(
     configurationIds: uuid("configuration_ids").array().notNull().default(sql`'{}'::uuid[]`),
     /** The submitted project it quotes (T05-03); one quote per project. */
     projectId: uuid("project_id").references(() => projects.id, { onDelete: "restrict" }),
+    /** The organization and location it was placed for (T10-03); both null for a personal purchase. */
+    organizationId: uuid("organization_id"),
+    locationId: uuid("location_id"),
     /** Unchangeable copy of what the customer asked for: product, choices, garment answers, files, price shown (TECH-01 §5). */
     requestSnapshot: jsonb("request_snapshot").notNull(),
     /** The customer's note, phone and preferred contact. */
@@ -47,6 +51,9 @@ export const quotes = pgTable(
     uniqueIndex("quotes_reference_unique").on(table.reference),
     uniqueIndex("quotes_project_unique").on(table.projectId),
     index("quotes_status_idx").on(table.status, table.createdAt),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "quotes_location_fk" }).onDelete("restrict"),
+    check("quotes_placement", sql`(${table.organizationId} is null) = (${table.locationId} is null)`),
+    index("quotes_organization_idx").on(table.organizationId, table.locationId),
   ],
 );
 
@@ -109,6 +116,9 @@ export const checkouts = pgTable(
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "set null" }),
     ownerDeviceHash: text("owner_device_hash"),
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "restrict" }),
+    /** The organization and location it was placed for (T10-03); both null for a personal purchase. */
+    organizationId: uuid("organization_id"),
+    locationId: uuid("location_id"),
     currency: text("currency").notNull().default("NGN"),
     /** The ready items, repriced by the server when the checkout was created. Never changes. */
     items: jsonb("items").notNull(),
@@ -141,6 +151,9 @@ export const checkouts = pgTable(
   (table) => [
     uniqueIndex("checkouts_open_cart_unique").on(table.cartId).where(sql`${table.status} = 'OPEN'`),
     index("checkouts_customer_idx").on(table.customerId),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "checkouts_location_fk" }).onDelete("restrict"),
+    check("checkouts_placement", sql`(${table.organizationId} is null) = (${table.locationId} is null)`),
+    index("checkouts_organization_idx").on(table.organizationId, table.locationId),
     // At most one owner; an open checkout has exactly one. A closed one keeps its history without an owner
     // if the account is deleted (review P2-04).
     check("checkouts_owner", sql`num_nonnulls(${table.ownerUserId}, ${table.ownerDeviceHash}) = 1 or (${table.status} <> 'OPEN' and ${table.ownerUserId} is null and ${table.ownerDeviceHash} is null)`),

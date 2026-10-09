@@ -8,6 +8,7 @@ import {
   previewRecommendationsSchema,
   projectTypeSchema,
   saveRecommendationRulesSchema,
+  setPlacedForSchema,
   updateProjectItemSchema,
   updateProjectSchema,
   updateRecommendationSchema,
@@ -37,6 +38,7 @@ import {
   updateProject,
   updateProjectItem,
   updateRecommendation,
+  setProjectPlacedFor,
 } from "./projects.js";
 import { getRuleSet, previewRules, saveRuleSet } from "./rules.js";
 
@@ -80,6 +82,13 @@ export class ProjectsController {
   @RateLimit("COMMERCIAL_WRITE")
   async update(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(updateProjectSchema)) body: z.infer<typeof updateProjectSchema>) {
     return updateProject(this.deps.db, await this.access(request), id, body);
+  }
+
+  /** Who the project is for: an organization and location, or null (T10-03). */
+  @Put(":id/placed-for")
+  @RateLimit("COMMERCIAL_WRITE")
+  async placedFor(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(setPlacedForSchema)) body: z.infer<typeof setPlacedForSchema>) {
+    return setProjectPlacedFor(this.deps.db, await this.access(request), id, body);
   }
 
   @Patch(":id/recommendations/:key")

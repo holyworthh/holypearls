@@ -13,6 +13,7 @@ import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
+import { canSeeOrganizationRecord } from "../organizations/scope.js";
 
 /*
  * Orders and receipts (T04-05, TECH-05 §8–9; COM-FR-082, 085; PAY-FR-006).
@@ -59,6 +60,9 @@ export async function orderForCheckout(tx: Tx, checkout: CheckoutRow, now: Date)
       customerId: checkout.customerId,
       ownerUserId: checkout.ownerUserId,
       ownerDeviceHash: checkout.ownerDeviceHash,
+      // The organization and location the checkout was placed for (T10-03; TECH-03 §7: children inherit).
+      organizationId: checkout.organizationId,
+      locationId: checkout.locationId,
       currency: checkout.currency,
       goodsMinor: checkout.goodsMinor,
       deliveryMinor: checkout.deliveryMinor,
@@ -165,8 +169,13 @@ export interface OrderAccess {
   deviceKey: string | null;
 }
 
-/** The account that owns it, the browser that paid, or a guest link to this order (TECH-03 §5). Anyone else: 404. */
-async function loadOrder(db: Database, access: OrderAccess, id: string) {
+/**
+ * The account that owns it, the browser that paid, or a guest link to this
+ * order (TECH-03 §5). With `organizationRead`, also a workspace member who
+ * can see it (T10-03): reading only, so actions keep using the owner checks.
+ * Anyone else: 404.
+ */
+async function loadOrder(db: Database, access: OrderAccess, id: string, options: { organizationRead?: boolean } = {}) {
   const [row] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
   if (!row) throw new AppError("NOT_FOUND");
   const { actor } = access;
@@ -182,6 +191,7 @@ async function loadOrder(db: Database, access: OrderAccess, id: string) {
     if (version?.quoteId === actor.guest.targetId) return row;
   }
   if (access.deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === deviceHash(access.deviceKey)) return row;
+  if (options.organizationRead && (await canSeeOrganizationRecord(db, actor, row))) return row;
   throw new AppError("NOT_FOUND");
 }
 
@@ -196,7 +206,7 @@ const receiptSummary = (row: typeof schema.receipts.$inferSelect) => ({
 });
 
 export async function getOrder(db: Database, access: OrderAccess, id: string): Promise<Order> {
-  return orderView(db, await loadOrder(db, access, id));
+  return orderView(db, await loadOrder(db, access, id, { organizationRead: true }));
 }
 
 /** Whose orders an account sees: its own, and its linked customer record's (TECH-03 §6). */
@@ -305,7 +315,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
 }
 
 export async function getReceipt(db: Database, access: OrderAccess, orderId: string, receiptId: string): Promise<Receipt> {
-  const order = await loadOrder(db, access, orderId);
+  const order = await loadOrder(db, access, orderId, { organizationRead: true });
   const [row] = await db.select().from(schema.receipts).where(eq(schema.receipts.id, receiptId));
   if (!row || row.orderId !== order.id) throw new AppError("NOT_FOUND");
   return receiptView(row, order);

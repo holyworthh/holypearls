@@ -2,6 +2,7 @@ import {
   type AccountDraft,
   type AccountQuote,
   checkAnswers,
+  type PlacedForInput,
   type Project,
   type ProjectAnswers,
   type ProjectItem,
@@ -13,6 +14,7 @@ import {
   type RuleCondition,
   type RuleQuantity,
 } from "@holypearls/contracts";
+import { checkPlacement, placementView } from "../organizations/scope.js";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
@@ -169,6 +171,7 @@ export async function projectView(db: Database | Tx, row: Row, now: Date): Promi
     sentTo: contact ? maskEmail(contact.email) : null,
     quote: quote ?? null,
     version: row.version,
+    placedFor: await placementView(db, row),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -361,6 +364,15 @@ export async function updateProject(
     if (Object.keys(set).length) await tx.update(schema.projects).set(set).where(eq(schema.projects.id, id));
     // A staff rule change shows up the next time the customer saves.
     return { refresh: refresh || !input.step };
+  });
+}
+
+/** Who the project is for (T10-03): an organization and location, or null. Its quote and order keep it. */
+export async function setProjectPlacedFor(db: Database, access: ProjectAccess, id: string, input: { placedFor: PlacedForInput; version: number }) {
+  const placement = await checkPlacement(db, access.actor, input.placedFor);
+  return change(db, access, id, input.version, async (tx) => {
+    await tx.update(schema.projects).set({ organizationId: placement?.organizationId ?? null, locationId: placement?.locationId ?? null }).where(eq(schema.projects.id, id));
+    return { refresh: false };
   });
 }
 
@@ -577,6 +589,9 @@ export async function submitProject(
       reference: await nextQuoteReference(tx, actor.now),
       customerId: owner.id,
       projectId: id,
+      // The quote, and the order made from it, keep the project's organization and location (TECH-03 §7).
+      organizationId: locked.organizationId,
+      locationId: locked.locationId,
       requestSnapshot: snapshot,
       contact: { ...contact, note: null, phone: null },
     });

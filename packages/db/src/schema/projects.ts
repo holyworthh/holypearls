@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { locations } from "./organizations.js";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { products } from "./catalogue.js";
 import { customers } from "./customers.js";
@@ -53,6 +54,9 @@ export const projects = pgTable(
     ownerDeviceHash: text("owner_device_hash"),
     /** Set when a guest asks for the project link by email. */
     customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    /** The organization and location it was placed for (T10-03); both null for a personal purchase. */
+    organizationId: uuid("organization_id"),
+    locationId: uuid("location_id"),
     lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().defaultNow(),
     submittedAt: timestamp("submitted_at", { withTimezone: true }),
     /** The brief exactly as submitted (TECH-01 §5): staff quote from this, not from later edits. */
@@ -68,6 +72,9 @@ export const projects = pgTable(
     index("projects_owner_user_idx").on(table.ownerUserId),
     index("projects_device_idx").on(table.ownerDeviceHash),
     index("projects_status_idx").on(table.status, table.lastActivityAt),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "projects_location_fk" }).onDelete("restrict"),
+    check("projects_placement", sql`(${table.organizationId} is null) = (${table.locationId} is null)`),
+    index("projects_organization_idx").on(table.organizationId, table.locationId),
   ],
 );
 

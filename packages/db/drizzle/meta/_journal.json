@@ -288,6 +288,13 @@
       "when": 1791442221040,
       "tag": "0040_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791554337823,
+      "tag": "0041_organization_placement",
+      "breakpoints": true
     }
   ]
 }

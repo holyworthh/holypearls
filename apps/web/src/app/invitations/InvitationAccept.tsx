@@ -1,6 +1,6 @@
 "use client";
 
-import { acceptedInvitationSchema, INVITATION_TOKEN_HEADER, type InvitationPreview, invitationPreviewSchema, type Me, meSchema, myOrganizationSchema, ROLE_LABELS } from "@holypearls/contracts";
+import { acceptedInvitationSchema, INVITATION_TOKEN_HEADER, type InvitationPreview, invitationPreviewSchema, type Me, meSchema, ROLE_LABELS } from "@holypearls/contracts";
 import { Button, ButtonLink, Notice, PageLoading } from "@holypearls/ui";
 import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 import styles from "@holypearls/web-kit/auth.module.css";
@@ -101,8 +101,7 @@ export function InvitationAccept() {
     try {
       const { organizationId } = await api("/v1/invitations/accept", { method: "POST", body: { token }, response: acceptedInvitationSchema });
       writeStore(null);
-      const organization = await api(`/v1/organizations/${organizationId}`, { response: myOrganizationSchema }).catch(() => null);
-      window.location.assign(`/workspace/${organizationId}/${organization?.me.permissions.includes("MANAGE_TEAM") ? "team" : "locations"}`);
+      window.location.assign(`/workspace/${organizationId}`);
     } catch (error) {
       setBusy(false);
       const reason = errorReason(error) ?? errorCode(error) ?? "";

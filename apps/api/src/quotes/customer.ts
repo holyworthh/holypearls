@@ -297,6 +297,9 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
         customerId: locked!.customerId,
         ownerUserId: owner.userId ?? customer?.userId ?? null,
         ownerDeviceHash: owner.device,
+        // The organization and location the quote was asked for (T10-03; TECH-03 §7: children inherit).
+        organizationId: locked!.organizationId,
+        locationId: locked!.locationId,
         currency: version.currency,
         goodsMinor: totals.goodsMinor + totals.feesMinor - version.deliveryMinor,
         deliveryMinor: version.deliveryMinor,
