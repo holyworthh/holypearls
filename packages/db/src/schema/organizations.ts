@@ -1,7 +1,9 @@
 import { sql } from "drizzle-orm";
 import { boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { ASSET_VERSION_STATUSES, BRAND_ASSET_KINDS, INVITATION_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
+import { ASSET_VERSION_STATUSES, BRAND_ASSET_KINDS, FIELD_CONTROLS, INVITATION_STATUSES, TEMPLATE_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
+import { products } from "./catalogue.js";
+import { configurations } from "./configuration.js";
 import { files } from "./files.js";
 import { staffProfiles, users } from "./identity.js";
 
@@ -235,4 +237,90 @@ export const brandAssetVersions = pgTable(
     uniqueIndex("brand_asset_versions_file_unique").on(table.fileId),
     index("brand_asset_versions_status_idx").on(table.status, table.createdAt),
   ],
+);
+
+export const templateStatus = pgEnum("template_status", TEMPLATE_STATUSES);
+export const fieldControl = pgEnum("field_control", FIELD_CONTROLS);
+
+/**
+ * A Workspace Product Template (PRD-05 B2B-FR-030–032): a catalogue product
+ * with an approved configuration and specific asset versions, each field
+ * locked or buyer-editable with a reason. `specification` is the saved copy
+ * of the configuration it started from (TECH-01 §5).
+ */
+export const templates = pgTable(
+  "templates",
+  {
+    id: idColumn(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    status: templateStatus("status").notNull().default("DRAFT"),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "restrict" }),
+    sourceConfigurationId: uuid("source_configuration_id")
+      .notNull()
+      .references(() => configurations.id, { onDelete: "restrict" }),
+    specification: jsonb("specification").notNull(),
+    allLocations: boolean("all_locations").notNull().default(true),
+    reviewNote: text("review_note"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    approvedByStaffId: uuid("approved_by_staff_id").references(() => staffProfiles.id, { onDelete: "restrict" }),
+    approvedAt: at("approved_at"),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("templates_id_organization_unique").on(table.id, table.organizationId),
+    index("templates_organization_idx").on(table.organizationId, table.status),
+    index("templates_status_idx").on(table.status, table.updatedAt),
+  ],
+);
+
+export const templateLocations = pgTable(
+  "template_locations",
+  {
+    templateId: uuid("template_id").notNull(),
+    organizationId: uuid("organization_id").notNull(),
+    locationId: uuid("location_id").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.templateId, table.locationId] }),
+    foreignKey({ columns: [table.templateId, table.organizationId], foreignColumns: [templates.id, templates.organizationId], name: "template_locations_template_fk" }).onDelete("cascade"),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "template_locations_location_fk" }).onDelete("cascade"),
+  ],
+);
+
+/** Each field's control and the reason buyers see (B2B-FR-031). */
+export const templateFields = pgTable(
+  "template_fields",
+  {
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => templates.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    label: text("label").notNull(),
+    value: text("value").notNull(),
+    control: fieldControl("control").notNull(),
+    reason: text("reason").notNull(),
+    position: integer("position").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.templateId, table.key] })],
+);
+
+/** The exact asset versions a template uses (B2B-FR-030); never moved by a newer version (TECH-04 §9). */
+export const templateAssetLinks = pgTable(
+  "template_asset_links",
+  {
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => templates.id, { onDelete: "cascade" }),
+    assetVersionId: uuid("asset_version_id")
+      .notNull()
+      .references(() => brandAssetVersions.id, { onDelete: "restrict" }),
+  },
+  (table) => [primaryKey({ columns: [table.templateId, table.assetVersionId] }), index("template_asset_links_version_idx").on(table.assetVersionId)],
 );

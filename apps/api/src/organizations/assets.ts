@@ -10,6 +10,7 @@ import { enforce } from "../platform/policy.js";
 import { findActiveMember, requireMember } from "./members.js";
 import { needsPermission } from "./policies.js";
 import type { OrganizationDeps } from "./team.js";
+import { templatesNeedReviewFor, templatesUsingAsset } from "./templates.js";
 
 /*
  * Brand assets and versions (T11-01; PRD-05 B2B-FR-020–024; TECH-04 §9).
@@ -83,7 +84,8 @@ async function assetOf(db: Db, organizationId: string, assetId: string, options:
 
 async function assetView(db: Db, asset: AssetRow, canManage: boolean): Promise<BrandAsset> {
   const versions = await versionViews(db, (await versionsOf(db, [asset.id])).get(asset.id) ?? []);
-  return { id: asset.id, name: asset.name, kind: asset.kind, versions, canManage, version: asset.version };
+  const templates = await templatesUsingAsset(db as Database, asset.id);
+  return { id: asset.id, name: asset.name, kind: asset.kind, versions, templates, canManage, version: asset.version };
 }
 
 /** The library (frame 65): every member sees the organization's assets; MANAGE_BRAND changes them. */
@@ -180,6 +182,8 @@ async function retire(tx: Transaction, actor: ActorContext, asset: AssetRow, ver
   if (!row) throw new AppError("NOT_FOUND");
   if (!USABLE_VERSION.includes(row.status)) throw new AppError("RULE_FAILED", { message: "Only a version in use can be retired.", context: { reason: "NOT_IN_USE", status: row.status } });
   await tx.update(schema.brandAssetVersions).set({ status: "RETIRED" }).where(eq(schema.brandAssetVersions.id, versionId));
+  // Templates using it can't be ordered until they move to a current version (B2B-FR-024).
+  await templatesNeedReviewFor(tx, actor, versionId);
   await recordAudit(tx, actor, {
     action: "brand_asset.version_retired",
     summary: `Retired for new use: ${asset.name} V${row.number}`,
