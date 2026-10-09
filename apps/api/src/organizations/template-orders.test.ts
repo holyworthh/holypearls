@@ -1,4 +1,3 @@
-import { TEST_PEOPLE } from "@holypearls/auth";
 import { cartSchema, checkoutSchema, configurationSchema, templateOrderFormSchema, templateOrderResultSchema, templateSchema } from "@holypearls/contracts";
 import { and, eq, schema, sql } from "@holypearls/db";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
