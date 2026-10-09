@@ -8,6 +8,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
 import { enforce } from "../platform/policy.js";
 import { addToCart } from "../sales/cart.js";
+import { approvalCheck, createOrderRequest, policyFor } from "./approvals.js";
 import { type Member, requireMember } from "./members.js";
 import { needsPermission } from "./policies.js";
 import type { OrganizationDeps } from "./team.js";
@@ -60,12 +61,15 @@ export async function templateOrderForm(db: Database, actor: ActorContext, organ
   });
   const quantity = template.fields.find((field) => field.key === "quantity");
   const [source] = await db.select({ quantity: schema.configurations.quantity }).from(schema.configurations).where(eq(schema.configurations.id, sourceConfigurationId));
+  const policy = await policyFor(db, organizationId);
+  const applies = policy.rule === "ALL" || (policy.rule === "REQUESTERS" && policy.requesterIds.has(member.membershipId)) ? "ALWAYS" : policy.rule === "ABOVE_AMOUNT" ? "ABOVE_AMOUNT" : "NEVER";
   return {
     template,
     choices,
     quantity: { editable: quantity?.control !== "LOCKED", value: source?.quantity ?? null, reason: quantity?.reason ?? "Chosen per order" },
     locations,
     blocked: blockedReason(member, template, locations),
+    approval: { applies, thresholdMinor: applies === "ABOVE_AMOUNT" ? (policy.thresholdMinor?.toString() ?? null) : null },
   };
 }
 
@@ -115,7 +119,9 @@ export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorCont
     quantity: input.quantity,
     controls: { templateId, organizationId, locationId: input.locationId, name: template.name, editable },
   });
-  const route = draft.price?.state === "PRICE_READY" && draft.price.valid ? "CHECKOUT" : "QUOTE";
+  const estimate = draft.price?.totalMinor ? BigInt(draft.price.totalMinor) : null;
+  const approval = await approvalCheck(db, member, estimate, actor.session.name);
+  const route = approval.needed ? "APPROVAL" : draft.price?.state === "PRICE_READY" && draft.price.valid ? "CHECKOUT" : "QUOTE";
   const access = { actor, deviceKey: null };
   const snapshot = {
     schema: "template-order/v1",
@@ -141,6 +147,23 @@ export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorCont
     });
   };
 
+  if (route === "APPROVAL") {
+    // Over the organization's rule: an order request waits for an approver (frame 131 "Approval needed").
+    const request = await db.transaction(async (tx) => {
+      const created = await createOrderRequest(deps, tx, actor, member, {
+        locationId: input.locationId,
+        title: `${template.name} × ${input.quantity.toLocaleString("en-NG")}`,
+        designs: [draft],
+        estimateMinor: estimate,
+        currency: draft.price?.currency ?? "NGN",
+        policyNote: approval.note,
+        templateName: template.name,
+      });
+      await record(tx, null);
+      return created;
+    });
+    return { route, configurationId: draft.id, next: `/workspace/${organizationId}/approvals/${request.id}`, reference: null };
+  }
   if (route === "CHECKOUT") {
     await addToCart(db, access, draft.id);
     await db.transaction((tx) => record(tx, null));

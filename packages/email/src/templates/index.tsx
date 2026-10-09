@@ -466,6 +466,42 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  order_request_submitted: define({
+    label: "Order request waiting for approval",
+    carriesSecret: false,
+    data: z.object({ title: z.string(), requestedBy: z.string(), location: z.string(), amount: z.string().optional(), url: z.url() }),
+    subject: ({ title }) => `Approval needed: ${title}`,
+    render: ({ title, requestedBy, location, amount, url }) => (
+      <Layout preview={`${requestedBy} needs your approval`} title="An order request needs your approval" action={{ label: "Review the request", href: url }}>
+        <Text style={text.body}>
+          {requestedBy} asked to order {title} for {location}
+          {amount ? `, estimated at ${amount}` : ""}. Approving sends it to HolyPearls for a quote.
+        </Text>
+      </Layout>
+    ),
+  }),
+  order_request_decided: define({
+    label: "Order request decided",
+    carriesSecret: false,
+    data: z.object({ title: z.string(), decision: z.enum(["APPROVED", "REJECTED", "CHANGES_REQUESTED"]), decidedBy: z.string(), note: z.string().max(1000).optional(), url: z.url() }),
+    subject: ({ title, decision }) => (decision === "APPROVED" ? `Approved: ${title}` : decision === "REJECTED" ? `Declined: ${title}` : `Changes requested: ${title}`),
+    render: ({ title, decision, decidedBy, note, url }) => (
+      <Layout
+        preview={decision === "APPROVED" ? `${decidedBy} approved your request` : `${decidedBy} replied to your request`}
+        title={decision === "APPROVED" ? "Your order request was approved" : decision === "REJECTED" ? "Your order request was declined" : "Changes requested on your order request"}
+        action={{ label: "Open the request", href: url }}
+      >
+        <Text style={text.body}>
+          {decision === "APPROVED"
+            ? `${decidedBy} approved ${title}. It has gone to HolyPearls for a quote.`
+            : decision === "REJECTED"
+              ? `${decidedBy} declined ${title}.`
+              : `${decidedBy} asked for changes to ${title}. Change it and send it for approval again.`}
+        </Text>
+        {note ? <Text style={text.body}>{note}</Text> : null}
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

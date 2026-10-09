@@ -238,6 +238,8 @@ export const templateOrderFormSchema = z.object({
   locations: z.array(z.object({ id: z.string(), name: z.string() })),
   /** Why it can't be ordered now ("Blocked — asset review required", no permission, no allowed location), or null. */
   blocked: z.string().nullable(),
+  /** The organization's approval rule as it applies to this buyer (T11-04): always, never, or above an amount. */
+  approval: z.object({ applies: z.enum(["ALWAYS", "NEVER", "ABOVE_AMOUNT"]), thresholdMinor: z.string().nullable() }),
 });
 export type TemplateOrderForm = z.infer<typeof templateOrderFormSchema>;
 
@@ -254,9 +256,10 @@ export const templateOrderInputSchema = z.object({
 export type TemplateOrderInput = z.infer<typeof templateOrderInputSchema>;
 
 export const templateOrderResultSchema = z.object({
-  route: z.enum(["CHECKOUT", "QUOTE"]),
+  /** CHECKOUT, QUOTE, or APPROVAL: an order request waiting for the organization's approval (T11-04). */
+  route: z.enum(["CHECKOUT", "QUOTE", "APPROVAL"]),
   configurationId: z.string(),
-  /** Where to go next: the cart for a direct price, or the quote's confirmation. */
+  /** Where to go next: the cart, the account's quotes, or the order request. */
   next: z.string(),
   reference: z.string().nullable(),
 });

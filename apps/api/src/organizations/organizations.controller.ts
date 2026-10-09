@@ -4,6 +4,9 @@ import {
   addAssetVersionSchema,
   createTemplateSchema,
   templateOrderInputSchema,
+  decideOrderRequestSchema,
+  orderRequestActionSchema,
+  updateApprovalPolicySchema,
   templatePriceInputSchema,
   decideTemplateSchema,
   templateActionSchema,
@@ -40,6 +43,7 @@ import {
   reviewBrandAssetVersion,
   staffChangeBrandAssetVersion,
 } from "./assets.js";
+import { cancelOrderRequest, decideOrderRequest, getApprovalPolicy, getOrderRequest, listOrderRequests, resubmitOrderRequest, updateApprovalPolicy } from "./approvals.js";
 import { orderFromTemplate, previewTemplateOrder, templateOrderForm } from "./template-orders.js";
 import { adminTemplate, adminTemplateQueue, archiveTemplate, createTemplate, decideTemplate, getTemplate, listTemplates, submitTemplate, templateSources, updateTemplate } from "./templates.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
@@ -220,6 +224,58 @@ export class OrganizationsController {
     @Body(new ZodValidationPipe(updateTemplateSchema)) body: z.infer<typeof updateTemplateSchema>,
   ) {
     return updateTemplate(this.deps.db, await actorOf(request), organizationId, templateId, body);
+  }
+
+  /* Internal approval (T11-04; frames 72–73). */
+
+  @Get("approvals/policy")
+  async approvalPolicy(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
+    return getApprovalPolicy(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  @Put("approvals/policy")
+  @RateLimit("COMMERCIAL_WRITE")
+  async updateApprovalPolicy(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Body(new ZodValidationPipe(updateApprovalPolicySchema)) body: z.infer<typeof updateApprovalPolicySchema>) {
+    return updateApprovalPolicy(this.deps.db, await actorOf(request), organizationId, body);
+  }
+
+  @Get("order-requests")
+  async orderRequests(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
+    return listOrderRequests(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  @Get("order-requests/:requestId")
+  async orderRequest(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("requestId", uuid) requestId: string) {
+    return getOrderRequest(this.deps.db, await actorOf(request), organizationId, requestId);
+  }
+
+  @Post("order-requests/:requestId/decision")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async decideOrderRequest(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("requestId", uuid) requestId: string,
+    @Body(new ZodValidationPipe(decideOrderRequestSchema)) body: z.infer<typeof decideOrderRequestSchema>,
+  ) {
+    return decideOrderRequest(this.deps, await actorOf(request), organizationId, requestId, body);
+  }
+
+  @Post("order-requests/:requestId/:action")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async orderRequestAction(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("requestId", uuid) requestId: string,
+    @Param("action") action: string,
+    @Body(new ZodValidationPipe(orderRequestActionSchema)) body: z.infer<typeof orderRequestActionSchema>,
+  ) {
+    const actor = await actorOf(request);
+    if (action === "cancel") return cancelOrderRequest(this.deps.db, actor, organizationId, requestId, body.version);
+    if (action === "resubmit") return resubmitOrderRequest(this.deps, actor, organizationId, requestId, body.version);
+    throw new AppError("NOT_FOUND");
   }
 
   /* Order from a template (T11-01c; frame 131). */

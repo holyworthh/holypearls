@@ -2,7 +2,7 @@ import type { AccountDraft, AnswerConflict, Configuration } from "@holypearls/co
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customersForContact, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, ensureAccountCustomer, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
 import { cancelCheckoutPayments, checkoutsWithActivePayment, paymentInProgress } from "../payments/payments.js";
@@ -700,17 +700,30 @@ export async function quoteIn(
   deps: NotificationDeps & { webOrigin: string },
   access: DraftAccess,
   checked: { id: string; current: Configuration } | { id: string; current: Configuration }[],
-  input: { email: string; name: string; phone?: string; note?: string; placedFor?: { organizationId: string; locationId: string } | null },
+  input: {
+    email: string;
+    name: string;
+    phone?: string;
+    note?: string;
+    placedFor?: { organizationId: string; locationId: string } | null;
+    /** The account the quote belongs to when someone else sends it: the requester of an approved order request (T11-04). */
+    owner?: { userId: string; email: string; name: string; emailVerified: boolean };
+  },
 ) {
   const designs = Array.isArray(checked) ? checked : [checked];
   const ids = designs.map((design) => design.id);
   const now = access.actor.now;
   // The quote is the owner's; its link and email go to the contact typed in (review P1-03).
-  const { owner: customer, recipient } = await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
+  const { owner: customer, recipient } = input.owner
+    ? await (async () => {
+        const own = await ensureAccountCustomer(tx, input.owner!, now);
+        return { owner: own, recipient: own };
+      })()
+    : await customersForContact(tx, access.actor, { email: input.email, name: input.name, phone: input.phone ?? null });
   const moved = await tx
     .update(schema.configurations)
     .set({ status: "QUOTE_REQUESTED", customerId: customer.id, savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
-    .where(and(inArray(schema.configurations.id, ids), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .where(and(inArray(schema.configurations.id, ids), inArray(schema.configurations.status, ["DRAFT", "IN_CART", "AWAITING_APPROVAL"])))
     .returning({ id: schema.configurations.id });
   if (moved.length !== ids.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   // A quote item leaves the cart when its quote is requested (COM-FR-081).
@@ -748,4 +761,51 @@ export async function quoteIn(
     requestId: access.actor.requestId,
   });
   return ref;
+}
+
+/*
+ * Designs held for an organization's approval (T11-04; TECH-01 §4 order
+ * request). While held, nobody changes them; a request for changes or a
+ * cancellation gives them back as drafts.
+ */
+
+export async function holdForApproval(tx: Tx, ids: readonly string[]) {
+  const held = await tx
+    .update(schema.configurations)
+    .set({ status: "AWAITING_APPROVAL", savedForLaterAt: null, version: sql`${schema.configurations.version} + 1` })
+    .where(and(inArray(schema.configurations.id, [...ids]), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .returning({ id: schema.configurations.id });
+  if (held.length !== ids.length) throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
+  await tx.delete(schema.cartItems).where(inArray(schema.cartItems.configurationId, [...ids]));
+  for (const id of ids) await closeCheckoutsWith(tx, id);
+}
+
+export async function releaseFromApproval(tx: Tx, ids: readonly string[]) {
+  await tx
+    .update(schema.configurations)
+    .set({ status: "DRAFT", version: sql`${schema.configurations.version} + 1` })
+    .where(and(inArray(schema.configurations.id, [...ids]), eq(schema.configurations.status, "AWAITING_APPROVAL")));
+}
+
+/** Held designs checked for a quote, before anything changes (the approver isn't their owner, so no draft access applies). */
+export async function heldQuotable(db: Database, ids: readonly string[], now: Date) {
+  const rows = await db.select().from(schema.configurations).where(inArray(schema.configurations.id, [...ids]));
+  if (rows.length !== ids.length || rows.some((row) => row.status !== "AWAITING_APPROVAL")) throw new AppError("CONFLICT", { message: "This request's designs changed. Reload to continue.", context: { reason: "NOT_HELD" } });
+  const checked: { id: string; current: Configuration }[] = [];
+  for (const row of rows) {
+    const current = await draftView(db, await reprice(db, row.id, now), now);
+    const unavailable = current.garment?.unavailable[0];
+    if (unavailable) throw new AppError("RULE_FAILED", { message: unavailable.message, context: { reason: "CHOICE_UNAVAILABLE", field: unavailable.field } });
+    const blocking = current.price?.reasons.find((reason) => reason.blocking);
+    if (blocking) throw new AppError("RULE_FAILED", { message: blocking.message, context: { reason: "BLOCKED_CONFIGURATION", code: blocking.code } });
+    checked.push({ id: row.id, current });
+  }
+  return checked;
+}
+
+/** Designs at today's price (an order request sent again after changes, T11-04). */
+export async function currentDesigns(db: Database, ids: readonly string[], now: Date) {
+  const designs: Configuration[] = [];
+  for (const id of ids) designs.push(await draftView(db, await reprice(db, id, now), now));
+  return designs;
 }
