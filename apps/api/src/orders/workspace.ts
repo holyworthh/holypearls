@@ -134,3 +134,26 @@ export async function organizationBilling(db: Database, scope: RecordScope, view
     })),
   };
 }
+
+/** The organization's ordered items made from a design, as places a template can start from (T11-01b). */
+export async function organizationOrderItemSources(db: Database, scope: RecordScope, limit = 30) {
+  const rows = await db
+    .select({ configurationId: schema.orderItems.configurationId, productName: schema.orderItems.productName, quantity: schema.orderItems.quantity, number: schema.orders.number, position: schema.orderItems.position })
+    .from(schema.orderItems)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+    .where(and(orderScope(scope), sql`${schema.orderItems.configurationId} is not null`))
+    .orderBy(desc(schema.orders.placedAt))
+    .limit(limit);
+  return rows.map((row) => ({ configurationId: row.configurationId!, productName: row.productName, label: `${row.number} item ${row.position} · ${row.productName} × ${row.quantity.toLocaleString("en-NG")}`, kind: "ORDER_ITEM" as const }));
+}
+
+/** Is this configuration an item of an order in the scope? */
+export async function isOrganizationOrderItem(db: Database, scope: RecordScope, configurationId: string) {
+  const [row] = await db
+    .select({ id: schema.orderItems.id })
+    .from(schema.orderItems)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+    .where(and(orderScope(scope), eq(schema.orderItems.configurationId, configurationId)))
+    .limit(1);
+  return Boolean(row);
+}

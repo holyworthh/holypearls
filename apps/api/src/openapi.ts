@@ -152,8 +152,17 @@ import {
   addAssetVersionSchema,
   adminAssetReviewListSchema,
   adminAssetSchema,
+  adminTemplateListSchema,
+  adminTemplateSchema,
   brandAssetListSchema,
   brandAssetSchema,
+  createTemplateSchema,
+  decideTemplateSchema,
+  templateActionSchema,
+  templateListSchema,
+  templateSchema,
+  templateSourceListSchema,
+  updateTemplateSchema,
   createBrandAssetSchema,
   reviewAssetVersionSchema,
 } from "@holypearls/contracts";
@@ -415,6 +424,37 @@ const assetPaths = {
   },
   "/v1/admin/brand-assets/versions/{versionId}/archive": {
     post: { summary: "Staff archive a version", parameters: [uuidParam("versionId")], responses: { 200: { description: "Archived", content: json(adminAssetSchema) }, ...staffOnly, 422: error("ALREADY_ARCHIVED (RULE_FAILED)") } },
+  },
+};
+
+const templateParam = uuidParam("templateId");
+const templateWrite = { ...member, 400: error("Invalid input (VALIDATION_FAILED)"), 403: error("No MANAGE_BRAND, or a location you can't grant (FORBIDDEN)"), 409: error("Someone else changed it (VERSION_CONFLICT)") };
+const templatePaths = {
+  "/v1/organizations/{organizationId}/templates": {
+    get: { summary: "Templates the member can see: theirs by location; drafts only with MANAGE_BRAND (T11-01b)", parameters: [orgParam, { name: "archived", in: "query", required: false, schema: { type: "string", enum: ["1"] } }], responses: { 200: { description: "Templates", content: json(templateListSchema) }, ...member } },
+    post: { summary: "Start a draft from an ordered item or your saved design, with production-ready asset versions (MANAGE_BRAND)", parameters: [orgParam, idempotencyHeader], requestBody: { required: true, content: json(createTemplateSchema) }, responses: { 200: { description: "Draft", content: json(templateSchema) }, ...templateWrite, 422: error("ASSET_NOT_READY (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/sources": {
+    get: { summary: "Where a template can start: ordered items in your locations and your saved designs (MANAGE_BRAND)", parameters: [orgParam], responses: { 200: { description: "Sources", content: json(templateSourceListSchema) }, ...member, 403: error("No MANAGE_BRAND (FORBIDDEN)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}": {
+    get: { summary: "One template with its locked and editable fields, reasons and asset versions", parameters: [orgParam, templateParam], responses: { 200: { description: "Template", content: json(templateSchema) }, ...member } },
+    put: { summary: "Change fields, reasons, asset versions or locations; any change sends it back to DRAFT (MANAGE_BRAND)", parameters: [orgParam, templateParam], requestBody: { required: true, content: json(updateTemplateSchema) }, responses: { 200: { description: "Saved as draft", content: json(templateSchema) }, ...templateWrite, 422: error("ARCHIVED or ASSET_NOT_READY (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}/submit": {
+    post: { summary: "Send a draft or blocked template for HolyPearls' check (MANAGE_BRAND)", parameters: [orgParam, templateParam], requestBody: { required: true, content: json(templateActionSchema) }, responses: { 200: { description: "Awaiting approval", content: json(templateSchema) }, ...templateWrite, 422: error("NOT_SUBMITTABLE or ASSET_NOT_READY (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/templates/{templateId}/archive": {
+    post: { summary: "Archive a template; it stays in history (MANAGE_BRAND)", parameters: [orgParam, templateParam], requestBody: { required: true, content: json(templateActionSchema) }, responses: { 200: { description: "Archived", content: json(templateSchema) }, ...templateWrite, 422: error("ALREADY_ARCHIVED (RULE_FAILED)") } },
+  },
+  "/v1/admin/templates": {
+    get: { summary: "Templates by status for HolyPearls' approval (STAFF_ADMIN until a permission is chosen)", parameters: [{ name: "status", in: "query", required: false, schema: { type: "string", enum: ["AWAITING_APPROVAL", "NEEDS_REVIEW", "APPROVED", "DRAFT", "ARCHIVED"] } }], responses: { 200: { description: "Templates", content: json(adminTemplateListSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/templates/{templateId}": {
+    get: { summary: "One template with its production checks (OPS-FR-082)", parameters: [templateParam], responses: { 200: { description: "Template", content: json(adminTemplateSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/templates/{templateId}/decision": {
+    post: { summary: "Approve (every check passes) or return to DRAFT with a note", parameters: [templateParam, idempotencyHeader], requestBody: { required: true, content: json(decideTemplateSchema) }, responses: { 200: { description: "Decided", content: json(adminTemplateSchema) }, ...staffOnly, 400: error("A note is needed to return it to draft"), 409: error("VERSION_CONFLICT"), 422: error("NOT_AWAITING or CHECKS_FAILED (RULE_FAILED)") } },
   },
 };
 
@@ -1252,6 +1292,7 @@ export function buildOpenApiDocument() {
       ...organizationPaths,
       ...workspacePaths,
       ...assetPaths,
+      ...templatePaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

@@ -1218,3 +1218,31 @@
 .assetHero {
   padding: var(--hp-space-20);
 }
+
+/* Templates (Pen 68 · w6wi5, 29 · B7pn1V, 67 · FTR8w) */
+
+.templateTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-12);
+}
+
+.templateSpec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-20);
+}
+
+.templateAsset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-8);
+  padding-top: var(--hp-space-12);
+}
+
+.templateAsset a {
+  color: var(--hp-ink);
+  font-weight: var(--hp-weight-semibold);
+}

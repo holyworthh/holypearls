@@ -1,7 +1,11 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   acceptInvitationSchema,
   addAssetVersionSchema,
+  createTemplateSchema,
+  decideTemplateSchema,
+  templateActionSchema,
+  updateTemplateSchema,
   createBrandAssetSchema,
   reviewAssetVersionSchema,
   declineOrganizationRequestSchema,
@@ -34,6 +38,7 @@ import {
   reviewBrandAssetVersion,
   staffChangeBrandAssetVersion,
 } from "./assets.js";
+import { adminTemplate, adminTemplateQueue, archiveTemplate, createTemplate, decideTemplate, getTemplate, listTemplates, submitTemplate, templateSources, updateTemplate } from "./templates.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
 import { approveOrganizationRequest, declineOrganizationRequest, getOrganizationRequest, listOrganizationRequests, myOrganizationRequest, submitOrganizationRequest } from "./requests.js";
 import { searchOrganizations, supportOrganization } from "./support.js";
@@ -174,6 +179,60 @@ export class OrganizationsController {
   ) {
     if (action !== "retire" && action !== "archive") throw new AppError("NOT_FOUND");
     return changeBrandAssetVersion(this.deps.db, await actorOf(request), organizationId, assetId, versionId, action);
+  }
+
+  /* Workspace Product Templates (T11-01b; frames 29, 67–69). */
+
+  @Get("templates")
+  async templates(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("archived") archived?: string) {
+    return listTemplates(this.deps.db, await actorOf(request), organizationId, { archived: archived === "1" });
+  }
+
+  /** Where a new template can start: ordered items in your locations and your saved designs (MANAGE_BRAND). */
+  @Get("templates/sources")
+  async templateSources(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
+    return templateSources(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  @Get("templates/:templateId")
+  async template(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("templateId", uuid) templateId: string) {
+    return getTemplate(this.deps.db, await actorOf(request), organizationId, templateId);
+  }
+
+  @Post("templates")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async createTemplate(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Body(new ZodValidationPipe(createTemplateSchema)) body: z.infer<typeof createTemplateSchema>) {
+    return createTemplate(this.deps.db, await actorOf(request), organizationId, body);
+  }
+
+  /** Any change sends the template back to DRAFT for another HolyPearls check. */
+  @Put("templates/:templateId")
+  @RateLimit("COMMERCIAL_WRITE")
+  async updateTemplate(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("templateId", uuid) templateId: string,
+    @Body(new ZodValidationPipe(updateTemplateSchema)) body: z.infer<typeof updateTemplateSchema>,
+  ) {
+    return updateTemplate(this.deps.db, await actorOf(request), organizationId, templateId, body);
+  }
+
+  @Post("templates/:templateId/:action")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async templateAction(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("templateId", uuid) templateId: string,
+    @Param("action") action: string,
+    @Body(new ZodValidationPipe(templateActionSchema)) body: z.infer<typeof templateActionSchema>,
+  ) {
+    const actor = await actorOf(request);
+    if (action === "submit") return submitTemplate(this.deps.db, actor, organizationId, templateId, body.version);
+    if (action === "archive") return archiveTemplate(this.deps.db, actor, organizationId, templateId, body.version);
+    throw new AppError("NOT_FOUND");
   }
 
   @Get("locations")
@@ -341,6 +400,31 @@ export class BrandAssetsAdminController {
   async change(@Req() request: Request, @Param("versionId", uuid) versionId: string, @Param("action") action: string) {
     if (action !== "retire" && action !== "archive") throw new AppError("NOT_FOUND");
     return staffChangeBrandAssetVersion(this.deps.db, await actorOf(request), versionId, action);
+  }
+}
+
+/** Template approval (frame 117; OPS-FR-082). STAFF_ADMIN until the owner chooses a permission. */
+@Controller("admin/templates")
+@UseGuards(StaffGuard("STAFF_ADMIN"))
+export class TemplatesAdminController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+
+  @Get()
+  queue(@Query("status") status?: string) {
+    return adminTemplateQueue(this.deps.db, status);
+  }
+
+  @Get(":templateId")
+  get(@Param("templateId", uuid) templateId: string) {
+    return adminTemplate(this.deps.db, templateId);
+  }
+
+  @Post(":templateId/decision")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("ADMIN_WRITE")
+  async decide(@Req() request: Request, @Param("templateId", uuid) templateId: string, @Body(new ZodValidationPipe(decideTemplateSchema)) body: z.infer<typeof decideTemplateSchema>) {
+    return decideTemplate(this.deps.db, await actorOf(request), templateId, body);
   }
 }
 

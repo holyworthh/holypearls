@@ -11,7 +11,7 @@ import type {
 
 } from "@holypearls/contracts";
 import { BUSINESS_TIME_ZONE, businessDate, decorationMethodSchema, hubSchema, listPriceFilterSchema, makingRouteSchema, quantityBandSchema } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { configuratorFor } from "../configuration/pricing.js";
 import { mostOrderedIds } from "./most-ordered.js";
@@ -354,6 +354,22 @@ export async function cardsByIds(db: Database, ids: string[]): Promise<PublicPro
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
     .where(and(visibleProduct(), inArray(schema.products.id, ids)))) as (CardRow & { id: string })[];
   return ids.flatMap((id) => rows.filter((row) => row.id === id)).map(toCard);
+}
+
+/** Each product's main image by ID, whatever its listing state (workspace templates show the product photo first, Pen 68). */
+export async function productMainImages(db: Database | Transaction, ids: readonly string[]): Promise<Map<string, PublicImage | null>> {
+  if (!ids.length) return new Map();
+  const rows = await db.execute<{ id: string; file_id: string | null; alt: string | null; width: number | null; height: number | null }>(sql`
+    select p.id, main.file_id, main.alt, main.width, main.height
+    from products p
+    left join lateral (
+      select m.file_id, m.alt, (f.metadata->>'width')::int as width, (f.metadata->>'height')::int as height
+      from product_media m join files f on f.id = m.file_id
+      where m.product_id = p.id and f.status = 'READY'
+      order by m.position, m.created_at limit 1
+    ) main on true
+    where p.id in (${sql.join(ids.map((id) => sql`${id}::uuid`), sql`, `)})`);
+  return new Map(rows.rows.map((row) => [row.id, image(row.file_id, row.alt, row.width, row.height)]));
 }
 
 /** Published categories as a two-level tree with visible product counts (menus, homepage, directory chips). */

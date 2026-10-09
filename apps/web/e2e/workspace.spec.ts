@@ -227,3 +227,61 @@ test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; sta
   await expect(page.getByText("The file is still being checked.")).toBeVisible();
   await expectNoAxeViolations(page);
 });
+
+test("templates: the Owner turns a saved design into a template; HolyPearls approves it; a Viewer sees it", async ({ page }) => {
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
+  // A saved business-cards design to start from (the configurator is covered elsewhere).
+  const saved = await page.evaluate(async () => {
+    const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "business-cards", choices: { paper: "350gsm-matte", sides: "both-sides" } }) });
+    return response.status;
+  });
+  expect(saved).toBe(201);
+  await page.goto(`${workspace}/templates`);
+  await expect(page.getByRole("heading", { name: "Templates", exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  const name = `E2E Cards ${Date.now()}`;
+  await page.getByRole("button", { name: "New template" }).click();
+  const dialog = page.getByRole("dialog", { name: "New template" });
+  await dialog.getByRole("button", { name: "Create draft" }).click();
+  await expect(dialog.getByText("Name the template, for example ACME Staff Polo")).toBeVisible();
+  await dialog.getByLabel("Template name").fill(name);
+  await dialog.getByRole("button", { name: "Create draft" }).click();
+
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("DRAFT", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Approved brand specification" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "You choose per order" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  await page.getByRole("button", { name: "Edit controls" }).click();
+  await expect(page.getByRole("dialog", { name: `Edit ${name}` })).toBeVisible();
+  await page.getByRole("dialog", { name: `Edit ${name}` }).getByRole("button", { name: "Cancel" }).click();
+
+  await page.getByRole("button", { name: "Send for HolyPearls' check" }).click();
+  await expect(page.getByText("Sent for HolyPearls' check.")).toBeVisible();
+  const detail = page.url();
+
+  // Staff check and approve it.
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto(`${ADMIN}/templates`);
+  await page.getByRole("link", { name }).click();
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Production approval (OPS-FR-082)" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Approve template" }).click();
+  await expect(page.getByText("Approved. The organization's allowed locations can order from it now.")).toBeVisible();
+
+  // A Viewer sees the approved template but can't change it.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeViewer, "/workspace");
+  await page.goto(`${page.url().split("?")[0]!.replace(/\/$/, "")}/templates`);
+  await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New template" })).toHaveCount(0);
+  await page.goto(detail);
+  await expect(page.getByText("APPROVED", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit controls" })).toHaveCount(0);
+});
