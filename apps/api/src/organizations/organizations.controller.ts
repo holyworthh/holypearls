@@ -1,6 +1,9 @@
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   acceptInvitationSchema,
+  addAssetVersionSchema,
+  createBrandAssetSchema,
+  reviewAssetVersionSchema,
   declineOrganizationRequestSchema,
   INVITATION_TOKEN_HEADER,
   inviteInputSchema,
@@ -20,6 +23,17 @@ import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { HELP_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
+import {
+  addBrandAssetVersion,
+  adminBrandAsset,
+  assetReviewQueue,
+  changeBrandAssetVersion,
+  createBrandAsset,
+  getBrandAsset,
+  listBrandAssets,
+  reviewBrandAssetVersion,
+  staffChangeBrandAssetVersion,
+} from "./assets.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
 import { approveOrganizationRequest, declineOrganizationRequest, getOrganizationRequest, listOrganizationRequests, myOrganizationRequest, submitOrganizationRequest } from "./requests.js";
 import { searchOrganizations, supportOrganization } from "./support.js";
@@ -112,6 +126,54 @@ export class OrganizationsController {
   @RateLimit("SEARCH")
   async search(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("q") q?: string, @Query("location") location?: string) {
     return workspaceSearch(this.deps.db, await actorOf(request), organizationId, q ?? "", locationParam(location));
+  }
+
+  /* Brand assets (T11-01; frames 65–67). Every member sees them; MANAGE_BRAND changes them. */
+
+  @Get("assets")
+  async assets(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
+    return listBrandAssets(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  @Get("assets/:assetId")
+  async asset(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("assetId", uuid) assetId: string) {
+    return getBrandAsset(this.deps.db, await actorOf(request), organizationId, assetId);
+  }
+
+  @Post("assets")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async createAsset(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Body(new ZodValidationPipe(createBrandAssetSchema)) body: z.infer<typeof createBrandAssetSchema>) {
+    return createBrandAsset(this.deps.db, await actorOf(request), organizationId, body);
+  }
+
+  /** Replace version: adds V(n+1) and keeps every earlier version (B2B-FR-023). */
+  @Post("assets/:assetId/versions")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async addVersion(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("assetId", uuid) assetId: string,
+    @Body(new ZodValidationPipe(addAssetVersionSchema)) body: z.infer<typeof addAssetVersionSchema>,
+  ) {
+    return addBrandAssetVersion(this.deps.db, await actorOf(request), organizationId, assetId, body.fileId);
+  }
+
+  @Post("assets/:assetId/versions/:versionId/:action")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async changeVersion(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("assetId", uuid) assetId: string,
+    @Param("versionId", uuid) versionId: string,
+    @Param("action") action: string,
+  ) {
+    if (action !== "retire" && action !== "archive") throw new AppError("NOT_FOUND");
+    return changeBrandAssetVersion(this.deps.db, await actorOf(request), organizationId, assetId, versionId, action);
   }
 
   @Get("locations")
@@ -246,6 +308,39 @@ export class OrganizationsAdminController {
   @Get(":id")
   get(@Param("id", uuid) id: string) {
     return supportOrganization(this.deps.db, id);
+  }
+}
+
+/** Brand asset production review (frame 116; OPS-FR-083). STAFF_ADMIN until the owner chooses a permission. */
+@Controller("admin/brand-assets")
+@UseGuards(StaffGuard("STAFF_ADMIN"))
+export class BrandAssetsAdminController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+
+  @Get("review")
+  queue(@Query("status") status?: string) {
+    return assetReviewQueue(this.deps.db, status);
+  }
+
+  @Get(":assetId")
+  get(@Param("assetId", uuid) assetId: string) {
+    return adminBrandAsset(this.deps.db, assetId);
+  }
+
+  @Post("versions/:versionId/review")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("ADMIN_WRITE")
+  async review(@Req() request: Request, @Param("versionId", uuid) versionId: string, @Body(new ZodValidationPipe(reviewAssetVersionSchema)) body: z.infer<typeof reviewAssetVersionSchema>) {
+    return reviewBrandAssetVersion(this.deps, await actorOf(request), versionId, body);
+  }
+
+  @Post("versions/:versionId/:action")
+  @HttpCode(200)
+  @RateLimit("ADMIN_WRITE")
+  async change(@Req() request: Request, @Param("versionId", uuid) versionId: string, @Param("action") action: string) {
+    if (action !== "retire" && action !== "archive") throw new AppError("NOT_FOUND");
+    return staffChangeBrandAssetVersion(this.deps.db, await actorOf(request), versionId, action);
   }
 }
 

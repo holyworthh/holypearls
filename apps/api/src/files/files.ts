@@ -6,6 +6,7 @@ import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { customerForActor } from "../identity/customers.js";
 import { canViewHelpRequest } from "../platform/help-requests.js";
+import { canSeeBrandAssetVersion } from "../organizations/assets.js";
 import {
   DOWNLOAD_URL_SECONDS,
   describeLimit,
@@ -74,6 +75,8 @@ export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, own
     if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
     return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
   },
+  /** A brand asset version (T11-01): members of its organization, and staff who support or review organizations. */
+  BRAND_ASSET_VERSION: async (db, actor, ownerId) => canSeeBrandAssetVersion(db, actor, ownerId),
   HELP_REQUEST: async (db, actor, ownerId) => {
     const [row] = await db.select().from(schema.helpRequests).where(eq(schema.helpRequests.id, ownerId));
     return Boolean(row) && canViewHelpRequest(actor, row!).outcome === "allow";
@@ -118,6 +121,17 @@ export async function toFileView(db: Database, row: FileRow): Promise<FileView> 
     pages: renditions.filter((item) => item.kind === "PAGE").length,
     createdAt: row.createdAt.toISOString(),
   };
+}
+
+/** Status, name, type and thumbnail for several files at once, for records that show their files (no N+1). */
+export async function fileSummaries(db: Database | Transaction, ids: readonly string[]) {
+  if (!ids.length) return new Map<string, { status: FileRow["status"]; name: string; type: string; hasThumbnail: boolean; reason: string | null }>();
+  const [rows, thumbs] = await Promise.all([
+    db.select().from(schema.files).where(inArray(schema.files.id, [...ids])),
+    db.select({ fileId: schema.fileRenditions.fileId }).from(schema.fileRenditions).where(and(inArray(schema.fileRenditions.fileId, [...ids]), eq(schema.fileRenditions.kind, "THUMBNAIL"))),
+  ]);
+  const withThumb = new Set(thumbs.map((row) => row.fileId));
+  return new Map(rows.map((row) => [row.id, { status: row.status, name: row.safeName, type: row.detectedType ?? row.declaredType, hasThumbnail: withThumb.has(row.id), reason: row.reason }]));
 }
 
 /**

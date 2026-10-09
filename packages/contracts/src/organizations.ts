@@ -273,5 +273,16 @@ export const adminOrganizationSchema = z.object({
   locations: z.array(locationSummarySchema),
   members: z.array(teamMemberSchema.omit({ isYou: true, version: true })),
   invitations: z.array(teamInvitationSchema),
+  /** Brand assets, read only (OPS-FR-081). */
+  assets: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      kind: z.string(),
+      latestNumber: z.number().int(),
+      latestStatus: z.string(),
+      currentNumber: z.number().int().nullable(),
+    }),
+  ),
 });
 export type AdminOrganization = z.infer<typeof adminOrganizationSchema>;

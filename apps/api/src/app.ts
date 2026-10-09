@@ -36,7 +36,7 @@ import { ProductionAdminController } from "./production/production.controller.js
 import { CustomerAfterDeliveryController, ProblemsAdminController, ShipbubbleWebhookController, ShipmentsAdminController } from "./shipments/shipments.controller.js";
 import { ChangeRequestsAdminController, CustomerChangeRequestsController, CustomerProofsController, FileReviewAdminController, ProofsAdminController } from "./proofs/proofs.controller.js";
 import { FilesController } from "./files/files.controller.js";
-import { InvitationsController, MyOrganizationsController, OrganizationRequestsAdminController, OrganizationsAdminController, OrganizationsController } from "./organizations/organizations.controller.js";
+import { BrandAssetsAdminController, InvitationsController, MyOrganizationsController, OrganizationRequestsAdminController, OrganizationsAdminController, OrganizationsController } from "./organizations/organizations.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
 import { StaffAccessController } from "./identity/staff-access.controller.js";
@@ -172,6 +172,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       InvitationsController,
       OrganizationsAdminController,
       OrganizationRequestsAdminController,
+      BrandAssetsAdminController,
       ...(options.demoSlice ? [DemoSliceController] : []),
       ...(options.controllers ?? []),
     ],
