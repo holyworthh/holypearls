@@ -6,10 +6,13 @@
 FROM node:22.23.3-slim AS build
 # pnpm asks before removing modules unless it knows it runs in CI.
 ENV CI=true
+# A slow registry shouldn't fail the build: longer timeouts and more retries, and a
+# BuildKit cache for the package store so a retry reuses what was already downloaded.
+ENV npm_config_fetch_timeout=300000 npm_config_fetch_retries=6 npm_config_fetch_retry_maxtimeout=120000 npm_config_store_dir=/pnpm/store
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
 WORKDIR /repo
 COPY . .
-RUN pnpm install --frozen-lockfile \
+RUN --mount=type=cache,id=holypearls-pnpm,target=/pnpm/store pnpm install --frozen-lockfile \
   && pnpm turbo run build --filter=@holypearls/api --filter=@holypearls/worker --filter=@holypearls/db
 # What the runtime needs, and nothing else (review P3-02): the workspace manifests,
 # the built code, the migrations, the design tokens emails use and the start script.
@@ -22,10 +25,11 @@ RUN mkdir /out \
 # `pnpm prune --prod`: in a workspace that removes the links between our own packages.)
 FROM node:22.23.3-slim AS deps
 ENV CI=true
+ENV npm_config_fetch_timeout=300000 npm_config_fetch_retries=6 npm_config_fetch_retry_maxtimeout=120000 npm_config_store_dir=/pnpm/store
 RUN corepack enable && corepack prepare pnpm@11.15.1 --activate
 WORKDIR /repo
 COPY --from=build /out /repo
-RUN pnpm install --prod --frozen-lockfile --filter "@holypearls/api..." --filter "@holypearls/worker..." --filter "@holypearls/db..."
+RUN --mount=type=cache,id=holypearls-pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile --filter "@holypearls/api..." --filter "@holypearls/worker..." --filter "@holypearls/db..."
 
 FROM node:22.23.3-slim
 ENV NODE_ENV=production
