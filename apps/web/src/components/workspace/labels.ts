@@ -44,3 +44,12 @@ export const VERSION_STATUS: Record<AssetVersionStatus, { label: string; tone: S
   RETIRED: { label: "RETIRED", tone: "error" },
   ARCHIVED: { label: "ARCHIVED", tone: "neutral" },
 };
+
+/** Template chips (frames 29, 67, 68, 117). */
+export const TEMPLATE_STATUS: Record<"DRAFT" | "AWAITING_APPROVAL" | "APPROVED" | "NEEDS_REVIEW" | "ARCHIVED", { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "DRAFT", tone: "neutral" },
+  AWAITING_APPROVAL: { label: "AWAITING HOLYPEARLS CHECK", tone: "info" },
+  APPROVED: { label: "APPROVED", tone: "success" },
+  NEEDS_REVIEW: { label: "BLOCKED · NEEDS REVIEW", tone: "warning" },
+  ARCHIVED: { label: "ARCHIVED", tone: "neutral" },
+};

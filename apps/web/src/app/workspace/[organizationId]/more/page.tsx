@@ -12,6 +12,7 @@ export default async function WorkspaceMorePage({ params }: { params: Promise<{ 
   const { me, organization } = await loadWorkspace(organizationId, `/workspace/${organizationId}/more`);
   const can = (permission: string) => organization.me.permissions.includes(permission as never);
   const links = [
+    ["Templates", "/templates"],
     ["Brand assets", "/assets"],
     ...(can("MANAGE_TEAM") ? [["Team", "/team"]] : []),
     ["Locations", "/locations"],

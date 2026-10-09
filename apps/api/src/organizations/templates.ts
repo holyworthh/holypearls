@@ -1,5 +1,6 @@
 import type { AdminTemplate, AdminTemplateList, CreateTemplate, Template, TemplateField, TemplateList, TemplateSourceList, TemplateStatus, UpdateTemplate } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
+import { productMainImages } from "../catalogue/storefront.js";
 import { configurationSpecification, draftSources, ownsConfiguration, productIsLive } from "../configuration/specification.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -79,9 +80,10 @@ interface Spec {
 
 async function views(db: Db, rows: TemplateRow[]) {
   const ids = rows.map((row) => row.id);
-  const [assets, locations, fields] = await Promise.all([
+  const [assets, locations, images, fields] = await Promise.all([
     linkedAssets(db, ids),
     templateLocationsOf(db, ids),
+    productMainImages(db, [...new Set(rows.map((row) => row.productId))]),
     ids.length ? db.select().from(schema.templateFields).where(inArray(schema.templateFields.templateId, ids)).orderBy(schema.templateFields.position) : Promise.resolve([]),
   ]);
   return rows.map((row) => {
@@ -95,6 +97,7 @@ async function views(db: Db, rows: TemplateRow[]) {
         status: row.status,
         productName: spec.productName,
         productSlug: spec.productSlug,
+        image: images.get(row.productId) ?? null,
         assetLabel: assetLabel(row.status, linked),
         allLocations: row.allLocations,
         locations: (locations.get(row.id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),

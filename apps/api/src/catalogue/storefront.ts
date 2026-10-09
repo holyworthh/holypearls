@@ -11,7 +11,7 @@ import type {
 
 } from "@holypearls/contracts";
 import { BUSINESS_TIME_ZONE, businessDate, decorationMethodSchema, hubSchema, listPriceFilterSchema, makingRouteSchema, quantityBandSchema } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type SQL, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { configuratorFor } from "../configuration/pricing.js";
 import { mostOrderedIds } from "./most-ordered.js";
@@ -354,6 +354,13 @@ export async function cardsByIds(db: Database, ids: string[]): Promise<PublicPro
     .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
     .where(and(visibleProduct(), inArray(schema.products.id, ids)))) as (CardRow & { id: string })[];
   return ids.flatMap((id) => rows.filter((row) => row.id === id)).map(toCard);
+}
+
+/** Each product's main image by ID, whatever its listing state (workspace templates show the product photo first, Pen 68). */
+export async function productMainImages(db: Database | Transaction, ids: readonly string[]): Promise<Map<string, PublicImage | null>> {
+  if (!ids.length) return new Map();
+  const rows = await db.select({ id: schema.products.id, main: mainImage }).from(schema.products).where(inArray(schema.products.id, [...ids]));
+  return new Map(rows.map((row) => [row.id, row.main ? image(row.main.fileId, row.main.alt, row.main.width, row.main.height) : null]));
 }
 
 /** Published categories as a two-level tree with visible product counts (menus, homepage, directory chips). */

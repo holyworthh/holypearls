@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { publicImageSchema } from "./storefront.js";
 
 /*
  * Brand assets (T11-01; PRD-05 B2B-FR-020–024; TECH-04 §9). An asset is the
@@ -142,6 +143,8 @@ export const templateSummarySchema = z.object({
   status: templateStatusSchema,
   productName: z.string(),
   productSlug: z.string(),
+  /** The product's main photo (Pen 68 "product photo first"). */
+  image: publicImageSchema.nullable(),
   /** "Available using logo V4" or "Blocked — asset review required" (B2B-FR-024), or null. */
   assetLabel: z.string().nullable(),
   allLocations: z.boolean(),
