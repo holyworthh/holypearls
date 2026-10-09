@@ -7,8 +7,6 @@ import { Building2 } from "lucide-react";
 import { useState } from "react";
 import styles from "./workspace.module.css";
 
-/** Workspaces the person can place orders and projects for (CREATE_REQUESTS), with the locations they may use. */
-export const placeableWorkspaces = (organizations: readonly MyOrganization[]) => organizations.filter((organization) => organization.me.permissions.includes("CREATE_REQUESTS") && organization.me.locations.length > 0);
 
 /**
  * "Who's this for?" (T10-03): a personal purchase, or one of the person's
