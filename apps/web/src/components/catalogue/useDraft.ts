@@ -91,6 +91,8 @@ export function useDraft(productSlug: string, initial: Configuration | null, sta
       if (change.choices || pending.current.choices) merged.choices = { ...(pending.current.choices as object), ...(change.choices as object) };
       if (change.details || pending.current.details) merged.details = { ...(pending.current.details as object), ...(change.details as object) };
       pending.current = merged;
+      // A change waiting to be sent isn't saved yet, so "Saved" mustn't show while it waits.
+      setSaveState((state) => (state === "failed" ? state : "saving"));
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => void flush(), delay);
     },

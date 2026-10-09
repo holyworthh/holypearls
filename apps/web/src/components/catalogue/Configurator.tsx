@@ -171,6 +171,8 @@ export function Configurator({ productSlug, productName, family, data, initialDr
       ...(change.choices || pending.current.choices ? { choices: { ...pending.current.choices, ...change.choices } } : {}),
       ...(change.details || pending.current.details ? { details: { ...pending.current.details, ...change.details } } : {}),
     };
+    // A change waiting to be sent isn't saved yet, so "Saved" mustn't show while it waits.
+    setSaveState((state) => (state === "failed" ? state : "saving"));
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void flush(), 500);
   };
