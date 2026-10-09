@@ -215,6 +215,27 @@ export function AssetDetail({ organizationId, initial }: { organizationId: strin
           <p className={styles.emptyRow}>
             V{shown.number} · {current ? "current" : "not yet production ready"} · {shown.fileName}
           </p>
+          <div className={styles.panelHead}>
+            <h2 className={styles.panelTitle}>
+              Used in {asset.templates.length} {asset.templates.length === 1 ? "template" : "templates"}
+            </h2>
+          </div>
+          {asset.templates.length ? (
+            <ul className={styles.rows}>
+              {asset.templates.map((template) => (
+                <li key={template.id} className={styles.row}>
+                  <div className={styles.rowText}>
+                    <a className={styles.rowLink} href={`/workspace/${organizationId}/templates/${template.id}`}>
+                      {template.name}
+                    </a>
+                    <span className={styles.rowMeta}>Uses V{template.number}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.emptyRow}>No templates use this asset yet.</p>
+          )}
         </section>
         <section className={styles.panel} aria-labelledby="versions-title">
           <div className={styles.panelHead}>
@@ -301,7 +322,10 @@ export function AssetDetail({ organizationId, initial }: { organizationId: strin
         {confirm ? (
           <p className={styles.dialogText}>
             {confirm.action === "retire"
-              ? `Retiring V${confirm.version.number} means new orders can't use it. Orders already placed keep it, and it stays in your history.`
+              ? `Retiring V${confirm.version.number} means new orders can't use it. Orders already placed keep it, and it stays in your history.${(() => {
+                  const affected = asset.templates.filter((template) => template.number === confirm.version.number && template.status !== "ARCHIVED").length;
+                  return affected ? ` ${affected} ${affected === 1 ? "template" : "templates"} will need review before the next order.` : "";
+                })()}`
               : `Archived versions stay in your history and can't be deleted. New orders can't use them.`}
           </p>
         ) : null}
