@@ -425,7 +425,7 @@ export function TemplateOrderForm({ organizationId, form }: { organizationId: st
               </FormField>
             ))}
             <FormField id="order-quantity" label="Quantity" hint={form.quantity.editable ? form.quantity.reason : `${form.quantity.reason} · set by your company`} error={quantity && !validQuantity ? "Enter a whole number" : undefined}>
-              <TextField type="number" inputMode="numeric" min={1} value={quantity} onChange={(event) => setQuantity(event.target.value)} disabled={!form.quantity.editable || Boolean(form.blocked)} />
+              <TextField inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={quantity} onChange={(event) => setQuantity(event.target.value)} disabled={!form.quantity.editable || Boolean(form.blocked)} />
             </FormField>
             <FormField id="order-location" label="Deliver to" hint="Only your allowed locations are listed.">
               <Select value={locationId} onChange={(event) => setLocationId(event.target.value)} options={form.locations.map((location) => ({ value: location.id, label: location.name }))} disabled={Boolean(form.blocked) || !form.locations.length} />
