@@ -12,7 +12,7 @@ import {
   type FileView,
   IDEMPOTENCY_KEY_HEADER,
 } from "@holypearls/contracts";
-import { Button, Dialog, FormField, Notice, Select, StatusChip, type StatusTone, TextField } from "@holypearls/ui";
+import { Button, Dialog, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorReason, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { Download, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
