@@ -74,3 +74,9 @@ export async function productIsLive(db: Database | Transaction, productId: strin
   const [row] = await db.select({ status: schema.products.status }).from(schema.products).where(eq(schema.products.id, productId));
   return row?.status === "PUBLISHED";
 }
+
+/** A configuration's chosen option values by option key. */
+export async function configurationChoices(db: Database | Transaction, configurationId: string): Promise<Record<string, string>> {
+  const rows = await db.select({ option: schema.configurationSelections.optionKey, value: schema.configurationSelections.valueKey }).from(schema.configurationSelections).where(eq(schema.configurationSelections.configurationId, configurationId));
+  return Object.fromEntries(rows.map((row) => [row.option, row.value]));
+}

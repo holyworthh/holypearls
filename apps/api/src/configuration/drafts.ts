@@ -8,6 +8,7 @@ import { findFileForActor } from "../files/files.js";
 import { cancelCheckoutPayments, checkoutsWithActivePayment, paymentInProgress } from "../payments/payments.js";
 import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
+import { insertConfigurationCopy } from "./copies.js";
 import { type Capabilities, garmentChoices, unavailableGarmentChoices } from "./capabilities.js";
 import { type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
 import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
@@ -194,6 +195,7 @@ export async function draftView(db: Database, row: Row, now: Date): Promise<Conf
     version: row.version,
     price: price ? { ...(price.result as Configuration["price"] & object), id: price.id } : null,
     emailedTo: customer ? maskEmail(customer.email) : null,
+    fromTemplate: row.controls ? { templateId: row.controls.templateId, organizationId: row.controls.organizationId, name: row.controls.name, editable: row.controls.editable } : null,
     garment: GARMENT_FAMILIES.has(product!.family)
       ? {
           sourcing: row.sourcing,
@@ -322,6 +324,68 @@ async function writeSelections(tx: Parameters<Parameters<Database["transaction"]
   }
 }
 
+/**
+ * A design made from a company template (T11-01c; PRD-05 B2B-FR-031): only
+ * the fields the template marks editable can change. Anything else is
+ * refused, whichever screen or API call tries it.
+ */
+export function refuseLockedChange(row: Row, keys: readonly string[]) {
+  if (!row.controls) return;
+  const locked = keys.find((key) => !row.controls!.editable.includes(key));
+  if (locked) {
+    throw new AppError("RULE_FAILED", {
+      message: `This is set by your company's template (${row.controls.name}) and can't be changed on this order.`,
+      context: { reason: "LOCKED_FIELD", field: locked },
+    });
+  }
+}
+
+/** The template field keys a draft patch would change. */
+function changedKeys(patch: Parameters<typeof updateDraft>[3]) {
+  const keys = Object.keys(patch.choices ?? {}).map((key) => `option:${key}`);
+  if (patch.quantity !== undefined) keys.push("quantity");
+  if (patch.sizes || patch.sizesUnknown !== undefined) keys.push("sizes");
+  for (const key of ["rush", "artwork", "sourcing", "decoration", "details", "placements"] as const) if (patch[key] !== undefined) keys.push(key);
+  return keys;
+}
+
+/**
+ * A new design from a template's saved configuration (T11-01c): the same
+ * answers, files and placements, with the buyer's changes to editable fields
+ * applied, owned by the buyer and marked with the template's controls.
+ */
+export async function configurationFromTemplate(
+  db: Database,
+  actor: ActorContext,
+  input: { sourceConfigurationId: string; choices: Record<string, string>; quantity: number; controls: NonNullable<Row["controls"]> },
+): Promise<Configuration> {
+  if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
+  const [original] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, input.sourceConfigurationId));
+  if (!original) throw new AppError("NOT_FOUND");
+  const options = await productOptions(db, original.productId);
+  const rules = (await pricingInputs(db, original.productId, { choices: {}, quantity: 1, rush: "STANDARD", sample: false }, actor.now)).compatibility;
+  const before = Object.fromEntries((await selections(db, original.id)).map((item) => [item.optionKey, item.valueKey]));
+  const { next, conflicts, invalidChange } = conflictsAfterChange(before, input.choices, options, rules);
+  if (invalidChange || conflicts.length) throw new AppError("VALIDATION_FAILED", { fieldErrors: { [`choices.${(invalidChange ?? conflicts[0])!.option}`]: (invalidChange ?? conflicts[0])!.message } });
+  const id = await db.transaction(async (tx) => {
+    const copy = await insertConfigurationCopy(tx, original, { ownerUserId: actor.session.userId, ownerDeviceHash: null, customerId: null, quantity: input.quantity, controls: input.controls });
+    await writeSelections(tx, copy, before, next, options.map((option) => option.key));
+    // Sizes from the original no longer add up to a new quantity: the buyer gives them per order.
+    if (input.quantity !== original.quantity) await tx.delete(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, copy));
+    return copy;
+  });
+  return draftView(db, await reprice(db, id, actor.now), actor.now);
+}
+
+/** Today's price for a template's configuration with the buyer's choices, without saving a design (frame 131 price panel). */
+export async function previewTemplatePrice(db: Database, sourceConfigurationId: string, input: { choices: Record<string, string>; quantity: number }, at: Date) {
+  const [original] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, sourceConfigurationId));
+  if (!original) throw new AppError("NOT_FOUND");
+  const chosen = { ...Object.fromEntries((await selections(db, original.id)).map((item) => [item.optionKey, item.valueKey])), ...input.choices };
+  const extra = (await adjustments(db, { ...original, sizesUnknown: false }, at)).filter((adjustment) => adjustment.code !== "SIZES_UNKNOWN");
+  return priceProduct(db, original.productId, { choices: chosen, quantity: input.quantity, rush: "STANDARD", sample: false, adjustments: extra }, at);
+}
+
 /** Starts a draft for a published product, owned by the account or by this browser. */
 export async function createDraft(
   db: Database,
@@ -413,6 +477,7 @@ export async function updateDraft(
   // A design in the cart stays editable; the cart picks up the change (T04-01 "edit returns to configuration").
   if (row.status !== "DRAFT" && row.status !== "IN_CART") throw new AppError("CONFLICT", { message: "This design is no longer a draft.", context: { reason: "NOT_DRAFT" } });
   if (row.version !== patch.version) throw new AppError("VERSION_CONFLICT", { context: { latest: await draftView(db, row, access.actor.now) } });
+  refuseLockedChange(row, changedKeys(patch));
   if (patch.sourcing || patch.decoration || patch.placements) {
     const [capabilities] = await db.select({ routes: schema.products.routes, decorations: schema.products.decorations }).from(schema.products).where(eq(schema.products.id, row.productId));
     checkGarmentPatch(capabilities!, patch);
@@ -515,6 +580,7 @@ const ROLE_PURPOSES: Record<string, string[]> = {
 /** Attaches an uploaded file (the customer's own) to the draft (COM-FR-050, 023 garment photos). */
 export async function attachDraftFile(db: Database, access: DraftAccess, id: string, input: { fileId: string; role: "ARTWORK" | "LOGO" | "REFERENCE" | "GARMENT_PHOTO" }) {
   const row = await loadDraft(db, access, id);
+  refuseLockedChange(row, ["artwork"]);
   const file = await findFileForActor(db, access.actor, input.fileId).catch(() => null);
   // Browser-owned drafts: the file must come from the same upload flow; the files module already scopes by uploader.
   if (!file) throw new AppError("NOT_FOUND");
@@ -530,7 +596,7 @@ export async function attachDraftFile(db: Database, access: DraftAccess, id: str
 
 /** Low resolution never blocks (COM-FR-051): the customer replaces, asks for clean-up, or asks for review. */
 export async function setLowResolutionAction(db: Database, access: DraftAccess, id: string, linkId: string, action: "REPLACE" | "CLEANUP" | "REVIEW") {
-  await loadDraft(db, access, id);
+  refuseLockedChange(await loadDraft(db, access, id), ["artwork"]);
   const found = await db.transaction(async (tx) => {
     const rows = await tx
       .update(schema.configurationFiles)
@@ -545,7 +611,7 @@ export async function setLowResolutionAction(db: Database, access: DraftAccess, 
 }
 
 export async function removeDraftFile(db: Database, access: DraftAccess, id: string, linkId: string) {
-  await loadDraft(db, access, id);
+  refuseLockedChange(await loadDraft(db, access, id), ["artwork"]);
   const found = await db.transaction(async (tx) => {
     const rows = await tx
       .delete(schema.configurationFiles)
@@ -567,7 +633,7 @@ export async function removeDraftFile(db: Database, access: DraftAccess, id: str
  * clean, and each problem comes back with its line number.
  */
 export async function importPersonalization(deps: { db: Database; storage: StorageAdapter }, access: DraftAccess, id: string, fileId: string) {
-  await loadDraft(deps.db, access, id);
+  refuseLockedChange(await loadDraft(deps.db, access, id), ["personalization"]);
   const file = await findFileForActor(deps.db, access.actor, fileId).catch(() => null);
   if (!file || file.purpose !== "CSV_IMPORT") throw new AppError("NOT_FOUND");
   if (file.status !== "READY") throw new AppError("RULE_FAILED", { message: "This file is still being checked. Try again in a moment.", context: { reason: file.status } });
@@ -634,7 +700,7 @@ export async function quoteIn(
   deps: NotificationDeps & { webOrigin: string },
   access: DraftAccess,
   checked: { id: string; current: Configuration } | { id: string; current: Configuration }[],
-  input: { email: string; name: string; phone?: string; note?: string },
+  input: { email: string; name: string; phone?: string; note?: string; placedFor?: { organizationId: string; locationId: string } | null },
 ) {
   const designs = Array.isArray(checked) ? checked : [checked];
   const ids = designs.map((design) => design.id);
@@ -667,6 +733,9 @@ export async function quoteIn(
     configurationIds: ids,
     requestSnapshot,
     contact: { name: input.name, email: input.email, phone: input.phone ?? null, note: input.note ?? null },
+    // A template order's quote is for the template order's location (T11-01c), checked by the caller.
+    organizationId: input.placedFor?.organizationId ?? null,
+    locationId: input.placedFor?.locationId ?? null,
   });
   const link = await createGuestLink(tx, deps.webOrigin, { purpose: "CONFIGURATION", targetType: "CONFIGURATION", targetId: ids[0]!, customerId: recipient.id, now });
   await queueEmail(deps, tx, {

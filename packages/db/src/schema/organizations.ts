@@ -324,3 +324,33 @@ export const templateAssetLinks = pgTable(
   },
   (table) => [primaryKey({ columns: [table.templateId, table.assetVersionId] }), index("template_asset_links_version_idx").on(table.assetVersionId)],
 );
+
+/**
+ * A Template Order (PRD-05 B2B-FR-033; TECH-01 §5 "a template order is
+ * placed"): the new configuration a buyer made from an approved template,
+ * where it's for, and the saved copy of the template as it was ordered.
+ */
+export const templateOrders = pgTable(
+  "template_orders",
+  {
+    id: idColumn(),
+    templateId: uuid("template_id").notNull(),
+    organizationId: uuid("organization_id").notNull(),
+    locationId: uuid("location_id").notNull(),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => configurations.id, { onDelete: "restrict" }),
+    orderedByUserId: uuid("ordered_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** CHECKOUT (bought directly) or QUOTE (sent for a quote), as decided by the price. */
+    route: text("route").notNull(),
+    snapshot: jsonb("snapshot").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("template_orders_configuration_unique").on(table.configurationId),
+    index("template_orders_template_idx").on(table.templateId, table.createdAt),
+    foreignKey({ columns: [table.templateId, table.organizationId], foreignColumns: [templates.id, templates.organizationId], name: "template_orders_template_fk" }).onDelete("restrict"),
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "template_orders_location_fk" }).onDelete("restrict"),
+    check("template_orders_route", sql`${table.route} in ('CHECKOUT', 'QUOTE')`),
+  ],
+);

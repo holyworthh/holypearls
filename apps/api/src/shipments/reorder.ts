@@ -2,6 +2,7 @@ import type { ReorderCheck } from "@holypearls/contracts";
 import { and, type Database, eq, inArray, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../errors.js";
+import { insertConfigurationCopy } from "../configuration/copies.js";
 import { type DraftAccess, reprice } from "../configuration/drafts.js";
 import { priceProduct, productOptions } from "../configuration/pricing.js";
 import { loadOrderFor, type OrderAccess } from "../orders/orders.js";
@@ -88,46 +89,13 @@ async function copyConfiguration(db: Database, access: DraftAccess, original: ty
     newDeviceKey = deviceKey;
   }
   const id = await db.transaction(async (tx) => {
-    const [row] = await tx
-      .insert(schema.configurations)
-      .values({
-        productId: original.productId,
-        ownerUserId: actor.type === "user" ? actor.session.userId : null,
-        ownerDeviceHash: actor.type === "user" ? null : deviceHash(deviceKey!),
-        customerId: actor.type === "guest" ? actor.guest.customerId : original.customerId,
-        quantity: original.quantity,
-        rush: "STANDARD",
-        artwork: original.artwork,
-        artworkFileId: original.artworkFileId,
-        step: "review",
-        sourcing: original.sourcing,
-        decoration: original.decoration,
-        details: original.details,
-        sizesUnknown: original.sizesUnknown,
-        reorderOfItemId: itemId,
-        reorderExact: exact,
-      })
-      .returning({ id: schema.configurations.id });
-    const copy = row!.id;
-    // Same rows, new owner: drop each row's own id and point it at the copy.
-    const strip = <T extends Record<string, unknown>>(rows: T[]) =>
-      rows.map((row) => {
-        const rest: Record<string, unknown> = { ...row };
-        delete rest.id;
-        return { ...rest, configurationId: copy };
-      });
-    const [selections, sizes, placements, people, files] = await Promise.all([
-      tx.select().from(schema.configurationSelections).where(eq(schema.configurationSelections.configurationId, original.id)),
-      tx.select().from(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, original.id)),
-      tx.select().from(schema.configurationPlacements).where(eq(schema.configurationPlacements.configurationId, original.id)),
-      tx.select().from(schema.configurationPersonalizationRows).where(eq(schema.configurationPersonalizationRows.configurationId, original.id)),
-      tx.select().from(schema.configurationFiles).where(eq(schema.configurationFiles.configurationId, original.id)),
-    ]);
-    if (selections.length) await tx.insert(schema.configurationSelections).values(strip(selections) as (typeof schema.configurationSelections.$inferInsert)[]);
-    if (sizes.length) await tx.insert(schema.configurationSizes).values(strip(sizes) as (typeof schema.configurationSizes.$inferInsert)[]);
-    if (placements.length) await tx.insert(schema.configurationPlacements).values(strip(placements) as (typeof schema.configurationPlacements.$inferInsert)[]);
-    if (people.length) await tx.insert(schema.configurationPersonalizationRows).values(strip(people) as (typeof schema.configurationPersonalizationRows.$inferInsert)[]);
-    if (files.length) await tx.insert(schema.configurationFiles).values(strip(files) as (typeof schema.configurationFiles.$inferInsert)[]);
+    const copy = await insertConfigurationCopy(tx, original, {
+      ownerUserId: actor.type === "user" ? actor.session.userId : null,
+      ownerDeviceHash: actor.type === "user" ? null : deviceHash(deviceKey!),
+      customerId: actor.type === "guest" ? actor.guest.customerId : original.customerId,
+      reorderOfItemId: itemId,
+      reorderExact: exact,
+    });
     await recordAudit(tx, actor, { action: exact ? "reorder.exact" : "reorder.with_changes", summary: `${exact ? "Exact reorder" : "Reorder with changes"} started from an order item`, recordType: "CONFIGURATION", recordId: copy, after: { reorderOfItemId: itemId } });
     return copy;
   });
