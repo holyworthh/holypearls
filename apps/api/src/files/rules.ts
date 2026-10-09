@@ -1,6 +1,6 @@
 import type { StaffPermission } from "@holypearls/contracts";
 
-export type FilePurpose = "ARTWORK" | "PROJECT_ATTACHMENT" | "PROOF" | "PROBLEM_PHOTO" | "CSV_IMPORT" | "PRODUCT_MEDIA" | "CONTENT_MEDIA";
+export type FilePurpose = "ARTWORK" | "PROJECT_ATTACHMENT" | "PROOF" | "PROBLEM_PHOTO" | "CSV_IMPORT" | "PRODUCT_MEDIA" | "CONTENT_MEDIA" | "BRAND_ASSET";
 export type FileType =
   | "image/jpeg"
   | "image/png"
@@ -51,6 +51,8 @@ export const PURPOSES: Record<FilePurpose, PurposeRule> = {
     bucket: "public",
     typesLabel: "JPEG, PNG or WebP",
   },
+  /** An organization's logo or artwork version (T11-01, TECH-04 §9): design files, private to the organization. */
+  BRAND_ASSET: { types: DESIGN_TYPES, maxBytes: 50 * MB, bucket: "private", typesLabel: DESIGN_LABEL },
   /** Images for content pages (T02-06): hero, figures and case-study galleries. Public once a page uses them. */
   CONTENT_MEDIA: {
     types: ["image/jpeg", "image/png", "image/webp"],

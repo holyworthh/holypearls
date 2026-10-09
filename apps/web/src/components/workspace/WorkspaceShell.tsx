@@ -1,6 +1,6 @@
 import { type MyOrganization, ROLE_LABELS } from "@holypearls/contracts";
 import { BrandLockup, SkipLink } from "@holypearls/ui";
-import { ChevronLeft, House, Layers, LifeBuoy, Package, Search, Settings } from "lucide-react";
+import { ChevronLeft, House, Image as ImageIcon, Layers, LifeBuoy, Package, Search, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { LocationSwitcher } from "./LocationSwitcher";
 import styles from "./workspace.module.css";
@@ -17,7 +17,7 @@ export const initials = (name: string) =>
 /** "Lekki · Location Manager", as the Pen's organization block reads. */
 export const scopeLine = (me: MyOrganization["me"]) => `${me.allLocations ? "All locations" : me.locations.map((location) => location.name).join(", ")} · ${ROLE_LABELS[me.role]}`;
 
-export type WorkspaceSection = "overview" | "orders" | "projects" | "settings" | "search";
+export type WorkspaceSection = "overview" | "orders" | "projects" | "assets" | "settings" | "search";
 
 /** A workspace address, keeping the chosen location (B2B-FR-004). */
 export const workspaceHref = (organizationId: string, path: string, location?: string | null) => `/workspace/${organizationId}${path}${location ? `?location=${location}` : ""}`;
@@ -29,12 +29,13 @@ const NAV = [
   { section: "overview", label: "Overview", path: "", Icon: House },
   { section: "orders", label: "Orders", path: "/orders", Icon: Package },
   { section: "projects", label: "Projects", path: "/projects", Icon: Layers },
+  { section: "assets", label: "Brand Assets", path: "/assets", Icon: ImageIcon },
 ] as const;
 
 /**
  * The Brand Workspace shell (Pen HP/Nav/WorkspaceSidebar · Mmc8t; frame 28
- * top bar; frame 62's 390 px bottom tabs). Templates, Groups, Brand Assets
- * and Company Store arrive with T11 and T12 and aren't shown until then.
+ * top bar; frame 62's 390 px bottom tabs). Templates, Groups and Company
+ * Store arrive with T11-01b and T12 and aren't shown until then.
  */
 export function WorkspaceShell({
   organization,
@@ -123,13 +124,13 @@ export function WorkspaceShell({
       </div>
 
       <nav className={`${styles.bottomTabs} hp-surface-dark`} aria-label="Workspace sections">
-        {NAV.map(({ section: key, label, path, Icon }) => (
+        {NAV.filter(({ section: key }) => key !== "assets").map(({ section: key, label, path, Icon }) => (
           <a key={key} className={styles.bottomTab} href={workspaceHref(id, path, location)} aria-current={section === key ? "page" : undefined}>
             <Icon aria-hidden className={styles.navIcon} />
             {label}
           </a>
         ))}
-        <a className={styles.bottomTab} href={settingsHref} aria-current={section === "settings" || section === "search" ? "page" : undefined}>
+        <a className={styles.bottomTab} href={workspaceHref(id, "/more")} aria-current={section === "settings" || section === "search" || section === "assets" ? "page" : undefined}>
           <Settings aria-hidden className={styles.navIcon} />
           More
         </a>

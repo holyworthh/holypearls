@@ -1,7 +1,8 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { INVITATION_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
+import { boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { ASSET_VERSION_STATUSES, BRAND_ASSET_KINDS, INVITATION_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
+import { files } from "./files.js";
 import { staffProfiles, users } from "./identity.js";
 
 const at = (name: string) => timestamp(name, { withTimezone: true });
@@ -179,5 +180,59 @@ export const organizationRequests = pgTable(
     uniqueIndex("organization_requests_one_pending").on(table.requesterUserId).where(sql`${table.status} = 'PENDING'`),
     index("organization_requests_status_created_idx").on(table.status, table.createdAt),
     check("organization_requests_decline_reason", sql`${table.status} <> 'DECLINED' OR ${table.declineReason} IS NOT NULL`),
+  ],
+);
+
+export const brandAssetKind = pgEnum("brand_asset_kind", BRAND_ASSET_KINDS);
+export const assetVersionStatus = pgEnum("asset_version_status", ASSET_VERSION_STATUSES);
+
+/** A logo or artwork as a concept (PRD-05 B2B-FR-020; TECH-04 §9). Organization-wide: brand assets have no location. */
+export const brandAssets = pgTable(
+  "brand_assets",
+  {
+    id: idColumn(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: brandAssetKind("kind").notNull(),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("brand_assets_organization_idx").on(table.organizationId, table.kind)],
+);
+
+/**
+ * One version of an asset, pointing to exactly one file (TECH-04 §9).
+ * Replacing adds V(n+1); earlier versions are never overwritten or deleted
+ * (B2B-FR-023). PROCESSING → NEEDS_REVIEW → PRODUCTION_READY → SUPERSEDED |
+ * RETIRED; any → ARCHIVED (TECH-01 §4).
+ */
+export const brandAssetVersions = pgTable(
+  "brand_asset_versions",
+  {
+    id: idColumn(),
+    assetId: uuid("asset_id")
+      .notNull()
+      .references(() => brandAssets.id, { onDelete: "restrict" }),
+    number: integer("number").notNull(),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => files.id, { onDelete: "restrict" }),
+    status: assetVersionStatus("status").notNull().default("PROCESSING"),
+    /** HolyPearls' production note, shown to the organization (frame 116). */
+    reviewNote: text("review_note"),
+    reviewedByStaffId: uuid("reviewed_by_staff_id").references(() => staffProfiles.id, { onDelete: "restrict" }),
+    reviewedAt: at("reviewed_at"),
+    uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    unique("brand_asset_versions_number_unique").on(table.assetId, table.number),
+    uniqueIndex("brand_asset_versions_file_unique").on(table.fileId),
+    index("brand_asset_versions_status_idx").on(table.status, table.createdAt),
   ],
 );

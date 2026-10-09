@@ -14,6 +14,7 @@ export const filePurpose = pgEnum("file_purpose", [
   "CSV_IMPORT",
   "PRODUCT_MEDIA",
   "CONTENT_MEDIA",
+  "BRAND_ASSET",
 ]);
 
 /** TECH-01 §4: PENDING_UPLOAD → PROCESSING → READY | NEEDS_REVIEW | REJECTED. */

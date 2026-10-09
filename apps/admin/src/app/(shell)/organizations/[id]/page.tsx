@@ -84,6 +84,24 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         </table>
       </section>
 
+      <section className={styles.panel} aria-labelledby="assets-title">
+        <h2 id="assets-title" className={styles.panelTitle}>
+          Brand assets · {data.assets.length}
+        </h2>
+        {data.assets.length === 0 ? (
+          <p className={styles.hint}>No brand assets yet.</p>
+        ) : (
+          <ul className={styles.plainList}>
+            {data.assets.map((asset) => (
+              <li key={asset.id} className={styles.hint}>
+                <span className={styles.strong}>{asset.name}</span> · {asset.kind.toLowerCase()} · latest V{asset.latestNumber} {asset.latestStatus.replaceAll("_", " ").toLowerCase()}
+                {asset.currentNumber ? ` · current V${asset.currentNumber}` : " · none production ready yet"}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <section className={styles.panel} aria-labelledby="invitations-title">
         <h2 id="invitations-title" className={styles.panelTitle}>
           Invitations

@@ -450,6 +450,22 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  brand_asset_reviewed: define({
+    label: "Brand asset reviewed",
+    carriesSecret: false,
+    data: z.object({ asset: z.string(), kind: z.string(), ready: z.boolean(), note: z.string().max(1000).optional(), url: z.url() }),
+    subject: ({ asset, ready }) => (ready ? `${asset} is production ready` : `${asset} needs a change`),
+    render: ({ asset, kind, ready, note, url }) => (
+      <Layout preview={ready ? `${asset} is ready for new orders` : `HolyPearls checked ${asset}`} title={ready ? `${asset} is production ready` : `${asset} needs a change`} action={{ label: "Open the asset", href: url }}>
+        <Text style={text.body}>
+          {ready
+            ? `HolyPearls checked your ${kind.toLowerCase()} file for print and embroidery. New orders can use it now; the previous version stays in your history.`
+            : `HolyPearls checked your ${kind.toLowerCase()} file and it isn't ready for production yet. Upload a new version when you can.`}
+        </Text>
+        {note ? <Text style={text.body}>{note}</Text> : null}
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

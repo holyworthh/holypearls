@@ -185,3 +185,45 @@ test("the overview: Needs Attention first; a switcher only for people with more 
   await page.goto(`${page.url().split("?")[0]}/billing`);
   await expect(page.getByRole("heading", { name: "You don't have access to this" })).toBeVisible();
 });
+
+const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+
+test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; staff see it", async ({ page }) => {
+  await signIn(page, TEST_PEOPLE.acmeAdmin, "/workspace");
+  await page.goto(`${page.url().split("?")[0]}/assets`);
+  await expect(page.getByRole("heading", { name: "Brand assets", exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  const name = `E2E Logo ${Date.now()}`;
+  await page.getByRole("button", { name: "Upload asset" }).click();
+  const dialog = page.getByRole("dialog", { name: "Upload a brand asset" });
+  await dialog.getByRole("button", { name: "Add asset" }).click();
+  await expect(dialog.getByText("Name the asset, for example Primary Logo")).toBeVisible();
+  await dialog.getByLabel("Name").fill(name);
+  await dialog.locator('input[type="file"]').setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: PNG_1X1 });
+  await expect(dialog.getByText("logo.png")).toBeVisible();
+  await dialog.getByRole("button", { name: "Add asset" }).click();
+
+  // The file is still being checked (no worker in browser tests), and V1 waits.
+  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByText("PROCESSING").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Replace version" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  // A Viewer sees the library but can't upload.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeViewer, "/workspace");
+  await page.goto(`${page.url().split("?")[0]}/assets`);
+  await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Upload asset" })).toHaveCount(0);
+
+  // Staff find it among files still being checked.
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto(`${ADMIN}/brand-assets?status=PROCESSING`);
+  await page.getByRole("link", { name: `${name} V1` }).click();
+  await expect(page.getByRole("heading", { name: `${name} V1` })).toBeVisible();
+  await expect(page.getByText("The file is still being checked.")).toBeVisible();
+  await expectNoAxeViolations(page);
+});

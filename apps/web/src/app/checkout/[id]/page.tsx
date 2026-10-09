@@ -2,7 +2,7 @@ import { checkoutSchema, myOrganizationsSchema } from "@holypearls/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CheckoutView } from "../../../components/sales/CheckoutView";
-import { placeableWorkspaces } from "../../../components/workspace/PlacedForPicker";
+import { placeableWorkspaces } from "../../../components/workspace/placeable";
 import { hasSessionCookie, serverApi } from "../../../lib/server-api";
 
 export const metadata: Metadata = { title: "Secure checkout", robots: { index: false, follow: false } };

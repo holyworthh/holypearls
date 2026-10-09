@@ -149,6 +149,13 @@ import {
   workspaceOverviewSchema,
   workspaceProjectListSchema,
   workspaceSearchSchema,
+  addAssetVersionSchema,
+  adminAssetReviewListSchema,
+  adminAssetSchema,
+  brandAssetListSchema,
+  brandAssetSchema,
+  createBrandAssetSchema,
+  reviewAssetVersionSchema,
 } from "@holypearls/contracts";
 import { z } from "zod";
 
@@ -372,6 +379,42 @@ const workspacePaths = {
       parameters: [orgParam, { name: "q", in: "query", required: true, schema: { type: "string" } }, locationQuery],
       responses: { 200: { description: "Results", content: json(workspaceSearchSchema) }, ...member, 429: error("SEARCH limit (RATE_LIMITED)") },
     },
+  },
+};
+
+const assetParam = uuidParam("assetId");
+const assetWrite = { ...member, 400: error("Invalid input, or a file that isn't your new brand-asset upload (VALIDATION_FAILED)"), 403: error("No MANAGE_BRAND (FORBIDDEN)"), 422: error("RULE_FAILED, reason NOT_IN_USE or ALREADY_ARCHIVED") };
+const assetPaths = {
+  "/v1/organizations/{organizationId}/assets": {
+    get: { summary: "The organization's brand assets with their current and newest versions (T11-01; every member)", parameters: [orgParam], responses: { 200: { description: "Assets", content: json(brandAssetListSchema) }, ...member } },
+    post: { summary: "Add a brand asset with its first file (MANAGE_BRAND). HolyPearls checks it before production use.", parameters: [orgParam, idempotencyHeader], requestBody: { required: true, content: json(createBrandAssetSchema) }, responses: { 200: { description: "Added", content: json(brandAssetSchema) }, ...assetWrite } },
+  },
+  "/v1/organizations/{organizationId}/assets/{assetId}": {
+    get: { summary: "One brand asset and every version, newest first", parameters: [orgParam, assetParam], responses: { 200: { description: "Asset", content: json(brandAssetSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/assets/{assetId}/versions": {
+    post: { summary: "Replace version: adds V(n+1) and keeps every earlier version (B2B-FR-023; MANAGE_BRAND)", parameters: [orgParam, assetParam, idempotencyHeader], requestBody: { required: true, content: json(addAssetVersionSchema) }, responses: { 200: { description: "Added", content: json(brandAssetSchema) }, ...assetWrite } },
+  },
+  "/v1/organizations/{organizationId}/assets/{assetId}/versions/{versionId}/retire": {
+    post: { summary: "Retire a version in use for new orders; past orders keep it (MANAGE_BRAND)", parameters: [orgParam, assetParam, uuidParam("versionId")], responses: { 200: { description: "Retired", content: json(brandAssetSchema) }, ...assetWrite } },
+  },
+  "/v1/organizations/{organizationId}/assets/{assetId}/versions/{versionId}/archive": {
+    post: { summary: "Archive a version from any status; it stays in history (MANAGE_BRAND)", parameters: [orgParam, assetParam, uuidParam("versionId")], responses: { 200: { description: "Archived", content: json(brandAssetSchema) }, ...assetWrite } },
+  },
+  "/v1/admin/brand-assets/review": {
+    get: { summary: "Asset versions waiting for HolyPearls' production check (STAFF_ADMIN until a permission is chosen)", parameters: [{ name: "status", in: "query", required: false, schema: { type: "string", enum: ["NEEDS_REVIEW", "PROCESSING"] } }], responses: { 200: { description: "Versions", content: json(adminAssetReviewListSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/brand-assets/{assetId}": {
+    get: { summary: "One brand asset for staff", parameters: [assetParam], responses: { 200: { description: "Asset", content: json(adminAssetSchema) }, ...staffOnly } },
+  },
+  "/v1/admin/brand-assets/versions/{versionId}/review": {
+    post: { summary: "Mark PRODUCTION_READY (supersedes the previous ready version) or keep in review with a note; emails the uploader", parameters: [uuidParam("versionId"), idempotencyHeader], requestBody: { required: true, content: json(reviewAssetVersionSchema) }, responses: { 200: { description: "Decided", content: json(adminAssetSchema) }, ...staffOnly, 400: error("A note is needed to keep it in review"), 422: error("NOT_IN_REVIEW (RULE_FAILED)") } },
+  },
+  "/v1/admin/brand-assets/versions/{versionId}/retire": {
+    post: { summary: "Staff retire a version for new orders", parameters: [uuidParam("versionId")], responses: { 200: { description: "Retired", content: json(adminAssetSchema) }, ...staffOnly, 422: error("NOT_IN_USE (RULE_FAILED)") } },
+  },
+  "/v1/admin/brand-assets/versions/{versionId}/archive": {
+    post: { summary: "Staff archive a version", parameters: [uuidParam("versionId")], responses: { 200: { description: "Archived", content: json(adminAssetSchema) }, ...staffOnly, 422: error("ALREADY_ARCHIVED (RULE_FAILED)") } },
   },
 };
 
@@ -1208,6 +1251,7 @@ export function buildOpenApiDocument() {
       },
       ...organizationPaths,
       ...workspacePaths,
+      ...assetPaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

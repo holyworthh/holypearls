@@ -3,6 +3,7 @@ import { and, type Database, desc, eq, ilike, inArray, isNull, schema, sql } fro
 import { AppError } from "../errors.js";
 import { effectiveStatus, invitationLocationIds } from "../identity/invitations.js";
 import { grantFor, grantsOf, isPreset } from "./members.js";
+import { organizationAssetSummaries } from "./assets.js";
 import { organizationLocations } from "./organizations.js";
 
 /*
@@ -58,7 +59,9 @@ export async function supportOrganization(db: Database, id: string, now = new Da
     .orderBy(desc(schema.invitations.createdAt))
     .limit(50);
   const invitationLocations = await invitationLocationIds(db, invitations.map((row) => row.id));
+  const assets = await organizationAssetSummaries(db, id);
   return {
+    assets,
     id,
     name: organization.name,
     createdAt: organization.createdAt.toISOString(),
