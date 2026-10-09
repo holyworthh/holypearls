@@ -70,11 +70,13 @@ The system checks permissions. Roles are presets that grant a default set, which
 
 "Approve organization requests" and "Accept HolyPearls quotes" are always separate and can be granted to anyone independently.
 
+**No escalation.** Nobody grants a permission or a location they don't hold themselves. Only an Owner makes or changes an Owner, or adjusts a member's permissions away from the role preset. A team manager limited to some locations can only manage members whose locations are inside theirs, and can't grant All locations. Adding or renaming locations needs "Manage team and roles" plus All locations.
+
 **Location scope.** A member assigned to specific locations only sees records belonging to those locations, unless they hold "All locations". Every organization record either has a `location_id` or is explicitly organization-wide. Child records inherit their parent's location; scope is never guessed at query time.
 
 ## 8\. Staff permissions
 
-`CATALOGUE_MANAGE`, `PRICING_MANAGE`, `CONTENT_MANAGE`, `QUOTE_MANAGE`, `PROOF_MANAGE`, `PRODUCTION_MANAGE`, `FULFILMENT_MANAGE`, `PAYMENT_VIEW`, `PAYMENT_MANAGE` (review queue, payment settings), `REFUND_ISSUE`, `CUSTOMER_SUPPORT`, `ORGANIZATION_SUPPORT`, `EXPORT_PERSONAL_DATA`, `STAFF_ADMIN`, `SECURITY_ADMIN`, `AUDIT_VIEW`.
+`CATALOGUE_MANAGE`, `PRICING_MANAGE`, `CONTENT_MANAGE`, `QUOTE_MANAGE`, `PROOF_MANAGE`, `PRODUCTION_MANAGE`, `FULFILMENT_MANAGE`, `PAYMENT_VIEW`, `PAYMENT_MANAGE` (review queue, payment settings), `REFUND_ISSUE`, `CUSTOMER_SUPPORT`, `ORGANIZATION_SUPPORT` (read-only support view), `ORGANIZATION_APPROVE` (approve or decline workspace requests; approving creates the organization and makes the requester its Owner), `EXPORT_PERSONAL_DATA`, `STAFF_ADMIN`, `SECURITY_ADMIN`, `AUDIT_VIEW`.
 
 Staff permissions are separate from customer organization roles. One staff member can hold several.
 
@@ -90,7 +92,7 @@ Customer and organization MFA is optional at launch.
 
 ## 11\. Invitations
 
-Organization and staff invitations use one-time secrets (stored hashed) that expire after 7 days. Accepting requires signing in with the invited email address. Statuses: PENDING, ACCEPTED, EXPIRED, REVOKED.
+Organization and staff invitations use one-time secrets (stored hashed) that expire after 7 days. Accepting requires signing in with the invited email address, verified. Statuses: PENDING, ACCEPTED, EXPIRED, REVOKED. Like guest links, the emailed link carries the secret after `#` (`/invitations#…`), so it never reaches a server log; the page sends it to the API in a header.
 
 ## 12\. How permission checks work in code
 

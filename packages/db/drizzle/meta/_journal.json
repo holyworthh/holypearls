@@ -281,6 +281,13 @@
       "when": 1791393156622,
       "tag": "0039_courier_booking",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791442221040,
+      "tag": "0040_organizations",
+      "breakpoints": true
     }
   ]
 }

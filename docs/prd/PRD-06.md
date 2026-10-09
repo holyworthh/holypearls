@@ -140,6 +140,8 @@ Internal machine or supplier fields stored in admin are never shown to customers
 
 **OPS-FR-083.** Review new brand asset versions for print and embroidery readiness.
 
+**OPS-FR-084.** Approve or decline workspace requests (PRD 05 B2B-FR-005), with a reason the customer sees when declining. Needs the ORGANIZATION\_APPROVE staff permission, which is separate from the read-only support view (OPS-FR-081). Approving creates the organization, its locations and the requester as Owner.
+
 ## 12\. Group Collection support
 
 **OPS-FR-090.** See which participant submissions and imports an Order Draft came from, when needed for quoting or production. Staff don't manage participants on the organization's behalf unless the organization asks for help.

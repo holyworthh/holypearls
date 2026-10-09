@@ -21,6 +21,13 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
     ],
   },
   {
+    label: "CUSTOMERS",
+    sections: [
+      { slug: "organizations", label: "Organizations", anyOf: ["ORGANIZATION_SUPPORT"], ticket: "T10-01" },
+      { slug: "organization-requests", label: "Workspace requests", anyOf: ["ORGANIZATION_APPROVE"], ticket: "T10-01" },
+    ],
+  },
+  {
     label: "ORDERS",
     sections: [
       { slug: "proofs", label: "Proofs & artwork", anyOf: ["PROOF_MANAGE"], ticket: "T06-01" },
@@ -78,6 +85,8 @@ const ROLE_NAMES: Partial<Record<StaffPermission, string>> = {
   CATALOGUE_MANAGE: "Catalogue",
   CONTENT_MANAGE: "Content",
   CUSTOMER_SUPPORT: "Support",
+  ORGANIZATION_SUPPORT: "Support",
+  ORGANIZATION_APPROVE: "Workspaces",
 };
 
 /** A short role line such as "Staff admin · Security" (PRD-06 §2 roles). */

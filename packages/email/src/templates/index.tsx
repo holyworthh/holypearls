@@ -383,6 +383,73 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  organization_invitation: define({
+    label: "Workspace invitation",
+    carriesSecret: true,
+    data: z.object({ organization: z.string(), role: z.string(), invitedBy: z.string(), expires: z.string(), url: z.url() }),
+    subject: ({ organization }) => `You're invited to ${organization} on HolyPearls`,
+    render: ({ organization, role, invitedBy, expires, url }) => (
+      <Layout preview={`${invitedBy} invited you to ${organization}`} title={`Join ${organization}`} action={{ label: "Accept the invitation", href: url }}>
+        <Text style={text.body}>
+          {invitedBy} invited you to {organization}&apos;s HolyPearls workspace as {role}. Sign in or create an account with this email address to accept.
+        </Text>
+        <Text style={text.support}>The invitation works once and expires on {expires}. Didn&apos;t expect it? Ignore this email.</Text>
+      </Layout>
+    ),
+  }),
+  organization_role_changed: define({
+    label: "Workspace role changed",
+    carriesSecret: false,
+    data: z.object({ organization: z.string(), role: z.string(), url: z.url() }),
+    subject: ({ organization }) => `Your role in ${organization} changed`,
+    render: ({ organization, role, url }) => (
+      <Layout preview={`You're now ${role} in ${organization}`} title="Your role changed" action={{ label: "Open the workspace", href: url }}>
+        <Text style={text.body}>
+          You&apos;re now {role} in {organization}&apos;s HolyPearls workspace. What you can see and do there has changed to match.
+        </Text>
+        <Text style={text.support}>Questions about the change? Ask your workspace Owner.</Text>
+      </Layout>
+    ),
+  }),
+  organization_request_staff: define({
+    label: "New workspace request (staff)",
+    carriesSecret: false,
+    data: z.object({ company: z.string(), locations: z.number().int(), url: z.url() }),
+    subject: ({ company }) => `New workspace request · ${company}`,
+    render: ({ company, locations, url }) => (
+      <Layout preview={`${company} asked for a workspace`} title="New workspace request" action={{ label: "Review the request", href: url }}>
+        <Text style={text.body}>
+          {company} asked for a HolyPearls workspace with {locations} {locations === 1 ? "location" : "locations"}. Approve or decline it in the admin.
+        </Text>
+      </Layout>
+    ),
+  }),
+  organization_request_approved: define({
+    label: "Workspace request approved",
+    carriesSecret: false,
+    data: z.object({ organization: z.string(), url: z.url() }),
+    subject: ({ organization }) => `Your ${organization} workspace is ready`,
+    render: ({ organization, url }) => (
+      <Layout preview="Your workspace is ready" title="Your workspace is ready" action={{ label: "Open the workspace", href: url }}>
+        <Text style={text.body}>
+          We approved your request. {organization}&apos;s workspace is ready and you&apos;re its Owner, so you can invite your team and set what each person can do.
+        </Text>
+      </Layout>
+    ),
+  }),
+  organization_request_declined: define({
+    label: "Workspace request declined",
+    carriesSecret: false,
+    data: z.object({ company: z.string(), reason: z.string().max(1000) }),
+    subject: ({ company }) => `About your workspace request for ${company}`,
+    render: ({ company, reason }) => (
+      <Layout preview="About your workspace request" title="We couldn't set up this workspace">
+        <Text style={text.body}>We looked at your request for a {company} workspace and couldn&apos;t approve it this time.</Text>
+        <Text style={text.body}>{reason}</Text>
+        <Text style={text.support}>You can still order as usual, and you can send a new request from your account.</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

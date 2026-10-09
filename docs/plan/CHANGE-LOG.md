@@ -89,3 +89,11 @@ Every change made in the v2 rewrite, and why. v1 documents are untouched in fold
 - TECH-02 §14: the CONTACT rate-limit class added.
 - TECH-07 §1 and §6: the free-tier single container recorded as a temporary deviation; Sentry from launch.
 - ADR-015: hosting region and hosts recorded.
+
+## 12\. Owner amendments (8 October 2026)
+
+- PRD-05 B2B-FR-005 added: organizations are created by workspace request and staff approval (the owner's "middle path"). B2B-FR-090 and 091 gain the "Owners aren't invited" and "no escalation" rules.
+- PRD-06 OPS-FR-084 added: staff approve or decline workspace requests with the new ORGANIZATION\_APPROVE permission.
+- TECH-01 §2 and §4: `organization_requests` and `invitation_locations`, and the workspace request statuses.
+- TECH-03 §7 (no escalation, who manages locations), §8 (ORGANIZATION\_APPROVE) and §11 (verified email; the secret after `#`).
+- Built in T10-01 (PR #91).

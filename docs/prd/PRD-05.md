@@ -18,6 +18,8 @@ The workspace **adds to** normal ordering. It never replaces it. It reuses the s
 
 **B2B-FR-004 — No pointless location switching (P1).** People assigned to one location never see a location switcher.
 
+**B2B-FR-005 — Workspace request and approval (P1).** Organizations are created by request and approval (owner decision, 8 October 2026). From their account, a signed-in customer with a verified email asks for a workspace with the company name, its locations (name and city), roughly how many people, and an optional note. Unverified accounts can't ask, and one request waits at a time. HolyPearls staff approve or decline it in the admin (PRD 06 OPS-FR-084); a decline needs a reason the customer sees. Approving creates the organization and its locations and makes the requester its ACTIVE Owner with all locations. Every decision is audited and the requester is emailed either way. Request statuses: PENDING, APPROVED, DECLINED.
+
 ## 3\. Workspace
 
 **B2B-FR-010.** The overview shows, in order: Needs Attention, Quick Actions, Active Work, Templates, Groups.
@@ -124,9 +126,9 @@ Limits (starting values, configurable): 5 MB and 5,000 rows per file.
 
 ## 11\. Team
 
-**B2B-FR-090.** Invite someone with a role and locations. Invitation statuses: PENDING, ACCEPTED, EXPIRED, REVOKED. Invitations expire after 7 days (configurable) and work once.
+**B2B-FR-090.** Invite someone with a role and locations. Invitation statuses: PENDING, ACCEPTED, EXPIRED, REVOKED. Invitations expire after 7 days (configurable) and work once. Owners aren't invited: an Owner makes another member an Owner after they join.
 
-**B2B-FR-091.** Giving someone more permissions needs a confirmation step.
+**B2B-FR-091.** Giving someone more permissions needs a confirmation step. Nobody can give a permission or a location they don't hold themselves, so, for example, only Owners can make someone an Approver.
 
 **B2B-FR-092.** The last Owner cannot be removed or downgraded.
 
