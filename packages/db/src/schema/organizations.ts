@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { ASSET_VERSION_STATUSES, BRAND_ASSET_KINDS, FIELD_CONTROLS, INVITATION_STATUSES, TEMPLATE_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
+import { bigint, boolean, check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { APPROVAL_DECISIONS, APPROVAL_RULES, ASSET_VERSION_STATUSES, BRAND_ASSET_KINDS, ORDER_REQUEST_STATUSES, FIELD_CONTROLS, INVITATION_STATUSES, TEMPLATE_STATUSES, MEMBERSHIP_STATUSES, ORGANIZATION_PERMISSIONS, ORGANIZATION_REQUEST_STATUSES, ORGANIZATION_ROLES, TEAM_SIZES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { products } from "./catalogue.js";
 import { configurations } from "./configuration.js";
@@ -341,7 +341,7 @@ export const templateOrders = pgTable(
       .notNull()
       .references(() => configurations.id, { onDelete: "restrict" }),
     orderedByUserId: uuid("ordered_by_user_id").references(() => users.id, { onDelete: "set null" }),
-    /** CHECKOUT (bought directly) or QUOTE (sent for a quote), as decided by the price. */
+    /** CHECKOUT (bought directly), QUOTE (sent for a quote) or APPROVAL (an order request waiting for the organization's approval, T11-04). */
     route: text("route").notNull(),
     snapshot: jsonb("snapshot").notNull(),
     createdAt: createdAt(),
@@ -351,6 +351,104 @@ export const templateOrders = pgTable(
     index("template_orders_template_idx").on(table.templateId, table.createdAt),
     foreignKey({ columns: [table.templateId, table.organizationId], foreignColumns: [templates.id, templates.organizationId], name: "template_orders_template_fk" }).onDelete("restrict"),
     foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "template_orders_location_fk" }).onDelete("restrict"),
-    check("template_orders_route", sql`${table.route} in ('CHECKOUT', 'QUOTE')`),
+    check("template_orders_route", sql`${table.route} in ('CHECKOUT', 'QUOTE', 'APPROVAL')`),
+  ],
+);
+
+export const approvalRule = pgEnum("approval_rule", APPROVAL_RULES);
+export const orderRequestStatus = pgEnum("order_request_status", ORDER_REQUEST_STATUSES);
+export const approvalDecision = pgEnum("approval_decision", APPROVAL_DECISIONS);
+
+/** The organization's one approval rule (PRD-05 B2B-FR-040–041). No row means no approval. */
+export const approvalPolicies = pgTable(
+  "approval_policies",
+  {
+    organizationId: uuid("organization_id")
+      .primaryKey()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    rule: approvalRule("rule").notNull().default("NONE"),
+    thresholdMinor: bigint("threshold_minor", { mode: "bigint" }),
+    currency: text("currency").notNull().default("NGN"),
+    separateRequesterApprover: boolean("separate_requester_approver").notNull().default(true),
+    updatedByUserId: uuid("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [check("approval_policies_threshold", sql`${table.rule} <> 'ABOVE_AMOUNT' or ${table.thresholdMinor} > 0`)],
+);
+
+/** Members whose requests need approval under the REQUESTERS rule. */
+export const approvalPolicyRequesters = pgTable(
+  "approval_policy_requesters",
+  {
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => approvalPolicies.organizationId, { onDelete: "cascade" }),
+    membershipId: uuid("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "cascade" }),
+  },
+  (table) => [primaryKey({ columns: [table.organizationId, table.membershipId] })],
+);
+
+/**
+ * An order request (TECH-01 §4): what a member wants to order for a
+ * location, waiting for the organization's approval before it goes to
+ * HolyPearls. `configurationIds` are the designs; `snapshot` is the saved
+ * copy of what was asked for.
+ */
+export const orderRequests = pgTable(
+  "order_requests",
+  {
+    id: idColumn(),
+    organizationId: uuid("organization_id").notNull(),
+    locationId: uuid("location_id").notNull(),
+    title: text("title").notNull(),
+    status: orderRequestStatus("status").notNull().default("DRAFT"),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    requestedByMembershipId: uuid("requested_by_membership_id").references(() => memberships.id, { onDelete: "set null" }),
+    estimatedTotalMinor: bigint("estimated_total_minor", { mode: "bigint" }),
+    currency: text("currency").notNull().default("NGN"),
+    configurationIds: uuid("configuration_ids").array().notNull(),
+    snapshot: jsonb("snapshot").notNull(),
+    /** The quote request it became once sent to HolyPearls. */
+    quoteId: uuid("quote_id"),
+    submittedAt: at("submitted_at"),
+    sentAt: at("sent_at"),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    foreignKey({ columns: [table.locationId, table.organizationId], foreignColumns: [locations.id, locations.organizationId], name: "order_requests_location_fk" }).onDelete("restrict"),
+    index("order_requests_organization_idx").on(table.organizationId, table.status, table.createdAt),
+    index("order_requests_quote_idx").on(table.quoteId),
+  ],
+);
+
+/** An organization's decision on an order request (B2B-FR-042). Insert-only: re-approval is a new row and the old one is kept. */
+export const organizationApprovals = pgTable(
+  "organization_approvals",
+  {
+    id: idColumn(),
+    orderRequestId: uuid("order_request_id")
+      .notNull()
+      .references(() => orderRequests.id, { onDelete: "restrict" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    decision: approvalDecision("decision").notNull(),
+    approvedAmountMinor: bigint("approved_amount_minor", { mode: "bigint" }),
+    currency: text("currency").notNull().default("NGN"),
+    /** What was approved: the items, quantities and location. */
+    scope: jsonb("scope").notNull(),
+    note: text("note"),
+    decidedByUserId: uuid("decided_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index("organization_approvals_request_idx").on(table.orderRequestId, table.createdAt),
+    check("organization_approvals_amount", sql`${table.decision} <> 'APPROVED' or ${table.approvedAmountMinor} >= 0`),
   ],
 );

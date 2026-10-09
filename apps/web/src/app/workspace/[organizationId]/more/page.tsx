@@ -12,10 +12,12 @@ export default async function WorkspaceMorePage({ params }: { params: Promise<{ 
   const { me, organization } = await loadWorkspace(organizationId, `/workspace/${organizationId}/more`);
   const can = (permission: string) => organization.me.permissions.includes(permission as never);
   const links = [
+    ["Approvals", "/approvals"],
     ["Templates", "/templates"],
     ["Brand assets", "/assets"],
     ...(can("MANAGE_TEAM") ? [["Team", "/team"]] : []),
     ["Locations", "/locations"],
+    ["Approval rule", "/approval-rule"],
     ...(can("VIEW_BILLING") ? [["Billing", "/billing"]] : []),
     ["Search this workspace", "/search"],
   ];

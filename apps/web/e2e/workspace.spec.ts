@@ -301,3 +301,68 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
   await expect(page.getByRole("button", { name: "Edit controls" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Order from template" })).toHaveCount(0);
 });
+
+test("approvals: the Owner turns on approval; a Lekki manager's template order waits; the Approver approves it", async ({ page }) => {
+  // The Owner sets the rule (T11-04, B2B-FR-040).
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
+  const organizationId = workspace.split("/").pop()!;
+  await page.goto(`${workspace}/approval-rule`);
+  await expect(page.getByRole("heading", { name: "Approval rule", level: 1 })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByText("Approve every request").click();
+  await page.getByRole("button", { name: "Save rule" }).click();
+  await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
+
+  // An approved template to order from (made and sent here; staff approve below).
+  const name = `E2E Approval Cards ${Date.now()}`;
+  const templateId = await page.evaluate(
+    async ({ organizationId: org, name: templateName }) => {
+      const post = (path: string, body: unknown) =>
+        fetch(`/api${path}`, { method: "POST", headers: { "content-type": "application/json", "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` }, body: JSON.stringify(body) }).then((response) => response.json());
+      const design = await post("/v1/configurations", { productSlug: "business-cards", choices: { paper: "350gsm-matte", sides: "both-sides" }, quantity: 500 });
+      const template = await post(`/v1/organizations/${org}/templates`, { name: templateName, configurationId: design.id, assetVersionIds: [], allLocations: true });
+      await post(`/v1/organizations/${org}/templates/${template.id}/submit`, { version: template.version });
+      return template.id as string;
+    },
+    { organizationId, name },
+  );
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto(`${ADMIN}/templates/${templateId}`);
+  await page.getByRole("button", { name: "Approve template" }).click();
+  await expect(page.getByText("Approved. The organization's allowed locations can order from it now.")).toBeVisible();
+
+  // The Lekki manager orders: it becomes an order request.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(`${workspace}/templates/${templateId}/order`);
+  await page.getByLabel("Quantity").fill("500");
+  await expect(page.getByText("Approval needed")).toBeVisible();
+  await page.getByRole("button", { name: "Send for approval" }).click();
+  await page.waitForURL(/\/approvals\//);
+  await expect(page.getByText("AWAITING APPROVAL")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cancel request" })).toBeVisible();
+  const requestUrl = page.url();
+
+  // The Approver reviews and approves (Pen 72): it goes to HolyPearls for a quote.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeApprover, "/workspace");
+  await page.goto(`${workspace}/approvals`);
+  await expect(page.getByRole("heading", { name: "Awaiting your approval" })).toBeVisible();
+  await page.goto(requestUrl);
+  await expect(page.getByText("AWAITING YOUR APPROVAL")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What's being ordered" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: /^Approve/ }).click();
+  await expect(page.getByText(/Approved and sent to HolyPearls for a quote \(HP-Q-/)).toBeVisible();
+
+  // Leave the rule as the seed has it.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await page.goto(`${workspace}/approval-rule`);
+  await page.getByText("No approval", { exact: true }).click();
+  await page.getByRole("button", { name: "Save rule" }).click();
+  await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
+});

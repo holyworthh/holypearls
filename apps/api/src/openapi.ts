@@ -153,6 +153,12 @@ import {
   adminAssetReviewListSchema,
   adminAssetSchema,
   adminTemplateListSchema,
+  approvalPolicySchema,
+  decideOrderRequestSchema,
+  orderRequestActionSchema,
+  orderRequestListSchema,
+  orderRequestSchema,
+  updateApprovalPolicySchema,
   adminTemplateSchema,
   brandAssetListSchema,
   brandAssetSchema,
@@ -464,6 +470,30 @@ const templatePaths = {
       requestBody: { required: true, content: json(templateOrderInputSchema) },
       responses: { 200: { description: "Ordered", content: json(templateOrderResultSchema) }, ...member, 400: error("Unknown field or quantity (VALIDATION_FAILED)"), 403: error("No CREATE_REQUESTS, or LOCATION_NOT_ALLOWED (FORBIDDEN)"), 409: error("The template changed (VERSION_CONFLICT)"), 422: error("LOCKED_FIELD, TEMPLATE_BLOCKED or TEMPLATE_NOT_APPROVED (RULE_FAILED)") },
     },
+  },
+  "/v1/organizations/{organizationId}/approvals/policy": {
+    get: { summary: "The organization's approval rule (T11-04; every member reads it)", parameters: [orgParam], responses: { 200: { description: "Rule", content: json(approvalPolicySchema) }, ...member } },
+    put: { summary: "Set the approval rule: none, all, above an amount, or specific requesters; separate requester and approver (Owner only)", parameters: [orgParam], requestBody: { required: true, content: json(updateApprovalPolicySchema) }, responses: { 200: { description: "Saved", content: json(approvalPolicySchema) }, ...member, 400: error("VALIDATION_FAILED"), 403: error("OWNER_REQUIRED (FORBIDDEN)"), 409: error("VERSION_CONFLICT") } },
+  },
+  "/v1/organizations/{organizationId}/order-requests": {
+    get: { summary: "Order requests the member can see, waiting for them first (requester; approvers and viewers for the location)", parameters: [orgParam], responses: { 200: { description: "Requests", content: json(orderRequestListSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/order-requests/{requestId}": {
+    get: { summary: "One order request with its items, approvals and history", parameters: [orgParam, uuidParam("requestId")], responses: { 200: { description: "Request", content: json(orderRequestSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/order-requests/{requestId}/decision": {
+    post: {
+      summary: "Approve (sends it to HolyPearls as a quote request), request changes or decline (APPROVE_REQUESTS for the location). Decisions are insert-only.",
+      parameters: [orgParam, uuidParam("requestId"), idempotencyHeader],
+      requestBody: { required: true, content: json(decideOrderRequestSchema) },
+      responses: { 200: { description: "Decided", content: json(orderRequestSchema) }, ...member, 400: error("A note is needed to decline or ask for changes; an amount when there's no estimate"), 403: error("No APPROVE_REQUESTS, or SELF_APPROVAL with separation on (FORBIDDEN)"), 409: error("VERSION_CONFLICT"), 422: error("NOT_PENDING (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/order-requests/{requestId}/resubmit": {
+    post: { summary: "Send a request returned for changes for approval again, at today's price (the requester)", parameters: [orgParam, uuidParam("requestId")], requestBody: { required: true, content: json(orderRequestActionSchema) }, responses: { 200: { description: "Waiting for approval", content: json(orderRequestSchema) }, ...member, 409: error("VERSION_CONFLICT"), 422: error("NOT_DRAFT (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/order-requests/{requestId}/cancel": {
+    post: { summary: "Withdraw a request before it goes to HolyPearls (the requester); its designs become drafts again", parameters: [orgParam, uuidParam("requestId")], requestBody: { required: true, content: json(orderRequestActionSchema) }, responses: { 200: { description: "Cancelled", content: json(orderRequestSchema) }, ...member, 403: error("REQUESTER_ONLY (FORBIDDEN)"), 409: error("VERSION_CONFLICT"), 422: error("NOT_CANCELLABLE (RULE_FAILED)") } },
   },
   "/v1/admin/templates": {
     get: { summary: "Templates by status for HolyPearls' approval (STAFF_ADMIN until a permission is chosen)", parameters: [{ name: "status", in: "query", required: false, schema: { type: "string", enum: ["AWAITING_APPROVAL", "NEEDS_REVIEW", "APPROVED", "DRAFT", "ARCHIVED"] } }], responses: { 200: { description: "Templates", content: json(adminTemplateListSchema) }, ...staffOnly } },
