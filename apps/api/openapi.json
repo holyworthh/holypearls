@@ -52761,6 +52761,55 @@
                         "null"
                       ]
                     },
+                    "quoteId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reapproval": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "approvedMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteTotalMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "differenceMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteVersion": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "approvedMinor",
+                            "quoteTotalMinor",
+                            "differenceMinor",
+                            "quoteVersion",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "canDecide": {
                       "type": "boolean"
                     },
@@ -52798,6 +52847,8 @@
                     "approvals",
                     "history",
                     "quoteReference",
+                    "quoteId",
+                    "reapproval",
                     "canDecide",
                     "decideBlockedReason",
                     "canCancel",
@@ -53129,6 +53180,55 @@
                         "null"
                       ]
                     },
+                    "quoteId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reapproval": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "approvedMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteTotalMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "differenceMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteVersion": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "approvedMinor",
+                            "quoteTotalMinor",
+                            "differenceMinor",
+                            "quoteVersion",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "canDecide": {
                       "type": "boolean"
                     },
@@ -53166,6 +53266,8 @@
                     "approvals",
                     "history",
                     "quoteReference",
+                    "quoteId",
+                    "reapproval",
                     "canDecide",
                     "decideBlockedReason",
                     "canCancel",
@@ -53229,6 +53331,422 @@
           },
           "422": {
             "description": "NOT_PENDING (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/order-requests/{requestId}/reapproval": {
+      "post": {
+        "summary": "Send HolyPearls' quote for re-approval when it's above the approved amount (T11-04b; the requester or someone who can accept quotes). The approvers' decision is a new approval record.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "requestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "note",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Waiting for re-approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING_APPROVAL",
+                        "APPROVED",
+                        "REJECTED",
+                        "SENT_TO_HOLYPEARLS",
+                        "CANCELLED"
+                      ]
+                    },
+                    "locationId": {
+                      "type": "string"
+                    },
+                    "locationName": {
+                      "type": "string"
+                    },
+                    "requestedBy": {
+                      "type": "string"
+                    },
+                    "estimatedTotalMinor": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^\\d+$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "currency": {
+                      "type": "string",
+                      "enum": [
+                        "NGN",
+                        "USD"
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "needsMyDecision": {
+                      "type": "boolean"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "configurationId": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "templateName": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "totalMinor": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^\\d+$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "configurationId",
+                          "productName",
+                          "quantity",
+                          "templateName",
+                          "totalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "policyNote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "approvals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "decision": {
+                            "type": "string",
+                            "enum": [
+                              "APPROVED",
+                              "REJECTED",
+                              "CHANGES_REQUESTED"
+                            ]
+                          },
+                          "amountMinor": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "pattern": "^\\d+$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "note": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decidedBy": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "decision",
+                          "amountMinor",
+                          "note",
+                          "decidedBy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "by": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "by",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quoteReference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "quoteId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reapproval": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "approvedMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteTotalMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "differenceMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteVersion": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "approvedMinor",
+                            "quoteTotalMinor",
+                            "differenceMinor",
+                            "quoteVersion",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canDecide": {
+                      "type": "boolean"
+                    },
+                    "decideBlockedReason": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "canCancel": {
+                      "type": "boolean"
+                    },
+                    "canResubmit": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "status",
+                    "locationId",
+                    "locationName",
+                    "requestedBy",
+                    "estimatedTotalMinor",
+                    "currency",
+                    "createdAt",
+                    "needsMyDecision",
+                    "items",
+                    "policyNote",
+                    "approvals",
+                    "history",
+                    "quoteReference",
+                    "quoteId",
+                    "reapproval",
+                    "canDecide",
+                    "decideBlockedReason",
+                    "canCancel",
+                    "canResubmit",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "REQUESTER_OR_ACCEPTER_ONLY (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "WITHIN_APPROVAL, NOT_QUOTED or NOT_SENT (RULE_FAILED)",
             "content": {
               "application/json": {
                 "schema": {
@@ -53491,6 +54009,55 @@
                         "null"
                       ]
                     },
+                    "quoteId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reapproval": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "approvedMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteTotalMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "differenceMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteVersion": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "approvedMinor",
+                            "quoteTotalMinor",
+                            "differenceMinor",
+                            "quoteVersion",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "canDecide": {
                       "type": "boolean"
                     },
@@ -53528,6 +54095,8 @@
                     "approvals",
                     "history",
                     "quoteReference",
+                    "quoteId",
+                    "reapproval",
                     "canDecide",
                     "decideBlockedReason",
                     "canCancel",
@@ -53833,6 +54402,55 @@
                         "null"
                       ]
                     },
+                    "quoteId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "reapproval": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "approvedMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteTotalMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "differenceMinor": {
+                              "type": "string",
+                              "pattern": "^\\d+$"
+                            },
+                            "quoteVersion": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "approvedMinor",
+                            "quoteTotalMinor",
+                            "differenceMinor",
+                            "quoteVersion",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "canDecide": {
                       "type": "boolean"
                     },
@@ -53870,6 +54488,8 @@
                     "approvals",
                     "history",
                     "quoteReference",
+                    "quoteId",
+                    "reapproval",
                     "canDecide",
                     "decideBlockedReason",
                     "canCancel",

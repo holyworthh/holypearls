@@ -7,6 +7,7 @@ import {
   decideOrderRequestSchema,
   orderRequestActionSchema,
   updateApprovalPolicySchema,
+  requestReapprovalSchema,
   templatePriceInputSchema,
   decideTemplateSchema,
   templateActionSchema,
@@ -43,7 +44,7 @@ import {
   reviewBrandAssetVersion,
   staffChangeBrandAssetVersion,
 } from "./assets.js";
-import { cancelOrderRequest, decideOrderRequest, getApprovalPolicy, getOrderRequest, listOrderRequests, resubmitOrderRequest, updateApprovalPolicy } from "./approvals.js";
+import { cancelOrderRequest, decideOrderRequest, getApprovalPolicy, getOrderRequest, listOrderRequests, requestReapproval, resubmitOrderRequest, updateApprovalPolicy } from "./approvals.js";
 import { orderFromTemplate, previewTemplateOrder, templateOrderForm } from "./template-orders.js";
 import { adminTemplate, adminTemplateQueue, archiveTemplate, createTemplate, decideTemplate, getTemplate, listTemplates, submitTemplate, templateSources, updateTemplate } from "./templates.js";
 import { createLocation, getLocation, getOrganization, listLocations, myOrganizations, updateLocation } from "./organizations.js";
@@ -260,6 +261,19 @@ export class OrganizationsController {
     @Body(new ZodValidationPipe(decideOrderRequestSchema)) body: z.infer<typeof decideOrderRequestSchema>,
   ) {
     return decideOrderRequest(this.deps, await actorOf(request), organizationId, requestId, body);
+  }
+
+  /** "Send for reapproval" (T11-04b; frame 48): HolyPearls' quote is above the approved amount. */
+  @Post("order-requests/:requestId/reapproval")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async requestReapproval(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("requestId", uuid) requestId: string,
+    @Body(new ZodValidationPipe(requestReapprovalSchema)) body: z.infer<typeof requestReapprovalSchema>,
+  ) {
+    return requestReapproval(this.deps, await actorOf(request), organizationId, requestId, body);
   }
 
   @Post("order-requests/:requestId/:action")

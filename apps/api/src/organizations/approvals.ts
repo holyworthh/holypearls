@@ -7,7 +7,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { enforce } from "../platform/policy.js";
-import { type Member, requireMember } from "./members.js";
+import { findActiveMember, type Member, requireMember } from "./members.js";
 import { canSeeLocation, needsPermission } from "./policies.js";
 import type { OrganizationDeps } from "./team.js";
 
@@ -264,7 +264,8 @@ async function requestView(db: Db, member: Member, row: RequestRow): Promise<Ord
   const approvals = await db.select().from(schema.organizationApprovals).where(eq(schema.organizationApprovals.orderRequestId, row.id)).orderBy(schema.organizationApprovals.createdAt);
   const people = await names(db, [row.requestedByUserId, ...approvals.map((approval) => approval.decidedByUserId)]);
   const [quote] = row.quoteId ? await db.select({ reference: schema.quotes.reference }).from(schema.quotes).where(eq(schema.quotes.id, row.quoteId)) : [];
-  const snapshot = row.snapshot as { items: OrderRequest["items"]; policyNote: string | null };
+  const snapshot = row.snapshot as { items: OrderRequest["items"]; policyNote: string | null; reapproval?: { quoteVersion: number; totalMinor: string; approvedMinor: string; note: string | null } };
+  const again = row.status === "PENDING_APPROVAL" && row.quoteId && snapshot.reapproval ? snapshot.reapproval : null;
   const decide = decideState(member, row, policy);
   const own = row.requestedByUserId === member.userId;
   const requester = (row.requestedByUserId && people.get(row.requestedByUserId)) || null;
@@ -287,6 +288,10 @@ async function requestView(db: Db, member: Member, row: RequestRow): Promise<Ord
       ...(row.sentAt ? [{ label: `Sent to HolyPearls for a quote${quote ? ` (${quote.reference})` : ""}`, by: null, at: row.sentAt.toISOString() }] : []),
     ].sort((a, b) => b.at.localeCompare(a.at)),
     quoteReference: quote?.reference ?? null,
+    quoteId: row.quoteId,
+    reapproval: again
+      ? { approvedMinor: again.approvedMinor, quoteTotalMinor: again.totalMinor, differenceMinor: (BigInt(again.totalMinor) - BigInt(again.approvedMinor)).toString(), quoteVersion: again.quoteVersion, note: again.note }
+      : null,
     canDecide: decide.canDecide,
     decideBlockedReason: decide.reason,
     canCancel: own && (row.status === "DRAFT" || row.status === "PENDING_APPROVAL"),
@@ -319,10 +324,12 @@ export async function decideOrderRequest(deps: OrganizationDeps, actor: ActorCon
   if (current.status !== "PENDING_APPROVAL") throw new AppError("RULE_FAILED", { message: "This request isn't waiting for approval.", context: { reason: "NOT_PENDING", status: current.status } });
   const amount = input.decision === "APPROVE" ? (input.amountMinor !== null ? BigInt(input.amountMinor) : current.estimatedTotalMinor) : null;
   if (input.decision === "APPROVE" && amount === null) throw new AppError("VALIDATION_FAILED", { fieldErrors: { amountMinor: "Enter the amount you approve" } });
+  // A re-approval (T11-04b) decides on HolyPearls' quote, which already exists.
+  const reapproval = current.quoteId !== null;
   // The quote is checked before anything changes, so a design that can't be quoted leaves the request waiting.
-  const checked = input.decision === "APPROVE" ? await heldQuotable(db, current.configurationIds, actor.now) : [];
+  const checked = input.decision === "APPROVE" && !reapproval ? await heldQuotable(db, current.configurationIds, actor.now) : [];
   const [requester] = current.requestedByUserId ? await db.select().from(schema.users).where(eq(schema.users.id, current.requestedByUserId)) : [];
-  if (input.decision === "APPROVE" && !requester) throw new AppError("RULE_FAILED", { message: "The requester has left the workspace. Ask someone to request it again.", context: { reason: "REQUESTER_GONE" } });
+  if (input.decision === "APPROVE" && !reapproval && !requester) throw new AppError("RULE_FAILED", { message: "The requester has left the workspace. Ask someone to request it again.", context: { reason: "REQUESTER_GONE" } });
 
   await db.transaction(async (tx) => {
     const row = await loadRequest(tx, organizationId, requestId, { lock: true });
@@ -340,9 +347,9 @@ export async function decideOrderRequest(deps: OrganizationDeps, actor: ActorCon
       note: input.note,
       decidedByUserId: member.userId,
     });
-    let quoteId: string | null = null;
-    let next: OrderRequestStatus = decision === "REJECTED" ? "REJECTED" : decision === "CHANGES_REQUESTED" ? "DRAFT" : "APPROVED";
-    if (decision === "APPROVED") {
+    let quoteId: string | null = row.quoteId;
+    let next: OrderRequestStatus = decision === "REJECTED" ? "REJECTED" : decision === "CHANGES_REQUESTED" ? (reapproval ? "SENT_TO_HOLYPEARLS" : "DRAFT") : reapproval ? "SENT_TO_HOLYPEARLS" : "APPROVED";
+    if (decision === "APPROVED" && !reapproval) {
       const reference = await quoteIn(tx, deps, { actor, deviceKey: null }, checked, {
         email: requester!.email,
         name: requester!.name,
@@ -353,12 +360,12 @@ export async function decideOrderRequest(deps: OrganizationDeps, actor: ActorCon
       const [quote] = await tx.select({ id: schema.quotes.id }).from(schema.quotes).where(eq(schema.quotes.reference, reference));
       quoteId = quote!.id;
       next = "SENT_TO_HOLYPEARLS";
-    } else {
+    } else if (!reapproval) {
       await releaseFromApproval(tx, row.configurationIds);
     }
     await tx
       .update(schema.orderRequests)
-      .set({ status: next, quoteId, sentAt: decision === "APPROVED" ? actor.now : null, version: row.version + 1, updatedAt: actor.now })
+      .set({ status: next, quoteId, sentAt: decision === "APPROVED" && !reapproval ? actor.now : row.sentAt, version: row.version + 1, updatedAt: actor.now })
       .where(eq(schema.orderRequests.id, row.id));
     await recordAudit(tx, actor, {
       action: `order_request.${decision.toLowerCase()}`,
@@ -429,6 +436,116 @@ export async function cancelOrderRequest(db: Database, actor: ActorContext, orga
     await releaseFromApproval(tx, row.configurationIds);
     await tx.update(schema.orderRequests).set({ status: "CANCELLED", version: row.version + 1, updatedAt: actor.now }).where(eq(schema.orderRequests.id, row.id));
     await recordAudit(tx, actor, { action: "order_request.cancelled", summary: `Order request cancelled: ${row.title}`, recordType: "ORDER_REQUEST", recordId: row.id, before: { status: row.status }, after: { status: "CANCELLED" } });
+  });
+  return getOrderRequest(db, actor, organizationId, requestId);
+}
+
+/* ——— Quote authority (T11-04b; PRD-03 QUOTE-FR-020–022; PRD-05 B2B-FR-043–044; frames 48, 73B) ——— */
+
+type QuoteForCheck = { id: string; organizationId: string | null; locationId: string | null };
+
+/** The order request a quote came from, and its latest approval. */
+async function requestForQuote(db: Db, quoteId: string) {
+  const [row] = await db.select().from(schema.orderRequests).where(eq(schema.orderRequests.quoteId, quoteId));
+  if (!row) return null;
+  const approvals = await db.select().from(schema.organizationApprovals).where(eq(schema.organizationApprovals.orderRequestId, row.id)).orderBy(desc(schema.organizationApprovals.createdAt));
+  return { row, approved: approvals.find((approval) => approval.decision === "APPROVED") ?? null };
+}
+
+/**
+ * Can this person accept this organization quote now? Accepting needs
+ * "Accept HolyPearls quotes" for its location (B2B-FR-044), separate from
+ * approving. A quote over the approved amount is blocked with "Organization
+ * re-approval required" until a new approval covers it (QUOTE-FR-021); the
+ * quote itself stays visible and unchanged.
+ */
+export async function organizationQuoteCheck(db: Db, actor: ActorContext, quote: QuoteForCheck, totalMinor: bigint | null) {
+  if (!quote.organizationId || !quote.locationId) return { blockers: [], approval: null };
+  const [organization] = await db.select({ name: schema.organizations.name }).from(schema.organizations).where(eq(schema.organizations.id, quote.organizationId));
+  const name = organization?.name ?? "your organization";
+  const member = actor.type === "user" ? await findActiveMember(db, quote.organizationId, actor.session.userId) : null;
+  const blockers: { code: "ORGANIZATION_PERMISSION" | "ORGANIZATION_REAPPROVAL_REQUIRED"; message: string }[] = [];
+  const found = await requestForQuote(db, quote.id);
+  let approval = null;
+  if (found) {
+    const approvedMinor = found.approved?.approvedAmountMinor ?? null;
+    const pending = found.row.status === "PENDING_APPROVAL";
+    const over = totalMinor !== null && approvedMinor !== null && totalMinor > approvedMinor;
+    const [approver] = found.approved?.decidedByUserId ? await db.select({ name: schema.users.name }).from(schema.users).where(eq(schema.users.id, found.approved.decidedByUserId)) : [];
+    if (over || pending || found.row.status === "REJECTED") {
+      blockers.push({
+        code: "ORGANIZATION_REAPPROVAL_REQUIRED",
+        message: found.row.status === "REJECTED" ? `${name} declined this request.` : pending ? `Accept unlocks once ${name} approves ${naira(totalMinor, found.row.currency)}.` : "Organization re-approval required",
+      });
+    }
+    approval = {
+      requestId: found.row.id,
+      organizationId: quote.organizationId,
+      organizationName: name,
+      approvedMinor: approvedMinor?.toString() ?? null,
+      approvedBy: approver?.name ?? null,
+      quoteTotalMinor: totalMinor?.toString() ?? null,
+      differenceMinor: over ? (totalMinor! - approvedMinor!).toString() : null,
+      reapprovalRequired: over && !pending,
+      reapprovalPending: pending,
+      canSendForReapproval: over && !pending && found.row.status === "SENT_TO_HOLYPEARLS" && member !== null && (found.row.requestedByUserId === member.userId || member.permissions.has("ACCEPT_QUOTES")),
+      version: found.row.version,
+    };
+  }
+  const canAccept = member !== null && member.permissions.has("ACCEPT_QUOTES") && (member.allLocations || member.locationIds.has(quote.locationId));
+  if (!canAccept) blockers.unshift({ code: "ORGANIZATION_PERMISSION", message: `Only people who can accept HolyPearls quotes for ${name} can accept this quote.` });
+  return { blockers, approval };
+}
+
+/**
+ * "Send for reapproval" (frame 48): HolyPearls' quote came back above the
+ * approved amount, so the request goes back to the approvers for the new
+ * total. Their decision is a new approval record; the old one is kept.
+ */
+export async function requestReapproval(deps: OrganizationDeps, actor: ActorContext, organizationId: string, requestId: string, input: { note: string | null; version: number }): Promise<OrderRequest> {
+  const db = deps.db;
+  const member = await requireMember(db, actor, organizationId);
+  const current = await loadRequest(db, organizationId, requestId);
+  if (!canSee(member, current)) throw new AppError("NOT_FOUND");
+  if (current.requestedByUserId !== member.userId && !member.permissions.has("ACCEPT_QUOTES")) throw new AppError("FORBIDDEN", { context: { reason: "REQUESTER_OR_ACCEPTER_ONLY" } });
+  if (!current.quoteId) throw new AppError("RULE_FAILED", { message: "This request hasn't been quoted yet.", context: { reason: "NOT_QUOTED" } });
+  const [version] = await db
+    .select({ number: schema.quoteVersions.number, totalMinor: schema.quoteVersions.totalMinor })
+    .from(schema.quoteVersions)
+    .where(and(eq(schema.quoteVersions.quoteId, current.quoteId), eq(schema.quoteVersions.status, "SENT")))
+    .orderBy(desc(schema.quoteVersions.number))
+    .limit(1);
+  const found = await requestForQuote(db, current.quoteId);
+  const approvedMinor = found?.approved?.approvedAmountMinor ?? null;
+  if (!version || approvedMinor === null || version.totalMinor <= approvedMinor) {
+    throw new AppError("RULE_FAILED", { message: "This quote is within the approved amount; it doesn't need a new approval.", context: { reason: "WITHIN_APPROVAL" } });
+  }
+  await db.transaction(async (tx) => {
+    const row = await loadRequest(tx, organizationId, requestId, { lock: true });
+    if (row.version !== input.version) throw new AppError("VERSION_CONFLICT", { context: { currentVersion: row.version } });
+    if (row.status !== "SENT_TO_HOLYPEARLS") throw new AppError("RULE_FAILED", { message: "This request is already waiting for a decision.", context: { reason: "NOT_SENT", status: row.status } });
+    const snapshot = row.snapshot as Record<string, unknown>;
+    const updated = { ...row, estimatedTotalMinor: version.totalMinor };
+    await tx
+      .update(schema.orderRequests)
+      .set({
+        status: "PENDING_APPROVAL",
+        estimatedTotalMinor: version.totalMinor,
+        snapshot: { ...snapshot, reapproval: { quoteVersion: version.number, totalMinor: version.totalMinor.toString(), approvedMinor: approvedMinor.toString(), note: input.note } },
+        submittedAt: actor.now,
+        version: row.version + 1,
+        updatedAt: actor.now,
+      })
+      .where(eq(schema.orderRequests.id, row.id));
+    await recordAudit(tx, actor, {
+      action: "order_request.reapproval_requested",
+      summary: `Re-approval requested: HolyPearls' quote ${naira(version.totalMinor, row.currency)} is above the approved ${naira(approvedMinor, row.currency)} (${row.title})`,
+      recordType: "ORDER_REQUEST",
+      recordId: row.id,
+      before: { status: "SENT_TO_HOLYPEARLS", approvedMinor: approvedMinor.toString() },
+      after: { status: "PENDING_APPROVAL", quoteVersion: version.number, totalMinor: version.totalMinor.toString(), note: input.note },
+    });
+    await emailApprovers(deps, tx, actor, updated, actorName(actor));
   });
   return getOrderRequest(db, actor, organizationId, requestId);
 }

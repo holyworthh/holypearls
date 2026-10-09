@@ -64,7 +64,9 @@ export function ApprovalDecision({ organizationId, initial }: { organizationId: 
   const action = (name: "cancel" | "resubmit") => void call(name, () => api(`${base}/${name}`, { method: "POST", body: { version: request.version }, response: orderRequestSchema }));
 
   const done =
-    request.status === "SENT_TO_HOLYPEARLS"
+    request.status === "SENT_TO_HOLYPEARLS" && initial.reapproval
+      ? "Approved the new total. The quote can be accepted now."
+      : request.status === "SENT_TO_HOLYPEARLS"
       ? `Approved and sent to HolyPearls for a quote${request.quoteReference ? ` (${request.quoteReference})` : ""}.`
       : request.status === "REJECTED"
         ? "Declined."
@@ -114,7 +116,9 @@ export function ApprovalDecision({ organizationId, initial }: { organizationId: 
           <FormField id="decision-note" label={`Add a note for ${firstName} (required when declining or asking for changes)`} error={errors.note}>
             <TextArea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />
           </FormField>
-          <p className={styles.dialogText}>Approving sends the request to HolyPearls for a quote. You&apos;ll approve again only if the quote is higher than this estimate.</p>
+          <p className={styles.dialogText}>
+            {request.reapproval ? "Approving lets your workspace accept HolyPearls' quote at the new total." : "Approving sends the request to HolyPearls for a quote. You'll approve again only if the quote is higher than this estimate."}
+          </p>
         </div>
       ) : null}
       {request.canResubmit ? (

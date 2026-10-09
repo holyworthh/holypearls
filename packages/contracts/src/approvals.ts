@@ -80,6 +80,9 @@ export const orderRequestSchema = orderRequestSummarySchema.extend({
   approvals: z.array(z.object({ id: z.string(), decision: approvalDecisionSchema, amountMinor: minor.nullable(), note: z.string().nullable(), decidedBy: z.string().nullable(), createdAt: isoDate })),
   history: z.array(z.object({ label: z.string(), by: z.string().nullable(), at: isoDate })),
   quoteReference: z.string().nullable(),
+  quoteId: z.string().nullable(),
+  /** HolyPearls' quote came back above the approved amount and is waiting for a new approval (T11-04b; frame 73B). */
+  reapproval: z.object({ approvedMinor: minor, quoteTotalMinor: minor, differenceMinor: minor, quoteVersion: z.number().int(), note: z.string().nullable() }).nullable(),
   canDecide: z.boolean(),
   /** Why this person can't decide, when they otherwise could (their own request with separation on). */
   decideBlockedReason: z.string().nullable(),
@@ -101,3 +104,21 @@ export const decideOrderRequestSchema = z
 export type DecideOrderRequest = z.infer<typeof decideOrderRequestSchema>;
 
 export const orderRequestActionSchema = z.object({ version: z.number().int() });
+
+/** The organization's side of a quote (T11-04b; QUOTE-FR-020–022; frame 48): what was approved against the current quote. */
+export const quoteOrganizationApprovalSchema = z.object({
+  requestId: z.string(),
+  organizationId: z.string(),
+  organizationName: z.string(),
+  approvedMinor: minor.nullable(),
+  approvedBy: z.string().nullable(),
+  quoteTotalMinor: minor.nullable(),
+  differenceMinor: minor.nullable(),
+  reapprovalRequired: z.boolean(),
+  reapprovalPending: z.boolean(),
+  canSendForReapproval: z.boolean(),
+  version: z.number().int(),
+});
+export type QuoteOrganizationApproval = z.infer<typeof quoteOrganizationApprovalSchema>;
+
+export const requestReapprovalSchema = z.object({ note: z.string().trim().max(1000).nullable().default(null), version: z.number().int() });

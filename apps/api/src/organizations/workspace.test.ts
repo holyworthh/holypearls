@@ -159,16 +159,21 @@ describe("placing orders for the organization and location", () => {
     const overview = workspaceOverviewSchema.parse((await manager.get(`${base()}/overview`)).body);
     expect(overview.needsAttention.map((item) => item.kind)).toContain("QUOTE");
 
-    await manager.post("/v1/email-codes", { purpose: "ACCEPT_QUOTE" });
+    // Accepting an organization's quote needs "Accept HolyPearls quotes" (B2B-FR-044, T11-04b): not the Location Manager, the Owner.
+    const refused = await manager.post(`/v1/quotes/${quoteId}/accept`, { versionNumber: 1, acknowledged: true });
+    expect(refused.status).toBe(403);
+    expect(refused.body.context).toMatchObject({ reason: "ACCEPT_QUOTES_REQUIRED" });
+    const owner = api("acmeOwner");
+    await owner.post("/v1/email-codes", { purpose: "ACCEPT_QUOTE" });
     const [codeMail] = await db()
       .select()
       .from(schema.notifications)
-      .where(and(eq(schema.notifications.recipient, TEST_PEOPLE.acmeLekkiManager.email), eq(schema.notifications.template, "email_code")))
+      .where(and(eq(schema.notifications.recipient, TEST_PEOPLE.acmeOwner.email), eq(schema.notifications.template, "email_code")))
       .orderBy(desc(schema.notifications.createdAt))
       .limit(1);
     const { code } = unseal(codeMail!.sealedData!, TEST_SEAL_KEY) as { code: string };
-    await manager.post("/v1/email-codes/verify", { purpose: "ACCEPT_QUOTE", code });
-    const accepted = await manager.post(`/v1/quotes/${quoteId}/accept`, { versionNumber: 1, acknowledged: true });
+    await owner.post("/v1/email-codes/verify", { purpose: "ACCEPT_QUOTE", code });
+    const accepted = await owner.post(`/v1/quotes/${quoteId}/accept`, { versionNumber: 1, acknowledged: true });
     expect(accepted.status).toBe(200);
     const [order] = await db().select().from(schema.orders).where(eq(schema.orders.id, accepted.body.id));
     expect({ organizationId: order!.organizationId, locationId: order!.locationId }).toEqual({ organizationId: acme, locationId: lekki });

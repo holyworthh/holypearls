@@ -4,6 +4,8 @@ import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
 import { nextNumber, type OrderEmailDeps } from "../orders/orders.js";
+import { organizationQuoteCheck } from "../organizations/approvals.js";
+import { canSeeOrganizationRecord } from "../organizations/scope.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
 import { releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder } from "../proofs/proofs.js";
@@ -104,7 +106,8 @@ export async function loadCustomerQuote(db: Database | Tx, access: QuoteAccess, 
         (actor.guest.targetType === "PROJECT" && actor.guest.targetId === quote.projectId) ||
         (actor.guest.targetType === "CONFIGURATION" && quote.configurationIds.includes(actor.guest.targetId)))) ||
     (device !== null && (row.projectDevice === device || row.designDevice === device));
-  if (!allowed) throw new AppError("NOT_FOUND");
+  // A quote placed for an organization opens for its members who can see the location (T10-03, T11-04b); accepting is checked separately.
+  if (!allowed && !(await canSeeOrganizationRecord(db as Database, actor, { organizationId: quote.organizationId, locationId: quote.locationId, ownerUserId: row.customerUser ?? row.designUser ?? row.projectUser }))) throw new AppError("NOT_FOUND");
   return quote;
 }
 
@@ -191,7 +194,8 @@ export async function getCustomerQuote(db: Database, access: QuoteAccess, id: st
   const [project] = quote.projectId ? await db.select({ reference: schema.projects.reference, title: schema.projects.title }).from(schema.projects).where(eq(schema.projects.id, quote.projectId)) : [];
   const snapshot = quote.requestSnapshot as { productName?: string; title?: string | null; type?: string };
   const requests = await db.select().from(schema.quoteChangeRequests).where(eq(schema.quoteChangeRequests.quoteId, id)).orderBy(desc(schema.quoteChangeRequests.createdAt));
-  const blockers = acceptBlockers(quote, shown, access.actor.now);
+  const organization = await organizationQuoteCheck(db, access.actor, quote, shown?.status === "SENT" ? shown.totalMinor : null);
+  const blockers = [...acceptBlockers(quote, shown, access.actor.now), ...(quote.status === "ACCEPTED" ? [] : organization.blockers)];
   return {
     id: quote.id,
     reference: quote.reference,
@@ -203,6 +207,7 @@ export async function getCustomerQuote(db: Database, access: QuoteAccess, id: st
     changes,
     canAccept: blockers.length === 0,
     blockers,
+    organizationApproval: organization.approval,
     order: order ?? null,
     requests: requests.map((request) => ({
       kind: request.kind,
@@ -224,6 +229,15 @@ function acceptBlockers(quote: QuoteRow, shown: VersionRow | null, now: Date): C
   return [];
 }
 
+/** The total of a sent version, for checking it against an organization's approval. */
+async function sentTotal(db: Database, quoteId: string, versionNumber: number) {
+  const [version] = await db
+    .select({ totalMinor: schema.quoteVersions.totalMinor })
+    .from(schema.quoteVersions)
+    .where(and(eq(schema.quoteVersions.quoteId, quoteId), eq(schema.quoteVersions.number, versionNumber), eq(schema.quoteVersions.status, "SENT")));
+  return version?.totalMinor ?? null;
+}
+
 /**
  * Accept (QUOTE-FR-007–008, TECH-05 §8). The customer confirms they've
  * reviewed it and has checked an email code recently. In one transaction,
@@ -243,6 +257,12 @@ export async function acceptQuote(deps: OrderEmailDeps, access: QuoteAccess, id:
   if (already) return already;
   if (actor.type === "anonymous") {
     throw new AppError("RULE_FAILED", { message: "Open this quote from the link in your email to accept it.", context: { reason: "OPEN_FROM_EMAIL" } });
+  }
+  // An organization's quote: only people who may accept for it, within what it approved (B2B-FR-043–044; QUOTE-FR-021).
+  const organizationBlock = (await organizationQuoteCheck(deps.db, actor, quote, await sentTotal(deps.db, id, input.versionNumber))).blockers[0];
+  if (organizationBlock) {
+    if (organizationBlock.code === "ORGANIZATION_PERMISSION") throw new AppError("FORBIDDEN", { message: organizationBlock.message, context: { reason: "ACCEPT_QUOTES_REQUIRED", permission: "ACCEPT_QUOTES" } });
+    throw new AppError("RULE_FAILED", { message: organizationBlock.message, context: { reason: organizationBlock.code } });
   }
   await requireRecentEmailCode(deps.db, actor);
 

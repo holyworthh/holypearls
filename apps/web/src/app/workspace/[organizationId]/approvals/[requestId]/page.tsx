@@ -32,7 +32,7 @@ export default async function ApprovalRequestPage({ params }: { params: Promise<
       ) : (
         (() => {
           const request = result.data;
-          const status = request.needsMyDecision ? { label: "AWAITING YOUR APPROVAL", tone: "warning" as const } : ORDER_REQUEST_STATUS[request.status];
+          const status = request.reapproval ? { label: "REAPPROVAL REQUIRED", tone: "warning" as const } : request.needsMyDecision ? { label: "AWAITING YOUR APPROVAL", tone: "warning" as const } : ORDER_REQUEST_STATUS[request.status];
           return (
             <div className={styles.orderLayout}>
               <div className={styles.templateSpec}>
@@ -60,6 +60,39 @@ export default async function ApprovalRequestPage({ params }: { params: Promise<
                     </div>
                   </dl>
                 </section>
+                {request.reapproval ? (
+                  <section className={styles.detail} aria-labelledby="reapproval-title">
+                    <h2 id="reapproval-title" className={styles.detailTitle}>
+                      HolyPearls&apos; quote came back higher
+                    </h2>
+                    <dl className={styles.requestMeta}>
+                      <div>
+                        <dt className={styles.eyebrow}>You approved</dt>
+                        <dd className={styles.detailLabel}>{naira(request.reapproval.approvedMinor, request.currency)}</dd>
+                      </div>
+                      <div>
+                        <dt className={styles.eyebrow}>HolyPearls quote</dt>
+                        <dd className={styles.detailLabel}>{naira(request.reapproval.quoteTotalMinor, request.currency)}</dd>
+                      </div>
+                      <div>
+                        <dt className={styles.eyebrow}>Difference</dt>
+                        <dd className={styles.detailLabel}>+{naira(request.reapproval.differenceMinor, request.currency)}</dd>
+                      </div>
+                    </dl>
+                    {request.reapproval.note ? (
+                      <div className={styles.detailText}>
+                        <span className={styles.detailLabel}>What changed in the quote</span>
+                        <span className={styles.detailValue}>{request.reapproval.note}</span>
+                      </div>
+                    ) : null}
+                    {request.quoteId ? (
+                      <a className={styles.rowLink} href={`/quotes/${request.quoteId}`}>
+                        View HolyPearls quote {request.quoteReference}
+                      </a>
+                    ) : null}
+                    <p className={styles.dialogText}>The approver sees the difference; HolyPearls&apos; quote stays visible and unchanged.</p>
+                  </section>
+                ) : null}
                 <section className={styles.detail} aria-labelledby="items-title">
                   <h2 id="items-title" className={styles.detailTitle}>
                     What&apos;s being ordered

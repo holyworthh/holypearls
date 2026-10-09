@@ -158,6 +158,7 @@ import {
   orderRequestActionSchema,
   orderRequestListSchema,
   orderRequestSchema,
+  requestReapprovalSchema,
   updateApprovalPolicySchema,
   adminTemplateSchema,
   brandAssetListSchema,
@@ -487,6 +488,14 @@ const templatePaths = {
       parameters: [orgParam, uuidParam("requestId"), idempotencyHeader],
       requestBody: { required: true, content: json(decideOrderRequestSchema) },
       responses: { 200: { description: "Decided", content: json(orderRequestSchema) }, ...member, 400: error("A note is needed to decline or ask for changes; an amount when there's no estimate"), 403: error("No APPROVE_REQUESTS, or SELF_APPROVAL with separation on (FORBIDDEN)"), 409: error("VERSION_CONFLICT"), 422: error("NOT_PENDING (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/order-requests/{requestId}/reapproval": {
+    post: {
+      summary: "Send HolyPearls' quote for re-approval when it's above the approved amount (T11-04b; the requester or someone who can accept quotes). The approvers' decision is a new approval record.",
+      parameters: [orgParam, uuidParam("requestId")],
+      requestBody: { required: true, content: json(requestReapprovalSchema) },
+      responses: { 200: { description: "Waiting for re-approval", content: json(orderRequestSchema) }, ...member, 403: error("REQUESTER_OR_ACCEPTER_ONLY (FORBIDDEN)"), 409: error("VERSION_CONFLICT"), 422: error("WITHIN_APPROVAL, NOT_QUOTED or NOT_SENT (RULE_FAILED)") },
     },
   },
   "/v1/organizations/{organizationId}/order-requests/{requestId}/resubmit": {
