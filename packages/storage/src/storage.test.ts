@@ -2,9 +2,15 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { LocalDiskStorage } from "./index.js";
+import { LocalDiskStorage, S3Storage } from "./index.js";
 
 const make = async () => new LocalDiskStorage(await mkdtemp(join(tmpdir(), "hp-storage-")), "http://localhost:3000/api", "secret-0123456789-0123456789-0123");
+
+it("signs a mandatory write-once condition for direct S3 uploads", async () => {
+  const storage = new S3Storage({ endpoint: "https://storage.example.test", bucket: "test", accessKeyId: "test-access", secretAccessKey: "test-secret" });
+  const url = new URL(await storage.presignUpload("uploads/pending/a", { contentType: "image/png", contentLength: 10, expiresInSeconds: 60 }));
+  expect(url.searchParams.get("X-Amz-SignedHeaders")?.split(";")).toContain("if-none-match");
+});
 
 describe("local disk storage", () => {
   it("signs one object and one operation, and refuses forged or expired tokens", async () => {

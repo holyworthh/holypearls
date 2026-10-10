@@ -35,10 +35,15 @@ describe.skipIf(!configured)("files in R2", () => {
       // The browser's direct upload (TECH-04 §3).
       const put = await fetch(await before.presignUpload(key, { contentType: "text/plain", contentLength: body.length, expiresInSeconds: 60 }), {
         method: "PUT",
-        headers: { "content-type": "text/plain" },
+        headers: { "content-type": "text/plain", "if-none-match": "*" },
         body,
       });
       expect(put.status).toBe(200);
+      const replay = await fetch(await before.presignUpload(key, { contentType: "text/plain", contentLength: body.length, expiresInSeconds: 60 }), {
+        method: "PUT", headers: { "content-type": "text/plain", "if-none-match": "*" }, body: Buffer.alloc(body.length, 88),
+      });
+      expect(replay.status).toBe(412);
+      expect(await before.read(key)).toEqual(body);
       // Finalising checks the real size and inspection reads the first bytes.
       expect(await before.head(key)).toEqual({ size: body.length });
       expect((await before.readStart(key, 7)).toString()).toBe("artwork");
