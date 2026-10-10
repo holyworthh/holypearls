@@ -245,3 +245,49 @@ export const orderDraftOriginSchema = z.object({
   quoteReference: z.string().nullable(),
 });
 export type OrderDraftOrigin = z.infer<typeof orderDraftOriginSchema>;
+
+/* CSV import (T12-03c; PRD-05 B2B-FR-070–073; TECH-04 §12; Pen 75). */
+
+/** What a column can be matched to. Name and email are needed; the rest follow the collection's fields. */
+export const IMPORT_FIELDS = ["name", "email", "size", "personalization", "quantity", "colour", "branch"] as const;
+export const importFieldSchema = z.enum(IMPORT_FIELDS);
+export type ImportField = z.infer<typeof importFieldSchema>;
+export const IMPORT_FIELD_LABELS: Record<ImportField, string> = { name: "Name", email: "Email", size: "Size", personalization: "Name on chest", quantity: "Quantity", colour: "Colour", branch: "Delivery branch" };
+
+export const DUPLICATE_DECISIONS = ["MERGE", "KEEP_BOTH", "REPLACE", "SKIP"] as const;
+export const duplicateDecisionSchema = z.enum(DUPLICATE_DECISIONS);
+
+export const importRowSchema = z.object({
+  id: z.string(),
+  line: z.number().int(),
+  values: z.record(z.string(), z.string().nullable()),
+  problems: z.array(z.object({ field: z.string(), message: z.string() })),
+  /** Someone already in the collection (or earlier in the file) with the same email. */
+  duplicateOf: z.string().nullable(),
+  decision: duplicateDecisionSchema.nullable(),
+  outcome: z.enum(["PENDING", "IMPORTED", "SKIPPED"]),
+});
+export type ImportRow = z.infer<typeof importRowSchema>;
+
+export const importBatchSchema = z.object({
+  id: z.string(),
+  fileName: z.string(),
+  status: z.enum(["UPLOADED", "CHECKED", "IMPORTED", "CANCELLED"]),
+  headers: z.array(z.string()),
+  /** Column header for each field, or null. */
+  mapping: z.partialRecord(importFieldSchema, z.string().nullable()),
+  /** Which fields this collection uses. */
+  fields: z.array(importFieldSchema),
+  counts: z.object({ rows: z.number().int(), ready: z.number().int(), problems: z.number().int(), duplicates: z.number().int(), imported: z.number().int(), skipped: z.number().int() }),
+  rows: z.array(importRowSchema),
+  version: z.number().int(),
+});
+export type ImportBatch = z.infer<typeof importBatchSchema>;
+
+export const importBatchListSchema = z.object({ batches: z.array(z.object({ id: z.string(), fileName: z.string(), status: z.string(), rows: z.number().int(), imported: z.number().int(), createdAt: isoDate })) });
+
+export const startImportSchema = z.object({ fileId: z.uuid("Upload the file first") });
+export const matchColumnsSchema = z.object({ mapping: z.partialRecord(importFieldSchema, z.string().nullable()), version: z.number().int() });
+export const fixImportRowSchema = z.object({ values: z.partialRecord(importFieldSchema, z.string().trim().max(200).nullable()).optional(), decision: duplicateDecisionSchema.nullable().optional(), version: z.number().int() });
+/** Import: with `partial`, valid rows go in now and problem rows wait to be fixed (B2B-FR-071). */
+export const runImportSchema = z.object({ partial: z.boolean(), version: z.number().int() });

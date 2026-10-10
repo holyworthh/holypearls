@@ -1,9 +1,10 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { check, foreignKey, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
+import { files } from "./files.js";
 import { users } from "./identity.js";
 import { locations, organizations, templates } from "./organizations.js";
 
@@ -84,8 +85,11 @@ export const participants = pgTable(
     name: text("name").notNull(),
     email: text("email").notNull(),
     status: participantStatus("status").notNull().default("NOT_STARTED"),
-    /** How they arrived: the share link now, a CSV import row later (T12-03). */
+    /** How they arrived: LINK, or IMPORT:<file name> for a CSV row (T12-03c). */
     origin: text("origin").notNull().default("LINK"),
+    /** The import batch and row they came from (TECH-04 §12: each imported record remembers its batch and row). */
+    importBatchId: uuid("import_batch_id"),
+    importRow: integer("import_row"),
     /** Left out of the order during review (T12-03); kept in the list and history. */
     excludedAt: timestamp("excluded_at", { withTimezone: true }),
     removedAt: timestamp("removed_at", { withTimezone: true }),
@@ -137,4 +141,64 @@ export const orderDrafts = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [index("order_drafts_collection_idx").on(table.collectionId, table.status), index("order_drafts_configuration_idx").on(table.configurationId)],
+);
+
+/*
+ * CSV imports (T12-03c; PRD-05 B2B-FR-070–073; TECH-04 §12; Pen 75). Upload →
+ * match columns → check each row → fix problems and choose for duplicates →
+ * import. Every row ends IMPORTED, SKIPPED (by an explicit choice) or still
+ * waiting to be fixed: none is ever silently dropped. CSV contents are never
+ * written to logs.
+ */
+export const importBatches = pgTable(
+  "import_batches",
+  {
+    id: idColumn(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => groupCollections.id, { onDelete: "cascade" }),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => files.id, { onDelete: "restrict" }),
+    fileName: text("file_name").notNull(),
+    /** UPLOADED → CHECKED (columns matched, rows checked) → IMPORTED (some or all rows in); CANCELLED. */
+    status: text("status").notNull().default("UPLOADED"),
+    headers: text("headers").array().notNull(),
+    mapping: jsonb("mapping").notNull().default({}),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    importedAt: timestamp("imported_at", { withTimezone: true }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("import_batches_collection_idx").on(table.collectionId, table.createdAt), check("import_batches_status", sql`${table.status} in ('UPLOADED', 'CHECKED', 'IMPORTED', 'CANCELLED')`)],
+);
+
+export const importRows = pgTable(
+  "import_rows",
+  {
+    id: idColumn(),
+    batchId: uuid("batch_id")
+      .notNull()
+      .references(() => importBatches.id, { onDelete: "cascade" }),
+    /** The row's line in the file (the header is line 1). */
+    line: integer("line").notNull(),
+    /** The cells as uploaded, by column. */
+    raw: text("raw").array().notNull(),
+    /** The values after matching and any fixes. */
+    values: jsonb("values").notNull().default({}),
+    problems: jsonb("problems").notNull().default([]),
+    /** The participant this row matches (same email), if any. */
+    duplicateOfParticipantId: uuid("duplicate_of_participant_id"),
+    /** MERGE, KEEP_BOTH, REPLACE or SKIP (B2B-FR-072); SKIP is also how a problem row is left out on purpose. */
+    decision: text("decision"),
+    /** PENDING → IMPORTED | SKIPPED. */
+    outcome: text("outcome").notNull().default("PENDING"),
+    participantId: uuid("participant_id"),
+  },
+  (table) => [
+    uniqueIndex("import_rows_line_unique").on(table.batchId, table.line),
+    check("import_rows_outcome", sql`${table.outcome} in ('PENDING', 'IMPORTED', 'SKIPPED')`),
+    check("import_rows_decision", sql`${table.decision} is null or ${table.decision} in ('MERGE', 'KEEP_BOTH', 'REPLACE', 'SKIP')`),
+  ],
 );
