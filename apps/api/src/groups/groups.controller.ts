@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res } from "@nestjs/common";
-import { collectionActionSchema, createCollectionSchema, joinCollectionSchema, saveParticipationSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
+import { collectionActionSchema, correctionSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import { RateLimit } from "../platform/rate-limit.js";
 import { HELP_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { changeCollection, collectionInvite, createCollection, getCollection, listCollections, updateCollection } from "./collections.js";
+import { actOnParticipant, closeOrReopen, collectionDashboard, remindParticipants } from "./dashboard.js";
 import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
 
 const uuid = new ParseUUIDPipe();
@@ -48,6 +49,62 @@ export class CollectionsController {
     @Body(new ZodValidationPipe(updateCollectionSchema)) body: z.infer<typeof updateCollectionSchema>,
   ) {
     return updateCollection(this.deps, await actorOf(request), organizationId, collectionId, body);
+  }
+
+  /* The organizer's dashboard (T12-03; Pen 30, 74, 133, 134). */
+
+  @Get(":collectionId/dashboard")
+  async dashboard(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string) {
+    return collectionDashboard(this.deps.db, await actorOf(request), organizationId, collectionId);
+  }
+
+  @Post(":collectionId/remind")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async remind(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string) {
+    return remindParticipants(this.deps, await actorOf(request), organizationId, collectionId);
+  }
+
+  @Post(":collectionId/close")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async close(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(collectionActionSchema)) body: z.infer<typeof collectionActionSchema>) {
+    return closeOrReopen(this.deps, await actorOf(request), organizationId, collectionId, { kind: "close", version: body.version });
+  }
+
+  @Post(":collectionId/reopen")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async reopen(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(reopenCollectionSchema)) body: z.infer<typeof reopenCollectionSchema>) {
+    return closeOrReopen(this.deps, await actorOf(request), organizationId, collectionId, { kind: "reopen", deadline: body.deadline, version: body.version });
+  }
+
+  @Post(":collectionId/participants/:participantId/:action")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async participant(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("collectionId", uuid) collectionId: string,
+    @Param("participantId", uuid) participantId: string,
+    @Param("action") action: string,
+    @Body() body: unknown,
+  ) {
+    const actor = await actorOf(request);
+    const parse = <T extends z.ZodType>(schema: T) => new ZodValidationPipe(schema).transform(body) as z.infer<T>;
+    if (action === "correction") {
+      const input = parse(correctionSchema);
+      return actOnParticipant(this.deps, actor, organizationId, collectionId, participantId, { kind: "correction", note: input.note }, input.version);
+    }
+    if (action === "settle-size") {
+      const input = parse(settleSizeSchema);
+      return actOnParticipant(this.deps, actor, organizationId, collectionId, participantId, { kind: "settle-size", size: input.size }, input.version);
+    }
+    if (action === "exclude" || action === "include" || action === "remove") {
+      const input = parse(participantActionSchema);
+      return actOnParticipant(this.deps, actor, organizationId, collectionId, participantId, { kind: action }, input.version);
+    }
+    throw new AppError("NOT_FOUND");
   }
 
   @Post(":collectionId/:action")

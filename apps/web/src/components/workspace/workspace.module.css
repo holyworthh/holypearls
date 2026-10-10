@@ -1325,3 +1325,60 @@
   font-size: var(--hp-text-support);
   overflow-wrap: anywhere;
 }
+
+/* Group organizer dashboard (Pen 30 · qig8v, 74 · hnmBe) */
+
+.groupTop {
+  display: grid;
+  gap: var(--hp-space-20);
+}
+
+@media (min-width: 1024px) {
+  .groupTop {
+    grid-template-columns: 1fr 2fr;
+    align-items: start;
+  }
+}
+
+.groupNumber {
+  margin: 0;
+  font-family: var(--hp-font-display);
+  font-size: var(--hp-text-display);
+  line-height: var(--hp-leading-compact);
+}
+
+.sizeTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--hp-text-support);
+  text-align: center;
+}
+
+.sizeTable th,
+.sizeTable td {
+  padding: var(--hp-space-8) var(--hp-space-4);
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+}
+
+.sizeTable th {
+  color: var(--hp-graphite);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-4);
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+}
+
+.settings > summary {
+  min-height: var(--hp-touch-target);
+  padding: var(--hp-space-12) 0;
+  cursor: pointer;
+}
