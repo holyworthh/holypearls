@@ -418,3 +418,9 @@ export async function decideTemplate(db: Database, actor: ActorContext, template
   });
   return adminTemplate(db, templateId);
 }
+
+/** The saved design a template orders from, for other modules (group collections, T12-01). */
+export async function templateSourceConfiguration(db: Database, templateId: string) {
+  const [row] = await db.select({ sourceConfigurationId: schema.templates.sourceConfigurationId }).from(schema.templates).where(eq(schema.templates.id, templateId));
+  return row?.sourceConfigurationId ?? null;
+}

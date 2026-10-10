@@ -415,3 +415,36 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
   await page.getByRole("button", { name: "Save rule" }).click();
   await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
 });
+
+test("groups: a Lekki manager starts a collection from a saved polo, chooses fields, opens and pauses it", async ({ page }) => {
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  const design = await page.evaluate(async () => {
+    const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } }) });
+    return ((await response.json()) as { id: string }).id;
+  });
+  // The configurator's "Start a Group Collection" link (T03-05) lands on step 1 with the design chosen.
+  await page.goto(`/group-collections/start?configuration=${design}`);
+  await expect(page.getByRole("heading", { name: "New group collection", level: 1 })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  const name = `Lekki staff polos ${Date.now()}`;
+  await page.getByLabel("Name").fill(name);
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  // Step 2 (Pen 132): fields, deadline and modes, then open.
+  await expect(page.getByRole("heading", { name: `Set up “${name}”` })).toBeVisible();
+  await expect(page.getByText("Participants can't see it yet")).toBeVisible();
+  await page.getByLabel("Name personalisation").check();
+  await page.locator("#collection-deadline").fill("2030-10-31T18:00");
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Open collection" }).click();
+  await expect(page.getByText("Open. Share the link with everyone taking part.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Share link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy link" })).toBeVisible();
+  await page.getByRole("button", { name: "Pause" }).click();
+  await expect(page.getByText("Paused. Participants can't submit until you open it again.")).toBeVisible();
+
+  await page.goto(page.url().replace(/\/groups\/.*$/, "/groups"));
+  await expect(page.getByRole("link", { name })).toBeVisible();
+});

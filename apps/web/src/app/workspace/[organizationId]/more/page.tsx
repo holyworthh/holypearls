@@ -14,6 +14,7 @@ export default async function WorkspaceMorePage({ params }: { params: Promise<{ 
   const links = [
     ["Approvals", "/approvals"],
     ["Templates", "/templates"],
+    ["Groups", "/groups"],
     ["Brand assets", "/assets"],
     ...(can("MANAGE_TEAM") ? [["Team", "/team"]] : []),
     ["Locations", "/locations"],
