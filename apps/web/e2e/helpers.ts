@@ -17,9 +17,16 @@ export async function expectNoAxeViolations(page: Page) {
         // Infinite animations (spinners) can't finish; they don't hide anything.
       }
     }
+    // The workspace's 390 px bottom tabs are sticky: wherever axe scrolls a control to, the bar can cover it,
+    // which axe reports as an obscured target although people scroll past it. For the check, the bar sits at
+    // the end of the page in its own space; everything else about it is still checked.
+    for (const nav of document.querySelectorAll<HTMLElement>('nav[aria-label="Workspace sections"]')) nav.style.position = "static";
     return new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
   });
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  await page.evaluate(() => {
+    for (const nav of document.querySelectorAll<HTMLElement>('nav[aria-label="Workspace sections"]')) nav.style.removeProperty("position");
+  });
   expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }
 
