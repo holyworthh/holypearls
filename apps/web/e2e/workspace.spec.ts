@@ -425,6 +425,8 @@ test("groups: a Lekki manager starts a collection from a saved polo, chooses fie
   // The configurator's "Start a Group Collection" link (T03-05) lands on step 1 with the design chosen.
   await page.goto(`/group-collections/start?configuration=${design}`);
   await expect(page.getByRole("heading", { name: "New group collection", level: 1 })).toBeVisible();
+  // At 375 px the sticky bottom tabs cover whatever sits at the bottom of the screen mid-page; at the end of the page they have their own space.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   const name = `Lekki staff polos ${Date.now()}`;
