@@ -37,11 +37,11 @@ describe("Paystack adapter", () => {
     expect(sent).toMatchObject({ amount: "6093750", currency: "NGN", reference: "HPPAY-1", channels: ["card", "bank_transfer"] });
   });
 
-  it("turns a refused or unreachable initialize into PaymentStartError", async () => {
+  it("distinguishes a definite refusal from an ambiguous initialization failure", async () => {
     const refused = new PaystackGateway({ secretKey: "sk_test_x", fetch: reply(400, { status: false, message: "Invalid key" }) });
     await expect(refused.initialize({ reference: "r", amountMinor: 1n, currency: "NGN", email: "a@b.co", channels: ["card"], callbackUrl: "https://x", metadata: {} })).rejects.toBeInstanceOf(PaymentStartError);
     const down = new PaystackGateway({ secretKey: "sk_test_x", fetch: async () => { throw new Error("ECONNRESET"); } });
-    await expect(down.initialize({ reference: "r", amountMinor: 1n, currency: "NGN", email: "a@b.co", channels: ["card"], callbackUrl: "https://x", metadata: {} })).rejects.toBeInstanceOf(PaymentStartError);
+    await expect(down.initialize({ reference: "r", amountMinor: 1n, currency: "NGN", email: "a@b.co", channels: ["card"], callbackUrl: "https://x", metadata: {} })).rejects.not.toBeInstanceOf(PaymentStartError);
   });
 
   it("reads verify results and reports unknown references as not_found", async () => {
@@ -51,7 +51,12 @@ describe("Paystack adapter", () => {
     expect((await missing.verify("HPPAY-2")).status).toBe("not_found");
     const broken = new PaystackGateway({ secretKey: "sk_test_x", fetch: reply(500, { status: false, message: "Server error" }) });
     await expect(broken.verify("HPPAY-3")).rejects.toThrow(/verify failed/);
+  });  it.each([503, 409])("keeps HTTP %i initialization outcomes eligible for reconciliation", async status => {
+    const gateway = new PaystackGateway({ secretKey: "sk_test_x", fetch: reply(status, { status: false, message: "Provider unavailable or reference already exists" }) });
+    await expect(gateway.initialize({ reference: "r", amountMinor: 1n, currency: "NGN", email: "a@b.co", channels: ["card"], callbackUrl: "https://x", metadata: {} })).rejects.not.toBeInstanceOf(PaymentStartError);
   });
+
+
 });
 
 /** Against Paystack's test mode (TECH-05 §16). Runs only with a test secret key, never a live one. */

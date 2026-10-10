@@ -25,14 +25,14 @@ Status: APPROVED by the owner, 10 October 2026. The owner also required tests be
 | PRD refs | PRD-00 §§5–8,12; COM-FR-050–054; PAY-FR-003–006,008–010,012; FUL-FR-031–033,060–062 with courier owner amendment; B2B-FR-003,010–013,020–024,030–033,040–044,050–055,061. |
 | Read first | ADR register; owner decisions 2026-10-05/08/10; PRD-00/02/03/04/05; SCREEN-MAP/DESIGN-SYSTEM; TECH-00 §§4–5; TECH-01 §4; TECH-02; TECH-03 §§5–7,12,17; TECH-04 §§7,13; TECH-05 §§2,5–7,16; TECH-07; TECH-08 §§6,13; audit; T00-12 and affected module reports. |
 | Done when | All 13 findings have a tested fix or an explicitly resolved correction of the original finding; all private callers enforce revocation; replay cannot change checked bytes; shared objects survive copy/unlink/cleanup; interrupted attempts recover; money totals stay per currency and span the full scope; ambiguous courier outcomes cannot cause blind duplicate bookings; workspace integration matches its mapped design; required checks and same-viewport comparisons pass; report and tracker updated; PR open. |
-| Size | XL — owner-approved exception required for the consolidated scope. |
-| Status | TODO until plan approval; then IN PROGRESS; IN REVIEW only after PR opens; DONE only after merge and Definition of Done. |
+| Size | XL — owner approved the consolidated scope exception. |
+| Status | IN PROGRESS; IN REVIEW only after PR opens; DONE only after merge and Definition of Done. |
 | Branch | fix/t00-13-audit-remediation |
 | PR | To be created after implementation and checks. |
 | Completion summary | To be recorded after verification. |
-| Blocker | Plan approval pending. |
+| Blocker | None. Plan approved. |
 
-The proposed row will be added after approval. T04-03's real staging test-payment acceptance remains IN REVIEW; this bug-fix ticket repairs the existing implementation and does not declare that acceptance gate DONE. If live-provider acceptance becomes necessary to validate a fix, record the remaining gate rather than fabricating a result.
+The approved row has been added. T04-03's real staging test-payment acceptance remains IN REVIEW; this bug-fix ticket repairs the existing implementation and does not declare that acceptance gate DONE. If live-provider acceptance becomes necessary to validate a fix, record the remaining gate rather than fabricating a result.
 
 ## Implementation sequence and checks
 
@@ -108,7 +108,7 @@ Use an isolated test database/storage and separate API/web/admin ports. Install/
 
 ## Questions and approval
 
-AGENTS.md requires: "Write a plan and wait for approval before implementation." Approve this plan and the single consolidated T00-13 scope (including the larger ticket-size exception) before code changes.
+AGENTS.md requires: "Write a plan and wait for approval before implementation." The owner approved this plan and the single consolidated T00-13 scope, including the larger ticket-size exception, before code changes.
 
 TECH-08 describes merging tickets to main, while current owner practice integrates through dev (also recorded in T00-12). Preserve current dev practice and document that conflict; do not edit plan/PRD/TECH sources.
 

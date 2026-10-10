@@ -13,7 +13,7 @@ import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
-import { canSeeOrganizationRecord } from "../organizations/scope.js";
+import { canSeeOrganizationRecord, organizationAccessWhere } from "../organizations/scope.js";
 
 /*
  * Orders and receipts (T04-05, TECH-05 §8–9; COM-FR-082, 085; PAY-FR-006).
@@ -179,6 +179,10 @@ async function loadOrder(db: Database, access: OrderAccess, id: string, options:
   const [row] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
   if (!row) throw new AppError("NOT_FOUND");
   const { actor } = access;
+  if (row.organizationId && actor.type !== "guest") {
+    if (!(await canSeeOrganizationRecord(db, actor, row))) throw new AppError("NOT_FOUND");
+    if (options.organizationRead) return row;
+  }
   if (actor.type === "user") {
     if (row.ownerUserId === actor.session.userId) return row;
     const [customer] = await db.select({ userId: schema.customers.userId }).from(schema.customers).where(eq(schema.customers.id, row.customerId));
@@ -210,7 +214,7 @@ export async function getOrder(db: Database, access: OrderAccess, id: string): P
 }
 
 /** Whose orders an account sees: its own, and its linked customer record's (TECH-03 §6). */
-const accountOwns = (userId: string) => or(eq(schema.orders.ownerUserId, userId), eq(schema.customers.userId, userId));
+const accountOwns = (userId: string) => and(or(eq(schema.orders.ownerUserId, userId), eq(schema.customers.userId, userId)), organizationAccessWhere(schema.orders, userId));
 
 /** The account's newest orders for its overview (Pen frame 92), with the statuses its order pages show. */
 export async function accountOrders(db: Database, userId: string, limit = 10): Promise<AccountOrder[]> {
@@ -255,6 +259,24 @@ export async function ordersBefore(db: Database, customerId: string, before: Dat
 
 export async function loadOrderFor(db: Database, access: OrderAccess, id: string) {
   return loadOrder(db, access, id);
+}
+
+export async function canReadOrder(db: Database, actor: ActorContext, id: string) {
+  try {
+    await loadOrder(db, { actor, deviceKey: null }, id, { organizationRead: true });
+    return true;
+  } catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return false;
+    throw error;
+  }
+}
+
+/** Artwork of an ordered configuration inherits the retained order's access. */
+export async function configurationOrderAccess(db: Database, actor: ActorContext, configurationId: string) {
+  const orders = await db.selectDistinct({ id: schema.orderItems.orderId }).from(schema.orderItems).where(eq(schema.orderItems.configurationId, configurationId));
+  if (!orders.length) return null;
+  for (const order of orders) if (await canReadOrder(db, actor, order.id)) return true;
+  return false;
 }
 
 export async function orderView(db: Database, row: OrderRow): Promise<Order> {
@@ -343,4 +365,11 @@ export function receiptView(row: typeof schema.receipts.$inferSelect, order: Ord
 export async function orderOfCheckout(db: Database, checkoutId: string) {
   const [row] = await db.select({ id: schema.orders.id, number: schema.orders.number }).from(schema.orders).where(eq(schema.orders.checkoutId, checkoutId));
   return row ?? null;
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function orderRetainsFile(fileId: string) {
+  return sql`exists (select 1 from problem_report_photos where file_id = ${fileId}::uuid)
+    or exists (select 1 from order_items where snapshot::text like '%' || ${fileId}::text || '%')
+    or exists (select 1 from proof_versions where views::text like '%' || ${fileId}::text || '%')`;
 }

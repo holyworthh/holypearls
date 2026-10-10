@@ -1,5 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import {
+  accountHistorySchema,
   adminQuoteSchema,
   checkoutSchema,
   configurationSchema,
@@ -260,4 +261,67 @@ describe("location scope in every view (TECH-03 §7, §17)", () => {
     expect(overview.activeOrders.every((row) => row.locationName === "Lekki")).toBe(true);
     expect(workspaceOverviewSchema.parse((await api("acmeViewer").get(`${base()}/overview`)).body).canCreate).toBe(false);
   });
+});
+
+
+describe("record ownership never bypasses current organization scope", () => {
+  it("hides an owner's organization order, receipt and account history after deactivation", async () => {
+    const [order] = await db().select().from(schema.orders).where(eq(schema.orders.id, viOrder));
+    const [membership] = await db().select().from(schema.memberships).where(and(eq(schema.memberships.organizationId, acme), eq(schema.memberships.userId, order!.ownerUserId!)));
+    const [receipt] = await db().select().from(schema.receipts).where(eq(schema.receipts.orderId, viOrder));
+    await db().update(schema.memberships).set({ status: "DEACTIVATED" }).where(eq(schema.memberships.id, membership!.id));
+    try {
+      expectHidden(await api("acmeBuyer").get(`/v1/orders/${viOrder}`));
+      expectHidden(await api("acmeBuyer").get(`/v1/orders/${viOrder}/receipts/${receipt!.id}`));
+      expectHidden(await api("acmeBuyer").post(`/v1/orders/${viOrder}/reorder`, { itemPosition: 1, mode: "EXACT" }));
+      const history = accountHistorySchema.parse((await api("acmeBuyer").get("/v1/me/history")).body);
+      expect(history.orders.some(row => row.id === viOrder)).toBe(false);
+      expect(history.receipts.some(row => row.orderId === viOrder)).toBe(false);
+    } finally {
+      await db().update(schema.memberships).set({ status: "ACTIVE" }).where(eq(schema.memberships.id, membership!.id));
+    }
+  });
+
+  it("hides an owner's order and account lists after their location scope is reduced", async () => {
+    const [order] = await db().select().from(schema.orders).where(eq(schema.orders.id, viOrder));
+    const [membership] = await db().select().from(schema.memberships).where(and(eq(schema.memberships.organizationId, acme), eq(schema.memberships.userId, order!.ownerUserId!)));
+    const locations = await db().select().from(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, membership!.id));
+    await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, membership!.id));
+    await db().insert(schema.membershipLocations).values({ membershipId: membership!.id, organizationId: acme, locationId: lekki });
+    await db().update(schema.memberships).set({ allLocations: false }).where(eq(schema.memberships.id, membership!.id));
+    try {
+      expectHidden(await api("acmeBuyer").get(`/v1/orders/${viOrder}`));
+      const history = accountHistorySchema.parse((await api("acmeBuyer").get("/v1/me/history")).body);
+      expect(history.orders.some(row => row.id === viOrder)).toBe(false);
+    } finally {
+      await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, membership!.id));
+      if (locations.length) await db().insert(schema.membershipLocations).values(locations);
+      await db().update(schema.memberships).set({ allLocations: membership!.allLocations }).where(eq(schema.memberships.id, membership!.id));
+    }
+  });
+});
+
+
+it("revocation also hides retained order artwork from the member who uploaded it", async () => {
+  const [order] = await db().select().from(schema.orders).where(eq(schema.orders.id, viOrder));
+  const [item] = await db().select().from(schema.orderItems).where(eq(schema.orderItems.orderId, viOrder));
+  const [membership] = await db().select().from(schema.memberships).where(and(eq(schema.memberships.organizationId, acme), eq(schema.memberships.userId, order!.ownerUserId!)));
+  const [file] = await db().insert(schema.files).values({ purpose: "ARTWORK", status: "READY", ownerType: "CONFIGURATION", ownerId: item!.configurationId!, uploadedByUserId: order!.ownerUserId, uploadedByCustomerId: order!.customerId, originalName: "order-logo.svg", safeName: "order-logo.svg", declaredSize: 1, declaredType: "image/svg+xml", storageKey: `test/order-artwork/${crypto.randomUUID()}` }).returning();
+  await harness.storage.write(file!.storageKey, Buffer.from("x"), "image/svg+xml");
+  await db().insert(schema.configurationFiles).values({ configurationId: item!.configurationId!, fileId: file!.id, role: "ARTWORK" });
+  expect((await api("acmeBuyer").get(`/v1/files/${file!.id}/download`)).status).toBe(200);
+  await db().update(schema.memberships).set({ status: "DEACTIVATED" }).where(eq(schema.memberships.id, membership!.id));
+  try { expectHidden(await api("acmeBuyer").get(`/v1/files/${file!.id}/download`)); }
+  finally { await db().update(schema.memberships).set({ status: "ACTIVE" }).where(eq(schema.memberships.id, membership!.id)); }
+});
+
+
+it("an open review takes priority over a paid receipt on the order and workspace card", async () => {
+  const [receipt] = await db().select().from(schema.receipts).where(eq(schema.receipts.orderId, viOrder));
+  const [review] = await db().insert(schema.paymentReviews).values({ intentId: receipt!.intentId, attemptId: receipt!.attemptId, reason: "DUPLICATE_PAYMENT", details: { expected: "one payment" } }).returning();
+  try {
+    expect(orderSchema.parse((await api("acmeBuyer").get(`/v1/orders/${viOrder}`)).body).paymentStatus).toBe("PAYMENT_RESOLUTION_REQUIRED");
+    expect((await orders("acmeOwner")).orders.find(row => row.id === viOrder)?.paymentStatus).toBe("PAYMENT_RESOLUTION_REQUIRED");
+    expect((await orders("acmeOwner", "?view=attention")).orders.some(row => row.id === viOrder)).toBe(true);
+  } finally { await db().update(schema.paymentReviews).set({ status: "RESOLVED" }).where(eq(schema.paymentReviews.id, review!.id)); }
 });

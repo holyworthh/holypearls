@@ -1,9 +1,10 @@
 import { and, eq, schema } from "@holypearls/db";
 import request from "supertest";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { insertConfigurationCopy } from "../configuration/copies.js";
 import { as, signInActors, type Actors } from "../testing/actors.js";
-import { createHarness, type Harness } from "../testing/harness.js";
+import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
+import { createGuestLink, startGuestSession } from "../identity/customers.js";
 import { inspectFile, removeUnattachedFiles } from "./files.js";
 import { previewFile } from "./processing.js";
 
@@ -76,9 +77,45 @@ describe("retained and checked files", () => {
   it("refuses cleanup of a referenced file even if its owner metadata is missing", async () => {
     const { file } = await upload();
     await draftWithFile(file.id);
-    await db().update(schema.files).set({ ownerType: null, ownerId: null, createdAt: new Date(Date.now() - 8 * 86_400_000) }).where(eq(schema.files.id, file.id));
+    await db().update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null, createdAt: new Date(Date.now() - 8 * 86_400_000) }).where(eq(schema.files.id, file.id));
     await expect(removeUnattachedFiles(deps(), new Date())).resolves.toBe(0);
     expect(await h.storage.head(file.storageKey)).not.toBeNull();
+  });
+
+  it("retries an unattached object's cleanup after storage failure without losing its row", async () => {
+    const { file } = await upload();
+    await db().update(schema.files).set({ createdAt: new Date(Date.now() - 8 * 86_400_000) }).where(eq(schema.files.id, file.id));
+    const remove = vi.spyOn(h.storage, "remove").mockRejectedValueOnce(new Error("storage unavailable"));
+    await expect(removeUnattachedFiles(deps(), new Date())).rejects.toThrow("storage unavailable");
+    expect((await db().select().from(schema.files).where(eq(schema.files.id, file.id))).length).toBe(1);
+    remove.mockRestore();
+    expect(await removeUnattachedFiles(deps(), new Date())).toBe(1);
+    expect(await h.storage.head(file.storageKey)).toBeNull();
+  });
+
+  it("skips an upload whose attachment transaction already holds its row lock", async () => {
+    const { file } = await upload();
+    await db().update(schema.files).set({ createdAt: new Date(Date.now() - 8 * 86_400_000) }).where(eq(schema.files.id, file.id));
+    await db().transaction(async tx => {
+      await tx.select().from(schema.files).where(eq(schema.files.id, file.id)).for("update");
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        const cleanup = removeUnattachedFiles(deps(), new Date());
+        expect(await Promise.race([cleanup, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("cleanup waited on an attachment")), 1000); })])).toBe(0);
+      } finally { clearTimeout(timer!); }
+      await tx.update(schema.files).set({ ownerType: "UNKNOWN", ownerId: crypto.randomUUID() }).where(eq(schema.files.id, file.id));
+    });
+    expect(await h.storage.head(file.storageKey)).not.toBeNull();
+  });
+
+  it("allows a draft's owner and record-specific guest, and hides its file from a different customer", async () => {
+    const { file } = await upload();
+    const draft = await draftWithFile(file.id);
+    const link = await createGuestLink(db(), TEST_WEB_ORIGIN, { customerId: file.uploadedByCustomerId!, targetType: "CONFIGURATION", targetId: draft.id, purpose: "CONFIGURATION" });
+    const guest = await startGuestSession(db(), { ...link, customerId: file.uploadedByCustomerId!, targetType: "CONFIGURATION", targetId: draft.id, expiresAt: new Date(Date.now() + 86_400_000) }, new Date());
+    expect((await as(h, actors.customerChidi!).get(`/v1/files/${file.id}/download`)).status).toBe(200);
+    expect((await as(h, `hp.guest=${guest.token}`).get(`/v1/files/${file.id}/download`)).status).toBe(200);
+    expect((await as(h, actors.customerAmaka!).get(`/v1/files/${file.id}/download`)).status).toBe(404);
   });
 
   it("does not let a deactivated brand-asset uploader bypass its record policy", async () => {

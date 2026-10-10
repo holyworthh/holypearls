@@ -5,6 +5,8 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, customersForContact, ensureAccountCustomer, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { findFileForActor } from "../files/files.js";
+import { configurationOrderAccess } from "../orders/orders.js";
+import { canSeeOrganizationRecord, organizationAccessWhere } from "../organizations/scope.js";
 import { cancelCheckoutPayments, checkoutsWithActivePayment, paymentInProgress } from "../payments/payments.js";
 import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
@@ -74,6 +76,16 @@ export function canOpenDraft(access: DraftAccess, row: Row): boolean {
   return Boolean(deviceKey && row.ownerDeviceHash && row.ownerDeviceHash === sha256(deviceKey));
 }
 
+export async function canSeeConfigurationFile(db: Database, actor: ActorContext, id: string) {
+  const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
+  if (!row) return false;
+  if (actor.type === "user" && actor.staff && (["QUOTE_MANAGE", "PROOF_MANAGE", "PRODUCTION_MANAGE", "CUSTOMER_SUPPORT"] as const).some(permission => actor.staff!.permissions.has(permission))) return true;
+  const orderAccess = await configurationOrderAccess(db, actor, id);
+  if (orderAccess !== null) return orderAccess;
+  if (row.controls && actor.type !== "guest" && !(await canSeeOrganizationRecord(db, actor, { ...row.controls, ownerUserId: row.ownerUserId }))) return false;
+  return canOpenDraft({ actor, deviceKey: null }, row);
+}
+
 /** Designs a customer started as a guest join the account once its email is verified (TECH-03 §6). */
 export async function linkCustomerDrafts(db: Database, customerIds: string[], userId: string) {
   if (!customerIds.length) return;
@@ -88,7 +100,9 @@ export async function accountDrafts(db: Database, userId: string, now: Date, lim
   const rows = await db
     .select()
     .from(schema.configurations)
-    .where(and(eq(schema.configurations.ownerUserId, userId), eq(schema.configurations.status, "DRAFT")))
+    .where(and(eq(schema.configurations.ownerUserId, userId), eq(schema.configurations.status, "DRAFT"), organizationAccessWhere({
+      organizationId: sql`(${schema.configurations.controls}->>'organizationId')::uuid`, locationId: sql`(${schema.configurations.controls}->>'locationId')::uuid`, ownerUserId: schema.configurations.ownerUserId,
+    }, userId)))
     .orderBy(desc(schema.configurations.updatedAt))
     .limit(limit);
   return Promise.all(
@@ -110,6 +124,7 @@ export async function accountDrafts(db: Database, userId: string, now: Date, lim
 export async function loadDraft(db: Database, access: DraftAccess, id: string): Promise<Row> {
   const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
   if (!row || !canOpenDraft(access, row)) throw new AppError("NOT_FOUND");
+  if (row.controls && access.actor.type !== "guest" && !(await canSeeOrganizationRecord(db, access.actor, { ...row.controls, ownerUserId: row.ownerUserId }))) throw new AppError("NOT_FOUND");
   return row;
 }
 
@@ -618,8 +633,7 @@ export async function removeDraftFile(db: Database, access: DraftAccess, id: str
       .where(and(eq(schema.configurationFiles.id, linkId), eq(schema.configurationFiles.configurationId, id)))
       .returning({ fileId: schema.configurationFiles.fileId });
     if (!rows.length) return false;
-    // The file is unattached again, so the daily clean-up can remove it after 7 days.
-    await tx.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(eq(schema.files.id, rows[0]!.fileId));
+    await detachConfigurationFile(tx, rows[0]!.fileId, id);
     await touchOrderableConfiguration(tx, id);
     return true;
   });
@@ -835,4 +849,18 @@ export async function configurationForGroup(
     return copy;
   });
   return draftView(db, await reprice(db, id, actor.now), actor.now);
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function configurationRetainsFile(fileId: string) {
+  return sql`exists (select 1 from configurations where artwork_file_id = ${fileId}::uuid)
+    or exists (select 1 from configuration_files where file_id = ${fileId}::uuid)`;
+}
+
+/** Reassign ownership to a surviving copy before releasing a draft's artwork. */
+export async function detachConfigurationFile(tx: Tx, fileId: string, configurationId: string) {
+  await tx.select({ id: schema.files.id }).from(schema.files).where(eq(schema.files.id, fileId)).for("update");
+  const [remaining] = await tx.select({ id: schema.configurationFiles.configurationId }).from(schema.configurationFiles).where(eq(schema.configurationFiles.fileId, fileId)).limit(1);
+  await tx.update(schema.files).set({ ownerType: remaining ? "CONFIGURATION" : null, ownerId: remaining?.id ?? null, attachedAt: remaining ? new Date() : null })
+    .where(and(eq(schema.files.id, fileId), eq(schema.files.ownerType, "CONFIGURATION"), eq(schema.files.ownerId, configurationId)));
 }

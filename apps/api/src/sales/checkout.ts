@@ -7,7 +7,7 @@ import { draftView, reprice } from "../configuration/drafts.js";
 import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
-import { checkPlacement, placementView } from "../organizations/scope.js";
+import { canSeeOrganizationRecord, checkPlacement, placementView } from "../organizations/scope.js";
 import { checkoutExpiry } from "./retention.js";
 import type { Courier } from "./courier.js";
 import { courierPrice } from "./courier-pricing.js";
@@ -91,6 +91,7 @@ function canOpen(access: CartAccess, row: Row) {
 async function load(db: Db, access: CartAccess, id: string) {
   const [row] = await db.select().from(schema.checkouts).where(eq(schema.checkouts.id, id));
   if (!row || !canOpen(access, row)) throw new AppError("NOT_FOUND");
+  if (row.organizationId && !(await canSeeOrganizationRecord(db as Database, access.actor, row))) throw new AppError("NOT_FOUND");
   return row;
 }
 

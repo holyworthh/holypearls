@@ -66,8 +66,8 @@ export function canManage(member: Member, row: Pick<Row, "locationId">) {
 
 /** Who sees a collection: its creator, and members with "Manage group collections" or "View records" for its location. */
 export function canSee(member: Member, row: Row) {
-  if (row.createdByUserId === member.userId) return true;
   if (!(member.allLocations || member.locationIds.has(row.locationId))) return false;
+  if (row.createdByUserId === member.userId) return true;
   return member.permissions.has("MANAGE_COLLECTIONS") || member.permissions.has("VIEW_RECORDS");
 }
 

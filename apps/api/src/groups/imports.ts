@@ -1,5 +1,5 @@
 import { GARMENT_SIZES, type ImportBatch, type ImportField, type ParticipantAnswers, PERSONALIZATION_MAX } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import type { StorageAdapter } from "@holypearls/storage";
 import { parseCsv } from "../configuration/garment.js";
 import { AppError } from "../errors.js";
@@ -182,6 +182,18 @@ export async function getImport(db: Database, actor: ActorContext, organizationI
   return view(db, collection, await loadBatch(db, collectionId, batchId));
 }
 
+export async function canSeeImportFile(db: Database, actor: ActorContext, batchId: string) {
+  if (actor.type !== "user") return false;
+  const [row] = await db.select({ collection: schema.groupCollections }).from(schema.importBatches)
+    .innerJoin(schema.groupCollections, eq(schema.groupCollections.id, schema.importBatches.collectionId)).where(eq(schema.importBatches.id, batchId));
+  if (!row) return false;
+  const member = await requireMember(db, actor, row.collection.organizationId).catch(error => {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return null;
+    throw error;
+  });
+  return Boolean(member && canSee(member, row.collection));
+}
+
 /** Upload (step 1): read the organizer's own checked CSV into a batch, one row per line, and guess the columns. */
 export async function startImport(deps: OrganizationDeps & { storage: StorageAdapter }, actor: ActorContext, organizationId: string, collectionId: string, fileId: string): Promise<ImportBatch> {
   const db = deps.db;
@@ -341,4 +353,9 @@ export async function runImport(deps: OrganizationDeps, actor: ActorContext, org
     });
   });
   return view(db, collection, await loadBatch(db, collectionId, batchId));
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function importRetainsFile(fileId: string) {
+  return sql`exists (select 1 from import_batches where file_id = ${fileId}::uuid)`;
 }

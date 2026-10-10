@@ -13,7 +13,7 @@ export function localStorageRoute(storage: LocalDiskStorage) {
   return async (request: Request, response: Response, next: NextFunction) => {
     if (!request.path.startsWith(PREFIX)) return next();
     const requestId = request.requestId ?? "unknown";
-    const fail = (status: 403 | 413, code: "FORBIDDEN" | "VALIDATION_FAILED") =>
+    const fail = (status: 403 | 412 | 413, code: "FORBIDDEN" | "CONFLICT" | "VALIDATION_FAILED") =>
       response.status(status).json({ code, message: ERROR_CODES[code].message, requestId });
     const grant = storage.verify(request.path.slice(PREFIX.length));
     // Signed for the other store (private or public media), forged or expired: the next route decides.
@@ -36,7 +36,12 @@ export function localStorageRoute(storage: LocalDiskStorage) {
         if (size > (grant.maxBytes ?? 0)) return fail(413, "VALIDATION_FAILED");
         chunks.push(chunk as Buffer);
       }
-      await storage.write(grant.key, Buffer.concat(chunks), grant.contentType ?? "application/octet-stream");
+      try {
+        await storage.writeUpload(grant.key, Buffer.concat(chunks));
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EEXIST") return fail(412, "CONFLICT");
+        throw error;
+      }
       response.status(200).end();
       return;
     }

@@ -372,3 +372,8 @@ export async function staffChangeBrandAssetVersion(db: Database, actor: ActorCon
   return adminBrandAsset(db, assetId);
 }
 
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function assetRetainsFile(fileId: string) {
+  return sql`exists (select 1 from brand_asset_versions where file_id = ${fileId}::uuid)`;
+}

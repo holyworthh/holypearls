@@ -248,3 +248,9 @@ export async function readyItems(db: Db, access: CartAccess) {
 }
 
 export { findCart, ownerOf, groupOf };
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function cartRetainsFile(fileId: string) {
+  return sql`exists (select 1 from checkouts where items::text like '%' || ${fileId}::text || '%')
+    or exists (select 1 from cart_items where snapshot::text like '%' || ${fileId}::text || '%')`;
+}

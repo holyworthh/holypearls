@@ -5,7 +5,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
 import { nextNumber, type OrderEmailDeps } from "../orders/orders.js";
 import { organizationQuoteCheck } from "../organizations/approvals.js";
-import { canSeeOrganizationRecord } from "../organizations/scope.js";
+import { canSeeOrganizationRecord, organizationAccessWhere } from "../organizations/scope.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
 import { releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder } from "../proofs/proofs.js";
@@ -44,7 +44,7 @@ export async function accountQuotes(db: Database, userId: string, limit = 10): P
     .from(schema.quotes)
     .innerJoin(schema.customers, eq(schema.customers.id, schema.quotes.customerId))
     .leftJoin(schema.projects, eq(schema.projects.id, schema.quotes.projectId))
-    .where(eq(schema.customers.userId, userId))
+    .where(and(eq(schema.customers.userId, userId), organizationAccessWhere({ ...schema.quotes, ownerUserId: sql`${schema.customers.userId}` }, userId)))
     .orderBy(desc(schema.quotes.updatedAt))
     .limit(limit);
   return Promise.all(
@@ -98,6 +98,11 @@ export async function loadCustomerQuote(db: Database | Tx, access: QuoteAccess, 
   if (!row) throw new AppError("NOT_FOUND");
   const { actor, deviceKey } = access;
   const quote = row.quote;
+  const organizationRecord = { organizationId: quote.organizationId, locationId: quote.locationId, ownerUserId: row.customerUser ?? row.designUser ?? row.projectUser };
+  if (quote.organizationId && actor.type !== "guest") {
+    if (!(await canSeeOrganizationRecord(db as Database, actor, organizationRecord))) throw new AppError("NOT_FOUND");
+    return quote;
+  }
   const device = deviceKey ? deviceHash(deviceKey) : null;
   const allowed =
     (actor.type === "user" && [row.customerUser, row.projectUser, row.designUser].includes(actor.session.userId)) ||
@@ -559,4 +564,11 @@ export async function sendInstallmentDueReminder(deps: OrderEmailDeps, installme
     });
     return "sent";
   });
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function quoteRetainsFile(fileId: string) {
+  return sql`exists (select 1 from quote_change_requests where file_ids::text like '%' || ${fileId}::text || '%')
+    or exists (select 1 from quote_versions where snapshot::text like '%' || ${fileId}::text || '%')
+    or exists (select 1 from quotes where request_snapshot::text like '%' || ${fileId}::text || '%')`;
 }

@@ -149,3 +149,18 @@ describe("who can set up and see collections (TECH-03 §7, §17)", () => {
     expect(audit.map((row) => row.action)).toEqual(expect.arrayContaining(["collection.created", "collection.updated", "collection.opened"]));
   });
 });
+
+
+it("a collection's creator loses it when its location leaves their scope", async () => {
+  const polo = configurationSchema.parse((await api("acmeLekkiManager").post("/v1/configurations", { productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } })).body);
+  const created = collectionSchema.parse((await api("acmeLekkiManager").post(base(), { title: "Retained scope", locationId: lekki, configurationId: polo.id })).body);
+  const [row] = await db().select().from(schema.groupCollections).where(eq(schema.groupCollections.id, created.id));
+  const [member] = await db().select().from(schema.memberships).where(eq(schema.memberships.userId, row!.createdByUserId!));
+  const assigned = await db().select().from(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+  await db().update(schema.membershipLocations).set({ locationId: victoriaIsland }).where(eq(schema.membershipLocations.membershipId, member!.id));
+  try { expectHidden(await api("acmeLekkiManager").get(`${base()}/${created.id}`)); }
+  finally {
+    await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+    await db().insert(schema.membershipLocations).values(assigned);
+  }
+});
