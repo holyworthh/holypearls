@@ -416,7 +416,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
   await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
 });
 
-test("groups: a Lekki manager starts a collection from a saved polo, chooses fields, opens and pauses it", async ({ page }) => {
+test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused", async ({ page, browser }) => {
   await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   const design = await page.evaluate(async () => {
     const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } }) });
@@ -442,6 +442,36 @@ test("groups: a Lekki manager starts a collection from a saved polo, chooses fie
   await expect(page.getByText("Open. Share the link with everyone taking part.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Share link" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Copy link" })).toBeVisible();
+
+  // A participant opens the link on their own phone (T12-01b; Pen 31): no account, one decision per screen, nothing to pay.
+  const collectionId = page.url().split("/groups/")[1]!.split("?")[0]!;
+  const workspaceId = page.url().split("/workspace/")[1]!.split("/")[0]!;
+  const shareUrl = await page.evaluate(async ([org, id]) => ((await fetch(`/api/v1/organizations/${org}/collections/${id}`).then((response) => response.json())) as { shareUrl: string }).shareUrl, [workspaceId, collectionId] as const);
+  const phoneContext = await browser.newContext({ viewport: page.viewportSize() ?? undefined, baseURL: new URL(page.url()).origin });
+  const phone = await phoneContext.newPage();
+  await phone.goto(`/g#${shareUrl.split("#")[1]}`);
+  await expect(phone.getByRole("heading", { name })).toBeVisible();
+  await expect(phone.getByText("Only you and your organiser see your answers")).toBeVisible();
+  await expectNoAxeViolations(phone);
+  await expectNoHorizontalScroll(phone);
+  await phone.getByLabel("Your name").fill("Adaeze Eze");
+  await phone.getByLabel("Your email").fill(`adaeze.${Date.now()}@example.com`);
+  await phone.getByRole("button", { name: "Start" }).click();
+  await phone.waitForURL(/\/collections\/submissions\//);
+  await expect(phone.getByText("Step 1 of 3")).toBeVisible();
+  await phone.getByRole("radio", { name: "M", exact: true }).click();
+  await expectNoAxeViolations(phone);
+  await phone.getByRole("button", { name: "Continue" }).click();
+  await expect(phone.getByText("Step 2 of 3")).toBeVisible();
+  await phone.getByLabel(/Name for embroidery/).fill("ADAEZE");
+  await phone.getByRole("button", { name: "Continue" }).click();
+  await expect(phone.getByRole("heading", { name: "Check and send." })).toBeVisible();
+  await expect(phone.getByText("there's nothing to pay")).toBeVisible();
+  await phone.getByRole("button", { name: "Send my response" }).click();
+  await expect(phone.getByRole("heading", { name: "You're in, Adaeze" })).toBeVisible();
+  await expectNoAxeViolations(phone);
+  await phoneContext.close();
+
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByText("Paused. Participants can't submit until you open it again.")).toBeVisible();
 

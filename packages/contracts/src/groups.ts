@@ -110,3 +110,51 @@ export const collectionInviteSchema = z.object({
   unsureSizeRule: unsureSizeRuleSchema,
 });
 export type CollectionInvite = z.infer<typeof collectionInviteSchema>;
+
+/* Participants (T12-01b; PRD-05 B2B-FR-060–064; Pen 31, 76). */
+
+/** NOT_STARTED → IN_PROGRESS → SUBMITTED ⇄ NEEDS_CORRECTION; any → REMOVED (TECH-01 §4). */
+export const PARTICIPANT_STATUSES = ["NOT_STARTED", "IN_PROGRESS", "SUBMITTED", "NEEDS_CORRECTION", "REMOVED"] as const;
+export const participantStatusSchema = z.enum(PARTICIPANT_STATUSES);
+export type ParticipantStatus = z.infer<typeof participantStatusSchema>;
+
+/** Up to 12 letters for embroidery, spelled exactly as stitched (frame 31). */
+export const PERSONALIZATION_MAX = 12;
+
+export const participantAnswersSchema = z.object({
+  size: z.string().max(8).nullable().default(null),
+  /** "I'm not sure" (frame 76 A), when the organizer allows it. */
+  sizeUnsure: z.boolean().default(false),
+  personalization: z.string().trim().max(PERSONALIZATION_MAX, `Up to ${PERSONALIZATION_MAX} letters, including spaces`).nullable().default(null),
+  quantity: z.number().int().min(1).max(50).nullable().default(null),
+  colour: z.string().max(80).nullable().default(null),
+  /** The approved branch, when delivery is by branch. */
+  branchLocationId: z.uuid().nullable().default(null),
+});
+export type ParticipantAnswers = z.infer<typeof participantAnswersSchema>;
+
+export const joinCollectionSchema = z.object({
+  secret: z.string().min(16).max(200),
+  name: z.string().trim().min(1, "Enter your name").max(80),
+  email: z.email("Enter your email address").max(254),
+});
+
+/** The participant's own view: the collection as they may see it, and only their own answers (B2B-FR-061). */
+export const participationSchema = z.object({
+  participantId: z.string(),
+  name: z.string(),
+  status: participantStatusSchema,
+  answers: participantAnswersSchema,
+  /** What the organizer asked them to fix (frame 76 B). */
+  correction: z.string().nullable(),
+  collection: collectionInviteSchema,
+  sizes: z.array(z.string()),
+  colours: z.array(z.object({ value: z.string(), label: z.string() })),
+  /** Whether they can still change their answers (open and before the deadline). */
+  canEdit: z.boolean(),
+  version: z.number().int(),
+});
+export type Participation = z.infer<typeof participationSchema>;
+
+export const saveParticipationSchema = z.object({ answers: participantAnswersSchema, version: z.number().int() });
+export const submitParticipationSchema = z.object({ version: z.number().int() });

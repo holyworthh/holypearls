@@ -502,6 +502,23 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  collection_submitted: define({
+    label: "Group collection answers sent",
+    carriesSecret: false,
+    data: z.object({ collection: z.string(), organization: z.string(), summary: z.array(z.string()).max(10), deadline: z.string().optional() }),
+    subject: ({ collection }) => `Your answers for ${collection}`,
+    render: ({ collection, organization, summary, deadline }) => (
+      <Layout preview={`You're in: ${collection}`} title={`You're in: ${collection}`}>
+        <Text style={text.body}>Your answers are part of {organization}&apos;s team order. Only you and your organiser see them.</Text>
+        {summary.map((line) => (
+          <Text key={line} style={text.body}>
+            {line}
+          </Text>
+        ))}
+        <Text style={text.body}>{deadline ? `You can change them until ${deadline} from the link we sent when you started.` : "Use the link we sent when you started to see them again."}</Text>
+      </Layout>
+    ),
+  }),
   test_email: define({
     label: "Test email",
     carriesSecret: false,

@@ -1,8 +1,9 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { COLLECTION_STATUSES, DELIVERY_MODES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
+import { COLLECTION_STATUSES, DELIVERY_MODES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
+import { customers } from "./customers.js";
 import { users } from "./identity.js";
 import { locations, organizations, templates } from "./organizations.js";
 
@@ -57,3 +58,47 @@ export const groupCollections = pgTable(
     check("group_collections_central", sql`${table.deliveryMode} <> 'CENTRAL' or ${table.centralLocationId} is not null or ${table.status} = 'DRAFT'`),
   ],
 );
+
+export const participantStatus = pgEnum("participant_status", PARTICIPANT_STATUSES);
+
+/**
+ * A person taking part in a collection (T12-01b; PRD-05 B2B-FR-060–061). No
+ * account: they join through the share link and get a guest session for
+ * their own submission only. Several people can share an email (a family
+ * address), so nothing is looked up by email.
+ */
+export const participants = pgTable(
+  "participants",
+  {
+    id: idColumn(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => groupCollections.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
+    /** Set when they joined while signed in: a signed-in session always wins over a guest one (TECH-03 §5). */
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    status: participantStatus("status").notNull().default("NOT_STARTED"),
+    /** How they arrived: the share link now, a CSV import row later (T12-03). */
+    origin: text("origin").notNull().default("LINK"),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("participants_collection_idx").on(table.collectionId, table.status)],
+);
+
+/** A participant's answers: only the fields the organizer allowed (B2B-FR-052, 062–063). */
+export const participantSubmissions = pgTable("participant_submissions", {
+  participantId: uuid("participant_id")
+    .primaryKey()
+    .references(() => participants.id, { onDelete: "cascade" }),
+  answers: jsonb("answers").notNull().default({}),
+  /** What the organizer asked them to fix (NEEDS_CORRECTION). */
+  correction: text("correction"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  updatedAt: updatedAt(),
+});

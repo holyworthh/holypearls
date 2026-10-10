@@ -1,6 +1,7 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req } from "@nestjs/common";
-import { collectionActionSchema, createCollectionSchema, updateCollectionSchema } from "@holypearls/contracts";
-import type { Request } from "express";
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res } from "@nestjs/common";
+import { collectionActionSchema, createCollectionSchema, joinCollectionSchema, saveParticipationSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
+import type { Request, Response } from "express";
+import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { z } from "zod";
 import { AppError } from "../errors.js";
 import type { OrganizationDeps } from "../organizations/team.js";
@@ -9,6 +10,7 @@ import { RateLimit } from "../platform/rate-limit.js";
 import { HELP_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { changeCollection, collectionInvite, createCollection, getCollection, listCollections, updateCollection } from "./collections.js";
+import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
 
 const uuid = new ParseUUIDPipe();
 const actorOf = (request: Request) => request.getActor!();
@@ -73,5 +75,40 @@ export class CollectionInviteController {
   @RateLimit("GUEST_LINK_VERIFY")
   async invite(@Req() request: Request, @Body(new ZodValidationPipe(inviteSchema)) body: z.infer<typeof inviteSchema>) {
     return collectionInvite(this.deps.db, body.secret, (await actorOf(request)).now);
+  }
+
+  /** Join (T12-01b): a guest session for this participant only, and their personal link by email. */
+  @Post("join")
+  @HttpCode(200)
+  @RateLimit("GUEST_LINK_VERIFY")
+  async join(@Req() request: Request, @Res({ passthrough: true }) response: Response, @Body(new ZodValidationPipe(joinCollectionSchema)) body: z.infer<typeof joinCollectionSchema>) {
+    const result = await joinCollection(this.deps, await actorOf(request), body);
+    setGuestCookie(response, this.deps.webOrigin, result.session.token, result.session.expiresAt);
+    response.setHeader("referrer-policy", "no-referrer");
+    return { participantId: result.participantId, redirectTo: `/collections/submissions/${result.participantId}` };
+  }
+}
+
+/** A participant's own answers (T12-01b; B2B-FR-061): their guest session or the account they joined with, nothing else. */
+@Controller("participants")
+export class ParticipantsController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+
+  @Get(":participantId")
+  async get(@Req() request: Request, @Param("participantId", uuid) participantId: string) {
+    return getParticipation(this.deps.db, await actorOf(request), participantId);
+  }
+
+  @Put(":participantId/answers")
+  @RateLimit("COMMERCIAL_WRITE")
+  async save(@Req() request: Request, @Param("participantId", uuid) participantId: string, @Body(new ZodValidationPipe(saveParticipationSchema)) body: z.infer<typeof saveParticipationSchema>) {
+    return saveParticipation(this.deps.db, await actorOf(request), participantId, body);
+  }
+
+  @Post(":participantId/submit")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async submit(@Req() request: Request, @Param("participantId", uuid) participantId: string, @Body(new ZodValidationPipe(submitParticipationSchema)) body: z.infer<typeof submitParticipationSchema>) {
+    return submitParticipation(this.deps, await actorOf(request), participantId, body.version);
   }
 }

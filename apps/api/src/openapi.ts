@@ -157,6 +157,10 @@ import {
   collectionInviteSchema,
   collectionListSchema,
   collectionSchema,
+  joinCollectionSchema,
+  participationSchema,
+  saveParticipationSchema,
+  submitParticipationSchema,
   createCollectionSchema,
   updateCollectionSchema,
   approvalPolicySchema,
@@ -540,6 +544,27 @@ const collectionPaths = {
   },
   "/v1/organizations/{organizationId}/collections/{collectionId}/cancel": {
     post: { summary: "Cancel before an order draft exists; the link stops working", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Cancelled", content: json(collectionSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/collections/join": {
+    post: {
+      summary: "Join from the share link with a name and email (T12-01b): a guest session for this participant only, and their personal link by email",
+      requestBody: { required: true, content: json(joinCollectionSchema) },
+      responses: { 200: { description: "Joined", content: { "application/json": { schema: { type: "object", properties: { participantId: { type: "string" }, redirectTo: { type: "string" } } } } } }, 400: error("VALIDATION_FAILED"), 404: error("Unknown, draft or cancelled collection"), 422: error("COLLECTION_PAUSED or COLLECTION_CLOSED (RULE_FAILED)"), 429: error("RATE_LIMITED") },
+    },
+  },
+  "/v1/participants/{participantId}": {
+    get: { summary: "The participant's own answers and the allowed fields (their guest session or the account they joined with; anyone else 404)", parameters: [uuidParam("participantId")], responses: { 200: { description: "Participation", content: json(participationSchema) }, 401: error("NOT_SIGNED_IN"), 404: error("NOT_FOUND") } },
+  },
+  "/v1/participants/{participantId}/answers": {
+    put: {
+      summary: "Save answers: only the allowed fields, sizes from the list, not sure only when allowed, a branch only from the approved ones",
+      parameters: [uuidParam("participantId")],
+      requestBody: { required: true, content: json(saveParticipationSchema) },
+      responses: { 200: { description: "Saved", content: json(participationSchema) }, 400: error("VALIDATION_FAILED"), 404: error("NOT_FOUND"), 409: error("VERSION_CONFLICT"), 422: error("COLLECTION_PAUSED or COLLECTION_CLOSED (RULE_FAILED)") },
+    },
+  },
+  "/v1/participants/{participantId}/submit": {
+    post: { summary: "Send my response: everything the collection needs is there; a copy is emailed. No payment (the organization pays).", parameters: [uuidParam("participantId")], requestBody: { required: true, content: json(submitParticipationSchema) }, responses: { 200: { description: "Submitted", content: json(participationSchema) }, 400: error("VALIDATION_FAILED"), 404: error("NOT_FOUND"), 409: error("VERSION_CONFLICT"), 422: error("COLLECTION_PAUSED or COLLECTION_CLOSED (RULE_FAILED)") } },
   },
   "/v1/collections/invite": {
     post: {
