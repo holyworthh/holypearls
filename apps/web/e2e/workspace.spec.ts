@@ -447,7 +447,8 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   const collectionId = page.url().split("/groups/")[1]!.split("?")[0]!;
   const workspaceId = page.url().split("/workspace/")[1]!.split("/")[0]!;
   const shareUrl = await page.evaluate(async ([org, id]) => ((await fetch(`/api/v1/organizations/${org}/collections/${id}`).then((response) => response.json())) as { shareUrl: string }).shareUrl, [workspaceId, collectionId] as const);
-  const phone = await browser.newPage({ viewport: page.viewportSize() ?? undefined, baseURL: new URL(page.url()).origin });
+  const phoneContext = await browser.newContext({ viewport: page.viewportSize() ?? undefined, baseURL: new URL(page.url()).origin });
+  const phone = await phoneContext.newPage();
   await phone.goto(`/g#${shareUrl.split("#")[1]}`);
   await expect(phone.getByRole("heading", { name })).toBeVisible();
   await expect(phone.getByText("Only you and your organiser see your answers")).toBeVisible();
@@ -469,7 +470,7 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   await phone.getByRole("button", { name: "Send my response" }).click();
   await expect(phone.getByRole("heading", { name: "You're in, Adaeze" })).toBeVisible();
   await expectNoAxeViolations(phone);
-  await phone.close();
+  await phoneContext.close();
 
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByText("Paused. Participants can't submit until you open it again.")).toBeVisible();
