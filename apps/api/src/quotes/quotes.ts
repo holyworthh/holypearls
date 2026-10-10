@@ -1,3 +1,4 @@
+import { orderDraftForQuote } from "../groups/order-drafts.js";
 import {
   type AdminProject,
   type AdminQuote,
@@ -371,7 +372,9 @@ export async function getAdminQuote(db: Database, id: string): Promise<AdminQuot
     .leftJoin(schema.quoteLineItems, eq(schema.quoteLineItems.id, schema.quoteChangeRequests.lineId))
     .where(eq(schema.quoteChangeRequests.quoteId, id))
     .orderBy(desc(schema.quoteChangeRequests.createdAt));
+  const orderDraftId = await orderDraftForQuote(db, id);
   return {
+    orderDraftId,
     requests: requests.map(({ request, version, line }) => ({ kind: request.kind, version, line, changeType: request.changeType, note: request.note, createdAt: request.createdAt.toISOString() })),
     id: quote.id,
     reference: quote.reference,

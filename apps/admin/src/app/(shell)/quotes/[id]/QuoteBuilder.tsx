@@ -267,6 +267,11 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
             Open project
           </a>
         ) : null}
+        {quote.orderDraftId ? (
+          <a className={styles.action} href={`/order-drafts/${quote.orderDraftId}`}>
+            Where this group order came from
+          </a>
+        ) : null}
         {!quote.versions.some((version) => version.status === "DRAFT") && !["ACCEPTED", "DECLINED"].includes(quote.status) ? (
           <Button type="button" variant="secondary" loading={busy && !live} onClick={newVersion}>
             {quote.versions.length ? `New version (V${quote.versions[0]!.number + 1})` : "Start quote (V1)"}

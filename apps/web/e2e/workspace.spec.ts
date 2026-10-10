@@ -416,7 +416,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
   await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
 });
 
-test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused, closed and ready to order", async ({ page, browser }) => {
+test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused, closed, drafted and sent for a quote", async ({ page, browser }) => {
   await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   const design = await page.evaluate(async () => {
     const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } }) });
@@ -485,6 +485,15 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   await expect(page.getByText(/Closing doesn't start production/)).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "Close collection" }).click();
   await expect(page.getByText("Ready to order", { exact: true })).toBeVisible();
+
+  // The Order Draft (T12-03b; Pen 133): totals, then sent to HolyPearls for a quote.
+  await page.reload();
+  await page.getByRole("button", { name: "Make the Order Draft" }).click();
+  await expect(page.getByText("Totals by size")).toBeVisible();
+  await expect(page.getByText("Size M · 1")).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Submit the Order Draft" }).click();
+  await expect(page.getByText(/With HolyPearls for a quote \(HP-Q-/)).toBeVisible();
 
   await page.goto(page.url().replace(/\/groups\/.*$/, "/groups"));
   await expect(page.getByRole("link", { name })).toBeVisible();

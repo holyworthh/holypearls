@@ -809,3 +809,30 @@ export async function currentDesigns(db: Database, ids: readonly string[], now: 
   for (const id of ids) designs.push(await draftView(db, await reprice(db, id, now), now));
   return designs;
 }
+
+/**
+ * One design for a group collection's Order Draft (T12-03b): the collection's
+ * source with the totals by size and a personalisation row per person, owned
+ * by the organizer who submits it. Template controls still apply.
+ */
+export async function configurationForGroup(
+  db: Database,
+  actor: ActorContext,
+  input: { sourceConfigurationId: string; quantity: number; sizes: { size: string; quantity: number }[]; people: { name: string | null; size: string | null }[]; controls: Row["controls"] },
+): Promise<Configuration> {
+  if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
+  const [original] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, input.sourceConfigurationId));
+  if (!original) throw new AppError("NOT_FOUND");
+  const id = await db.transaction(async (tx) => {
+    const copy = await insertConfigurationCopy(tx, original, { ownerUserId: actor.session.userId, ownerDeviceHash: null, customerId: null, quantity: input.quantity, sizesUnknown: false, controls: input.controls });
+    // The group's own sizes and names replace whatever the source had.
+    await tx.delete(schema.configurationSizes).where(eq(schema.configurationSizes.configurationId, copy));
+    await tx.delete(schema.configurationPersonalizationRows).where(eq(schema.configurationPersonalizationRows.configurationId, copy));
+    const sizes = input.sizes.filter((item) => item.quantity > 0);
+    if (sizes.length) await tx.insert(schema.configurationSizes).values(sizes.map((item) => ({ configurationId: copy, ...item })));
+    const people = input.people.filter((person) => person.name);
+    if (people.length) await tx.insert(schema.configurationPersonalizationRows).values(people.map((person, index) => ({ configurationId: copy, row: index + 1, name: person.name, size: person.size })));
+    return copy;
+  });
+  return draftView(db, await reprice(db, id, actor.now), actor.now);
+}

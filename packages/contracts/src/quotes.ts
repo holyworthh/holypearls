@@ -215,6 +215,8 @@ export const adminQuoteSchema = z.object({
   id: z.string(),
   reference: z.string(),
   status: quoteStatusSchema,
+  /** The group collection Order Draft it came from, if any (T12-03b; OPS-FR-090). */
+  orderDraftId: z.string().nullable().default(null),
   source: z.object({ kind: requestKindSchema, id: z.string(), reference: z.string().nullable(), title: z.string() }),
   contact: z.object({ name: z.string().nullable(), email: z.string() }),
   versions: z.array(quoteVersionSchema),

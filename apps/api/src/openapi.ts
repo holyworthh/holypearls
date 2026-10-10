@@ -155,6 +155,8 @@ import {
   adminTemplateListSchema,
   collectionActionSchema,
   collectionDashboardSchema,
+  orderDraftOriginSchema,
+  orderDraftStateSchema,
   participantActionSchema,
   reopenCollectionSchema,
   collectionInviteSchema,
@@ -567,6 +569,21 @@ const collectionPaths = {
       requestBody: { required: true, content: json(participantActionSchema) },
       responses: { 200: { description: "Updated dashboard", content: json(collectionDashboardSchema) }, ...collectionWrite, 422: error("NOT_OPEN, NOT_SUBMITTED, NOT_REVIEWING, WRONG_STATUS or REMOVED (RULE_FAILED)") },
     },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/order-draft": {
+    get: { summary: "The current Order Draft (CURRENT or SUBMITTED) and how many were marked STALE (T12-03b)", parameters: [orgParam, collectionParam], responses: { 200: { description: "Drafts", content: json(orderDraftStateSchema) }, ...member } },
+    post: { summary: "Make the Order Draft from a READY_TO_ORDER collection: totals by size, personalisation and location, and a saved copy of every included answer", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Made", content: json(orderDraftStateSchema) }, ...collectionWrite, 422: error("NOT_READY (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/order-draft/submit": {
+    post: {
+      summary: "Submit: one design with the size split and names, then an order request (the organization's approval rule applies) or a quote request. Nothing is made until a quote is accepted.",
+      parameters: [orgParam, collectionParam, idempotencyHeader],
+      requestBody: { required: true, content: json(collectionActionSchema) },
+      responses: { 200: { description: "Sent", content: json(orderDraftStateSchema) }, ...collectionWrite, 422: error("NO_DRAFT (RULE_FAILED)") },
+    },
+  },
+  "/v1/admin/order-drafts/{draftId}": {
+    get: { summary: "Where an Order Draft came from: participant links, imports and excluded rows (QUOTE_MANAGE; OPS-FR-090). Read only.", parameters: [uuidParam("draftId")], responses: { 200: { description: "Origin", content: json(orderDraftOriginSchema) }, ...staffOnly } },
   },
   "/v1/collections/join": {
     post: {
