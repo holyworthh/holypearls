@@ -104,7 +104,6 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
   const [collection, setCollection] = useState(initial);
   const [fields, setFields] = useState<ParticipantField[]>(initial.fields);
   const [deadline, setDeadline] = useState(toLocalInput(initial.deadline));
-  const [paymentMode, setPaymentMode] = useState(initial.paymentMode);
   const [deliveryMode, setDeliveryMode] = useState(initial.deliveryMode);
   const [centralLocationId, setCentralLocationId] = useState(initial.centralLocationId ?? initial.locationId);
   const [branches, setBranches] = useState(initial.branchLocations.map((location) => location.id));
@@ -126,7 +125,7 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
     try {
       const saved = await api(base, {
         method: "PUT",
-        body: { title: collection.title, fields, deadline: deadline ? new Date(deadline).toISOString() : null, paymentMode, deliveryMode, centralLocationId: deliveryMode === "CENTRAL" ? centralLocationId : null, branchLocationIds: deliveryMode === "BRANCHES" ? branches : [], unsureSizeRule, version: collection.version },
+        body: { title: collection.title, fields, deadline: deadline ? new Date(deadline).toISOString() : null, deliveryMode, centralLocationId: deliveryMode === "CENTRAL" ? centralLocationId : null, branchLocationIds: deliveryMode === "BRANCHES" ? branches : [], unsureSizeRule, version: collection.version },
         response: collectionSchema,
       });
       setCollection(saved);
@@ -223,8 +222,6 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
                   onChange={(event) => setFields(event.target.checked ? [...fields, item.field] : fields.filter((field) => field !== item.field))}
                 />
               ))}
-              <Checkbox id="field-delivery" label="Delivery address" hint="Asked only when items go to each participant's home." checked={deliveryMode === "HOME"} disabled readOnly />
-              <Checkbox id="field-payment" label="Payment" hint="Asked only when each participant pays." checked={paymentMode === "PARTICIPANT"} disabled readOnly />
               {errors.fields ? (
                 <p className={styles.dialogText} role="alert">
                   {errors.fields}
@@ -241,16 +238,10 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
             <FormField id="collection-deadline" label="Deadline" error={errors.deadline}>
               <TextField type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} disabled={!editable} />
             </FormField>
-            <RadioCardGroup
-              name="payment-mode"
-              legend="Who pays"
-              value={paymentMode}
-              onChange={(value) => setPaymentMode(value as typeof paymentMode)}
-              options={[
-                { value: "ORGANIZATION", title: "Organization pays", description: "Participants see no payment", disabled: !editable },
-                { value: "PARTICIPANT", title: "Each participant pays", disabled: !editable },
-              ]}
-            />
+            <div className={styles.detailText}>
+              <span className={styles.detailLabel}>Who pays</span>
+              <span className={styles.detailValue}>Your organization pays. Participants see no payment.</span>
+            </div>
             <RadioCardGroup
               name="delivery-mode"
               legend="Delivery"
@@ -259,7 +250,6 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
               options={[
                 { value: "CENTRAL", title: "Central", description: "Everything to one location", disabled: !editable },
                 { value: "BRANCHES", title: "To approved branches", description: "Participants pick a branch", disabled: !editable },
-                { value: "HOME", title: "To each participant's home", disabled: !editable },
               ]}
             />
             {deliveryMode === "CENTRAL" ? (

@@ -1,5 +1,5 @@
 {
-  "id": "f7e27dee-e7f1-4588-8a52-191045f9b64c",
+  "id": "47b24b3c-f07b-443b-bdf5-e608b5becc4f",
   "prevId": "a5cd2fdc-a85a-45a2-b717-8647c9439d82",
   "version": "7",
   "dialect": "postgresql",
@@ -14163,14 +14163,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "payment_mode": {
-          "name": "payment_mode",
-          "type": "collection_payment_mode",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ORGANIZATION'"
-        },
         "delivery_mode": {
           "name": "delivery_mode",
           "type": "collection_delivery_mode",
@@ -15269,16 +15261,7 @@
       "schema": "public",
       "values": [
         "CENTRAL",
-        "BRANCHES",
-        "HOME"
-      ]
-    },
-    "public.collection_payment_mode": {
-      "name": "collection_payment_mode",
-      "schema": "public",
-      "values": [
-        "ORGANIZATION",
-        "PARTICIPANT"
+        "BRANCHES"
       ]
     },
     "public.collection_status": {

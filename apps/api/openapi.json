@@ -55716,19 +55716,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -55791,7 +55783,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -56020,19 +56011,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -56095,7 +56078,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -56190,19 +56172,11 @@
                       }
                     ]
                   },
-                  "paymentMode": {
-                    "type": "string",
-                    "enum": [
-                      "ORGANIZATION",
-                      "PARTICIPANT"
-                    ]
-                  },
                   "deliveryMode": {
                     "type": "string",
                     "enum": [
                       "CENTRAL",
-                      "BRANCHES",
-                      "HOME"
+                      "BRANCHES"
                     ]
                   },
                   "centralLocationId": {
@@ -56244,7 +56218,6 @@
                   "title",
                   "fields",
                   "deadline",
-                  "paymentMode",
                   "deliveryMode",
                   "centralLocationId",
                   "branchLocationIds",
@@ -56385,19 +56358,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -56460,7 +56425,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -56710,19 +56674,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -56785,7 +56741,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -57035,19 +56990,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -57110,7 +57057,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -57360,19 +57306,11 @@
                         "additionalProperties": false
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "centralLocationId": {
@@ -57435,7 +57373,6 @@
                     "source",
                     "fields",
                     "availableFields",
-                    "paymentMode",
                     "deliveryMode",
                     "centralLocationId",
                     "branchLocations",
@@ -57582,19 +57519,11 @@
                         ]
                       }
                     },
-                    "paymentMode": {
-                      "type": "string",
-                      "enum": [
-                        "ORGANIZATION",
-                        "PARTICIPANT"
-                      ]
-                    },
                     "deliveryMode": {
                       "type": "string",
                       "enum": [
                         "CENTRAL",
-                        "BRANCHES",
-                        "HOME"
+                        "BRANCHES"
                       ]
                     },
                     "branches": {
@@ -57631,7 +57560,6 @@
                     "status",
                     "deadline",
                     "fields",
-                    "paymentMode",
                     "deliveryMode",
                     "branches",
                     "unsureSizeRule"

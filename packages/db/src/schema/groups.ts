@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { COLLECTION_STATUSES, DELIVERY_MODES, PAYMENT_MODES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
+import { COLLECTION_STATUSES, DELIVERY_MODES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { users } from "./identity.js";
@@ -15,7 +15,6 @@ import { locations, organizations, templates } from "./organizations.js";
  */
 
 export const collectionStatus = pgEnum("collection_status", COLLECTION_STATUSES);
-export const collectionPaymentMode = pgEnum("collection_payment_mode", PAYMENT_MODES);
 export const collectionDeliveryMode = pgEnum("collection_delivery_mode", DELIVERY_MODES);
 export const unsureSizeRule = pgEnum("unsure_size_rule", UNSURE_SIZE_RULES);
 
@@ -36,7 +35,6 @@ export const groupCollections = pgTable(
     /** The participant fields the organizer allows (B2B-FR-052). */
     fields: text("fields").array().notNull().default(sql`'{}'::text[]`),
     deadline: timestamp("deadline", { withTimezone: true }),
-    paymentMode: collectionPaymentMode("payment_mode").notNull().default("ORGANIZATION"),
     deliveryMode: collectionDeliveryMode("delivery_mode").notNull().default("CENTRAL"),
     centralLocationId: uuid("central_location_id").references(() => locations.id, { onDelete: "restrict" }),
     branchLocationIds: uuid("branch_location_ids").array().notNull().default(sql`'{}'::uuid[]`),

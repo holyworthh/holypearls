@@ -46,7 +46,7 @@ async function approvedTemplate(lockQuantity = false) {
 }
 
 const setup = (person: keyof Actors, collection: { id: string; version: number }, body: Record<string, unknown>) =>
-  api(person).put(`${base()}/${collection.id}`, { title: "Lekki staff polos 2026", fields: [], deadline: inFuture(), paymentMode: "ORGANIZATION", deliveryMode: "CENTRAL", centralLocationId: lekki, branchLocationIds: [], unsureSizeRule: "ALLOW_UNSURE", version: collection.version, ...body });
+  api(person).put(`${base()}/${collection.id}`, { title: "Lekki staff polos 2026", fields: [], deadline: inFuture(), deliveryMode: "CENTRAL", centralLocationId: lekki, branchLocationIds: [], unsureSizeRule: "ALLOW_UNSURE", version: collection.version, ...body });
 
 const secretOf = (collection: { shareUrl: string | null }) => collection.shareUrl!.split("#")[1]!;
 
@@ -80,6 +80,9 @@ describe("setting up a collection (B2B-FR-050–052)", () => {
     expect(locked.body.fieldErrors).toEqual({ fields: "Quantity is locked by the template" });
     expect((await setup("acmeLekkiManager", created, { fields: ["SIZE"] })).body.fieldErrors).toEqual({ fields: "This product has no sizes" });
 
+    // Retired by the owner (2026-10-10): nothing goes to a home address (and participants never pay).
+    expect((await setup("acmeLekkiManager", created, { deliveryMode: "HOME" })).status).toBe(400);
+
     // A garment design offers sizes, personalisation, quantity and colour; the organizer picks two.
     const polo = configurationSchema.parse((await api("acmeLekkiManager").post("/v1/configurations", { productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } })).body);
     let collection = collectionSchema.parse((await api("acmeLekkiManager").post(base(), { title: "Lekki staff polos 2026", locationId: lekki, configurationId: polo.id })).body);
@@ -92,21 +95,21 @@ describe("setting up a collection (B2B-FR-050–052)", () => {
 
     // The participant's view has exactly those fields, and nothing about the organization's records.
     const invite = collectionInviteSchema.parse((await anonymous().post("/v1/collections/invite", { secret: secretOf(collection) })).body);
-    expect(invite).toMatchObject({ title: "Lekki staff polos 2026", status: "OPEN", fields: ["SIZE", "PERSONALIZATION"], paymentMode: "ORGANIZATION", deliveryMode: "CENTRAL", branches: [] });
-    expect(Object.keys(invite).sort()).toEqual(["branches", "deadline", "deliveryMode", "fields", "organizationName", "paymentMode", "productName", "status", "title", "unsureSizeRule"]);
+    expect(invite).toMatchObject({ title: "Lekki staff polos 2026", status: "OPEN", fields: ["SIZE", "PERSONALIZATION"], deliveryMode: "CENTRAL", branches: [] });
+    expect(Object.keys(invite).sort()).toEqual(["branches", "deadline", "deliveryMode", "fields", "organizationName", "productName", "status", "title", "unsureSizeRule"]);
   });
 
   it("opening needs a future deadline; paused shows as paused; drafts and cancelled collections don't exist to the link", async () => {
     const polo = configurationSchema.parse((await api("acmeOwner").post("/v1/configurations", { productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } })).body);
     let collection = collectionSchema.parse((await api("acmeOwner").post(base(), { title: "Branch polos", locationId: lekki, configurationId: polo.id })).body);
-    collection = collectionSchema.parse((await setup("acmeOwner", collection, { deadline: new Date(Date.now() - 60_000).toISOString(), deliveryMode: "BRANCHES", centralLocationId: null, branchLocationIds: [lekki, victoriaIsland], paymentMode: "PARTICIPANT" })).body);
+    collection = collectionSchema.parse((await setup("acmeOwner", collection, { deadline: new Date(Date.now() - 60_000).toISOString(), deliveryMode: "BRANCHES", centralLocationId: null, branchLocationIds: [lekki, victoriaIsland] })).body);
     const early = await api("acmeOwner").post(`${base()}/${collection.id}/open`, { version: collection.version });
     expect(early.status).toBe(400);
     expect(early.body.fieldErrors).toEqual({ deadline: "Choose a deadline in the future." });
-    collection = collectionSchema.parse((await setup("acmeOwner", collection, { deadline: inFuture(), deliveryMode: "BRANCHES", centralLocationId: null, branchLocationIds: [lekki, victoriaIsland], paymentMode: "PARTICIPANT" })).body);
+    collection = collectionSchema.parse((await setup("acmeOwner", collection, { deadline: inFuture(), deliveryMode: "BRANCHES", centralLocationId: null, branchLocationIds: [lekki, victoriaIsland] })).body);
     collection = collectionSchema.parse((await api("acmeOwner").post(`${base()}/${collection.id}/open`, { version: collection.version })).body);
     const secret = secretOf(collection);
-    expect(collectionInviteSchema.parse((await anonymous().post("/v1/collections/invite", { secret })).body)).toMatchObject({ paymentMode: "PARTICIPANT", deliveryMode: "BRANCHES", branches: [{ name: "Lekki" }, { name: expect.stringContaining("Victoria") }] });
+    expect(collectionInviteSchema.parse((await anonymous().post("/v1/collections/invite", { secret })).body)).toMatchObject({ deliveryMode: "BRANCHES", branches: [{ name: "Lekki" }, { name: expect.stringContaining("Victoria") }] });
 
     // Changes need a pause first.
     expect((await setup("acmeOwner", collection, { fields: ["SIZE"] })).body.context?.reason).toBe("NOT_EDITABLE");

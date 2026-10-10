@@ -1,5 +1,4 @@
-CREATE TYPE "public"."collection_delivery_mode" AS ENUM('CENTRAL', 'BRANCHES', 'HOME');--> statement-breakpoint
-CREATE TYPE "public"."collection_payment_mode" AS ENUM('ORGANIZATION', 'PARTICIPANT');--> statement-breakpoint
+CREATE TYPE "public"."collection_delivery_mode" AS ENUM('CENTRAL', 'BRANCHES');--> statement-breakpoint
 CREATE TYPE "public"."collection_status" AS ENUM('DRAFT', 'OPEN', 'PAUSED', 'CLOSED', 'NEEDS_REVIEW', 'READY_TO_ORDER', 'ORDER_DRAFT_CREATED', 'CANCELLED');--> statement-breakpoint
 CREATE TYPE "public"."unsure_size_rule" AS ENUM('ALLOW_UNSURE', 'REQUIRE_SIZE');--> statement-breakpoint
 CREATE TABLE "group_collections" (
@@ -12,7 +11,6 @@ CREATE TABLE "group_collections" (
 	"source_configuration_id" uuid NOT NULL,
 	"fields" text[] DEFAULT '{}'::text[] NOT NULL,
 	"deadline" timestamp with time zone,
-	"payment_mode" "collection_payment_mode" DEFAULT 'ORGANIZATION' NOT NULL,
 	"delivery_mode" "collection_delivery_mode" DEFAULT 'CENTRAL' NOT NULL,
 	"central_location_id" uuid,
 	"branch_location_ids" uuid[] DEFAULT '{}'::uuid[] NOT NULL,

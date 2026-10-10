@@ -17,8 +17,9 @@ import { enforce } from "../platform/policy.js";
  * Group collection setup (T12-01; PRD-05 B2B-FR-050–052, 060; TECH-01 §4;
  * Pen frame 132). People with "Manage group collections" for a location set
  * one up from an approved template or their own saved design, choose the
- * participant fields the source allows, the deadline, who pays and where it
- * goes, then open it to get the share link. Participants' submissions arrive
+ * participant fields the source allows, the deadline and where it goes (the
+ * organization always pays; owner decision 2026-10-10), then open it to get
+ * the share link. Participants' submissions arrive
  * in T12-01b.
  */
 
@@ -87,7 +88,6 @@ function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Mem
     source: { kind: row.templateId ? "TEMPLATE" : "CONFIGURATION", label: snapshot.sourceLabel, templateId: row.templateId },
     fields: row.fields as ParticipantField[],
     availableFields: availability(snapshot.fields),
-    paymentMode: row.paymentMode,
     deliveryMode: row.deliveryMode,
     centralLocationId: row.centralLocationId,
     branchLocations: locations.filter((location) => row.branchLocationIds.includes(location.id)),
@@ -206,7 +206,6 @@ export async function updateCollection(deps: OrganizationDeps, actor: ActorConte
         title: input.title,
         fields: PARTICIPANT_FIELDS.filter((field) => offered.includes(field)),
         deadline: input.deadline ? new Date(input.deadline) : null,
-        paymentMode: input.paymentMode,
         deliveryMode: input.deliveryMode,
         centralLocationId: input.deliveryMode === "CENTRAL" ? input.centralLocationId : null,
         branchLocationIds: input.deliveryMode === "BRANCHES" ? [...new Set(input.branchLocationIds)] : [],
@@ -220,7 +219,7 @@ export async function updateCollection(deps: OrganizationDeps, actor: ActorConte
       summary: `Group collection set up: ${input.title}`,
       recordType: "GROUP_COLLECTION",
       recordId: id,
-      after: { fields: offered, deadline: input.deadline, paymentMode: input.paymentMode, deliveryMode: input.deliveryMode },
+      after: { fields: offered, deadline: input.deadline, deliveryMode: input.deliveryMode },
     });
   });
   return view(deps, member, await loadCollection(db, organizationId, id), locations);
@@ -291,7 +290,6 @@ export async function collectionInvite(db: Database, secret: string, now: Date):
     status: closed || pastDeadline ? "CLOSED" : row.status === "PAUSED" ? "PAUSED" : "OPEN",
     deadline: row.deadline?.toISOString() ?? null,
     fields: row.fields as ParticipantField[],
-    paymentMode: row.paymentMode,
     deliveryMode: row.deliveryMode,
     branches: branches.sort((a, b) => a.name.localeCompare(b.name)),
     unsureSizeRule: row.unsureSizeRule,
