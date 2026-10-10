@@ -8,6 +8,7 @@
     "build": "next build",
     "typecheck": "next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
+    "test": "vitest run src",
     "check:no-admin": "node scripts/check-no-admin.mjs"
   },
   "dependencies": {

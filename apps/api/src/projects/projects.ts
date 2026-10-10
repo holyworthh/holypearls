@@ -1,3 +1,5 @@
+import { quoteGuestIncludesSource } from "../quotes/customer.js";
+import type { SQL } from "@holypearls/db";
 import {
   type AccountDraft,
   type AccountQuote,
@@ -610,7 +612,7 @@ export async function submitProject(
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function projectRetainsFile(fileId: string) {
+export function projectRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from project_files where file_id = ${fileId}::uuid)
     or exists (select 1 from projects where submitted_snapshot::text like '%' || ${fileId}::text || '%')`;
 }
@@ -623,6 +625,7 @@ export async function detachProjectFile(tx: Tx, fileId: string, projectId: strin
 }
 
 export async function canSeeProjectFile(db: Database, actor: ActorContext, id: string) {
+  if (await quoteGuestIncludesSource(db, actor, { projectId: id })) return true;
   if (actor.type === "user" && actor.staff?.permissions.has("QUOTE_MANAGE")) return true;
   try { await loadProject(db, { actor, deviceKey: null }, id); return true; }
   catch (error) {

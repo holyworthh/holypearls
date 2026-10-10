@@ -358,6 +358,13 @@
       "when": 1791634182097,
       "tag": "0050_csv_imports",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791648262247,
+      "tag": "0051_courier_bookings",
+      "breakpoints": true
     }
   ]
 }

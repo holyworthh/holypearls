@@ -208,6 +208,7 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
 
   const [open] = await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "OPEN")));
   const ids = items.map((item) => item.configurationId);
+  if (open) await load(db, access, open.id);
   if (open && sameSet(open.configurationIds, ids) && now.getTime() - open.createdAt.getTime() < FRESH_FOR_MS) return withCartState(deps, open);
   // A payment under way keeps its checkout: the customer finishes or waits for it first.
   if (open && (await checkoutsWithActivePayment(db, [open.id])).length) return withCartState(deps, open);
@@ -292,7 +293,7 @@ export async function startCheckout(deps: CheckoutDeps, access: CartAccess): Pro
     // Two "Check out" clicks at once: the index lets one through, and both get it.
     if ((error as { cause?: { code?: string } }).cause?.code === "23505") {
       const [winner] = await db.select().from(schema.checkouts).where(and(eq(schema.checkouts.cartId, cart.id), eq(schema.checkouts.status, "OPEN")));
-      if (winner) return withCartState(deps, winner);
+      if (winner) return withCartState(deps, await load(db, access, winner.id));
     }
     throw error;
   }

@@ -1,3 +1,4 @@
+import type { SQL } from "@holypearls/db";
 import { type AccountOrder, type AccountReceipt, displayMoney, type Order, type Receipt } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, lt, or, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -10,7 +11,7 @@ import { customerProblems } from "../shipments/problems.js";
 import { customerShipments } from "../shipments/shipments.js";
 import { trackingView } from "./tracking.js";
 import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
-import { paymentSummaryForOrder } from "../quotes/customer.js";
+import { paymentDetailsForOrders } from "../payments/order-facts.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
 import { canSeeOrganizationRecord, organizationAccessWhere } from "../organizations/scope.js";
@@ -282,7 +283,8 @@ export async function configurationOrderAccess(db: Database, actor: ActorContext
 export async function orderView(db: Database, row: OrderRow): Promise<Order> {
   const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, row.id)).orderBy(asc(schema.orderItems.position));
   const receipts = await db.select().from(schema.receipts).where(eq(schema.receipts.orderId, row.id)).orderBy(desc(schema.receipts.paidAt));
-  const payments = await paymentSummaryForOrder(db, row);
+  const payment = (await paymentDetailsForOrders(db, [row])).get(row.id)!;
+  const payments = payment.summary;
   const [quote] = row.quoteVersionId
     ? await db
         .select({ id: schema.quotes.id, reference: schema.quotes.reference, version: schema.quoteVersions.number })
@@ -297,12 +299,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
     id: row.id,
     number: row.number,
     placedAt: row.placedAt.toISOString(),
-    // A direct order is paid in full when it's made; an order from a quote follows its schedule (T05-05).
-    paymentStatus: payments
-      ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false })
-      : receipts.length
-        ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false })
-        : null,
+    paymentStatus: customerPaymentStatus(payment.facts),
     summaryStatus: production.summaryStatus,
     items: items.map((item) => ({
       productName: item.productName,
@@ -368,7 +365,7 @@ export async function orderOfCheckout(db: Database, checkoutId: string) {
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function orderRetainsFile(fileId: string) {
+export function orderRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from problem_report_photos where file_id = ${fileId}::uuid)
     or exists (select 1 from order_items where snapshot::text like '%' || ${fileId}::text || '%')
     or exists (select 1 from proof_versions where views::text like '%' || ${fileId}::text || '%')`;

@@ -1,3 +1,4 @@
+import type { SQL } from "@holypearls/db";
 import { GARMENT_SIZES, type ImportBatch, type ImportField, type ParticipantAnswers, PERSONALIZATION_MAX } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import type { StorageAdapter } from "@holypearls/storage";
@@ -356,6 +357,6 @@ export async function runImport(deps: OrganizationDeps, actor: ActorContext, org
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function importRetainsFile(fileId: string) {
+export function importRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from import_batches where file_id = ${fileId}::uuid)`;
 }

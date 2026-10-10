@@ -1,5 +1,6 @@
+import type { SQL } from "@holypearls/db";
 import { type AdminAsset, type AdminAssetReviewList, type AssetVersion, type AssetVersionStatus, BRAND_ASSET_KIND_LABELS, type BrandAsset, type BrandAssetList, type CreateBrandAsset, type ReviewAssetVersion } from "@holypearls/contracts";
-import { and, type Database, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, ilike, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { attachFile, fileSummaries, findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -89,9 +90,10 @@ async function assetView(db: Db, asset: AssetRow, canManage: boolean): Promise<B
 }
 
 /** The library (frame 65): every member sees the organization's assets; MANAGE_BRAND changes them. */
-export async function listBrandAssets(db: Database, actor: ActorContext, organizationId: string): Promise<BrandAssetList> {
+export async function listBrandAssets(db: Database, actor: ActorContext, organizationId: string, options: { query?: string } = {}): Promise<BrandAssetList> {
   const member = await requireMember(db, actor, organizationId);
-  const assets = await db.select().from(schema.brandAssets).where(eq(schema.brandAssets.organizationId, organizationId)).orderBy(schema.brandAssets.name);
+  const term = options.query?.trim().replace(/[%_\\]/g, "\\$&");
+  const assets = await db.select().from(schema.brandAssets).where(and(eq(schema.brandAssets.organizationId, organizationId), term ? ilike(schema.brandAssets.name, `%${term}%`) : undefined)).orderBy(schema.brandAssets.name);
   const byAsset = await versionsOf(db, assets.map((asset) => asset.id));
   const views = await Promise.all(
     assets.map(async (asset) => {
@@ -374,6 +376,6 @@ export async function staffChangeBrandAssetVersion(db: Database, actor: ActorCon
 
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function assetRetainsFile(fileId: string) {
+export function assetRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from brand_asset_versions where file_id = ${fileId}::uuid)`;
 }

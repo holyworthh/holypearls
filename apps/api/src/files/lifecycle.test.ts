@@ -134,3 +134,17 @@ describe("retained and checked files", () => {
     expect((await as(h, actors.customerChidi!).get(`/v1/files/${file.id}/download`)).status).toBe(404);
   });
 });
+
+it("doesn't let legacy referenced rows fill the cleanup batch forever", async () => {
+  const original = await upload();
+  const draft = await draftWithFile(original.file.id);
+  const old = new Date(Date.now() - 8 * 86_400_000);
+  const retained = Array.from({ length: 500 }, () => ({ id: crypto.randomUUID(), purpose: "ARTWORK" as const, bucket: "private", originalName: "retained.svg", safeName: "retained.svg", declaredType: "image/svg+xml", declaredSize: 20, storageKey: `retained/${crypto.randomUUID()}`, createdAt: old }));
+  await db().insert(schema.files).values(retained);
+  await db().insert(schema.configurationFiles).values(retained.map((file, n) => ({ configurationId: draft.id, fileId: file.id, role: "ARTWORK", position: n + 2 })));
+  const eligible = await upload();
+  await db().update(schema.files).set({ createdAt: old }).where(eq(schema.files.id, eligible.file.id));
+  await removeUnattachedFiles(deps(), new Date());
+  expect(await h.storage.head(eligible.file.storageKey)).toBeNull();
+  expect((await db().select().from(schema.files).where(eq(schema.files.id, retained[0]!.id)))).toHaveLength(1);
+});

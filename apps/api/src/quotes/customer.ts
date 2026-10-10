@@ -1,3 +1,5 @@
+import type { SQL } from "@holypearls/db";
+import { paymentDetailsForOrders } from "../payments/order-facts.js";
 import { type AccountQuote, type CustomerQuote, displayMoney, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNotNull, lt, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -481,33 +483,8 @@ export async function requestUpdatedQuote(db: Database, access: QuoteAccess, id:
 /* ------------------------------------------------------------------ */
 
 /** The schedule of an order made from a quote: total, paid, remaining, next and each payment (PAY-FR-003). */
-export async function paymentSummaryForOrder(db: Database | Tx, order: { quoteVersionId: string | null }): Promise<PaymentSummary | null> {
-  if (!order.quoteVersionId) return null;
-  const [schedule] = await db.select().from(schema.paymentSchedules).where(eq(schema.paymentSchedules.quoteVersionId, order.quoteVersionId));
-  if (!schedule) return null;
-  const parts = await db.select().from(schema.installments).where(eq(schema.installments.scheduleId, schedule.id)).orderBy(asc(schema.installments.position));
-  const live = parts.filter((part) => part.status !== "CANCELLED");
-  const next = live.find((part) => part.status !== "PAID") ?? null;
-  const paid = live.filter((part) => part.status === "PAID").reduce((sum, part) => sum + part.amountMinor, 0n);
-  const view = (part: (typeof parts)[number]) => ({
-    id: part.id,
-    position: part.position,
-    label: part.label,
-    amountMinor: part.amountMinor.toString(),
-    trigger: part.trigger as "ON_ACCEPTANCE" | "BEFORE_PRODUCTION" | "BEFORE_DISPATCH" | "ON_DATE",
-    dueOn: part.dueOn,
-    status: part.status,
-    paidAt: part.paidAt?.toISOString() ?? null,
-    payable: part.id === next?.id && part.status !== "PROCESSING",
-  });
-  return {
-    currency: schedule.currency as "NGN" | "USD",
-    totalMinor: schedule.totalMinor.toString(),
-    paidMinor: paid.toString(),
-    remainingMinor: (schedule.totalMinor - paid).toString(),
-    next: next ? view(next) : null,
-    installments: parts.map(view),
-  };
+export async function paymentSummaryForOrder(db: Database | Tx, order: { id: string; checkoutId: string | null; quoteVersionId: string | null }): Promise<PaymentSummary | null> {
+  return (await paymentDetailsForOrders(db, [order])).get(order.id)!.summary;
 }
 
 /**
@@ -567,8 +544,15 @@ export async function sendInstallmentDueReminder(deps: OrderEmailDeps, installme
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function quoteRetainsFile(fileId: string) {
+export function quoteRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from quote_change_requests where file_ids::text like '%' || ${fileId}::text || '%')
     or exists (select 1 from quote_versions where snapshot::text like '%' || ${fileId}::text || '%')
     or exists (select 1 from quotes where request_snapshot::text like '%' || ${fileId}::text || '%')`;
+}
+
+/** A quote link includes artwork on its own source records, never another quote's files. */
+export async function quoteGuestIncludesSource(db: Database, actor: ActorContext, source: { projectId?: string; configurationId?: string }) {
+  if (actor.type !== "guest" || actor.guest.targetType !== "QUOTE") return false;
+  const [quote] = await db.select({ projectId: schema.quotes.projectId, configurationIds: schema.quotes.configurationIds }).from(schema.quotes).where(eq(schema.quotes.id, actor.guest.targetId));
+  return Boolean(quote && ((source.projectId && quote.projectId === source.projectId) || (source.configurationId && quote.configurationIds.includes(source.configurationId))));
 }

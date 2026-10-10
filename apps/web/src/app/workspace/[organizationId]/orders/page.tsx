@@ -18,14 +18,23 @@ const VIEWS = [
 ] as const;
 
 /** Orders (Pen 63 · Jn2wL): a filtered view of the normal orders (B2B-FR-011), in the person's locations. */
-export default async function WorkspaceOrdersPage({ params, searchParams }: { params: Promise<{ organizationId: string }>; searchParams: Promise<{ view?: string; location?: string }> }) {
+export default async function WorkspaceOrdersPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ organizationId: string }>;
+  searchParams: Promise<{ view?: string; location?: string; cursor?: string }>;
+}) {
   const { organizationId } = await params;
   const query = await searchParams;
   const { me, organization } = await loadWorkspace(organizationId, `/workspace/${organizationId}/orders`);
   const location = chosenLocation(organization, query.location);
   const parsed = workspaceOrderViewSchema.safeParse(query.view);
   const view = parsed.success ? parsed.data : "active";
-  const list = await serverApi(`/v1/organizations/${organizationId}/orders?view=${view}${location ? `&location=${location}` : ""}`, workspaceOrderListSchema);
+  const list = await serverApi(
+    `/v1/organizations/${organizationId}/orders?view=${view}${location ? `&location=${location}` : ""}${query.cursor ? `&cursor=${encodeURIComponent(query.cursor)}` : ""}`,
+    workspaceOrderListSchema,
+  );
   const href = (key: string) => `/workspace/${organizationId}/orders?view=${key}${location ? `&location=${location}` : ""}`;
   return (
     <WorkspaceShell organization={organization} userName={me.name} section="orders" location={location}>
@@ -34,7 +43,16 @@ export default async function WorkspaceOrdersPage({ params, searchParams }: { pa
         <ButtonLink href="/products">New order</ButtonLink>
       </div>
       {!list.ok ? (
-        <ErrorState title="We couldn't load this list" body="Something went wrong on our side. Try again, or share the request ID with support." requestId={list.error.requestId} action={<ButtonLink variant="secondary" href={href(view)}>Try again</ButtonLink>} />
+        <ErrorState
+          title="We couldn't load this list"
+          body="Something went wrong on our side. Try again, or share the request ID with support."
+          requestId={list.error.requestId}
+          action={
+            <ButtonLink variant="secondary" href={href(view)}>
+              Try again
+            </ButtonLink>
+          }
+        />
       ) : (
         <>
           <nav className={styles.filters} aria-label="Order filters">
@@ -50,6 +68,16 @@ export default async function WorkspaceOrdersPage({ params, searchParams }: { pa
               empty={view === "attention" ? "Nothing needs you right now." : "No orders here yet. Choose your workspace at checkout and the order appears here."}
             />
           </section>
+          {list.data.nextCursor ? (
+            <ButtonLink variant="secondary" href={`${href(view)}&cursor=${encodeURIComponent(list.data.nextCursor)}`}>
+              Older orders
+            </ButtonLink>
+          ) : null}
+          {query.cursor ? (
+            <a className={styles.rowLink} href={href(view)}>
+              Back to newest orders
+            </a>
+          ) : null}
           <p className={styles.support}>
             Orders you can see: {organization.me.allLocations ? "every location" : organization.me.locations.map((entry) => entry.name).join(", ")}
             {organization.me.permissions.includes("VIEW_RECORDS") ? "." : ", placed by you."} <a href={workspaceHref(organizationId, "", location)}>Back to the overview</a>

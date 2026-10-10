@@ -1,3 +1,5 @@
+import { quoteGuestIncludesSource } from "../quotes/customer.js";
+import type { SQL } from "@holypearls/db";
 import type { AccountDraft, AnswerConflict, Configuration } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -79,6 +81,7 @@ export function canOpenDraft(access: DraftAccess, row: Row): boolean {
 export async function canSeeConfigurationFile(db: Database, actor: ActorContext, id: string) {
   const [row] = await db.select().from(schema.configurations).where(eq(schema.configurations.id, id));
   if (!row) return false;
+  if (await quoteGuestIncludesSource(db, actor, { configurationId: id })) return true;
   if (actor.type === "user" && actor.staff && (["QUOTE_MANAGE", "PROOF_MANAGE", "PRODUCTION_MANAGE", "CUSTOMER_SUPPORT"] as const).some(permission => actor.staff!.permissions.has(permission))) return true;
   const orderAccess = await configurationOrderAccess(db, actor, id);
   if (orderAccess !== null) return orderAccess;
@@ -852,7 +855,7 @@ export async function configurationForGroup(
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */
-export function configurationRetainsFile(fileId: string) {
+export function configurationRetainsFile(fileId: string | SQL) {
   return sql`exists (select 1 from configurations where artwork_file_id = ${fileId}::uuid)
     or exists (select 1 from configuration_files where file_id = ${fileId}::uuid)`;
 }

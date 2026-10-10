@@ -517,3 +517,8 @@ export async function customerProduction(db: Db, orderId: string) {
     ),
   };
 }
+
+/** Open holds for a page's item facts; item status precedence stays in orderSummaryStatus. */
+export async function heldItemIds(db: Database, itemIds: string[]) {
+  return new Set((await openHolds(db, itemIds)).keys());
+}

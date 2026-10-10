@@ -1,5 +1,5 @@
 import { type Collection, type CollectionInvite, type CollectionList, type CollectionStatus, type CreateCollection, PARTICIPANT_FIELDS, type ParticipantField, type UpdateCollection } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, ilike, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { seal, unseal } from "@holypearls/email";
 import { randomBytes } from "node:crypto";
 import { configurationSpecification, ownsConfiguration } from "../configuration/specification.js";
@@ -10,6 +10,7 @@ import { type Member, requireMember } from "../organizations/members.js";
 import { canSeeLocation, needsPermission } from "../organizations/policies.js";
 import type { OrganizationDeps } from "../organizations/team.js";
 import { getTemplate, templateSourceConfiguration } from "../organizations/templates.js";
+import { scopeFor, scopeWhere } from "../organizations/scope.js";
 import { recordAudit } from "../platform/audit.js";
 import { enforce } from "../platform/policy.js";
 
@@ -98,9 +99,16 @@ function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Mem
   };
 }
 
-export async function listCollections(db: Database, actor: ActorContext, organizationId: string): Promise<CollectionList> {
+export async function listCollections(db: Database, actor: ActorContext, organizationId: string, options: { locationId?: string | null; query?: string; active?: boolean; limit?: number } = {}): Promise<CollectionList> {
   const member = await requireMember(db, actor, organizationId);
-  const rows = await db.select().from(schema.groupCollections).where(eq(schema.groupCollections.organizationId, organizationId)).orderBy(desc(schema.groupCollections.updatedAt)).limit(200);
+  const scope = scopeFor(member, options.locationId);
+  if (member.permissions.has("MANAGE_COLLECTIONS")) scope.ownerUserId = null;
+  const term = options.query?.trim().replace(/[%_\\]/g, "\\$&");
+  const rows = await db.select().from(schema.groupCollections).where(and(
+    scopeWhere({ organizationId: schema.groupCollections.organizationId, locationId: schema.groupCollections.locationId, ownerUserId: schema.groupCollections.createdByUserId }, scope),
+    term ? ilike(schema.groupCollections.title, `%${term}%`) : undefined,
+    options.active ? inArray(schema.groupCollections.status, ["OPEN", "PAUSED", "CLOSED", "NEEDS_REVIEW", "READY_TO_ORDER"]) : undefined,
+  )).orderBy(desc(schema.groupCollections.updatedAt)).limit(options.limit ?? 200);
   const locations = await locationNames(db, organizationId);
   const counts = await submittedCounts(db, rows.map((row) => row.id));
   return {

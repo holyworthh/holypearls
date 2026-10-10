@@ -107,9 +107,9 @@ export function WorkspaceShell({
           <form className={styles.search} action={`/workspace/${id}/search`} role="search" aria-label="Search this workspace">
             <Search aria-hidden className={styles.searchIcon} />
             <label className="hp-visually-hidden" htmlFor="workspace-search">
-              Search orders and projects
+              Search templates, orders, projects, groups and assets
             </label>
-            <input id="workspace-search" name="q" type="search" placeholder="Search orders and projects" autoComplete="off" />
+            <input id="workspace-search" name="q" type="search" placeholder="Search templates, orders, projects, groups and assets" autoComplete="off" />
             {location ? <input type="hidden" name="location" value={location} /> : null}
           </form>
           <span className={styles.spacer} />

@@ -1,3 +1,4 @@
+import type { SQL } from "@holypearls/db";
 import { catalogueRetainsFile } from "../catalogue/media.js";
 import { assetRetainsFile } from "../organizations/assets.js";
 import { canSeeImportFile, importRetainsFile } from "../groups/imports.js";
@@ -285,7 +286,7 @@ export async function attachFile(tx: Transaction, fileId: string, owner: { type:
     .where(and(eq(schema.files.id, fileId), isNull(schema.files.ownerId)));
 }
 
-const unreferenced = (fileId: string) => and(
+const unreferenced = (fileId: string | SQL) => and(
   ...[configurationRetainsFile, projectRetainsFile, quoteRetainsFile, cartRetainsFile, orderRetainsFile, importRetainsFile, assetRetainsFile, catalogueRetainsFile]
     .map(retained => sql`not (${retained(fileId)})`),
 );
@@ -294,7 +295,7 @@ const unreferenced = (fileId: string) => and(
 export async function removeUnattachedFiles(deps: Pick<FileDeps, "db" | "storage" | "publicStorage">, now: Date): Promise<number> {
   const cutoff = new Date(now.getTime() - UNATTACHED_DAYS * 86_400_000);
   const candidates = await deps.db.select({ id: schema.files.id }).from(schema.files)
-    .where(and(isNull(schema.files.ownerId), lt(schema.files.createdAt, cutoff))).limit(500);
+    .where(and(isNull(schema.files.ownerId), lt(schema.files.createdAt, cutoff), unreferenced(sql`${schema.files.id}`))).limit(500);
   let removed = 0;
   for (const candidate of candidates) {
     removed += await deps.db.transaction(async tx => {
