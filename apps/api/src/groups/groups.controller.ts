@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
 import { StaffGuard } from "../identity/staff.guard.js";
-import { collectionActionSchema, correctionSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
+import { collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { z } from "zod";
@@ -8,10 +8,12 @@ import { AppError } from "../errors.js";
 import type { OrganizationDeps } from "../organizations/team.js";
 import { Idempotent } from "../platform/idempotency.js";
 import { RateLimit } from "../platform/rate-limit.js";
-import { HELP_DEPS } from "../tokens.js";
+import { FILE_DEPS, HELP_DEPS } from "../tokens.js";
+import type { FileDeps } from "../files/files.js";
 import { ZodValidationPipe } from "../validation.js";
 import { changeCollection, collectionInvite, createCollection, getCollection, listCollections, updateCollection } from "./collections.js";
 import { actOnParticipant, closeOrReopen, collectionDashboard, remindParticipants } from "./dashboard.js";
+import { fixRow, getImport, listImports, matchColumns, runImport, startImport } from "./imports.js";
 import { createOrderDraft, orderDraftOrigin, orderDraftState, submitOrderDraft } from "./order-drafts.js";
 import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
 
@@ -22,7 +24,10 @@ const inviteSchema = z.object({ secret: z.string().min(16).max(200) });
 /** Group collections for a workspace (T12-01; Pen 132). */
 @Controller("organizations/:organizationId/collections")
 export class CollectionsController {
-  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+  constructor(
+    @Inject(HELP_DEPS) private readonly deps: OrganizationDeps,
+    @Inject(FILE_DEPS) private readonly files: FileDeps,
+  ) {}
 
   @Get()
   async list(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
@@ -101,6 +106,65 @@ export class CollectionsController {
   @RateLimit("COMMERCIAL_WRITE")
   async submitOrderDraft(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(collectionActionSchema)) body: z.infer<typeof collectionActionSchema>) {
     return submitOrderDraft(this.deps, await actorOf(request), organizationId, collectionId, body.version);
+  }
+
+  /* CSV import (T12-03c; Pen 75). */
+
+  @Get(":collectionId/imports")
+  async imports(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string) {
+    return listImports(this.deps.db, await actorOf(request), organizationId, collectionId);
+  }
+
+  @Post(":collectionId/imports")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async startImport(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(startImportSchema)) body: z.infer<typeof startImportSchema>) {
+    return startImport({ ...this.deps, storage: this.files.storage }, await actorOf(request), organizationId, collectionId, body.fileId);
+  }
+
+  @Get(":collectionId/imports/:batchId")
+  async importBatch(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Param("batchId", uuid) batchId: string) {
+    return getImport(this.deps.db, await actorOf(request), organizationId, collectionId, batchId);
+  }
+
+  @Put(":collectionId/imports/:batchId/mapping")
+  @RateLimit("COMMERCIAL_WRITE")
+  async matchColumns(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("collectionId", uuid) collectionId: string,
+    @Param("batchId", uuid) batchId: string,
+    @Body(new ZodValidationPipe(matchColumnsSchema)) body: z.infer<typeof matchColumnsSchema>,
+  ) {
+    return matchColumns(this.deps.db, await actorOf(request), organizationId, collectionId, batchId, body);
+  }
+
+  @Put(":collectionId/imports/:batchId/rows/:rowId")
+  @RateLimit("COMMERCIAL_WRITE")
+  async fixRow(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("collectionId", uuid) collectionId: string,
+    @Param("batchId", uuid) batchId: string,
+    @Param("rowId", uuid) rowId: string,
+    @Body(new ZodValidationPipe(fixImportRowSchema)) body: z.infer<typeof fixImportRowSchema>,
+  ) {
+    return fixRow(this.deps.db, await actorOf(request), organizationId, collectionId, batchId, rowId, body);
+  }
+
+  @Post(":collectionId/imports/:batchId/import")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async runImport(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("collectionId", uuid) collectionId: string,
+    @Param("batchId", uuid) batchId: string,
+    @Body(new ZodValidationPipe(runImportSchema)) body: z.infer<typeof runImportSchema>,
+  ) {
+    return runImport(this.deps, await actorOf(request), organizationId, collectionId, batchId, body);
   }
 
   @Post(":collectionId/participants/:participantId/:action")
