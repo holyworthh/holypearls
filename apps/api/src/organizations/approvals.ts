@@ -130,6 +130,16 @@ export async function approvalCheck(db: Db, member: Member, estimateMinor: bigin
 
 /* ——— Order requests ——— */
 
+/** Which of these order requests were rejected or cancelled, so what they held is given back (company store allowances, T12-06b). */
+export async function releasedRequests(db: Db, requestIds: readonly string[]) {
+  if (!requestIds.length) return new Set<string>();
+  const rows = await db
+    .select({ id: schema.orderRequests.id })
+    .from(schema.orderRequests)
+    .where(and(inArray(schema.orderRequests.id, [...requestIds]), inArray(schema.orderRequests.status, ["REJECTED", "CANCELLED"])));
+  return new Set(rows.map((row) => row.id));
+}
+
 /**
  * Starts an order request waiting for approval, holding its designs (B2B-FR-040;
  * frame 131 "this becomes an order request for approval"). The approvers for

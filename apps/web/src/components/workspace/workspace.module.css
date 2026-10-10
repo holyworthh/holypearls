@@ -1673,3 +1673,46 @@
   flex-direction: column;
   gap: var(--hp-space-8);
 }
+
+/* Allowances (T12-06b; Pen 32 allowance card, Pen 78 B–C). */
+
+.allowance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-4);
+  padding: var(--hp-space-16);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-paper);
+}
+
+.allowanceAmount {
+  font-size: var(--hp-text-body);
+  font-weight: var(--hp-weight-bold);
+}
+
+.allowanceBar {
+  display: block;
+  height: var(--hp-space-6);
+  overflow: hidden;
+  border-radius: var(--hp-r-tag);
+  background: var(--hp-bone);
+}
+
+.allowanceBar > span {
+  display: block;
+  height: 100%;
+  background: var(--hp-success);
+}
+
+.covered {
+  color: var(--hp-success);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.renewsOn {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--hp-space-12);
+}

@@ -8,6 +8,7 @@ import {
   IDEMPOTENCY_KEY_HEADER,
   type ParticipantAnswers,
   type Store,
+  type Allowance,
   type StoreItem,
   type StoreOrderResult,
   storeOrderResultSchema,
@@ -18,6 +19,7 @@ import { Button, Checkbox, FormField, Notice, Select, StatusChip, TextField } fr
 import { api, errorCode, errorReason, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { toMinor } from "./ApprovalViews";
 import { STORE_STATUS } from "./labels";
 import { initials } from "./WorkspaceShell";
 import styles from "./workspace.module.css";
@@ -241,6 +243,31 @@ function ProcurementStore({ organizationId, store }: { organizationId: string; s
   );
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const dayMonth = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
+
+/** The allowance, visible but quiet (Pen 32; Pen 78 B): what's left, of how much, and when it renews. */
+function AllowanceCard({ allowance }: { allowance: Allowance }) {
+  const amount = BigInt(allowance.amountMinor);
+  const left = allowance.remainingMinor !== null ? BigInt(allowance.remainingMinor) : null;
+  return (
+    <div className={styles.allowance}>
+      <span className={styles.allowanceAmount}>
+        {left !== null ? `${money(left, allowance.currency)} of ${money(amount, allowance.currency)} left` : `Up to ${money(amount, allowance.currency)} per order`}
+      </span>
+      {left !== null ? (
+        <span className={styles.allowanceBar} aria-hidden="true">
+          <span style={{ width: `${Number((left * 100n) / amount)}%` }} />
+        </span>
+      ) : null}
+      <span className={styles.rowMeta}>
+        {allowance.name}
+        {allowance.renewsAt ? ` · renews ${dayMonth(allowance.renewsAt)}` : ""}
+      </span>
+    </div>
+  );
+}
+
 const EMPTY_ANSWERS: ParticipantAnswers = { size: null, sizeUnsure: false, personalization: null, quantity: null, colour: null, branchLocationId: null };
 
 /**
@@ -254,6 +281,11 @@ function SelfOrderStore({ organizationId, store }: { organizationId: string; sto
   const [selected, setSelected] = useState(first?.templateId ?? null);
   const item = store.items.find((entry) => entry.templateId === selected) ?? null;
   const [answers, setAnswers] = useState<ParticipantAnswers>(() => ({ ...EMPTY_ANSWERS, branchLocationId: first?.branches.length === 1 ? first.branches[0]!.id : null }));
+  // Pen 78 C: over the allowance (or no price yet), the pick asks a manager; nothing is silently blocked.
+  const allowance = store.allowance;
+  const limit = allowance ? BigInt(allowance.remainingMinor ?? allowance.amountMinor) : null;
+  const cost = item?.pickTotalMinor ? BigInt(item.pickTotalMinor) : null;
+  const overBy = allowance && limit !== null ? (cost === null ? null : cost > limit ? cost - limit : 0n) : 0n;
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [placed, setPlaced] = useState<StoreOrderResult | null>(null);
@@ -291,13 +323,18 @@ function SelfOrderStore({ organizationId, store }: { organizationId: string; sto
         <h2 id="store-items" className={styles.detailTitle}>
           Approved for you · {store.items.length}
         </h2>
+        {store.allowance ? <AllowanceCard allowance={store.allowance} /> : null}
         <ul className={styles.storeGrid}>
           {store.items.map((entry) => (
             <li key={entry.templateId}>
               <button type="button" className={styles.storeCard} aria-pressed={entry.templateId === selected} onClick={() => choose(entry)}>
                 <ItemThumb item={entry} />
                 <span className={styles.rowTitle}>{entry.name}</span>
-                <span className={styles.rowMeta}>{entry.unavailable ? "Temporarily unavailable" : entry.unitMinor ? money(entry.unitMinor, entry.currency) : entry.productName}</span>
+                {entry.covered && !entry.unavailable ? (
+                  <span className={styles.covered}>Covered</span>
+                ) : (
+                  <span className={styles.rowMeta}>{entry.unavailable ? "Temporarily unavailable" : entry.unitMinor ? money(entry.unitMinor, entry.currency) : entry.productName}</span>
+                )}
               </button>
             </li>
           ))}
@@ -369,11 +406,28 @@ function SelfOrderStore({ organizationId, store }: { organizationId: string; sto
                   <p>{failure}</p>
                 </Notice>
               ) : null}
+              {allowance && overBy !== 0n ? (
+                <Notice tone="warning">
+                  <p>
+                    <strong>{overBy === null ? "This item has no price yet" : `This order is ${money(overBy, allowance.currency)} over your allowance`}</strong>
+                  </p>
+                  <p>
+                    {overBy === null
+                      ? `Your manager approves it before ${store.organizationName} pays.`
+                      : `${allowance.remainingMinor !== null ? "Allowance left" : "Limit per order"} ${money(limit!, allowance.currency)} · this order ${money(cost!, allowance.currency)}.`}
+                  </p>
+                  <p>Paying the difference yourself isn&apos;t enabled by {store.organizationName}.</p>
+                </Notice>
+              ) : null}
               <div className={styles.storeAddBar}>
                 <Button loading={busy} disabled={Boolean(store.blocked)} onClick={() => void submit()}>
-                  {item.action}
+                  {allowance && overBy !== 0n ? "Ask my manager to approve" : item.action}
                 </Button>
-                <p className={styles.rowMeta}>{item.note}</p>
+                <p className={styles.rowMeta}>
+                  {allowance && overBy === 0n && cost !== null && allowance.remainingMinor !== null
+                    ? `Paid from your allowance. ${money(limit! - cost, allowance.currency)} will be left.`
+                    : item.note}
+                </p>
               </div>
             </div>
           )}
@@ -482,6 +536,30 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
         }),
       "Saved.",
     );
+  const saved = initial.setup?.allowance;
+  const [kind, setKind] = useState(saved?.kind ?? "NONE");
+  const [allowanceName, setAllowanceName] = useState(saved?.name ?? "Uniform allowance");
+  const [amount, setAmount] = useState(saved?.amountMinor ? (Number(BigInt(saved.amountMinor) / 100n)).toString() : "");
+  const [period, setPeriod] = useState(saved?.period ?? "YEAR");
+  const [renewsMonth, setRenewsMonth] = useState(saved?.renewsOn?.slice(0, 2) ?? "01");
+  const [renewsDay, setRenewsDay] = useState(saved?.renewsOn?.slice(3) ?? "01");
+  const saveAllowance = () => {
+    const amountMinor = kind === "NONE" ? null : toMinor(amount);
+    if (kind !== "NONE" && !amountMinor) {
+      setNotice({ tone: "error", text: "Enter the allowance amount in naira." });
+      return;
+    }
+    void call(
+      "allowance",
+      () =>
+        api(`${base}/allowance`, {
+          method: "PUT",
+          body: { kind, name: allowanceName, amountMinor, period: kind === "PER_PERIOD" ? period : null, renewsOn: kind === "PER_PERIOD" ? `${renewsMonth}-${renewsDay}` : null, version: store.version },
+          response: storeSchema,
+        }),
+      "Allowance saved.",
+    );
+  };
   const act = (action: "activate" | "pause" | "archive", done: string) => call(action, () => api(`${base}/${action}`, { method: "POST", body: { version: store.version }, response: storeSchema }), done);
   const toggle = (templateId: string, on: boolean) => {
     const next = new Map(items);
@@ -559,6 +637,61 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
             </Button>
           ) : null}
         </div>
+        {store.mode === "SELF_ORDER" && store.setup?.routing === "INDIVIDUAL" ? (
+          <div className={styles.form}>
+            <h3 className={styles.detailTitle}>Allowance</h3>
+            <p className={styles.dialogText}>Within the allowance, {store.organizationName} pays. Going over it asks a manager to approve; employees can&apos;t pay the difference.</p>
+            <FormField id="allowance-kind" label="Limit">
+              <Select
+                value={kind}
+                onChange={(event) => setKind(event.target.value as typeof kind)}
+                options={[
+                  { value: "NONE", label: "No limit" },
+                  { value: "PER_ORDER", label: "A limit per order" },
+                  { value: "PER_PERIOD", label: "An amount per period" },
+                ]}
+              />
+            </FormField>
+            {kind !== "NONE" ? (
+              <>
+                <FormField id="allowance-name" label="Name">
+                  <TextField value={allowanceName} onChange={(event) => setAllowanceName(event.target.value)} />
+                </FormField>
+                <FormField id="allowance-amount" label="Amount (₦)" hint={kind === "PER_ORDER" ? "The most one order can cost" : "What each person can spend each period"}>
+                  <TextField inputMode="decimal" autoComplete="off" value={amount} onChange={(event) => setAmount(event.target.value)} />
+                </FormField>
+              </>
+            ) : null}
+            {kind === "PER_PERIOD" ? (
+              <>
+                <FormField id="allowance-period" label="Renews">
+                  <Select
+                    value={period}
+                    onChange={(event) => setPeriod(event.target.value as typeof period)}
+                    options={[
+                      { value: "YEAR", label: "Every year" },
+                      { value: "QUARTER", label: "Every quarter" },
+                      { value: "MONTH", label: "Every month" },
+                    ]}
+                  />
+                </FormField>
+                <div className={styles.renewsOn}>
+                  <FormField id="allowance-month" label="From month">
+                    <Select value={renewsMonth} onChange={(event) => setRenewsMonth(event.target.value)} options={MONTHS.map((label, index) => ({ value: String(index + 1).padStart(2, "0"), label }))} />
+                  </FormField>
+                  <FormField id="allowance-day" label="Day">
+                    <Select value={renewsDay} onChange={(event) => setRenewsDay(event.target.value)} options={Array.from({ length: 28 }, (_, index) => ({ value: String(index + 1).padStart(2, "0"), label: String(index + 1) }))} />
+                  </FormField>
+                </div>
+              </>
+            ) : null}
+            {store.status !== "ARCHIVED" ? (
+              <Button variant="secondary" loading={busy === "allowance"} onClick={saveAllowance}>
+                Save allowance
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </section>
       <aside className={styles.detail} aria-labelledby="store-status">
         <h2 id="store-status" className={styles.detailTitle}>

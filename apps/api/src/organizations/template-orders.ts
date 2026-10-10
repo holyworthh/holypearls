@@ -146,15 +146,27 @@ export async function placeTemplateLines(
   deps: OrganizationDeps,
   actor: ActorContext,
   member: Member,
-  input: { organizationId: string; locationId: string; lines: PlacedLine[]; title: string; note: string; origin?: { storeId: string; storeName: string; mode: string } },
-): Promise<{ route: "CHECKOUT" | "QUOTE" | "APPROVAL"; next: string; reference: string | null }> {
+  input: {
+    organizationId: string;
+    locationId: string;
+    lines: PlacedLine[];
+    title: string;
+    note: string;
+    origin?: { storeId: string; storeName: string; mode: string };
+    /** A company-store allowance (T12-06b): over it, approval is needed whatever the organization's rule; with one, the organization pays, so never the person's own checkout. */
+    allowance?: { overNote: string | null };
+  },
+): Promise<{ route: "CHECKOUT" | "QUOTE" | "APPROVAL"; next: string; reference: string | null; orderRequestId: string | null }> {
   if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
   const db = deps.db;
   const { organizationId, locationId, lines } = input;
   const totals = lines.map((line) => (line.draft.price?.totalMinor ? BigInt(line.draft.price.totalMinor) : null));
   const estimate = totals.every((total) => total !== null) ? totals.reduce<bigint>((sum, total) => sum + total!, 0n) : null;
-  const approval = await approvalCheck(db, member, estimate, actor.session.name);
-  const route = approval.needed ? "APPROVAL" : lines.every((line) => line.draft.price?.state === "PRICE_READY" && line.draft.price.valid) ? "CHECKOUT" : "QUOTE";
+  const rule = await approvalCheck(db, member, estimate, actor.session.name);
+  const overNote = input.allowance?.overNote ?? null;
+  const approval = { needed: rule.needed || overNote !== null, note: [overNote, rule.note].filter(Boolean).join(" ") || null };
+  const direct = lines.every((line) => line.draft.price?.state === "PRICE_READY" && line.draft.price.valid);
+  const route = approval.needed ? "APPROVAL" : direct && !input.allowance ? "CHECKOUT" : "QUOTE";
   const access = { actor, deviceKey: null };
   const record = async (tx: Parameters<Parameters<Database["transaction"]>[0]>[0], reference: string | null) => {
     for (const { template, draft, choices, quantity } of lines) {
@@ -198,12 +210,12 @@ export async function placeTemplateLines(
       await record(tx, null);
       return created;
     });
-    return { route, next: `/workspace/${organizationId}/approvals/${request.id}`, reference: null };
+    return { route, next: `/workspace/${organizationId}/approvals/${request.id}`, reference: null, orderRequestId: request.id };
   }
   if (route === "CHECKOUT") {
     for (const line of lines) await addToCart(db, access, line.draft.id);
     await db.transaction((tx) => record(tx, null));
-    return { route, next: "/cart", reference: null };
+    return { route, next: "/cart", reference: null, orderRequestId: null };
   }
   const checked: { id: string; current: Configuration }[] = [];
   for (const line of lines) {
@@ -216,7 +228,7 @@ export async function placeTemplateLines(
     await record(tx, ref);
     return ref;
   });
-  return { route, next: "/account", reference };
+  return { route, next: "/account", reference, orderRequestId: null };
 }
 
 export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorContext, organizationId: string, templateId: string, input: TemplateOrderInput): Promise<TemplateOrderResult> {
@@ -229,5 +241,5 @@ export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorCont
     title: `${template.name} × ${input.quantity.toLocaleString("en-NG")}`,
     note: `Ordered from the ${template.name} template.`,
   });
-  return { ...placed, configurationId: draft.id };
+  return { route: placed.route, next: placed.next, reference: placed.reference, configurationId: draft.id };
 }

@@ -15,7 +15,7 @@ const DECISION_MESSAGES: Record<string, string> = {
 };
 
 /** Kobo from what someone typed in naira ("450,000" → "45000000"); null when it isn't an amount. */
-const toMinor = (text: string) => {
+export const toMinor = (text: string) => {
   const clean = text.replace(/[₦,\s]/g, "");
   if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
   const [whole, fraction = ""] = clean.split(".");

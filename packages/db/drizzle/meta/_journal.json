@@ -365,6 +365,13 @@
       "when": 1791641169113,
       "tag": "0051_company_stores",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1791642441500,
+      "tag": "0052_allowances",
+      "breakpoints": true
     }
   ]
 }

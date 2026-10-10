@@ -157,6 +157,7 @@ import {
   collectionDashboardSchema,
   createStoreSchema,
   storeActionSchema,
+  updateAllowanceSchema,
   storeListSchema,
   storeOrderResultSchema,
   storePickSchema,
@@ -668,6 +669,14 @@ const storePaths = {
       parameters: [orgParam, storeParam, { name: "action", in: "path", required: true, schema: { type: "string", enum: ["activate", "pause", "archive"] } }],
       requestBody: { required: true, content: json(storeActionSchema) },
       responses: { 200: { description: "Changed", content: json(storeSchema) }, ...storeWrite, 422: error("WRONG_STATUS, NO_ITEMS or COLLECTION_MISSING (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/allowance": {
+    put: {
+      summary: "The store's allowance (T12-06b; B2B-FR-084): none, per order, or per period renewing on a day (MM-DD, Lagos). Within it the organization pays; over it, a pick goes for approval.",
+      parameters: [orgParam, storeParam],
+      requestBody: { required: true, content: json(updateAllowanceSchema) },
+      responses: { 200: { description: "Updated", content: json(storeSchema) }, ...storeWrite, 422: error("STORE_ARCHIVED (RULE_FAILED)") },
     },
   },
   "/v1/organizations/{organizationId}/stores/{storeId}/orders": {

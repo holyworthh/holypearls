@@ -63488,6 +63488,15 @@
                           },
                           "note": {
                             "type": "string"
+                          },
+                          "covered": {
+                            "type": "boolean"
+                          },
+                          "pickTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -63505,7 +63514,9 @@
                           "colours",
                           "branches",
                           "action",
-                          "note"
+                          "note",
+                          "covered",
+                          "pickTotalMinor"
                         ],
                         "additionalProperties": false
                       }
@@ -63562,6 +63573,92 @@
                         "null"
                       ]
                     },
+                    "allowance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "PER_ORDER",
+                                "PER_PERIOD"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "period": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "MONTH",
+                                    "QUARTER",
+                                    "YEAR"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "renewsOn": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "usedMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "remainingMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "renewsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "amountMinor",
+                            "currency",
+                            "period",
+                            "renewsOn",
+                            "usedMinor",
+                            "remainingMinor",
+                            "renewsAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "setup": {
                       "anyOf": [
                         {
@@ -63604,11 +63701,63 @@
                                 ],
                                 "additionalProperties": false
                               }
+                            },
+                            "allowance": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NONE",
+                                    "PER_ORDER",
+                                    "PER_PERIOD"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "period": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MONTH",
+                                        "QUARTER",
+                                        "YEAR"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "renewsOn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "name",
+                                "amountMinor",
+                                "period",
+                                "renewsOn"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
                             "routing",
-                            "items"
+                            "items",
+                            "allowance"
                           ],
                           "additionalProperties": false
                         },
@@ -63639,6 +63788,7 @@
                     "locations",
                     "approval",
                     "blocked",
+                    "allowance",
                     "setup",
                     "canManage",
                     "version"
@@ -63890,6 +64040,15 @@
                           },
                           "note": {
                             "type": "string"
+                          },
+                          "covered": {
+                            "type": "boolean"
+                          },
+                          "pickTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -63907,7 +64066,9 @@
                           "colours",
                           "branches",
                           "action",
-                          "note"
+                          "note",
+                          "covered",
+                          "pickTotalMinor"
                         ],
                         "additionalProperties": false
                       }
@@ -63964,6 +64125,92 @@
                         "null"
                       ]
                     },
+                    "allowance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "PER_ORDER",
+                                "PER_PERIOD"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "period": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "MONTH",
+                                    "QUARTER",
+                                    "YEAR"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "renewsOn": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "usedMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "remainingMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "renewsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "amountMinor",
+                            "currency",
+                            "period",
+                            "renewsOn",
+                            "usedMinor",
+                            "remainingMinor",
+                            "renewsAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "setup": {
                       "anyOf": [
                         {
@@ -64006,11 +64253,63 @@
                                 ],
                                 "additionalProperties": false
                               }
+                            },
+                            "allowance": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NONE",
+                                    "PER_ORDER",
+                                    "PER_PERIOD"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "period": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MONTH",
+                                        "QUARTER",
+                                        "YEAR"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "renewsOn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "name",
+                                "amountMinor",
+                                "period",
+                                "renewsOn"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
                             "routing",
-                            "items"
+                            "items",
+                            "allowance"
                           ],
                           "additionalProperties": false
                         },
@@ -64041,6 +64340,7 @@
                     "locations",
                     "approval",
                     "blocked",
+                    "allowance",
                     "setup",
                     "canManage",
                     "version"
@@ -64336,6 +64636,15 @@
                           },
                           "note": {
                             "type": "string"
+                          },
+                          "covered": {
+                            "type": "boolean"
+                          },
+                          "pickTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -64353,7 +64662,9 @@
                           "colours",
                           "branches",
                           "action",
-                          "note"
+                          "note",
+                          "covered",
+                          "pickTotalMinor"
                         ],
                         "additionalProperties": false
                       }
@@ -64410,6 +64721,92 @@
                         "null"
                       ]
                     },
+                    "allowance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "PER_ORDER",
+                                "PER_PERIOD"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "period": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "MONTH",
+                                    "QUARTER",
+                                    "YEAR"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "renewsOn": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "usedMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "remainingMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "renewsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "amountMinor",
+                            "currency",
+                            "period",
+                            "renewsOn",
+                            "usedMinor",
+                            "remainingMinor",
+                            "renewsAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "setup": {
                       "anyOf": [
                         {
@@ -64452,11 +64849,63 @@
                                 ],
                                 "additionalProperties": false
                               }
+                            },
+                            "allowance": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NONE",
+                                    "PER_ORDER",
+                                    "PER_PERIOD"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "period": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MONTH",
+                                        "QUARTER",
+                                        "YEAR"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "renewsOn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "name",
+                                "amountMinor",
+                                "period",
+                                "renewsOn"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
                             "routing",
-                            "items"
+                            "items",
+                            "allowance"
                           ],
                           "additionalProperties": false
                         },
@@ -64487,6 +64936,7 @@
                     "locations",
                     "approval",
                     "blocked",
+                    "allowance",
                     "setup",
                     "canManage",
                     "version"
@@ -64782,6 +65232,15 @@
                           },
                           "note": {
                             "type": "string"
+                          },
+                          "covered": {
+                            "type": "boolean"
+                          },
+                          "pickTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           }
                         },
                         "required": [
@@ -64799,7 +65258,9 @@
                           "colours",
                           "branches",
                           "action",
-                          "note"
+                          "note",
+                          "covered",
+                          "pickTotalMinor"
                         ],
                         "additionalProperties": false
                       }
@@ -64856,6 +65317,92 @@
                         "null"
                       ]
                     },
+                    "allowance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "PER_ORDER",
+                                "PER_PERIOD"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "period": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "MONTH",
+                                    "QUARTER",
+                                    "YEAR"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "renewsOn": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "usedMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "remainingMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "renewsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "amountMinor",
+                            "currency",
+                            "period",
+                            "renewsOn",
+                            "usedMinor",
+                            "remainingMinor",
+                            "renewsAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "setup": {
                       "anyOf": [
                         {
@@ -64898,11 +65445,63 @@
                                 ],
                                 "additionalProperties": false
                               }
+                            },
+                            "allowance": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NONE",
+                                    "PER_ORDER",
+                                    "PER_PERIOD"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "period": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MONTH",
+                                        "QUARTER",
+                                        "YEAR"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "renewsOn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "name",
+                                "amountMinor",
+                                "period",
+                                "renewsOn"
+                              ],
+                              "additionalProperties": false
                             }
                           },
                           "required": [
                             "routing",
-                            "items"
+                            "items",
+                            "allowance"
                           ],
                           "additionalProperties": false
                         },
@@ -64933,6 +65532,7 @@
                     "locations",
                     "approval",
                     "blocked",
+                    "allowance",
                     "setup",
                     "canManage",
                     "version"
@@ -64994,6 +65594,648 @@
           },
           "422": {
             "description": "WRONG_STATUS, NO_ITEMS or COLLECTION_MISSING (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores/{storeId}/allowance": {
+      "put": {
+        "summary": "The store's allowance (T12-06b; B2B-FR-084): none, per order, or per period renewing on a day (MM-DD, Lagos). Within it the organization pays; over it, a pick goes for approval.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "NONE",
+                      "PER_ORDER",
+                      "PER_PERIOD"
+                    ]
+                  },
+                  "name": {
+                    "default": "Uniform allowance",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60
+                  },
+                  "amountMinor": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d+$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "period": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MONTH",
+                          "QUARTER",
+                          "YEAR"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "renewsOn": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^(0[1-9]|1[0-2])-(0[1-9]|1\\d|2[0-8])$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "amountMinor",
+                  "period",
+                  "renewsOn",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "PAUSED",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "PROCUREMENT",
+                        "SELF_ORDER"
+                      ]
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locked": {
+                            "type": "string"
+                          },
+                          "unitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "unavailable": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SIZE",
+                                "PERSONALIZATION",
+                                "QUANTITY",
+                                "COLOUR"
+                              ]
+                            }
+                          },
+                          "sizes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sizeUnsureAllowed": {
+                            "type": "boolean"
+                          },
+                          "colours": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "covered": {
+                            "type": "boolean"
+                          },
+                          "pickTotalMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "name",
+                          "productName",
+                          "image",
+                          "locked",
+                          "unitMinor",
+                          "currency",
+                          "unavailable",
+                          "fields",
+                          "sizes",
+                          "sizeUnsureAllowed",
+                          "colours",
+                          "branches",
+                          "action",
+                          "note",
+                          "covered",
+                          "pickTotalMinor"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "modeNote": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "properties": {
+                        "applies": {
+                          "type": "string",
+                          "enum": [
+                            "ALWAYS",
+                            "NEVER",
+                            "ABOVE_AMOUNT"
+                          ]
+                        },
+                        "thresholdMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applies",
+                        "thresholdMinor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "allowance": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "NONE",
+                                "PER_ORDER",
+                                "PER_PERIOD"
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "amountMinor": {
+                              "type": "string"
+                            },
+                            "currency": {
+                              "type": "string"
+                            },
+                            "period": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "MONTH",
+                                    "QUARTER",
+                                    "YEAR"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "renewsOn": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "usedMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "remainingMinor": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "renewsAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "name",
+                            "amountMinor",
+                            "currency",
+                            "period",
+                            "renewsOn",
+                            "usedMinor",
+                            "remainingMinor",
+                            "renewsAt"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "setup": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "routing": {
+                              "type": "string",
+                              "enum": [
+                                "INDIVIDUAL",
+                                "COLLECTION"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "templateId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "collectionId": {
+                                    "default": null,
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "templateId",
+                                  "collectionId"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "allowance": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "NONE",
+                                    "PER_ORDER",
+                                    "PER_PERIOD"
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "amountMinor": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "period": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "enum": [
+                                        "MONTH",
+                                        "QUARTER",
+                                        "YEAR"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "renewsOn": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "name",
+                                "amountMinor",
+                                "period",
+                                "renewsOn"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "required": [
+                            "routing",
+                            "items",
+                            "allowance"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "mode",
+                    "itemCount",
+                    "updatedAt",
+                    "organizationName",
+                    "items",
+                    "modeNote",
+                    "locations",
+                    "approval",
+                    "blocked",
+                    "allowance",
+                    "setup",
+                    "canManage",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_STORES (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "STORE_ARCHIVED (RULE_FAILED)",
             "content": {
               "application/json": {
                 "schema": {
