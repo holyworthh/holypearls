@@ -95,7 +95,9 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
             ? "Closed · ready to order"
             : status === "CLOSED"
               ? "Closed"
-              : status.replace(/_/g, " ").toLowerCase();
+              : status === "ORDER_DRAFT_CREATED"
+                ? "Closed · Order Draft made"
+                : status.replace(/_/g, " ").toLowerCase();
 
   return (
     <>
@@ -114,7 +116,7 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
               </Button>
             ) : null}
             {status === "OPEN" || status === "PAUSED" ? <Button onClick={() => setDialog({ kind: "close" })}>Close collection</Button> : null}
-            {reviewing ? (
+            {reviewing || status === "ORDER_DRAFT_CREATED" ? (
               <Button variant="secondary" onClick={() => setDialog({ kind: "reopen" })}>
                 Reopen
               </Button>
@@ -328,7 +330,9 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
         ) : null}
         {dialog?.kind === "reopen" ? (
           <div className={styles.form}>
-            <p className={styles.dialogText}>Participants can send and change answers again until the new deadline.</p>
+            <p className={styles.dialogText}>
+              {status === "ORDER_DRAFT_CREATED" ? "Your Order Draft will be marked STALE and must be made again after you close again. " : ""}Participants can send and change answers again until the new deadline.
+            </p>
             <FormField id="reopen-deadline" label="New deadline" error={fieldError}>
               <TextField type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
             </FormField>

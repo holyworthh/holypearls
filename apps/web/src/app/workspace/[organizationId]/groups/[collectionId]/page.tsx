@@ -1,9 +1,10 @@
-import { collectionDashboardSchema, collectionSchema, locationListSchema } from "@holypearls/contracts";
+import { collectionDashboardSchema, collectionSchema, locationListSchema, orderDraftStateSchema } from "@holypearls/contracts";
 import { ButtonLink, ErrorState } from "@holypearls/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GroupDashboard } from "../../../../../components/workspace/GroupDashboard";
 import { CollectionSetup } from "../../../../../components/workspace/GroupViews";
+import { OrderDraftPanel } from "../../../../../components/workspace/OrderDraftPanel";
 import { loadWorkspace } from "../../../../../components/workspace/load";
 import { WorkspaceShell } from "../../../../../components/workspace/WorkspaceShell";
 import styles from "../../../../../components/workspace/workspace.module.css";
@@ -23,6 +24,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ org
   ]);
   if (!result.ok && result.status === 404) notFound();
   const board = result.ok && result.data.status !== "DRAFT" ? await serverApi(`/v1/organizations/${organizationId}/collections/${collectionId}/dashboard`, collectionDashboardSchema) : null;
+  const drafts = result.ok && result.data.status !== "DRAFT" ? await serverApi(`/v1/organizations/${organizationId}/collections/${collectionId}/order-draft`, orderDraftStateSchema) : null;
   return (
     <WorkspaceShell organization={organization} userName={me.name} section="groups">
       <a className={styles.viewAll} href={`/workspace/${organizationId}/groups`}>
@@ -34,6 +36,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ org
           <h1 className={styles.title}>{result.data.status === "DRAFT" ? `Set up “${result.data.title}”` : result.data.title}</h1>
           {board?.ok ? (
             <>
+              {drafts?.ok && result.data.canManage ? <OrderDraftPanel organizationId={organizationId} collectionId={collectionId} status={result.data.status} version={result.data.version} initial={drafts.data} /> : null}
               <GroupDashboard organizationId={organizationId} collection={result.data} initial={board.data} />
               <details className={styles.settings}>
                 <summary className={styles.panelTitle}>Collection settings and share link</summary>
