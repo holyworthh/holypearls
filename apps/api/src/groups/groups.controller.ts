@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
+import { StaffGuard } from "../identity/staff.guard.js";
 import { collectionActionSchema, correctionSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
@@ -11,6 +12,7 @@ import { HELP_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { changeCollection, collectionInvite, createCollection, getCollection, listCollections, updateCollection } from "./collections.js";
 import { actOnParticipant, closeOrReopen, collectionDashboard, remindParticipants } from "./dashboard.js";
+import { createOrderDraft, orderDraftOrigin, orderDraftState, submitOrderDraft } from "./order-drafts.js";
 import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
 
 const uuid = new ParseUUIDPipe();
@@ -77,6 +79,28 @@ export class CollectionsController {
   @RateLimit("COMMERCIAL_WRITE")
   async reopen(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(reopenCollectionSchema)) body: z.infer<typeof reopenCollectionSchema>) {
     return closeOrReopen(this.deps, await actorOf(request), organizationId, collectionId, { kind: "reopen", deadline: body.deadline, version: body.version });
+  }
+
+  /* The Order Draft (T12-03b; Pen 133). */
+
+  @Get(":collectionId/order-draft")
+  async orderDraft(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string) {
+    return orderDraftState(this.deps.db, await actorOf(request), organizationId, collectionId);
+  }
+
+  @Post(":collectionId/order-draft")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async makeOrderDraft(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(collectionActionSchema)) body: z.infer<typeof collectionActionSchema>) {
+    return createOrderDraft(this.deps, await actorOf(request), organizationId, collectionId, body.version);
+  }
+
+  @Post(":collectionId/order-draft/submit")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async submitOrderDraft(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("collectionId", uuid) collectionId: string, @Body(new ZodValidationPipe(collectionActionSchema)) body: z.infer<typeof collectionActionSchema>) {
+    return submitOrderDraft(this.deps, await actorOf(request), organizationId, collectionId, body.version);
   }
 
   @Post(":collectionId/participants/:participantId/:action")
@@ -167,5 +191,17 @@ export class ParticipantsController {
   @RateLimit("COMMERCIAL_WRITE")
   async submit(@Req() request: Request, @Param("participantId", uuid) participantId: string, @Body(new ZodValidationPipe(submitParticipationSchema)) body: z.infer<typeof submitParticipationSchema>) {
     return submitParticipation(this.deps, await actorOf(request), participantId, body.version);
+  }
+}
+
+/** Where an Order Draft came from, for staff quoting or producing it (OPS-FR-090; Pen 133 · u3BRd). Read only. */
+@Controller("admin/order-drafts")
+@UseGuards(StaffGuard("QUOTE_MANAGE"))
+export class OrderDraftsAdminController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+
+  @Get(":draftId")
+  origin(@Param("draftId", uuid) draftId: string) {
+    return orderDraftOrigin(this.deps.db, draftId);
   }
 }

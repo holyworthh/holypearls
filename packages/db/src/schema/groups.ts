@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, index, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { COLLECTION_STATUSES, DELIVERY_MODES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
+import { COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
@@ -108,3 +108,33 @@ export const participantSubmissions = pgTable("participant_submissions", {
   submittedAt: timestamp("submitted_at", { withTimezone: true }),
   updatedAt: updatedAt(),
 });
+
+export const orderDraftStatus = pgEnum("order_draft_status", ORDER_DRAFT_STATUSES);
+
+/**
+ * An Order Draft (T12-03b; PRD-05 B2B-FR-054; TECH-01 §4–5): the saved copy of
+ * a reviewed collection's totals and the participants in it. Reopening the
+ * collection marks it STALE; submitting turns it into one design and an
+ * order request or quote request.
+ */
+export const orderDrafts = pgTable(
+  "order_drafts",
+  {
+    id: idColumn(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => groupCollections.id, { onDelete: "cascade" }),
+    status: orderDraftStatus("status").notNull().default("CURRENT"),
+    /** Totals and every included participant's answers as they were (TECH-01 §5). */
+    snapshot: jsonb("snapshot").notNull(),
+    configurationId: uuid("configuration_id").references(() => configurations.id, { onDelete: "set null" }),
+    orderRequestId: uuid("order_request_id"),
+    quoteId: uuid("quote_id"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("order_drafts_collection_idx").on(table.collectionId, table.status), index("order_drafts_configuration_idx").on(table.configurationId)],
+);

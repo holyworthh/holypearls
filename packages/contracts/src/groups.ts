@@ -203,3 +203,45 @@ export const correctionSchema = z.object({ note: z.string().trim().min(1, "Tell 
 export const settleSizeSchema = z.object({ size: z.string().max(8), version: z.number().int() });
 export const participantActionSchema = z.object({ version: z.number().int() });
 export const reopenCollectionSchema = z.object({ deadline: isoDate, version: z.number().int() });
+
+/* The Order Draft (T12-03b; PRD-05 B2B-FR-054–055; OPS-FR-090; Pen 133). */
+
+/** CURRENT → STALE (collection reopened) | SUBMITTED (turned into an order request or quote request) (TECH-01 §4). */
+export const ORDER_DRAFT_STATUSES = ["CURRENT", "STALE", "SUBMITTED"] as const;
+export const orderDraftStatusSchema = z.enum(ORDER_DRAFT_STATUSES);
+
+export const orderDraftSchema = z.object({
+  id: z.string(),
+  status: orderDraftStatusSchema,
+  pieces: z.number().int(),
+  sizes: z.array(z.object({ size: z.string(), count: z.number().int() })),
+  withNames: z.number().int(),
+  delivery: z.array(z.object({ name: z.string(), count: z.number().int() })),
+  includedCount: z.number().int(),
+  excludedCount: z.number().int(),
+  createdAt: isoDate,
+  submittedAt: isoDate.nullable(),
+  /** After submitting: an order request waiting for the organization's approval, or a quote request with HolyPearls. */
+  route: z.enum(["APPROVAL", "QUOTE"]).nullable(),
+  orderRequestId: z.string().nullable(),
+  quoteReference: z.string().nullable(),
+  version: z.number().int(),
+});
+export type OrderDraft = z.infer<typeof orderDraftSchema>;
+
+export const orderDraftStateSchema = z.object({ current: orderDraftSchema.nullable(), stale: z.number().int() });
+export type OrderDraftState = z.infer<typeof orderDraftStateSchema>;
+
+/** Where an Order Draft came from, for HolyPearls staff (OPS-FR-090; Pen 133 · u3BRd). Read only. */
+export const orderDraftOriginSchema = z.object({
+  id: z.string(),
+  status: orderDraftStatusSchema,
+  collectionTitle: z.string(),
+  organizationName: z.string(),
+  pieces: z.number().int(),
+  fromLink: z.number().int(),
+  fromImports: z.array(z.object({ name: z.string(), count: z.number().int() })),
+  excluded: z.array(z.object({ name: z.string(), reason: z.string() })),
+  quoteReference: z.string().nullable(),
+});
+export type OrderDraftOrigin = z.infer<typeof orderDraftOriginSchema>;

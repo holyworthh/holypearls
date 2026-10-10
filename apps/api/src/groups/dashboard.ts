@@ -23,11 +23,11 @@ type CollectionRow = typeof schema.groupCollections.$inferSelect;
 type ParticipantRow = typeof schema.participants.$inferSelect;
 const REVIEWING: readonly CollectionStatus[] = ["CLOSED", "NEEDS_REVIEW", "READY_TO_ORDER"];
 
-const answersOf = (value: unknown): ParticipantAnswers => ({ size: null, sizeUnsure: false, personalization: null, quantity: null, colour: null, branchLocationId: null, ...(value as Partial<ParticipantAnswers>) });
-const inOrder = (participant: ParticipantRow) => participant.status !== "REMOVED" && !participant.excludedAt;
+export const answersOf = (value: unknown): ParticipantAnswers => ({ size: null, sizeUnsure: false, personalization: null, quantity: null, colour: null, branchLocationId: null, ...(value as Partial<ParticipantAnswers>) });
+export const inOrder = (participant: ParticipantRow) => participant.status !== "REMOVED" && !participant.excludedAt;
 const day = (date: Date) => date.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
 
-async function rows(db: Db, collectionId: string) {
+export async function rows(db: Db, collectionId: string) {
   const participants = await db.select().from(schema.participants).where(eq(schema.participants.collectionId, collectionId)).orderBy(schema.participants.name);
   const submissions = participants.length ? await db.select().from(schema.participantSubmissions).where(inArray(schema.participantSubmissions.participantId, participants.map((row) => row.id))) : [];
   return participants.map((participant) => {
@@ -241,10 +241,24 @@ export async function closeOrReopen(deps: OrganizationDeps, actor: ActorContext,
       await recordAudit(tx, actor, { action: "collection.closed", summary: `Group collection closed: ${collection.title}`, recordType: "GROUP_COLLECTION", recordId: collectionId, before: { status: collection.status }, after: { status: "CLOSED" } });
       await review(tx, actor, await loadCollection(tx, organizationId, collectionId));
     } else {
-      if (!REVIEWING.includes(collection.status)) throw refuse("WRONG_STATUS", collection.status === "ORDER_DRAFT_CREATED" ? "An Order Draft exists. Reopening it is part of the Order Draft step." : "Only a closed collection can be reopened.");
+      if (!REVIEWING.includes(collection.status) && collection.status !== "ORDER_DRAFT_CREATED") throw refuse("WRONG_STATUS", "Only a closed collection can be reopened.");
+      // An Order Draft becomes STALE and must be made again after closing (B2B-FR-055); a sent one can't be reopened this way.
+      const stale = await staleDraftsForReopen(tx, actor, collectionId);
       await tx.update(schema.groupCollections).set({ status: "OPEN", deadline: new Date(action.deadline), closedAt: null, version: collection.version + 1, updatedAt: actor.now }).where(eq(schema.groupCollections.id, collectionId));
-      await recordAudit(tx, actor, { action: "collection.reopened", summary: `Group collection reopened: ${collection.title}`, recordType: "GROUP_COLLECTION", recordId: collectionId, before: { status: collection.status }, after: { status: "OPEN", deadline: action.deadline } });
+      await recordAudit(tx, actor, { action: "collection.reopened", summary: `Group collection reopened: ${collection.title}`, recordType: "GROUP_COLLECTION", recordId: collectionId, before: { status: collection.status }, after: { status: "OPEN", deadline: action.deadline, staleDrafts: stale } });
     }
   });
   return collectionDashboard(db, actor, organizationId, collectionId);
+}
+
+/** Reopening (B2B-FR-055): an unsubmitted draft becomes STALE; a submitted one means changes go through a change request. */
+export async function staleDraftsForReopen(tx: Transaction, actor: ActorContext, collectionId: string) {
+  const drafts = await tx.select().from(schema.orderDrafts).where(and(eq(schema.orderDrafts.collectionId, collectionId), inArray(schema.orderDrafts.status, ["CURRENT", "SUBMITTED"])));
+  if (drafts.some((draft) => draft.status === "SUBMITTED")) {
+    throw new AppError("RULE_FAILED", { message: "This Order Draft was sent. Changes go through a change request and may need a new quote and re-approval.", context: { reason: "DRAFT_SUBMITTED" } });
+  }
+  for (const draft of drafts) {
+    await tx.update(schema.orderDrafts).set({ status: "STALE", version: draft.version + 1, updatedAt: actor.now }).where(eq(schema.orderDrafts.id, draft.id));
+  }
+  return drafts.length;
 }
