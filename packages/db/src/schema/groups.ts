@@ -47,6 +47,8 @@ export const groupCollections = pgTable(
     snapshot: jsonb("snapshot").notNull(),
     createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
     openedAt: timestamp("opened_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    lastRemindedAt: timestamp("last_reminded_at", { withTimezone: true }),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -84,6 +86,10 @@ export const participants = pgTable(
     status: participantStatus("status").notNull().default("NOT_STARTED"),
     /** How they arrived: the share link now, a CSV import row later (T12-03). */
     origin: text("origin").notNull().default("LINK"),
+    /** Left out of the order during review (T12-03); kept in the list and history. */
+    excludedAt: timestamp("excluded_at", { withTimezone: true }),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
+    removedByUserId: uuid("removed_by_user_id").references(() => users.id, { onDelete: "set null" }),
     version: versionColumn(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

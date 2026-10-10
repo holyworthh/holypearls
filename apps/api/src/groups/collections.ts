@@ -60,12 +60,12 @@ async function locationNames(db: Db, organizationId: string) {
   return rows;
 }
 
-function canManage(member: Member, row: Pick<Row, "locationId">) {
+export function canManage(member: Member, row: Pick<Row, "locationId">) {
   return member.permissions.has("MANAGE_COLLECTIONS") && (member.allLocations || member.locationIds.has(row.locationId));
 }
 
 /** Who sees a collection: its creator, and members with "Manage group collections" or "View records" for its location. */
-function canSee(member: Member, row: Row) {
+export function canSee(member: Member, row: Row) {
   if (row.createdByUserId === member.userId) return true;
   if (!(member.allLocations || member.locationIds.has(row.locationId))) return false;
   return member.permissions.has("MANAGE_COLLECTIONS") || member.permissions.has("VIEW_RECORDS");
@@ -120,7 +120,7 @@ export async function listCollections(db: Database, actor: ActorContext, organiz
   };
 }
 
-async function loadCollection(db: Db, organizationId: string, id: string, options: { lock?: boolean } = {}) {
+export async function loadCollection(db: Db, organizationId: string, id: string, options: { lock?: boolean } = {}) {
   const query = db.select().from(schema.groupCollections).where(and(eq(schema.groupCollections.id, id), eq(schema.groupCollections.organizationId, organizationId)));
   const [row] = options.lock ? await query.for("update") : await query;
   if (!row) throw new AppError("NOT_FOUND");
@@ -170,7 +170,7 @@ export async function createCollection(deps: OrganizationDeps, actor: ActorConte
   return view(deps, member, row!, await locationNames(db, organizationId));
 }
 
-async function changeable(db: Db, actor: ActorContext, organizationId: string, id: string) {
+export async function changeable(db: Db, actor: ActorContext, organizationId: string, id: string) {
   const member = await requireMember(db as Database, actor, organizationId);
   const row = await loadCollection(db, organizationId, id);
   if (!canSee(member, row)) throw new AppError("NOT_FOUND");

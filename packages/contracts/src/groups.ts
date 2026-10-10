@@ -158,3 +158,48 @@ export type Participation = z.infer<typeof participationSchema>;
 
 export const saveParticipationSchema = z.object({ answers: participantAnswersSchema, version: z.number().int() });
 export const submitParticipationSchema = z.object({ version: z.number().int() });
+
+/* The organizer's dashboard (T12-03; PRD-05 B2B-FR-053–055; Pen 30, 74, 133, 134). */
+
+export const ISSUE_KINDS = ["NOT_SUBMITTED", "SIZE_TO_CONFIRM", "NEEDS_CORRECTION"] as const;
+
+export const collectionParticipantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  status: participantStatusSchema,
+  size: z.string().nullable(),
+  sizeUnsure: z.boolean(),
+  personalization: z.string().nullable(),
+  quantity: z.number().int(),
+  colour: z.string().nullable(),
+  branchName: z.string().nullable(),
+  /** Left out of the order by the organizer during review; still in the list and history. */
+  excluded: z.boolean(),
+  origin: z.string(),
+  submittedAt: isoDate.nullable(),
+  removedAt: isoDate.nullable(),
+  version: z.number().int(),
+});
+export type CollectionParticipant = z.infer<typeof collectionParticipantSchema>;
+
+export const collectionDashboardSchema = z.object({
+  progress: z.object({ total: z.number().int(), submitted: z.number().int(), incomplete: z.number().int(), notStarted: z.number().int(), removed: z.number().int(), excluded: z.number().int() }),
+  /** What stops the order: people who haven't sent, sizes to confirm, corrections asked for (only people still in the order). */
+  issues: z.array(z.object({ participantId: z.string(), name: z.string(), kind: z.enum(ISSUE_KINDS), message: z.string() })),
+  /** Live counts of the people in the order; not an order until closed and reviewed. */
+  sizes: z.array(z.object({ size: z.string(), count: z.number().int() })),
+  sizesToConfirm: z.number().int(),
+  withNames: z.number().int(),
+  pieces: z.number().int(),
+  delivery: z.array(z.object({ name: z.string(), count: z.number().int() })),
+  participants: z.array(collectionParticipantSchema),
+  lastRemindedAt: isoDate.nullable(),
+  closedAt: isoDate.nullable(),
+});
+export type CollectionDashboard = z.infer<typeof collectionDashboardSchema>;
+
+export const correctionSchema = z.object({ note: z.string().trim().min(1, "Tell them what to fix").max(500), version: z.number().int() });
+export const settleSizeSchema = z.object({ size: z.string().max(8), version: z.number().int() });
+export const participantActionSchema = z.object({ version: z.number().int() });
+export const reopenCollectionSchema = z.object({ deadline: isoDate, version: z.number().int() });
