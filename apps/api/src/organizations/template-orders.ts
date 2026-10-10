@@ -1,4 +1,4 @@
-import type { TemplateOrderForm, TemplateOrderInput, TemplateOrderResult } from "@holypearls/contracts";
+import type { Configuration, TemplateOrderForm, TemplateOrderInput, TemplateOrderResult } from "@holypearls/contracts";
 import { type Database, eq, schema } from "@holypearls/db";
 import { configurationFromTemplate, previewTemplatePrice, quoteIn, quotable } from "../configuration/drafts.js";
 import { productOptions } from "../configuration/pricing.js";
@@ -21,10 +21,11 @@ import { getTemplate } from "./templates.js";
  * route: a direct price goes to the cart and checkout, anything else becomes
  * a quote request. A Template Order is not an Exact Reorder: it uses today's
  * template and prices. The saved copy of the template goes with the order
- * (TECH-01 §5). Internal approval arrives in T11-04.
+ * (TECH-01 §5). Over the organization's approval rule it becomes an order
+ * request (T11-04).
  */
 
-type Template = Awaited<ReturnType<typeof getTemplate>>;
+export type Template = Awaited<ReturnType<typeof getTemplate>>;
 
 /** The template's locations that the member can order for (frame 131 "Only your allowed locations are listed"). */
 function allowedLocations(member: Member, template: Template, all: readonly { id: string; name: string }[]) {
@@ -61,15 +62,13 @@ export async function templateOrderForm(db: Database, actor: ActorContext, organ
   });
   const quantity = template.fields.find((field) => field.key === "quantity");
   const [source] = await db.select({ quantity: schema.configurations.quantity }).from(schema.configurations).where(eq(schema.configurations.id, sourceConfigurationId));
-  const policy = await policyFor(db, organizationId);
-  const applies = policy.rule === "ALL" || (policy.rule === "REQUESTERS" && policy.requesterIds.has(member.membershipId)) ? "ALWAYS" : policy.rule === "ABOVE_AMOUNT" ? "ABOVE_AMOUNT" : "NEVER";
   return {
     template,
     choices,
     quantity: { editable: quantity?.control !== "LOCKED", value: source?.quantity ?? null, reason: quantity?.reason ?? "Chosen per order" },
     locations,
     blocked: blockedReason(member, template, locations),
-    approval: { applies, thresholdMinor: applies === "ABOVE_AMOUNT" ? (policy.thresholdMinor?.toString() ?? null) : null },
+    approval: await approvalPreview(db, member),
   };
 }
 
@@ -99,87 +98,136 @@ export async function previewTemplateOrder(db: Database, actor: ActorContext, or
   return previewTemplatePrice(db, sourceConfigurationId, input, actor.now);
 }
 
-export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorContext, organizationId: string, templateId: string, input: TemplateOrderInput): Promise<TemplateOrderResult> {
-  const db = deps.db;
+/**
+ * One template line checked for ordering at a location (B2B-FR-033): the
+ * member may create orders, the template is approved, the location is one of
+ * the template's and theirs, and only editable fields change. Shared with
+ * company stores (T12-06).
+ */
+export async function templateLine(db: Database, actor: ActorContext, organizationId: string, templateId: string, input: { locationId: string; choices: Record<string, string>; quantity: number; templateVersion?: number }) {
   if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
   const { member, template, sourceConfigurationId, locations } = await context(db, actor, organizationId, templateId);
   enforce(needsPermission(member, "CREATE_REQUESTS"));
-  if (template.version !== input.templateVersion) throw new AppError("VERSION_CONFLICT", { message: "This template changed. Reload to see the current version.", context: { currentVersion: template.version } });
+  if (input.templateVersion !== undefined && template.version !== input.templateVersion) {
+    throw new AppError("VERSION_CONFLICT", { message: "This template changed. Reload to see the current version.", context: { currentVersion: template.version } });
+  }
   if (template.status !== "APPROVED") {
-    throw new AppError("RULE_FAILED", { message: blockedReason(member, template, locations) ?? "This template can't be ordered.", context: { reason: template.status === "NEEDS_REVIEW" ? "TEMPLATE_BLOCKED" : "TEMPLATE_NOT_APPROVED" } });
+    throw new AppError("RULE_FAILED", { message: blockedReason(member, template, locations) ?? "This template can't be ordered.", context: { reason: template.status === "NEEDS_REVIEW" ? "TEMPLATE_BLOCKED" : "TEMPLATE_NOT_APPROVED", templateId } });
   }
   if (!locations.some((location) => location.id === input.locationId)) throw new AppError("FORBIDDEN", { context: { reason: "LOCATION_NOT_ALLOWED" } });
   const [source] = await db.select({ quantity: schema.configurations.quantity }).from(schema.configurations).where(eq(schema.configurations.id, sourceConfigurationId));
   checkChanges(template, input, source?.quantity ?? null);
-
   const editable = template.fields.filter((field) => field.control === "EDITABLE").map((field) => field.key);
-  const draft = await configurationFromTemplate(db, actor, {
-    sourceConfigurationId,
-    choices: input.choices,
-    quantity: input.quantity,
-    controls: { templateId, organizationId, locationId: input.locationId, name: template.name, editable },
-  });
-  const estimate = draft.price?.totalMinor ? BigInt(draft.price.totalMinor) : null;
+  return { member, template, sourceConfigurationId, controls: { templateId, organizationId, locationId: input.locationId, name: template.name, editable } };
+}
+
+/** The organization's approval rule as it applies to this member, for order forms (frame 131 "Approval needed"). */
+export async function approvalPreview(db: Database, member: Member) {
+  const policy = await policyFor(db, member.organizationId);
+  const applies = policy.rule === "ALL" || (policy.rule === "REQUESTERS" && policy.requesterIds.has(member.membershipId)) ? "ALWAYS" : policy.rule === "ABOVE_AMOUNT" ? "ABOVE_AMOUNT" : "NEVER";
+  return { applies, thresholdMinor: applies === "ABOVE_AMOUNT" ? (policy.thresholdMinor?.toString() ?? null) : null } as const;
+}
+
+export interface PlacedLine {
+  template: Template;
+  draft: Configuration;
+  choices: Record<string, string>;
+  quantity: number;
+}
+
+/**
+ * Today's price decides where designs made from templates go, all together:
+ * over the organization's rule they become one order request for approval;
+ * otherwise, when every line has a direct price, the cart and checkout; and
+ * anything else one quote request. Each line is kept as a Template Order with
+ * the saved copy of its template (TECH-01 §5). Shared with company stores.
+ */
+export async function placeTemplateLines(
+  deps: OrganizationDeps,
+  actor: ActorContext,
+  member: Member,
+  input: { organizationId: string; locationId: string; lines: PlacedLine[]; title: string; note: string; origin?: { storeId: string; storeName: string; mode: string } },
+): Promise<{ route: "CHECKOUT" | "QUOTE" | "APPROVAL"; next: string; reference: string | null }> {
+  if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
+  const db = deps.db;
+  const { organizationId, locationId, lines } = input;
+  const totals = lines.map((line) => (line.draft.price?.totalMinor ? BigInt(line.draft.price.totalMinor) : null));
+  const estimate = totals.every((total) => total !== null) ? totals.reduce<bigint>((sum, total) => sum + total!, 0n) : null;
   const approval = await approvalCheck(db, member, estimate, actor.session.name);
-  const route = approval.needed ? "APPROVAL" : draft.price?.state === "PRICE_READY" && draft.price.valid ? "CHECKOUT" : "QUOTE";
+  const route = approval.needed ? "APPROVAL" : lines.every((line) => line.draft.price?.state === "PRICE_READY" && line.draft.price.valid) ? "CHECKOUT" : "QUOTE";
   const access = { actor, deviceKey: null };
-  const snapshot = {
-    schema: "template-order/v1",
-    templateId,
-    name: template.name,
-    templateVersion: template.version,
-    productName: template.productName,
-    fields: template.fields,
-    assets: template.assets,
-    choices: input.choices,
-    quantity: input.quantity,
-    locationId: input.locationId,
-    orderedAt: actor.now.toISOString(),
-  };
   const record = async (tx: Parameters<Parameters<Database["transaction"]>[0]>[0], reference: string | null) => {
-    await tx.insert(schema.templateOrders).values({ templateId, organizationId, locationId: input.locationId, configurationId: draft.id, orderedByUserId: actor.session.userId, route, snapshot });
-    await recordAudit(tx, actor, {
-      action: "template.ordered",
-      summary: `Ordered from template ${template.name}${reference ? ` (quote ${reference})` : ""}`,
-      recordType: "TEMPLATE",
-      recordId: templateId,
-      after: { configurationId: draft.id, route, locationId: input.locationId, quantity: input.quantity, reference },
-    });
+    for (const { template, draft, choices, quantity } of lines) {
+      const snapshot = {
+        schema: "template-order/v1",
+        templateId: template.id,
+        name: template.name,
+        templateVersion: template.version,
+        productName: template.productName,
+        fields: template.fields,
+        assets: template.assets,
+        choices,
+        quantity,
+        locationId,
+        orderedAt: actor.now.toISOString(),
+        ...(input.origin ? { store: input.origin } : {}),
+      };
+      await tx.insert(schema.templateOrders).values({ templateId: template.id, organizationId, locationId, configurationId: draft.id, orderedByUserId: actor.session.userId, route, snapshot });
+      await recordAudit(tx, actor, {
+        action: "template.ordered",
+        summary: `Ordered from template ${template.name}${input.origin ? ` in ${input.origin.storeName}` : ""}${reference ? ` (quote ${reference})` : ""}`,
+        recordType: "TEMPLATE",
+        recordId: template.id,
+        after: { configurationId: draft.id, route, locationId, quantity, reference, storeId: input.origin?.storeId ?? null },
+      });
+    }
   };
 
   if (route === "APPROVAL") {
     // Over the organization's rule: an order request waits for an approver (frame 131 "Approval needed").
     const request = await db.transaction(async (tx) => {
       const created = await createOrderRequest(deps, tx, actor, member, {
-        locationId: input.locationId,
-        title: `${template.name} × ${input.quantity.toLocaleString("en-NG")}`,
-        designs: [draft],
+        locationId,
+        title: input.title,
+        designs: lines.map((line) => line.draft),
         estimateMinor: estimate,
-        currency: draft.price?.currency ?? "NGN",
+        currency: lines[0]!.draft.price?.currency ?? "NGN",
         policyNote: approval.note,
-        templateName: template.name,
+        templateName: lines.length === 1 ? lines[0]!.template.name : null,
       });
       await record(tx, null);
       return created;
     });
-    return { route, configurationId: draft.id, next: `/workspace/${organizationId}/approvals/${request.id}`, reference: null };
+    return { route, next: `/workspace/${organizationId}/approvals/${request.id}`, reference: null };
   }
   if (route === "CHECKOUT") {
-    await addToCart(db, access, draft.id);
+    for (const line of lines) await addToCart(db, access, line.draft.id);
     await db.transaction((tx) => record(tx, null));
-    return { route, configurationId: draft.id, next: "/cart", reference: null };
+    return { route, next: "/cart", reference: null };
   }
-  const checked = await quotable(db, access, draft.id);
-  if ("reference" in checked) throw new AppError("CONFLICT");
+  const checked: { id: string; current: Configuration }[] = [];
+  for (const line of lines) {
+    const one = await quotable(db, access, line.draft.id);
+    if ("reference" in one) throw new AppError("CONFLICT");
+    checked.push(one);
+  }
   const reference = await db.transaction(async (tx) => {
-    const ref = await quoteIn(tx, deps, access, checked, {
-      email: actor.session.email,
-      name: actor.session.name,
-      note: `Ordered from the ${template.name} template.`,
-      placedFor: { organizationId, locationId: input.locationId },
-    });
+    const ref = await quoteIn(tx, deps, access, checked, { email: actor.session.email, name: actor.session.name, note: input.note, placedFor: { organizationId, locationId } });
     await record(tx, ref);
     return ref;
   });
-  return { route, configurationId: draft.id, next: "/account", reference };
+  return { route, next: "/account", reference };
+}
+
+export async function orderFromTemplate(deps: OrganizationDeps, actor: ActorContext, organizationId: string, templateId: string, input: TemplateOrderInput): Promise<TemplateOrderResult> {
+  const { member, template, sourceConfigurationId, controls } = await templateLine(deps.db, actor, organizationId, templateId, input);
+  const draft = await configurationFromTemplate(deps.db, actor, { sourceConfigurationId, choices: input.choices, quantity: input.quantity, controls });
+  const placed = await placeTemplateLines(deps, actor, member, {
+    organizationId,
+    locationId: input.locationId,
+    lines: [{ template, draft, choices: input.choices, quantity: input.quantity }],
+    title: `${template.name} × ${input.quantity.toLocaleString("en-NG")}`,
+    note: `Ordered from the ${template.name} template.`,
+  });
+  return { ...placed, configurationId: draft.id };
 }

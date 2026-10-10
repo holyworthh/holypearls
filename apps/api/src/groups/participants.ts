@@ -1,5 +1,5 @@
 import { GARMENT_SIZES, type ParticipantAnswers, type ParticipantField, type Participation } from "@holypearls/contracts";
-import { type Database, eq, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, ne, schema, type Transaction } from "@holypearls/db";
 import { productOptions } from "../configuration/pricing.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -74,7 +74,8 @@ async function loadOwn(db: Db, actor: ActorContext, participantId: string, optio
   return { participant, collection };
 }
 
-async function colourChoices(db: Db, collection: CollectionRow) {
+/** The colours a collection offers, when it asks for one. */
+export async function colourChoices(db: Db, collection: CollectionRow) {
   if (!(collection.fields as string[]).includes("COLOUR")) return [];
   const [source] = await db.select({ productId: schema.configurations.productId }).from(schema.configurations).where(eq(schema.configurations.id, collection.sourceConfigurationId));
   const options = source ? await productOptions(db as Database, source.productId) : [];
@@ -143,40 +144,89 @@ export async function saveParticipation(db: Database, actor: ActorContext, parti
   return getParticipation(db, actor, participantId);
 }
 
+/** What the collection still needs before answers can be sent (frame 31). */
+function missingAnswers(collection: CollectionRow, answers: ParticipantAnswers) {
+  const fields = collection.fields as ParticipantField[];
+  const missing: Record<string, string> = {};
+  if (fields.includes("SIZE") && !answers.size && !answers.sizeUnsure) missing["answers.size"] = "Choose your size.";
+  if (fields.includes("COLOUR") && !answers.colour) missing["answers.colour"] = "Choose a colour.";
+  if (collection.deliveryMode === "BRANCHES" && !answers.branchLocationId) missing["answers.branchLocationId"] = "Choose your branch.";
+  if (Object.keys(missing).length) throw new AppError("VALIDATION_FAILED", { fieldErrors: missing });
+}
+
+/** The participant's copy of what they sent. */
+async function emailCopy(deps: OrganizationDeps, tx: Transaction, actor: ActorContext, collection: CollectionRow, participant: ParticipantRow, answers: ParticipantAnswers) {
+  const fields = collection.fields as ParticipantField[];
+  const [organization] = await tx.select({ name: schema.organizations.name }).from(schema.organizations).where(eq(schema.organizations.id, collection.organizationId));
+  const branches = collection.branchLocationIds.length ? await tx.select({ id: schema.locations.id, name: schema.locations.name }).from(schema.locations).where(eq(schema.locations.organizationId, collection.organizationId)) : [];
+  const summary = [
+    ...(fields.includes("SIZE") ? [`Size: ${answers.sizeUnsure ? "not sure yet, your organiser will confirm it" : answers.size}`] : []),
+    ...(fields.includes("PERSONALIZATION") ? [`Name: ${answers.personalization || "no name, just the logo"}`] : []),
+    ...(fields.includes("QUANTITY") ? [`Quantity: ${answers.quantity ?? 1}`] : []),
+    ...(answers.branchLocationId ? [`Branch: ${branches.find((branch) => branch.id === answers.branchLocationId)?.name ?? ""}`] : []),
+  ];
+  await queueEmail(deps, tx, {
+    template: "collection_submitted",
+    to: participant.email,
+    customerId: participant.customerId,
+    data: { collection: collection.title, organization: organization?.name ?? "", summary, deadline: collection.deadline ? longDay(collection.deadline) : undefined },
+    record: { type: "PARTICIPANT", id: participant.id, label: collection.title },
+    requestId: actor.requestId,
+  });
+}
+
 /** "Send my response" (frame 31): everything the collection needs is there; the participant gets a copy. */
 export async function submitParticipation(deps: OrganizationDeps, actor: ActorContext, participantId: string, version: number): Promise<Participation> {
   const db = deps.db;
   const { collection } = await loadOwn(db, actor, participantId);
   accepting(collection, actor.now);
-  const [organization] = await db.select({ name: schema.organizations.name }).from(schema.organizations).where(eq(schema.organizations.id, collection.organizationId));
-  const branches = collection.branchLocationIds.length ? await db.select({ id: schema.locations.id, name: schema.locations.name }).from(schema.locations).where(eq(schema.locations.organizationId, collection.organizationId)) : [];
   await db.transaction(async (tx) => {
     const { participant } = await loadOwn(tx, actor, participantId, { lock: true });
     if (participant.version !== version) throw new AppError("VERSION_CONFLICT", { context: { currentVersion: participant.version } });
     const [submission] = await tx.select().from(schema.participantSubmissions).where(eq(schema.participantSubmissions.participantId, participantId));
     const answers = submission!.answers as ParticipantAnswers;
-    const fields = collection.fields as ParticipantField[];
-    const missing: Record<string, string> = {};
-    if (fields.includes("SIZE") && !answers.size && !answers.sizeUnsure) missing["answers.size"] = "Choose your size.";
-    if (fields.includes("COLOUR") && !answers.colour) missing["answers.colour"] = "Choose a colour.";
-    if (collection.deliveryMode === "BRANCHES" && !answers.branchLocationId) missing["answers.branchLocationId"] = "Choose your branch.";
-    if (Object.keys(missing).length) throw new AppError("VALIDATION_FAILED", { fieldErrors: missing });
+    missingAnswers(collection, answers);
     await tx.update(schema.participantSubmissions).set({ submittedAt: actor.now, correction: null, updatedAt: actor.now }).where(eq(schema.participantSubmissions.participantId, participantId));
     await tx.update(schema.participants).set({ status: "SUBMITTED", version: participant.version + 1, updatedAt: actor.now }).where(eq(schema.participants.id, participantId));
-    const summary = [
-      ...(fields.includes("SIZE") ? [`Size: ${answers.sizeUnsure ? "not sure yet, your organiser will confirm it" : answers.size}`] : []),
-      ...(fields.includes("PERSONALIZATION") ? [`Name: ${answers.personalization || "no name, just the logo"}`] : []),
-      ...(fields.includes("QUANTITY") ? [`Quantity: ${answers.quantity ?? 1}`] : []),
-      ...(answers.branchLocationId ? [`Branch: ${branches.find((branch) => branch.id === answers.branchLocationId)?.name ?? ""}`] : []),
-    ];
-    await queueEmail(deps, tx, {
-      template: "collection_submitted",
-      to: participant.email,
-      customerId: participant.customerId,
-      data: { collection: collection.title, organization: organization?.name ?? "", summary, deadline: collection.deadline ? longDay(collection.deadline) : undefined },
-      record: { type: "PARTICIPANT", id: participant.id, label: collection.title },
-      requestId: actor.requestId,
-    });
+    await emailCopy(deps, tx, actor, collection, participant, answers);
   });
   return getParticipation(db, actor, participantId);
+}
+
+/**
+ * A pick in a company store that sends picks into this collection (T12-06;
+ * B2B-FR-082; Journey 10). The signed-in employee becomes one participant
+ * with these answers, sent, or, if they already are one, their answers are
+ * replaced. Answers are checked like anyone's, and nobody sees anyone else's.
+ * The pick alone creates no order: the organizer reviews the collection first.
+ */
+export async function submitFromStore(deps: OrganizationDeps, actor: ActorContext, collectionId: string, input: { answers: ParticipantAnswers; storeName: string }) {
+  if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
+  const db = deps.db;
+  const [collection] = await db.select().from(schema.groupCollections).where(eq(schema.groupCollections.id, collectionId));
+  if (!collection) throw new AppError("NOT_FOUND");
+  accepting(collection, actor.now);
+  await checkAnswers(db, collection, input.answers);
+  missingAnswers(collection, input.answers);
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(schema.participants)
+      .where(and(eq(schema.participants.collectionId, collectionId), eq(schema.participants.userId, actor.session.userId), ne(schema.participants.status, "REMOVED")))
+      .for("update");
+    let participant = existing;
+    if (participant) {
+      await tx.update(schema.participantSubmissions).set({ answers: input.answers, submittedAt: actor.now, correction: null, updatedAt: actor.now }).where(eq(schema.participantSubmissions.participantId, participant.id));
+      await tx.update(schema.participants).set({ status: "SUBMITTED", version: participant.version + 1, updatedAt: actor.now }).where(eq(schema.participants.id, participant.id));
+    } else {
+      const customer = await ensureGuestCustomer(tx, { email: actor.session.email, name: actor.session.name });
+      [participant] = await tx
+        .insert(schema.participants)
+        .values({ collectionId, customerId: customer.id, userId: actor.session.userId, name: actor.session.name, email: actor.session.email, status: "SUBMITTED", origin: `STORE:${input.storeName}` })
+        .returning();
+      await tx.insert(schema.participantSubmissions).values({ participantId: participant!.id, answers: input.answers, submittedAt: actor.now });
+    }
+    await emailCopy(deps, tx, actor, collection, participant!, input.answers);
+    return { participantId: participant!.id, collection };
+  });
 }

@@ -1417,3 +1417,259 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--hp-space-12);
 }
+
+/* Company store (T12-06; Pen 77 · sSl53, 32 · qfJ9a, 78 · m8W6b). */
+
+.storeHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--hp-space-16);
+  min-height: var(--hp-touch-target);
+  padding: var(--hp-space-16) var(--hp-space-24);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.storeMark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-avatar);
+  height: var(--hp-avatar);
+  border-radius: var(--hp-r-tag);
+  background: var(--hp-bone);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-body);
+  font-weight: var(--hp-weight-bold);
+}
+
+.storeHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+}
+
+.storeHeaderText .rowMeta {
+  color: var(--hp-mid);
+}
+
+.storeName {
+  margin: 0;
+  font-family: var(--hp-font-ui);
+  font-size: var(--hp-text-tile-m);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.storeRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--hp-space-16);
+  padding: var(--hp-space-16);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-paper);
+}
+
+.storeRow > :last-child:not(.rowText) {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+@media (min-width: 768px) {
+  .storeRow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .storeRow > :last-child:not(.rowText) {
+    grid-column: auto;
+    justify-self: end;
+  }
+}
+
+.storeThumb {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--hp-space-96);
+  height: var(--hp-space-96);
+  overflow: hidden;
+  border-radius: var(--hp-r-tile);
+  background: var(--hp-bone);
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-body-lg);
+}
+
+.storeThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.storeQuantity {
+  width: calc(var(--hp-space-128) + var(--hp-space-4));
+}
+
+.storeLines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-14);
+  margin: 0;
+}
+
+.storeLines > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--hp-space-12);
+  font-size: var(--hp-text-support);
+}
+
+.storeLines dt {
+  color: var(--hp-graphite);
+}
+
+.storeLines dd {
+  margin: 0;
+  font-weight: var(--hp-weight-semibold);
+}
+
+.storeLines > .storeTotal {
+  align-items: baseline;
+  padding-top: var(--hp-space-10);
+  border-top: var(--hp-border-width) solid var(--hp-line);
+  font-size: var(--hp-text-body);
+}
+
+.storeTotal dt {
+  color: var(--hp-ink);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.storeTotal dd {
+  font-size: var(--hp-text-body-lg);
+}
+
+.storeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--hp-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--hp-space-6);
+  width: 100%;
+  height: 100%;
+  padding: var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-button);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storeCard .storeThumb {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.storeCard[aria-pressed="true"] {
+  border-color: var(--hp-ink);
+}
+
+.storeCard:focus-visible,
+.sizeChoice:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-focus-ring-width);
+}
+
+.setBy {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-12);
+  border-radius: var(--hp-r-tile);
+  background: var(--hp-success-tint);
+}
+
+.setByLabel {
+  color: var(--hp-success);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-bold);
+}
+
+/* Pen 32 mode banner: what happens to a pick, in plain words. */
+.storeMode {
+  margin: 0;
+  padding: var(--hp-space-12) var(--hp-space-20);
+  border-radius: var(--hp-r-tile);
+  background: var(--hp-marigold-tint);
+  color: var(--hp-ink);
+  font-size: var(--hp-text-support);
+}
+
+.setBy svg {
+  flex: none;
+  width: var(--hp-icon-md);
+  height: var(--hp-icon-md);
+  color: var(--hp-success);
+}
+
+.sizeChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--hp-touch-target) + var(--hp-space-20)), 1fr));
+  gap: var(--hp-space-8);
+}
+
+.sizeChoice {
+  min-height: calc(var(--hp-touch-target) + var(--hp-space-8));
+  padding: 0 var(--hp-space-8);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-tag);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  font-weight: var(--hp-weight-semibold);
+  cursor: pointer;
+}
+
+.sizeChoice[aria-checked="true"] {
+  border-color: var(--hp-ink);
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+/* Pen 32: the add bar is sticky on the product sheet at phone width. */
+.storeAddBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+}
+
+@media (max-width: 767px) {
+  .storeAddBar {
+    position: sticky;
+    bottom: var(--hp-workspace-mobile-header-height);
+    z-index: var(--hp-z-sticky-bar);
+    padding: var(--hp-space-12) 0;
+    background: var(--hp-paper);
+  }
+}
+
+.storeSetupItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-8);
+}

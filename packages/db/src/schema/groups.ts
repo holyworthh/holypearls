@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
+import { check, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, STORE_MODES, STORE_ROUTINGS, STORE_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
@@ -201,4 +201,49 @@ export const importRows = pgTable(
     check("import_rows_outcome", sql`${table.outcome} in ('PENDING', 'IMPORTED', 'SKIPPED')`),
     check("import_rows_decision", sql`${table.decision} is null or ${table.decision} in ('MERGE', 'KEEP_BOTH', 'REPLACE', 'SKIP')`),
   ],
+);
+
+export const storeStatus = pgEnum("store_status", STORE_STATUSES);
+export const storeMode = pgEnum("store_mode", STORE_MODES);
+export const storeRouting = pgEnum("store_routing", STORE_ROUTINGS);
+
+/**
+ * A company store (T12-06; PRD-05 B2B-FR-080–083): a private, never-indexed
+ * mini-catalogue of the organization's approved templates. Procurement or
+ * self-order; self-order picks go to individual orders or into a group
+ * collection, which employees never see or choose.
+ */
+export const companyStores = pgTable(
+  "company_stores",
+  {
+    id: idColumn(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    status: storeStatus("status").notNull().default("DRAFT"),
+    mode: storeMode("mode").notNull(),
+    routing: storeRouting("routing").notNull().default("INDIVIDUAL"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("company_stores_organization_idx").on(table.organizationId, table.status)],
+);
+
+/** The approved templates a store offers, in order; with COLLECTION routing, the group collection each item's picks join. */
+export const companyStoreItems = pgTable(
+  "company_store_items",
+  {
+    storeId: uuid("store_id")
+      .notNull()
+      .references(() => companyStores.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => templates.id, { onDelete: "restrict" }),
+    position: integer("position").notNull().default(0),
+    collectionId: uuid("collection_id").references(() => groupCollections.id, { onDelete: "restrict" }),
+  },
+  (table) => [primaryKey({ columns: [table.storeId, table.templateId] })],
 );
