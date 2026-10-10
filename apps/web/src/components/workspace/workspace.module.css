@@ -1305,3 +1305,23 @@
 .requestMeta dd {
   margin: 0;
 }
+
+/* Group collection share link (Pen 132 · rGGwn) */
+
+.shareRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-12);
+}
+
+.shareLink {
+  min-width: 0;
+  padding: var(--hp-space-10) var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-tile);
+  background: var(--hp-bone);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-support);
+  overflow-wrap: anywhere;
+}

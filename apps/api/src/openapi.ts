@@ -153,6 +153,12 @@ import {
   adminAssetReviewListSchema,
   adminAssetSchema,
   adminTemplateListSchema,
+  collectionActionSchema,
+  collectionInviteSchema,
+  collectionListSchema,
+  collectionSchema,
+  createCollectionSchema,
+  updateCollectionSchema,
   approvalPolicySchema,
   decideOrderRequestSchema,
   orderRequestActionSchema,
@@ -512,6 +518,35 @@ const templatePaths = {
   },
   "/v1/admin/templates/{templateId}/decision": {
     post: { summary: "Approve (every check passes) or return to DRAFT with a note", parameters: [templateParam, idempotencyHeader], requestBody: { required: true, content: json(decideTemplateSchema) }, responses: { 200: { description: "Decided", content: json(adminTemplateSchema) }, ...staffOnly, 400: error("A note is needed to return it to draft"), 409: error("VERSION_CONFLICT"), 422: error("NOT_AWAITING or CHECKS_FAILED (RULE_FAILED)") } },
+  },
+};
+
+const collectionParam = uuidParam("collectionId");
+const collectionWrite = { ...member, 400: error("Invalid input, a field the source doesn't allow, or a deadline that isn't in the future (VALIDATION_FAILED)"), 403: error("No MANAGE_COLLECTIONS for the location (FORBIDDEN)"), 409: error("VERSION_CONFLICT") };
+const collectionPaths = {
+  "/v1/organizations/{organizationId}/collections": {
+    get: { summary: "Group collections the member can see (T12-01; creator, MANAGE_COLLECTIONS or VIEW_RECORDS for the location)", parameters: [orgParam], responses: { 200: { description: "Collections", content: json(collectionListSchema) }, ...member } },
+    post: { summary: "Start a collection from an approved template or your saved design (MANAGE_COLLECTIONS; B2B-FR-051)", parameters: [orgParam, idempotencyHeader], requestBody: { required: true, content: json(createCollectionSchema) }, responses: { 200: { description: "Draft", content: json(collectionSchema) }, ...collectionWrite, 422: error("TEMPLATE_NOT_APPROVED (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}": {
+    get: { summary: "One collection: fields, modes, deadline and, for organizers, the share link", parameters: [orgParam, collectionParam], responses: { 200: { description: "Collection", content: json(collectionSchema) }, ...member } },
+    put: { summary: "Participant fields (only those the source allows), deadline, who pays, delivery and the unsure-size rule; while DRAFT or PAUSED", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(updateCollectionSchema) }, responses: { 200: { description: "Saved", content: json(collectionSchema) }, ...collectionWrite, 422: error("NOT_EDITABLE (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/open": {
+    post: { summary: "Open: makes the share link the first time; needs a future deadline", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Open", content: json(collectionSchema) }, ...collectionWrite, 422: error("WRONG_STATUS or TEMPLATE_NOT_APPROVED (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/pause": {
+    post: { summary: "Pause: participants see the collection is paused and can't submit", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Paused", content: json(collectionSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/cancel": {
+    post: { summary: "Cancel before an order draft exists; the link stops working", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Cancelled", content: json(collectionSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/collections/invite": {
+    post: {
+      summary: "What a participant sees on opening the share link: the allowed fields and modes, nothing about anyone else (no account; the secret goes in the body)",
+      requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["secret"], properties: { secret: { type: "string" } } } } } },
+      responses: { 200: { description: "Invite", content: json(collectionInviteSchema) }, 404: error("Unknown, draft or cancelled collection (NOT_FOUND)"), 429: error("GUEST_LINK_VERIFY limit (RATE_LIMITED)") },
+    },
   },
 };
 
@@ -1350,6 +1385,7 @@ export function buildOpenApiDocument() {
       ...workspacePaths,
       ...assetPaths,
       ...templatePaths,
+      ...collectionPaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

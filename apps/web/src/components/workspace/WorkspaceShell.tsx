@@ -1,6 +1,6 @@
 import { type MyOrganization, ROLE_LABELS } from "@holypearls/contracts";
 import { BrandLockup, SkipLink } from "@holypearls/ui";
-import { ChevronLeft, ClipboardCheck, House, Image as ImageIcon, Layers, LifeBuoy, Package, Search, Settings, Stamp } from "lucide-react";
+import { ChevronLeft, ClipboardCheck, House, Image as ImageIcon, Layers, LifeBuoy, Package, Search, Settings, Stamp, Users } from "lucide-react";
 import type { ReactNode } from "react";
 import { LocationSwitcher } from "./LocationSwitcher";
 import styles from "./workspace.module.css";
@@ -17,7 +17,7 @@ export const initials = (name: string) =>
 /** "Lekki · Location Manager", as the Pen's organization block reads. */
 export const scopeLine = (me: MyOrganization["me"]) => `${me.allLocations ? "All locations" : me.locations.map((location) => location.name).join(", ")} · ${ROLE_LABELS[me.role]}`;
 
-export type WorkspaceSection = "overview" | "orders" | "projects" | "approvals" | "templates" | "assets" | "settings" | "search";
+export type WorkspaceSection = "overview" | "orders" | "projects" | "approvals" | "templates" | "groups" | "assets" | "settings" | "search";
 
 /** A workspace address, keeping the chosen location (B2B-FR-004). */
 export const workspaceHref = (organizationId: string, path: string, location?: string | null) => `/workspace/${organizationId}${path}${location ? `?location=${location}` : ""}`;
@@ -31,6 +31,7 @@ const NAV = [
   { section: "projects", label: "Projects", path: "/projects", Icon: Layers },
   { section: "approvals", label: "Approvals", path: "/approvals", Icon: ClipboardCheck },
   { section: "templates", label: "Templates", path: "/templates", Icon: Stamp },
+  { section: "groups", label: "Groups", path: "/groups", Icon: Users },
   { section: "assets", label: "Brand Assets", path: "/assets", Icon: ImageIcon },
 ] as const;
 
@@ -126,13 +127,13 @@ export function WorkspaceShell({
       </div>
 
       <nav className={`${styles.bottomTabs} hp-surface-dark`} aria-label="Workspace sections">
-        {NAV.filter(({ section: key }) => key !== "assets" && key !== "templates" && key !== "approvals").map(({ section: key, label, path, Icon }) => (
+        {NAV.filter(({ section: key }) => key !== "assets" && key !== "templates" && key !== "approvals" && key !== "groups").map(({ section: key, label, path, Icon }) => (
           <a key={key} className={styles.bottomTab} href={workspaceHref(id, path, location)} aria-current={section === key ? "page" : undefined}>
             <Icon aria-hidden className={styles.navIcon} />
             {label}
           </a>
         ))}
-        <a className={styles.bottomTab} href={workspaceHref(id, "/more")} aria-current={section === "settings" || section === "search" || section === "assets" || section === "templates" || section === "approvals" ? "page" : undefined}>
+        <a className={styles.bottomTab} href={workspaceHref(id, "/more")} aria-current={section === "settings" || section === "search" || section === "assets" || section === "templates" || section === "approvals" || section === "groups" ? "page" : undefined}>
           <Settings aria-hidden className={styles.navIcon} />
           More
         </a>

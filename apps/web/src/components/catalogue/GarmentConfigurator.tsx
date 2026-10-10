@@ -686,7 +686,8 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
                             </FormField>
                             <div className={s.info}>
                               <span>
-                                <Users size={18} aria-hidden="true" /> <b>Ordering for a team?</b> Soon you&apos;ll be able to send one link so everyone adds their own size. It&apos;s optional.
+                                <Users size={18} aria-hidden="true" /> <b>Ordering for a team?</b> Send one link so everyone adds their own size. It&apos;s optional.{" "}
+                                <a href={`/group-collections/start${draft ? `?configuration=${draft.id}` : ""}`}>Start a Group Collection</a>
                               </span>
                             </div>
                           </>

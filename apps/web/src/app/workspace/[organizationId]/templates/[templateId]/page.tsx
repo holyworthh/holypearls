@@ -69,9 +69,14 @@ export default async function TemplatePage({ params }: { params: Promise<{ organ
                   <p>{template.reviewNote}</p>
                 </Notice>
               ) : null}
-              {template.status === "APPROVED" && organization.me.permissions.includes("CREATE_REQUESTS") ? (
+              {template.status === "APPROVED" && (organization.me.permissions.includes("CREATE_REQUESTS") || organization.me.permissions.includes("MANAGE_COLLECTIONS")) ? (
                 <div className={styles.quickActions}>
-                  <ButtonLink href={`/workspace/${organizationId}/templates/${templateId}/order`}>Order from template</ButtonLink>
+                  {organization.me.permissions.includes("MANAGE_COLLECTIONS") ? (
+                    <ButtonLink variant="secondary" href={`/workspace/${organizationId}/groups/new?template=${templateId}`}>
+                      Create Group Collection
+                    </ButtonLink>
+                  ) : null}
+                  {organization.me.permissions.includes("CREATE_REQUESTS") ? <ButtonLink href={`/workspace/${organizationId}/templates/${templateId}/order`}>Order from template</ButtonLink> : null}
                 </div>
               ) : null}
               {template.canManage && assets?.ok ? <TemplateActions organizationId={organizationId} initial={template} me={organization.me} assets={assets.data.assets} /> : null}

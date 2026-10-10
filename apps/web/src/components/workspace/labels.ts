@@ -1,4 +1,4 @@
-import type { AssetVersionStatus, OrderRequestStatus } from "@holypearls/contracts";
+import type { AssetVersionStatus, CollectionStatus, OrderRequestStatus } from "@holypearls/contracts";
 import type { StatusTone } from "@holypearls/ui";
 
 /** Status chips on the Team page (frame 70): members and invitations share one column. */
@@ -61,5 +61,17 @@ export const ORDER_REQUEST_STATUS: Record<OrderRequestStatus, { label: string; t
   APPROVED: { label: "APPROVED", tone: "success" },
   REJECTED: { label: "DECLINED", tone: "error" },
   SENT_TO_HOLYPEARLS: { label: "SENT TO HOLYPEARLS", tone: "success" },
+  CANCELLED: { label: "CANCELLED", tone: "neutral" },
+};
+
+/** Group collection chips (frame 132). */
+export const COLLECTION_STATUS: Record<CollectionStatus, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "DRAFT", tone: "neutral" },
+  OPEN: { label: "OPEN", tone: "success" },
+  PAUSED: { label: "PAUSED", tone: "warning" },
+  CLOSED: { label: "CLOSED", tone: "neutral" },
+  NEEDS_REVIEW: { label: "NEEDS REVIEW", tone: "warning" },
+  READY_TO_ORDER: { label: "READY TO ORDER", tone: "info" },
+  ORDER_DRAFT_CREATED: { label: "ORDER DRAFT CREATED", tone: "info" },
   CANCELLED: { label: "CANCELLED", tone: "neutral" },
 };
