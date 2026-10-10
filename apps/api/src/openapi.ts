@@ -154,6 +154,9 @@ import {
   adminAssetSchema,
   adminTemplateListSchema,
   collectionActionSchema,
+  collectionDashboardSchema,
+  participantActionSchema,
+  reopenCollectionSchema,
   collectionInviteSchema,
   collectionListSchema,
   collectionSchema,
@@ -544,6 +547,26 @@ const collectionPaths = {
   },
   "/v1/organizations/{organizationId}/collections/{collectionId}/cancel": {
     post: { summary: "Cancel before an order draft exists; the link stops working", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Cancelled", content: json(collectionSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/dashboard": {
+    get: { summary: "The organizer's dashboard (T12-03): progress, issues, live size and delivery counts, every participant's answers", parameters: [orgParam, collectionParam], responses: { 200: { description: "Dashboard", content: json(collectionDashboardSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/remind": {
+    post: { summary: "Email everyone in the order who hasn't sent their answers a fresh link (while OPEN)", parameters: [orgParam, collectionParam], responses: { 200: { description: "Reminded", content: { "application/json": { schema: { type: "object", properties: { reminded: { type: "integer" } } } } } }, ...collectionWrite, 422: error("NOT_OPEN (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/close": {
+    post: { summary: "Close (never starts production): CLOSED, then NEEDS_REVIEW while anything stops the order, else READY_TO_ORDER", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(collectionActionSchema) }, responses: { 200: { description: "Closed", content: json(collectionDashboardSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/reopen": {
+    post: { summary: "Reopen a closed collection with a new future deadline (before an Order Draft exists)", parameters: [orgParam, collectionParam], requestBody: { required: true, content: json(reopenCollectionSchema) }, responses: { 200: { description: "Open", content: json(collectionDashboardSchema) }, ...collectionWrite, 422: error("WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/participants/{participantId}/{action}": {
+    post: {
+      summary: "Act on one participant: correction (while open; emails their link), settle-size, exclude or include (during review), remove (out of the totals, kept in history)",
+      parameters: [orgParam, collectionParam, uuidParam("participantId"), { name: "action", in: "path", required: true, schema: { type: "string", enum: ["correction", "settle-size", "exclude", "include", "remove"] } }],
+      requestBody: { required: true, content: json(participantActionSchema) },
+      responses: { 200: { description: "Updated dashboard", content: json(collectionDashboardSchema) }, ...collectionWrite, 422: error("NOT_OPEN, NOT_SUBMITTED, NOT_REVIEWING, WRONG_STATUS or REMOVED (RULE_FAILED)") },
+    },
   },
   "/v1/collections/join": {
     post: {

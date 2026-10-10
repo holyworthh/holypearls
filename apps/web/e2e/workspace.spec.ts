@@ -416,7 +416,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
   await expect(page.getByText("Saved. New requests follow this rule.")).toBeVisible();
 });
 
-test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused", async ({ page, browser }) => {
+test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused, closed and ready to order", async ({ page, browser }) => {
   await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   const design = await page.evaluate(async () => {
     const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } }) });
@@ -474,6 +474,17 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
 
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByText("Paused. Participants can't submit until you open it again.")).toBeVisible();
+
+  // The organizer's dashboard (T12-03; Pen 30, 133): 1 of 1 submitted, then close and review.
+  await page.reload();
+  await expect(page.getByText("/ 1 submitted")).toBeVisible();
+  await expect(page.getByText("COMPLETE", { exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Close collection" }).click();
+  await expect(page.getByText(/Closing doesn't start production/)).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Close collection" }).click();
+  await expect(page.getByText("Ready to order", { exact: true })).toBeVisible();
 
   await page.goto(page.url().replace(/\/groups\/.*$/, "/groups"));
   await expect(page.getByRole("link", { name })).toBeVisible();
