@@ -330,6 +330,13 @@
       "when": 1791623960109,
       "tag": "0046_group_collections",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791624143453,
+      "tag": "0047_participants",
+      "breakpoints": true
     }
   ]
 }

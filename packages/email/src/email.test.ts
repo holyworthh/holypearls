@@ -23,6 +23,7 @@ describe("templates", () => {
       brand_asset_reviewed: { asset: "Primary Logo V5", kind: "Logo", ready: false, note: "Colour count is 14.", url: "https://holypearls.test/workspace/x/assets/y" },
       order_request_submitted: { title: "Staff Polo — Navy × 24", requestedBy: "Tunde O.", location: "Lekki", amount: "₦450,000.00", url: "https://holypearls.test/workspace/x/approvals/y" },
       order_request_decided: { title: "Staff Polo — Navy × 24", decision: "CHANGES_REQUESTED", decidedBy: "Bola M.", note: "Make it 20.", url: "https://holypearls.test/workspace/x/approvals/y" },
+      collection_submitted: { collection: "2027 Staff Uniforms", organization: "ACME", summary: ["Size: M", "Name: ADAEZE", "Branch: Lekki"], deadline: "12 Oct" },
       test_email: { requestedBy: "Ada" },
     } as const;
     for (const [name, data] of Object.entries(samples)) {

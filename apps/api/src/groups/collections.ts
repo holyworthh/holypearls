@@ -1,5 +1,5 @@
 import { type Collection, type CollectionInvite, type CollectionList, type CollectionStatus, type CreateCollection, PARTICIPANT_FIELDS, type ParticipantField, type UpdateCollection } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { seal, unseal } from "@holypearls/email";
 import { randomBytes } from "node:crypto";
 import { configurationSpecification, ownsConfiguration } from "../configuration/specification.js";
@@ -71,7 +71,7 @@ function canSee(member: Member, row: Row) {
   return member.permissions.has("MANAGE_COLLECTIONS") || member.permissions.has("VIEW_RECORDS");
 }
 
-function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Member, row: Row, locations: readonly { id: string; name: string }[]): Collection {
+function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Member, row: Row, locations: readonly { id: string; name: string }[], submitted = 0): Collection {
   const snapshot = row.snapshot as Snapshot;
   const manages = canManage(member, row);
   const shared = manages && (row.status === "OPEN" || row.status === "PAUSED") && row.shareSecretSealed;
@@ -83,7 +83,7 @@ function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Mem
     locationId: row.locationId,
     locationName: locations.find((location) => location.id === row.locationId)?.name ?? "",
     deadline: row.deadline?.toISOString() ?? null,
-    submittedCount: 0,
+    submittedCount: submitted,
     updatedAt: row.updatedAt.toISOString(),
     source: { kind: row.templateId ? "TEMPLATE" : "CONFIGURATION", label: snapshot.sourceLabel, templateId: row.templateId },
     fields: row.fields as ParticipantField[],
@@ -102,6 +102,7 @@ export async function listCollections(db: Database, actor: ActorContext, organiz
   const member = await requireMember(db, actor, organizationId);
   const rows = await db.select().from(schema.groupCollections).where(eq(schema.groupCollections.organizationId, organizationId)).orderBy(desc(schema.groupCollections.updatedAt)).limit(200);
   const locations = await locationNames(db, organizationId);
+  const counts = await submittedCounts(db, rows.map((row) => row.id));
   return {
     collections: rows
       .filter((row) => canSee(member, row))
@@ -112,7 +113,7 @@ export async function listCollections(db: Database, actor: ActorContext, organiz
         productName: (row.snapshot as Snapshot).productName,
         locationName: locations.find((location) => location.id === row.locationId)?.name ?? "",
         deadline: row.deadline?.toISOString() ?? null,
-        submittedCount: 0,
+        submittedCount: counts.get(row.id) ?? 0,
         updatedAt: row.updatedAt.toISOString(),
       })),
     canManage: member.permissions.has("MANAGE_COLLECTIONS"),
@@ -130,7 +131,7 @@ export async function getCollection(deps: OrganizationDeps, actor: ActorContext,
   const member = await requireMember(deps.db, actor, organizationId);
   const row = await loadCollection(deps.db, organizationId, id);
   if (!canSee(member, row)) throw new AppError("NOT_FOUND");
-  return view(deps, member, row, await locationNames(deps.db, organizationId));
+  return view(deps, member, row, await locationNames(deps.db, organizationId), (await submittedCounts(deps.db, [row.id])).get(row.id) ?? 0);
 }
 
 /** Start a collection (B2B-FR-051) from an approved template the member can see, or their own saved design. */
@@ -279,6 +280,11 @@ export async function changeCollection(deps: OrganizationDeps, actor: ActorConte
 export async function collectionInvite(db: Database, secret: string, now: Date): Promise<CollectionInvite> {
   const [row] = await db.select().from(schema.groupCollections).where(eq(schema.groupCollections.shareSecretHash, sha256(secret)));
   if (!row || row.status === "DRAFT" || row.status === "CANCELLED") throw new AppError("NOT_FOUND");
+  return inviteView(db, row, now);
+}
+
+/** The collection as a participant may see it: no counts, no other people, nothing about the organization's records. */
+export async function inviteView(db: Db, row: Row, now: Date): Promise<CollectionInvite> {
   const [organization] = await db.select({ name: schema.organizations.name }).from(schema.organizations).where(eq(schema.organizations.id, row.organizationId));
   const branches = row.branchLocationIds.length ? await db.select({ id: schema.locations.id, name: schema.locations.name }).from(schema.locations).where(inArray(schema.locations.id, row.branchLocationIds)) : [];
   const closed = row.status !== "OPEN" && row.status !== "PAUSED";
@@ -294,4 +300,15 @@ export async function collectionInvite(db: Database, secret: string, now: Date):
     branches: branches.sort((a, b) => a.name.localeCompare(b.name)),
     unsureSizeRule: row.unsureSizeRule,
   };
+}
+
+/** How many have sent their answers, for the organizer (T12-03 adds the full dashboard). */
+async function submittedCounts(db: Db, collectionIds: readonly string[]) {
+  if (!collectionIds.length) return new Map<string, number>();
+  const rows = await db
+    .select({ collectionId: schema.participants.collectionId, count: sql<number>`count(*)::int` })
+    .from(schema.participants)
+    .where(and(inArray(schema.participants.collectionId, [...collectionIds]), eq(schema.participants.status, "SUBMITTED")))
+    .groupBy(schema.participants.collectionId);
+  return new Map(rows.map((row) => [row.collectionId, row.count]));
 }
