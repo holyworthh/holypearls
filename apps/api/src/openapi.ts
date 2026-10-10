@@ -155,6 +155,12 @@ import {
   adminTemplateListSchema,
   collectionActionSchema,
   collectionDashboardSchema,
+  fixImportRowSchema,
+  importBatchListSchema,
+  importBatchSchema,
+  matchColumnsSchema,
+  runImportSchema,
+  startImportSchema,
   orderDraftOriginSchema,
   orderDraftStateSchema,
   participantActionSchema,
@@ -584,6 +590,27 @@ const collectionPaths = {
   },
   "/v1/admin/order-drafts/{draftId}": {
     get: { summary: "Where an Order Draft came from: participant links, imports and excluded rows (QUOTE_MANAGE; OPS-FR-090). Read only.", parameters: [uuidParam("draftId")], responses: { 200: { description: "Origin", content: json(orderDraftOriginSchema) }, ...staffOnly } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/imports": {
+    get: { summary: "The collection's CSV imports (T12-03c)", parameters: [orgParam, collectionParam], responses: { 200: { description: "Imports", content: json(importBatchListSchema) }, ...member } },
+    post: { summary: "Upload: read your own checked CSV into a batch (one row per line, up to 5,000) and guess the columns", parameters: [orgParam, collectionParam, idempotencyHeader], requestBody: { required: true, content: json(startImportSchema) }, responses: { 200: { description: "Checked", content: json(importBatchSchema) }, ...collectionWrite, 422: error("FILE_NOT_READY or WRONG_STATUS (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}": {
+    get: { summary: "One import: matching, counts and every row with its problems, duplicate and outcome", parameters: [orgParam, collectionParam, uuidParam("batchId")], responses: { 200: { description: "Import", content: json(importBatchSchema) }, ...member } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/mapping": {
+    put: { summary: "Match columns; every waiting row is read again and checked", parameters: [orgParam, collectionParam, uuidParam("batchId")], requestBody: { required: true, content: json(matchColumnsSchema) }, responses: { 200: { description: "Checked", content: json(importBatchSchema) }, ...collectionWrite } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/rows/{rowId}": {
+    put: { summary: "Fix a row's values, or choose for a duplicate or problem row: merge, keep both, replace or skip (B2B-FR-072)", parameters: [orgParam, collectionParam, uuidParam("batchId"), uuidParam("rowId")], requestBody: { required: true, content: json(fixImportRowSchema) }, responses: { 200: { description: "Checked", content: json(importBatchSchema) }, ...collectionWrite, 422: error("ROW_DONE (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/import": {
+    post: {
+      summary: "Import: rows with problems or an undecided duplicate stop it unless partial, when they wait to be fixed (B2B-FR-071). No row is silently dropped; everyone imported gets an invite link.",
+      parameters: [orgParam, collectionParam, uuidParam("batchId"), idempotencyHeader],
+      requestBody: { required: true, content: json(runImportSchema) },
+      responses: { 200: { description: "Imported", content: json(importBatchSchema) }, ...collectionWrite, 422: error("ROWS_NEED_FIXING, CANCELLED or WRONG_STATUS (RULE_FAILED)") },
+    },
   },
   "/v1/collections/join": {
     post: {

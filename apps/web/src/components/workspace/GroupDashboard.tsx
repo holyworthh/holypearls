@@ -115,6 +115,11 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
                 Remind {waiting} {waiting === 1 ? "person" : "people"}
               </Button>
             ) : null}
+            {status === "OPEN" || status === "PAUSED" || reviewing ? (
+              <a className={styles.rowLink} href={`/workspace/${organizationId}/groups/${collection.id}/import`}>
+                Import from a spreadsheet
+              </a>
+            ) : null}
             {status === "OPEN" || status === "PAUSED" ? <Button onClick={() => setDialog({ kind: "close" })}>Close collection</Button> : null}
             {reviewing || status === "ORDER_DRAFT_CREATED" ? (
               <Button variant="secondary" onClick={() => setDialog({ kind: "reopen" })}>

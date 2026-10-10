@@ -1382,3 +1382,38 @@
   padding: var(--hp-space-12) 0;
   cursor: pointer;
 }
+
+/* CSV import (Pen 75 · mEw4a) */
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--hp-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.steps li {
+  padding: var(--hp-space-4) var(--hp-space-12);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-pill);
+}
+
+.steps li[aria-current="step"] {
+  border-color: var(--hp-ink);
+  color: var(--hp-ink);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.stepDone {
+  color: var(--hp-ink);
+}
+
+.importTotals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--hp-space-12);
+}

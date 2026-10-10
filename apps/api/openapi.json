@@ -60051,6 +60051,1797 @@
         }
       }
     },
+    "/v1/organizations/{organizationId}/collections/{collectionId}/imports": {
+      "get": {
+        "summary": "The collection's CSV imports (T12-03c)",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Imports",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batches": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "fileName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "imported": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "fileName",
+                          "status",
+                          "rows",
+                          "imported",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "batches"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Upload: read your own checked CSV into a batch (one row per line, up to 5,000) and guess the columns",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "fileId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOADED",
+                        "CHECKED",
+                        "IMPORTED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "headers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mapping": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ready": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "problems": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "duplicates": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "imported": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "ready",
+                        "problems",
+                        "duplicates",
+                        "imported",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "values": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "problems": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "duplicateOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MERGE",
+                                  "KEEP_BOTH",
+                                  "REPLACE",
+                                  "SKIP"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "IMPORTED",
+                              "SKIPPED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "line",
+                          "values",
+                          "problems",
+                          "duplicateOf",
+                          "decision",
+                          "outcome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileName",
+                    "status",
+                    "headers",
+                    "mapping",
+                    "fields",
+                    "counts",
+                    "rows",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a field the source doesn't allow, or a deadline that isn't in the future (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_COLLECTIONS for the location (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "FILE_NOT_READY or WRONG_STATUS (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}": {
+      "get": {
+        "summary": "One import: matching, counts and every row with its problems, duplicate and outcome",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOADED",
+                        "CHECKED",
+                        "IMPORTED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "headers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mapping": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ready": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "problems": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "duplicates": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "imported": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "ready",
+                        "problems",
+                        "duplicates",
+                        "imported",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "values": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "problems": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "duplicateOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MERGE",
+                                  "KEEP_BOTH",
+                                  "REPLACE",
+                                  "SKIP"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "IMPORTED",
+                              "SKIPPED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "line",
+                          "values",
+                          "problems",
+                          "duplicateOf",
+                          "decision",
+                          "outcome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileName",
+                    "status",
+                    "headers",
+                    "mapping",
+                    "fields",
+                    "counts",
+                    "rows",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/mapping": {
+      "put": {
+        "summary": "Match columns; every waiting row is read again and checked",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mapping": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "enum": [
+                        "name",
+                        "email",
+                        "size",
+                        "personalization",
+                        "quantity",
+                        "colour",
+                        "branch"
+                      ]
+                    },
+                    "additionalProperties": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "mapping",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOADED",
+                        "CHECKED",
+                        "IMPORTED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "headers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mapping": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ready": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "problems": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "duplicates": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "imported": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "ready",
+                        "problems",
+                        "duplicates",
+                        "imported",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "values": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "problems": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "duplicateOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MERGE",
+                                  "KEEP_BOTH",
+                                  "REPLACE",
+                                  "SKIP"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "IMPORTED",
+                              "SKIPPED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "line",
+                          "values",
+                          "problems",
+                          "duplicateOf",
+                          "decision",
+                          "outcome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileName",
+                    "status",
+                    "headers",
+                    "mapping",
+                    "fields",
+                    "counts",
+                    "rows",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a field the source doesn't allow, or a deadline that isn't in the future (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_COLLECTIONS for the location (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/rows/{rowId}": {
+      "put": {
+        "summary": "Fix a row's values, or choose for a duplicate or problem row: merge, keep both, replace or skip (B2B-FR-072)",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "rowId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "enum": [
+                        "name",
+                        "email",
+                        "size",
+                        "personalization",
+                        "quantity",
+                        "colour",
+                        "branch"
+                      ]
+                    },
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "decision": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "MERGE",
+                          "KEEP_BOTH",
+                          "REPLACE",
+                          "SKIP"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOADED",
+                        "CHECKED",
+                        "IMPORTED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "headers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mapping": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ready": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "problems": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "duplicates": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "imported": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "ready",
+                        "problems",
+                        "duplicates",
+                        "imported",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "values": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "problems": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "duplicateOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MERGE",
+                                  "KEEP_BOTH",
+                                  "REPLACE",
+                                  "SKIP"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "IMPORTED",
+                              "SKIPPED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "line",
+                          "values",
+                          "problems",
+                          "duplicateOf",
+                          "decision",
+                          "outcome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileName",
+                    "status",
+                    "headers",
+                    "mapping",
+                    "fields",
+                    "counts",
+                    "rows",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a field the source doesn't allow, or a deadline that isn't in the future (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_COLLECTIONS for the location (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "ROW_DONE (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/collections/{collectionId}/imports/{batchId}/import": {
+      "post": {
+        "summary": "Import: rows with problems or an undecided duplicate stop it unless partial, when they wait to be fixed (B2B-FR-071). No row is silently dropped; everyone imported gets an invite link.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "collectionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "partial": {
+                    "type": "boolean"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "partial",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Imported",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "UPLOADED",
+                        "CHECKED",
+                        "IMPORTED",
+                        "CANCELLED"
+                      ]
+                    },
+                    "headers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mapping": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      },
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "name",
+                          "email",
+                          "size",
+                          "personalization",
+                          "quantity",
+                          "colour",
+                          "branch"
+                        ]
+                      }
+                    },
+                    "counts": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "ready": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "problems": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "duplicates": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "imported": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "skipped": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "rows",
+                        "ready",
+                        "problems",
+                        "duplicates",
+                        "imported",
+                        "skipped"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "values": {
+                            "type": "object",
+                            "propertyNames": {
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "problems": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string"
+                                },
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "field",
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "duplicateOf": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "decision": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "MERGE",
+                                  "KEEP_BOTH",
+                                  "REPLACE",
+                                  "SKIP"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "IMPORTED",
+                              "SKIPPED"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "line",
+                          "values",
+                          "problems",
+                          "duplicateOf",
+                          "decision",
+                          "outcome"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "fileName",
+                    "status",
+                    "headers",
+                    "mapping",
+                    "fields",
+                    "counts",
+                    "rows",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a field the source doesn't allow, or a deadline that isn't in the future (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_COLLECTIONS for the location (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "ROWS_NEED_FIXING, CANCELLED or WRONG_STATUS (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/collections/join": {
       "post": {
         "summary": "Join from the share link with a name and email (T12-01b): a guest session for this participant only, and their personal link by email",

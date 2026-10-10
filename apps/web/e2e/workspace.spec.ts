@@ -475,6 +475,16 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByText("Paused. Participants can't submit until you open it again.")).toBeVisible();
 
+  // Import from a spreadsheet (T12-03c; Pen 75): the upload step. The file check needs the worker, which browser tests don't run.
+  await page.reload();
+  await page.getByRole("link", { name: "Import from a spreadsheet" }).click();
+  await expect(page.getByRole("heading", { name: "Import people from a spreadsheet" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.locator('input[type="file"]').setInputFiles({ name: "staff.csv", mimeType: "text/csv", buffer: Buffer.from("Name,Email,Size\nAda,ada@example.com,M\n") });
+  await expect(page.getByText("Checking your file")).toBeVisible();
+  await page.goBack();
+
   // The organizer's dashboard (T12-03; Pen 30, 133): 1 of 1 submitted, then close and review.
   await page.reload();
   await expect(page.getByText("/ 1 submitted")).toBeVisible();
