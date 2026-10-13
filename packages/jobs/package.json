@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@holypearls/db": "workspace:*",
-    "pg-boss": "12.35.1",
+    "pg-boss": "12.37.1",
     "zod": "4.6.5"
   },
   "devDependencies": {
