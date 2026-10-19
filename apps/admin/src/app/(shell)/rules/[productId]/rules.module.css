@@ -1,0 +1,42 @@
+/* Rules & prices (T13-01; Pen 107): two columns of panels on wide screens. */
+
+.layout {
+  display: grid;
+  gap: var(--hp-space-20);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-14);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--hp-space-128) + var(--hp-space-32)), 1fr));
+  gap: var(--hp-space-12);
+  align-items: end;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-10);
+  margin: 0;
+  padding-left: var(--hp-space-20);
+  font-size: var(--hp-text-support);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--hp-space-12);
+}

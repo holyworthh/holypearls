@@ -31,6 +31,7 @@ import {
   adminPriceRuleListSchema,
   adminPriceRuleSchema,
   adminProductRulesSchema,
+  pricingProductListSchema,
   adminTaxSettingListSchema,
   priceRequestSchema,
   priceResultSchema,
@@ -1293,8 +1294,11 @@ export function buildOpenApiDocument() {
           responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
       },
+      "/v1/admin/pricing/products": {
+        get: { summary: "Every product with whether its rules are set, its price now and whether a new price is scheduled (PRICING_MANAGE; T13-01)", responses: { 200: { description: "Products", content: json(pricingProductListSchema) }, ...staffOnly } },
+      },
       "/v1/admin/pricing/products/{id}/rules": {
-        get: { summary: "Product rules and compatibility (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Rules", content: json(adminProductRulesSchema) }, ...staffOnly } },
+        get: { summary: "Product rules and compatibility, with the product and its options (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Rules", content: json(adminProductRulesSchema) }, ...staffOnly } },
         put: {
           summary: "Create (version 0) or edit product rules (PRICING_MANAGE, audited)",
           parameters: [uuidParam("id")],

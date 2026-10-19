@@ -37,3 +37,17 @@ export const toSlug = (name: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80)
     .replace(/-+$/, "");
+
+/** Whole naira → kobo string; "6,500" and "6500.50" both work. Null when it isn't an amount. */
+export function toKobo(value: string): string | null {
+  const clean = value.replace(/[₦,\s]/g, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
+  const [whole, fraction = ""] = clean.split(".");
+  return (BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, "0"))).toString();
+}
+
+/** Kobo → what staff type: "9600" or "9600.50". */
+export function toNaira(minor: string) {
+  const value = BigInt(minor);
+  return value % 100n === 0n ? (value / 100n).toString() : `${value / 100n}.${(value % 100n).toString().padStart(2, "0")}`;
+}

@@ -9,7 +9,7 @@ import {
 import type { Database } from "@holypearls/db";
 import type { Request } from "express";
 import { z } from "zod";
-import { addPriceRule, addTaxSetting, getProductRules, listPriceRules, listTaxSettings, saveCompatibility, saveProductRules } from "../catalogue/rules.js";
+import { addPriceRule, addTaxSetting, getProductRules, listPriceRules, listTaxSettings, pricingProducts, saveCompatibility, saveProductRules } from "../catalogue/rules.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { DATABASE } from "../tokens.js";
@@ -24,6 +24,11 @@ const slugPipe = new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+
 @UseGuards(StaffGuard("PRICING_MANAGE"))
 export class PricingAdminController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  @Get("products")
+  async products(@Req() request: Request) {
+    return pricingProducts(this.db, (await request.getActor!()).now);
+  }
 
   @Get("products/:id/rules")
   rules(@Param("id", uuid) id: string) {

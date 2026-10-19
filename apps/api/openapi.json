@@ -23363,9 +23363,132 @@
         }
       }
     },
+    "/v1/admin/pricing/products": {
+      "get": {
+        "summary": "Every product with whether its rules are set, its price now and whether a new price is scheduled (PRICING_MANAGE; T13-01)",
+        "responses": {
+          "200": {
+            "description": "Products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "buyingMode": {
+                            "type": "string",
+                            "enum": [
+                              "SIMPLE_CONFIGURABLE",
+                              "CONFIGURABLE_QUOTE",
+                              "CONSULTATIVE_PROJECT"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "hasRules": {
+                            "type": "boolean"
+                          },
+                          "price": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "baseMinor": {
+                                    "type": "string"
+                                  },
+                                  "currency": {
+                                    "type": "string",
+                                    "enum": [
+                                      "NGN",
+                                      "USD"
+                                    ]
+                                  },
+                                  "state": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PRICE_READY",
+                                      "ESTIMATE_READY"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "baseMinor",
+                                  "currency",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "scheduled": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "slug",
+                          "buyingMode",
+                          "status",
+                          "hasRules",
+                          "price",
+                          "scheduled"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "products"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/pricing/products/{id}/rules": {
       "get": {
-        "summary": "Product rules and compatibility (PRICING_MANAGE)",
+        "summary": "Product rules and compatibility, with the product and its options (PRICING_MANAGE)",
         "parameters": [
           {
             "name": "id",
@@ -23387,6 +23510,74 @@
                   "properties": {
                     "productId": {
                       "type": "string"
+                    },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "buyingMode": {
+                          "type": "string",
+                          "enum": [
+                            "SIMPLE_CONFIGURABLE",
+                            "CONFIGURABLE_QUOTE",
+                            "CONSULTATIVE_PROJECT"
+                          ]
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "slug",
+                        "buyingMode",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "values"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "rules": {
                       "anyOf": [
@@ -23567,6 +23758,8 @@
                   },
                   "required": [
                     "productId",
+                    "product",
+                    "options",
                     "rules",
                     "version",
                     "compatibility"
@@ -23766,6 +23959,74 @@
                     "productId": {
                       "type": "string"
                     },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "buyingMode": {
+                          "type": "string",
+                          "enum": [
+                            "SIMPLE_CONFIGURABLE",
+                            "CONFIGURABLE_QUOTE",
+                            "CONSULTATIVE_PROJECT"
+                          ]
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "slug",
+                        "buyingMode",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "values"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "rules": {
                       "anyOf": [
                         {
@@ -23945,6 +24206,8 @@
                   },
                   "required": [
                     "productId",
+                    "product",
+                    "options",
                     "rules",
                     "version",
                     "compatibility"
@@ -24089,6 +24352,74 @@
                     "productId": {
                       "type": "string"
                     },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "buyingMode": {
+                          "type": "string",
+                          "enum": [
+                            "SIMPLE_CONFIGURABLE",
+                            "CONFIGURABLE_QUOTE",
+                            "CONSULTATIVE_PROJECT"
+                          ]
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "slug",
+                        "buyingMode",
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "options": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "values"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "rules": {
                       "anyOf": [
                         {
@@ -24268,6 +24599,8 @@
                   },
                   "required": [
                     "productId",
+                    "product",
+                    "options",
                     "rules",
                     "version",
                     "compatibility"
