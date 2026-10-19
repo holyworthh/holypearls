@@ -1,6 +1,6 @@
 "use client";
 
-import { acceptedInvitationSchema, INVITATION_TOKEN_HEADER, type InvitationPreview, invitationPreviewSchema, type Me, meSchema, ROLE_LABELS } from "@holypearls/contracts";
+import { acceptedInvitationSchema, acceptedStaffInvitationSchema, INVITATION_TOKEN_HEADER, type InvitationPreview, invitationPreviewSchema, type Me, meSchema, ROLE_LABELS, type StaffInvitationPreview, staffInvitationPreviewSchema } from "@holypearls/contracts";
 import { Button, ButtonLink, Notice, PageLoading } from "@holypearls/ui";
 import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 import styles from "@holypearls/web-kit/auth.module.css";
@@ -13,7 +13,8 @@ const STORE = "hp.invitation";
 type View =
   | { state: "loading" }
   | { state: "missing" }
-  | { state: "ready"; token: string; preview: InvitationPreview; me: Me | null };
+  | { state: "ready"; token: string; preview: InvitationPreview; me: Me | null }
+  | { state: "staff"; token: string; preview: StaffInvitationPreview; me: Me | null };
 
 const readStore = () => {
   try {
@@ -45,12 +46,19 @@ export function InvitationAccept() {
     }
     const token = fromHash || readStore();
     if (!token) return setView({ state: "missing" });
+    const headers = { [INVITATION_TOKEN_HEADER]: token };
+    const me = () => api("/v1/me", { response: meSchema }).catch(() => null);
     try {
-      const preview = await api("/v1/invitations/preview", { headers: { [INVITATION_TOKEN_HEADER]: token }, response: invitationPreviewSchema });
-      const me = await api("/v1/me", { response: meSchema }).catch(() => null);
-      setView({ state: "ready", token, preview, me });
+      const preview = await api("/v1/invitations/preview", { headers, response: invitationPreviewSchema });
+      setView({ state: "ready", token, preview, me: await me() });
     } catch {
-      setView({ state: "missing" });
+      // Not a workspace invitation: it may be a staff one (T13-05b; TECH-03 §11 uses one page for both).
+      try {
+        const preview = await api("/v1/staff-invitations/preview", { headers, response: staffInvitationPreviewSchema });
+        setView({ state: "staff", token, preview, me: await me() });
+      } catch {
+        setView({ state: "missing" });
+      }
     }
   }, []);
 
@@ -69,6 +77,8 @@ export function InvitationAccept() {
       </section>
     );
   }
+
+  if (view.state === "staff") return <StaffInvitation token={view.token} preview={view.preview} me={view.me} />;
 
   const { token, preview, me } = view;
   const role = ROLE_LABELS[preview.role];
@@ -162,6 +172,104 @@ export function InvitationAccept() {
               Sign in with another account
             </ButtonLink>
           ) : null}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const STAFF_CLOSED = {
+  ACCEPTED: ["This invitation has already been used", "Each invitation works once. Sign in to the admin with this account."],
+  EXPIRED: ["This invitation has expired", "Invitations last 7 days. Ask a HolyPearls staff admin to send a new one."],
+  REVOKED: ["This invitation was cancelled", "Ask a HolyPearls staff admin if you still need access."],
+} as const;
+
+/** A staff invitation (T13-05b; Pen 122): accept with the invited, verified email, then sign in to the admin and set up MFA. */
+function StaffInvitation({ token, preview, me }: { token: string; preview: StaffInvitationPreview; me: Me | null }) {
+  const [problem, setProblem] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [adminUrl, setAdminUrl] = useState<string | null>(null);
+
+  if (adminUrl) {
+    return (
+      <section className={`${styles.card} ${styles.stateCard}`} aria-labelledby="invite-title">
+        <h1 id="invite-title" className={styles.stateTitle}>
+          You&apos;re on the HolyPearls staff
+        </h1>
+        <p className={styles.intro}>Sign in to the admin with this account. You&apos;ll set up your authenticator app first.</p>
+        <ButtonLink fullWidth href={adminUrl}>
+          Sign in to the admin
+        </ButtonLink>
+      </section>
+    );
+  }
+  if (preview.status !== "PENDING") {
+    const [title, body] = STAFF_CLOSED[preview.status];
+    return (
+      <section className={`${styles.card} ${styles.stateCard}`} aria-labelledby="invite-title">
+        <h1 id="invite-title" className={styles.stateTitle}>
+          {title}
+        </h1>
+        <p className={styles.intro}>{body}</p>
+      </section>
+    );
+  }
+  const accept = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const { adminSignInUrl } = await api("/v1/staff-invitations/accept", { method: "POST", body: { token }, response: acceptedStaffInvitationSchema });
+      writeStore(null);
+      setAdminUrl(adminSignInUrl);
+    } catch (error) {
+      setBusy(false);
+      const reason = errorReason(error) ?? errorCode(error) ?? "";
+      const text: Record<string, string> = {
+        WRONG_ACCOUNT: `This invitation is for ${preview.invitedEmail}. Sign in with that email to accept it.`,
+        VERIFY_EMAIL_FIRST: "Verify your email first, then accept the invitation.",
+        ALREADY_STAFF: "You're already on the staff. Sign in to the admin.",
+        INVITATION_EXPIRED: STAFF_CLOSED.EXPIRED[1],
+        INVITATION_REVOKED: STAFF_CLOSED.REVOKED[1],
+        INVITATION_ACCEPTED: STAFF_CLOSED.ACCEPTED[1],
+      };
+      setProblem(text[reason] ?? "We couldn't accept the invitation. Try again.");
+    }
+  };
+  return (
+    <section className={styles.card} aria-labelledby="invite-title">
+      <h1 id="invite-title" className={styles.title}>
+        Join the HolyPearls staff
+      </h1>
+      <p className={styles.intro}>
+        You&apos;re invited to the staff admin{preview.permissions.length ? ` with ${preview.permissions.join(", ")}` : ""}. The invitation is for {preview.invitedEmail} and works until{" "}
+        {new Date(preview.expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", timeZone: "Africa/Lagos" })}.
+      </p>
+      {problem ? (
+        <Notice tone="error" live>
+          <p>{problem}</p>
+        </Notice>
+      ) : null}
+      {!me ? (
+        <div className={styles.actions}>
+          <ButtonLink fullWidth className={styles.primary} href="/sign-in?next=/invitations">
+            Sign in to accept
+          </ButtonLink>
+          <ButtonLink fullWidth variant="secondary" href="/sign-up">
+            Create an account
+          </ButtonLink>
+          <p className={styles.support}>Use {preview.invitedEmail}, the email the invitation was sent to. New accounts verify their email first, then open the invitation link again.</p>
+        </div>
+      ) : !me.emailVerified ? (
+        <Notice tone="warning" title="Verify your email first">
+          <p>Check {me.email} for the verification link, then come back to this page.</p>
+          <ResendVerification email={me.email} />
+        </Notice>
+      ) : (
+        <div className={styles.actions}>
+          <Button fullWidth loading={busy} onClick={() => void accept()}>
+            Accept invitation
+          </Button>
+          <p className={styles.support}>Signed in as {me.email}.</p>
         </div>
       )}
     </section>

@@ -407,6 +407,13 @@
       "when": 1792419289343,
       "tag": "0057_refunds",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792433726590,
+      "tag": "0058_staff_invitations",
+      "breakpoints": true
     }
   ]
 }

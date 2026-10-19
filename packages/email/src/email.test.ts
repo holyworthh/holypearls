@@ -17,6 +17,7 @@ describe("templates", () => {
       help_request_received: { reference: "HR-2026-0001", name: "Bisi" },
       help_reply: { reference: "HR-2026-0001", reply: "Yes — 12 colours works." },
       organization_invitation: { organization: "ACME", role: "Buyer", invitedBy: "Ada", expires: "15 October 2026", url: "https://holypearls.test/invitations#abc" },
+      staff_invitation: { invitedBy: "Ada", permissions: "PRODUCTION_MANAGE", expires: "26 October 2026", url: "https://holypearls.test/invitations#abc" },
       organization_role_changed: { organization: "ACME", role: "Approver", url: "https://holypearls.test/workspace" },
       organization_request_staff: { company: "ACME", locations: 2, url: "https://admin.holypearls.test/organization-requests" },
       organization_request_approved: { organization: "ACME", url: "https://holypearls.test/workspace" },
@@ -68,6 +69,7 @@ describe("templates", () => {
       "problem_received",
       "problem_reply",
       "organization_invitation",
+      "staff_invitation",
     ]);
   });
 });
