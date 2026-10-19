@@ -33,7 +33,7 @@ test("rules & prices: products, product rules, a scheduled price version, price 
   await page.getByLabel("Effective from (Lagos time)").fill(`2030-11-${day}T00:00`);
   await page.getByRole("button", { name: "Save price version" }).click();
   await expect(page.getByText(new RegExp(`^Price version scheduled\\. New prices take effect ${day} NOV 00:00\\.`))).toBeVisible();
-  await expect(page.getByText("SCHEDULED", { exact: true })).toBeVisible();
+  await expect(page.getByText("SCHEDULED", { exact: true }).first()).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
