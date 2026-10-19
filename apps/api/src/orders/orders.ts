@@ -1,4 +1,4 @@
-import { type AccountOrder, type AccountReceipt, displayMoney, type Order, type Receipt } from "@holypearls/contracts";
+import { type AccountOrder, type AccountReceipt, type CurrencyCode, displayMoney, money, type Order, type Receipt, toMajorString } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, lt, or, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -343,4 +343,30 @@ export function receiptView(row: typeof schema.receipts.$inferSelect, order: Ord
 export async function orderOfCheckout(db: Database, checkoutId: string) {
   const [row] = await db.select({ id: schema.orders.id, number: schema.orders.number }).from(schema.orders).where(eq(schema.orders.checkoutId, checkoutId));
   return row ?? null;
+}
+
+/** Orders export (T13-03b): orders placed in the range, with their totals. No contact details (those are personal data). */
+export async function ordersForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select({ order: schema.orders, items: sql<number>`(select count(*)::int from order_items i where i.order_id = ${schema.orders.id})` })
+    .from(schema.orders)
+    .where(and(sql`${schema.orders.placedAt} >= ${range.start}`, lt(schema.orders.placedAt, range.end)))
+    .orderBy(asc(schema.orders.placedAt));
+  const amount = (minor: bigint | null, currency: string) => (minor === null ? "" : toMajorString(money(minor, currency as CurrencyCode)));
+  return [
+    ["Order", "Placed", "Currency", "Goods", "Delivery", "VAT", "Total", "Items", "Workspace order", "Cancelled", "Refund due"],
+    ...rows.map(({ order, items }) => [
+      order.number,
+      order.placedAt.toISOString(),
+      order.currency,
+      amount(order.goodsMinor, order.currency),
+      amount(order.deliveryMinor, order.currency),
+      amount(order.vatMinor, order.currency),
+      amount(order.totalMinor, order.currency),
+      String(items),
+      order.organizationId ? "Yes" : "No",
+      order.cancelledAt?.toISOString() ?? "",
+      amount(order.refundDueMinor, order.currency),
+    ]),
+  ];
 }

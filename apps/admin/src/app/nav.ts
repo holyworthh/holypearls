@@ -1,4 +1,4 @@
-import type { StaffPermission } from "@holypearls/contracts";
+import { EXPORT_PERMISSIONS, type StaffPermission } from "@holypearls/contracts";
 
 export interface AdminSection {
   slug: string;
@@ -63,7 +63,7 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
       { slug: "staff", label: "Staff", anyOf: ["STAFF_ADMIN"], ticket: "T13-05" },
       { slug: "audit", label: "Audit log", anyOf: ["AUDIT_VIEW"], ticket: "T01-01" },
       { slug: "notifications", label: "Notifications", anyOf: ["CUSTOMER_SUPPORT"], ticket: "T01-02" },
-      { slug: "exports", label: "Exports", anyOf: ["EXPORT_PERSONAL_DATA"], ticket: "T13-03" },
+      { slug: "exports", label: "Exports", anyOf: [...new Set(Object.values(EXPORT_PERMISSIONS).flat())], ticket: "T13-03b" },
       { slug: "privacy", label: "Privacy requests", anyOf: ["EXPORT_PERSONAL_DATA"], ticket: "T15-03" },
       { slug: "incidents", label: "Incident switches", anyOf: ["SECURITY_ADMIN"], ticket: "T15-05" },
     ],

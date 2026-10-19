@@ -18,6 +18,8 @@ import {
   expireQuoteVersion,
   sendQuoteExpiringReminder,
   sendInstallmentDueReminder,
+  generateExport,
+  markExportFailed,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
@@ -84,7 +86,7 @@ await jobs.work(
   "cleanup.daily",
   track("cleanup.daily", async () => {
     const result = await runDailyCleanup(files);
-    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents, expiredCheckouts: result.expiredCheckouts, purgedCheckouts: result.purgedCheckouts, closedDrafts: result.closedDrafts }, "daily clean-up finished");
+    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents, expiredCheckouts: result.expiredCheckouts, purgedCheckouts: result.purgedCheckouts, closedDrafts: result.closedDrafts, expiredExports: result.exportsExpired }, "daily clean-up finished");
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
@@ -167,6 +169,18 @@ await jobs.work(
     logger.info({ queue: "reminder.send", requestId: payload.requestId, kind: payload.kind, outcome }, "reminder checked");
   }),
 );
+// Exports (T13-03b): built into private storage, never during a staff request (TECH-07 §16).
+await jobs.work(
+  "export.generate",
+  track("export.generate", async (payload) => {
+    const outcome = await generateExport(files, payload.exportId);
+    logger.info({ queue: "export.generate", requestId: payload.requestId, outcome }, "export built");
+  }),
+);
+await jobs.workDeadLetters("export.generate", async (payload) => {
+  logger.error({ queue: deadLetterName("export.generate"), requestId: payload.requestId }, "export moved to dead-letter queue");
+  await markExportFailed(database.db, payload.exportId);
+});
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
   logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");
