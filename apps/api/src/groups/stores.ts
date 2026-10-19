@@ -514,19 +514,32 @@ export async function pickFromStore(deps: OrganizationDeps, actor: ActorContext,
   });
 
   // The allowance (B2B-FR-084): within it the organization pays; over it, or with no price yet, an approver decides (Pen 78 C).
-  const allowance = await allowanceFor(db, store.id, member, actor.now);
   const estimate = draft.price?.totalMinor ? BigInt(draft.price.totalMinor) : null;
   const money = (minor: bigint) => displayMoney(minor, draft.price?.currency ?? "NGN");
+  // Check and reserve together: the store's allowance row is locked, so two picks at once can't both spend the same balance.
+  // ponytail: one lock per store serializes all its picks; lock per member if picks ever queue behind each other.
+  const { allowance, overNote, entryId } = await db.transaction(async (tx) => {
+    await tx.select({ storeId: schema.allowancePolicies.storeId }).from(schema.allowancePolicies).where(eq(schema.allowancePolicies.storeId, store.id)).for("update");
+    const found = await allowanceFor(tx, store.id, member, actor.now);
+    const label = found?.policy.name.toLowerCase() ?? "";
+    const note = !found
+      ? null
+      : estimate === null
+        ? `This item has no price yet, so ${actor.session.name}'s ${label} can't cover it without approval.`
+        : estimate > found.limit
+          ? found.policy.kind === "PER_ORDER"
+            ? `This order is ${money(estimate - found.limit)} over the ${money(found.limit)} per-order ${label}.`
+            : `This order is ${money(estimate - found.limit)} over ${actor.session.name}'s ${label} (${money(found.limit)} left).`
+          : null;
+    const [entry] = found?.periodStart
+      ? await tx
+          .insert(schema.allowanceLedger)
+          .values({ storeId: store.id, membershipId: member.membershipId, periodStart: found.periodStart, amountMinor: estimate ?? 0n, configurationId: draft.id })
+          .returning({ id: schema.allowanceLedger.id })
+      : [];
+    return { allowance: found, overNote: note, entryId: entry?.id ?? null };
+  });
   const label = allowance?.policy.name.toLowerCase() ?? "";
-  const overNote = !allowance
-    ? null
-    : estimate === null
-      ? `This item has no price yet, so ${actor.session.name}'s ${label} can't cover it without approval.`
-      : estimate > allowance.limit
-        ? allowance.policy.kind === "PER_ORDER"
-          ? `This order is ${money(estimate - allowance.limit)} over the ${money(allowance.limit)} per-order ${label}.`
-          : `This order is ${money(estimate - allowance.limit)} over ${actor.session.name}'s ${label} (${money(allowance.limit)} left).`
-        : null;
   const placed = await placeTemplateLines(deps, actor, member, {
     organizationId,
     locationId: answers.branchLocationId!,
@@ -535,10 +548,12 @@ export async function pickFromStore(deps: OrganizationDeps, actor: ActorContext,
     note: `Ordered by ${actor.session.name} from ${store.name}${allowance ? `, from their ${label}` : ""}.`,
     origin: { storeId: store.id, storeName: store.name, mode: store.mode },
     ...(allowance ? { allowance: { overNote } } : {}),
+  }).catch(async (error: unknown) => {
+    // Nothing was placed, so the reservation goes.
+    if (entryId) await db.delete(schema.allowanceLedger).where(eq(schema.allowanceLedger.id, entryId));
+    throw error;
   });
-  if (allowance?.periodStart) {
-    await db.insert(schema.allowanceLedger).values({ storeId: store.id, membershipId: member.membershipId, periodStart: allowance.periodStart, amountMinor: estimate ?? 0n, configurationId: draft.id, orderRequestId: placed.orderRequestId });
-  }
+  if (entryId && placed.orderRequestId) await db.update(schema.allowanceLedger).set({ orderRequestId: placed.orderRequestId }).where(eq(schema.allowanceLedger.id, entryId));
   const message =
     overNote && estimate !== null
       ? `This order is ${money(estimate - allowance!.limit)} over your allowance, so it went to your manager to approve.`

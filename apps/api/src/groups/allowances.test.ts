@@ -131,6 +131,18 @@ describe("allowances (B2B-FR-084)", () => {
     expect(entries.filter((row) => row.periodStart === "2026-01-01")).toHaveLength(fits + 1);
   });
 
+  it("two picks at the same moment can't both spend the same balance", async () => {
+    const banner = await bannerTemplate();
+    const probe = await storeWith(banner, { kind: "PER_PERIOD", name: "Uniform allowance", amountMinor: "100000000", period: "YEAR", renewsOn: "01-01" });
+    const each = BigInt((await view(probe.id)).items[0]!.pickTotalMinor!);
+    // Room for one and a half: of two simultaneous picks, one is covered and one goes for approval.
+    const shop = await storeWith(banner, { kind: "PER_PERIOD", name: "Uniform allowance", amountMinor: ((each * 3n) / 2n).toString(), period: "YEAR", renewsOn: "01-01" });
+    const routes = (await Promise.all([pick(shop, banner), pick(shop, banner)])).map((result) => result.route).sort();
+    expect(routes).toEqual(["APPROVAL", "QUOTE"]);
+    const entries = await db().select().from(schema.allowanceLedger).where(eq(schema.allowanceLedger.storeId, shop.id));
+    expect(entries.filter((entry) => entry.orderRequestId)).toHaveLength(1);
+  });
+
   it("a per-order limit sends a pick above it to approval and keeps no balance", async () => {
     const banner = await bannerTemplate();
     const shop = await storeWith(banner, { kind: "PER_ORDER", name: "Uniform allowance", amountMinor: "100" });
