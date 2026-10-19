@@ -55418,6 +55418,12 @@
                           "title": {
                             "type": "string"
                           },
+                          "templateId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "status": {
                             "type": "string",
                             "enum": [
@@ -55463,6 +55469,7 @@
                         "required": [
                           "id",
                           "title",
+                          "templateId",
                           "status",
                           "productName",
                           "locationName",
@@ -55601,6 +55608,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -55773,6 +55786,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -55896,6 +55910,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -56068,6 +56088,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -56243,6 +56264,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -56415,6 +56442,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -56559,6 +56587,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -56731,6 +56765,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -56875,6 +56910,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -57047,6 +57088,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -57191,6 +57233,12 @@
                     "title": {
                       "type": "string"
                     },
+                    "templateId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -57363,6 +57411,7 @@
                   "required": [
                     "id",
                     "title",
+                    "templateId",
                     "status",
                     "productName",
                     "locationName",
@@ -63103,6 +63152,2253 @@
           },
           "429": {
             "description": "GUEST_LINK_VERIFY limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores": {
+      "get": {
+        "summary": "Company stores (T12-06): open ones for members; drafts and paused ones too for people who manage stores",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stores": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "ACTIVE",
+                              "PAUSED",
+                              "ARCHIVED"
+                            ]
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "PROCUREMENT",
+                              "SELF_ORDER"
+                            ]
+                          },
+                          "itemCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "status",
+                          "mode",
+                          "itemCount",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "stores",
+                    "canManage"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Start a DRAFT store with a name and a mode (PROCUREMENT or SELF_ORDER)",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "PROCUREMENT",
+                      "SELF_ORDER"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "mode"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "PAUSED",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "PROCUREMENT",
+                        "SELF_ORDER"
+                      ]
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locked": {
+                            "type": "string"
+                          },
+                          "unitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "unavailable": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SIZE",
+                                "PERSONALIZATION",
+                                "QUANTITY",
+                                "COLOUR"
+                              ]
+                            }
+                          },
+                          "sizes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sizeUnsureAllowed": {
+                            "type": "boolean"
+                          },
+                          "colours": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "name",
+                          "productName",
+                          "image",
+                          "locked",
+                          "unitMinor",
+                          "currency",
+                          "unavailable",
+                          "fields",
+                          "sizes",
+                          "sizeUnsureAllowed",
+                          "colours",
+                          "branches",
+                          "action",
+                          "note"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "modeNote": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "properties": {
+                        "applies": {
+                          "type": "string",
+                          "enum": [
+                            "ALWAYS",
+                            "NEVER",
+                            "ABOVE_AMOUNT"
+                          ]
+                        },
+                        "thresholdMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applies",
+                        "thresholdMinor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "setup": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "routing": {
+                              "type": "string",
+                              "enum": [
+                                "INDIVIDUAL",
+                                "COLLECTION"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "templateId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "collectionId": {
+                                    "default": null,
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "templateId",
+                                  "collectionId"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "routing",
+                            "items"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "mode",
+                    "itemCount",
+                    "updatedAt",
+                    "organizationName",
+                    "items",
+                    "modeNote",
+                    "locations",
+                    "approval",
+                    "blocked",
+                    "setup",
+                    "canManage",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_STORES (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores/{storeId}": {
+      "get": {
+        "summary": "The store as this person can use it: approved items for their locations, choices each allows, prices and the approval rule. Routing only for people who manage stores.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "PAUSED",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "PROCUREMENT",
+                        "SELF_ORDER"
+                      ]
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locked": {
+                            "type": "string"
+                          },
+                          "unitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "unavailable": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SIZE",
+                                "PERSONALIZATION",
+                                "QUANTITY",
+                                "COLOUR"
+                              ]
+                            }
+                          },
+                          "sizes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sizeUnsureAllowed": {
+                            "type": "boolean"
+                          },
+                          "colours": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "name",
+                          "productName",
+                          "image",
+                          "locked",
+                          "unitMinor",
+                          "currency",
+                          "unavailable",
+                          "fields",
+                          "sizes",
+                          "sizeUnsureAllowed",
+                          "colours",
+                          "branches",
+                          "action",
+                          "note"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "modeNote": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "properties": {
+                        "applies": {
+                          "type": "string",
+                          "enum": [
+                            "ALWAYS",
+                            "NEVER",
+                            "ABOVE_AMOUNT"
+                          ]
+                        },
+                        "thresholdMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applies",
+                        "thresholdMinor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "setup": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "routing": {
+                              "type": "string",
+                              "enum": [
+                                "INDIVIDUAL",
+                                "COLLECTION"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "templateId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "collectionId": {
+                                    "default": null,
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "templateId",
+                                  "collectionId"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "routing",
+                            "items"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "mode",
+                    "itemCount",
+                    "updatedAt",
+                    "organizationName",
+                    "items",
+                    "modeNote",
+                    "locations",
+                    "approval",
+                    "blocked",
+                    "setup",
+                    "canManage",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Name, mode, routing (INDIVIDUAL or COLLECTION) and items; with COLLECTION each item names its group collection",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "PROCUREMENT",
+                      "SELF_ORDER"
+                    ]
+                  },
+                  "routing": {
+                    "type": "string",
+                    "enum": [
+                      "INDIVIDUAL",
+                      "COLLECTION"
+                    ]
+                  },
+                  "items": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "templateId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "collectionId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "templateId",
+                        "collectionId"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "mode",
+                  "routing",
+                  "items",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "PAUSED",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "PROCUREMENT",
+                        "SELF_ORDER"
+                      ]
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locked": {
+                            "type": "string"
+                          },
+                          "unitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "unavailable": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SIZE",
+                                "PERSONALIZATION",
+                                "QUANTITY",
+                                "COLOUR"
+                              ]
+                            }
+                          },
+                          "sizes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sizeUnsureAllowed": {
+                            "type": "boolean"
+                          },
+                          "colours": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "name",
+                          "productName",
+                          "image",
+                          "locked",
+                          "unitMinor",
+                          "currency",
+                          "unavailable",
+                          "fields",
+                          "sizes",
+                          "sizeUnsureAllowed",
+                          "colours",
+                          "branches",
+                          "action",
+                          "note"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "modeNote": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "properties": {
+                        "applies": {
+                          "type": "string",
+                          "enum": [
+                            "ALWAYS",
+                            "NEVER",
+                            "ABOVE_AMOUNT"
+                          ]
+                        },
+                        "thresholdMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applies",
+                        "thresholdMinor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "setup": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "routing": {
+                              "type": "string",
+                              "enum": [
+                                "INDIVIDUAL",
+                                "COLLECTION"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "templateId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "collectionId": {
+                                    "default": null,
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "templateId",
+                                  "collectionId"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "routing",
+                            "items"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "mode",
+                    "itemCount",
+                    "updatedAt",
+                    "organizationName",
+                    "items",
+                    "modeNote",
+                    "locations",
+                    "approval",
+                    "blocked",
+                    "setup",
+                    "canManage",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_STORES (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "STORE_ARCHIVED (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores/{storeId}/{action}": {
+      "post": {
+        "summary": "DRAFT → ACTIVE ⇄ PAUSED → ARCHIVED. Opening needs an item, and each collection item its collection.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "action",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "activate",
+                "pause",
+                "archive"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "ACTIVE",
+                        "PAUSED",
+                        "ARCHIVED"
+                      ]
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "PROCUREMENT",
+                        "SELF_ORDER"
+                      ]
+                    },
+                    "itemCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "organizationName": {
+                      "type": "string"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "templateId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "locked": {
+                            "type": "string"
+                          },
+                          "unitMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "unavailable": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "SIZE",
+                                "PERSONALIZATION",
+                                "QUANTITY",
+                                "COLOUR"
+                              ]
+                            }
+                          },
+                          "sizes": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "sizeUnsureAllowed": {
+                            "type": "boolean"
+                          },
+                          "colours": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "value",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "branches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "note": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "templateId",
+                          "name",
+                          "productName",
+                          "image",
+                          "locked",
+                          "unitMinor",
+                          "currency",
+                          "unavailable",
+                          "fields",
+                          "sizes",
+                          "sizeUnsureAllowed",
+                          "colours",
+                          "branches",
+                          "action",
+                          "note"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "modeNote": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "approval": {
+                      "type": "object",
+                      "properties": {
+                        "applies": {
+                          "type": "string",
+                          "enum": [
+                            "ALWAYS",
+                            "NEVER",
+                            "ABOVE_AMOUNT"
+                          ]
+                        },
+                        "thresholdMinor": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applies",
+                        "thresholdMinor"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "blocked": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "setup": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "routing": {
+                              "type": "string",
+                              "enum": [
+                                "INDIVIDUAL",
+                                "COLLECTION"
+                              ]
+                            },
+                            "items": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "templateId": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  },
+                                  "collectionId": {
+                                    "default": null,
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "templateId",
+                                  "collectionId"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "routing",
+                            "items"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "canManage": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "mode",
+                    "itemCount",
+                    "updatedAt",
+                    "organizationName",
+                    "items",
+                    "modeNote",
+                    "locations",
+                    "approval",
+                    "blocked",
+                    "setup",
+                    "canManage",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No MANAGE_STORES (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "WRONG_STATUS, NO_ITEMS or COLLECTION_MISSING (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores/{storeId}/orders": {
+      "post": {
+        "summary": "Procurement order: several items for one location, then one order request over the approval rule, else the cart or one quote request",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "locationId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "templateId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100000
+                        }
+                      },
+                      "required": [
+                        "templateId",
+                        "quantity"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "locationId",
+                  "lines"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Placed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "route": {
+                      "type": "string",
+                      "enum": [
+                        "CHECKOUT",
+                        "QUOTE",
+                        "APPROVAL",
+                        "COLLECTION"
+                      ]
+                    },
+                    "next": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "route",
+                    "next",
+                    "reference",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, or a choice the template doesn't offer (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No CREATE_REQUESTS, or a location that isn't yours (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "STORE_NOT_OPEN, WRONG_MODE, ITEM_UNAVAILABLE, LOCKED_FIELD or COLLECTION_CLOSED (RULE_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/organizations/{organizationId}/stores/{storeId}/picks": {
+      "post": {
+        "summary": "Self-order pick with the employee's size, name and branch. The store's routing decides the record: an individual order (template-order route) or a sent participant in the item's group collection.",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "answers": {
+                    "type": "object",
+                    "properties": {
+                      "size": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 8
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "sizeUnsure": {
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "personalization": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 12
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "quantity": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "colour": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 80
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "branchLocationId": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "size",
+                      "sizeUnsure",
+                      "personalization",
+                      "quantity",
+                      "colour",
+                      "branchLocationId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "templateId",
+                  "answers"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Placed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "route": {
+                      "type": "string",
+                      "enum": [
+                        "CHECKOUT",
+                        "QUOTE",
+                        "APPROVAL",
+                        "COLLECTION"
+                      ]
+                    },
+                    "next": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "route",
+                    "next",
+                    "reference",
+                    "message"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, or a choice the template doesn't offer (VALIDATION_FAILED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No CREATE_REQUESTS, or a location that isn't yours (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not an ACTIVE member of this organization, or outside your locations (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "STORE_NOT_OPEN, WRONG_MODE, ITEM_UNAVAILABLE, LOCKED_FIELD or COLLECTION_CLOSED (RULE_FAILED)",
             "content": {
               "application/json": {
                 "schema": {

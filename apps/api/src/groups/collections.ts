@@ -36,7 +36,7 @@ const NOT_IN_PRODUCT: Record<ParticipantField, string> = {
 const isColour = (key: string) => /^option:colou?r$/.test(key);
 
 /** Which participant fields the source allows: a template's editable fields, or everything a saved design's product offers (B2B-FR-052). */
-function availability(fields: readonly Field[]) {
+export function availability(fields: readonly Field[]) {
   const find = (field: ParticipantField) =>
     field === "SIZE" ? fields.find((item) => item.key === "sizes") : field === "PERSONALIZATION" ? fields.find((item) => item.key === "personalization") : field === "QUANTITY" ? fields.find((item) => item.key === "quantity") : fields.find((item) => isColour(item.key));
   return PARTICIPANT_FIELDS.map((field) => {
@@ -78,6 +78,7 @@ function view(deps: Pick<OrganizationDeps, "sealKey" | "webOrigin">, member: Mem
   return {
     id: row.id,
     title: row.title,
+    templateId: row.templateId,
     status: row.status,
     productName: snapshot.productName,
     locationId: row.locationId,
@@ -109,6 +110,7 @@ export async function listCollections(db: Database, actor: ActorContext, organiz
       .map((row) => ({
         id: row.id,
         title: row.title,
+        templateId: row.templateId,
         status: row.status,
         productName: (row.snapshot as Snapshot).productName,
         locationName: locations.find((location) => location.id === row.locationId)?.name ?? "",

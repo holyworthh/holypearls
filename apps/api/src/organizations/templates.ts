@@ -131,10 +131,27 @@ async function loadTemplate(db: Db, organizationId: string, templateId: string, 
   return row;
 }
 
+const fullView = (view: Awaited<ReturnType<typeof views>>[number], member: Member): Template => ({
+  ...view.summary,
+  fields: view.fields,
+  assets: view.assets,
+  reviewNote: view.row.reviewNote,
+  sourceLabel: view.sourceLabel,
+  canManage: member.permissions.has("MANAGE_BRAND"),
+  version: view.row.version,
+});
+
 async function templateView(db: Db, row: TemplateRow, member: Member): Promise<Template> {
   const [view] = await views(db, [row]);
   if (!visible(member, view!)) throw new AppError("NOT_FOUND");
-  return { ...view!.summary, fields: view!.fields, assets: view!.assets, reviewNote: row.reviewNote, sourceLabel: view!.sourceLabel, canManage: member.permissions.has("MANAGE_BRAND"), version: row.version };
+  return fullView(view!, member);
+}
+
+/** The given templates that the member can see, with their saved designs, for company stores (T12-06). */
+export async function templatesFor(db: Db, member: Member, templateIds: readonly string[]) {
+  if (!templateIds.length) return [];
+  const rows = await db.select().from(schema.templates).where(and(eq(schema.templates.organizationId, member.organizationId), inArray(schema.templates.id, [...templateIds])));
+  return (await views(db, rows)).filter((view) => visible(member, view)).map((view) => ({ template: fullView(view, member), sourceConfigurationId: view.row.sourceConfigurationId, productId: view.row.productId }));
 }
 
 export async function getTemplate(db: Database, actor: ActorContext, organizationId: string, templateId: string): Promise<Template> {

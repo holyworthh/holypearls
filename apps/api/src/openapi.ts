@@ -155,6 +155,14 @@ import {
   adminTemplateListSchema,
   collectionActionSchema,
   collectionDashboardSchema,
+  createStoreSchema,
+  storeActionSchema,
+  storeListSchema,
+  storeOrderResultSchema,
+  storePickSchema,
+  storeProcurementSchema,
+  storeSchema,
+  updateStoreSchema,
   fixImportRowSchema,
   importBatchListSchema,
   importBatchSchema,
@@ -638,6 +646,39 @@ const collectionPaths = {
       summary: "What a participant sees on opening the share link: the allowed fields and modes, nothing about anyone else (no account; the secret goes in the body)",
       requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["secret"], properties: { secret: { type: "string" } } } } } },
       responses: { 200: { description: "Invite", content: json(collectionInviteSchema) }, 404: error("Unknown, draft or cancelled collection (NOT_FOUND)"), 429: error("GUEST_LINK_VERIFY limit (RATE_LIMITED)") },
+    },
+  },
+};
+
+const storeParam = uuidParam("storeId");
+const storeWrite = { ...member, 400: error("Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)"), 403: error("No MANAGE_STORES (FORBIDDEN)"), 409: error("VERSION_CONFLICT") };
+const storeOrder = { ...member, 400: error("Invalid input, or a choice the template doesn't offer (VALIDATION_FAILED)"), 403: error("No CREATE_REQUESTS, or a location that isn't yours (FORBIDDEN)"), 422: error("STORE_NOT_OPEN, WRONG_MODE, ITEM_UNAVAILABLE, LOCKED_FIELD or COLLECTION_CLOSED (RULE_FAILED)") };
+const storePaths = {
+  "/v1/organizations/{organizationId}/stores": {
+    get: { summary: "Company stores (T12-06): open ones for members; drafts and paused ones too for people who manage stores", parameters: [orgParam], responses: { 200: { description: "Stores", content: json(storeListSchema) }, ...member } },
+    post: { summary: "Start a DRAFT store with a name and a mode (PROCUREMENT or SELF_ORDER)", parameters: [orgParam, idempotencyHeader], requestBody: { required: true, content: json(createStoreSchema) }, responses: { 200: { description: "Created", content: json(storeSchema) }, ...storeWrite } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}": {
+    get: { summary: "The store as this person can use it: approved items for their locations, choices each allows, prices and the approval rule. Routing only for people who manage stores.", parameters: [orgParam, storeParam], responses: { 200: { description: "Store", content: json(storeSchema) }, ...member } },
+    put: { summary: "Name, mode, routing (INDIVIDUAL or COLLECTION) and items; with COLLECTION each item names its group collection", parameters: [orgParam, storeParam], requestBody: { required: true, content: json(updateStoreSchema) }, responses: { 200: { description: "Updated", content: json(storeSchema) }, ...storeWrite, 422: error("STORE_ARCHIVED (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/{action}": {
+    post: {
+      summary: "DRAFT → ACTIVE ⇄ PAUSED → ARCHIVED. Opening needs an item, and each collection item its collection.",
+      parameters: [orgParam, storeParam, { name: "action", in: "path", required: true, schema: { type: "string", enum: ["activate", "pause", "archive"] } }],
+      requestBody: { required: true, content: json(storeActionSchema) },
+      responses: { 200: { description: "Changed", content: json(storeSchema) }, ...storeWrite, 422: error("WRONG_STATUS, NO_ITEMS or COLLECTION_MISSING (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/orders": {
+    post: { summary: "Procurement order: several items for one location, then one order request over the approval rule, else the cart or one quote request", parameters: [orgParam, storeParam, idempotencyHeader], requestBody: { required: true, content: json(storeProcurementSchema) }, responses: { 200: { description: "Placed", content: json(storeOrderResultSchema) }, ...storeOrder } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/picks": {
+    post: {
+      summary: "Self-order pick with the employee's size, name and branch. The store's routing decides the record: an individual order (template-order route) or a sent participant in the item's group collection.",
+      parameters: [orgParam, storeParam, idempotencyHeader],
+      requestBody: { required: true, content: json(storePickSchema) },
+      responses: { 200: { description: "Placed", content: json(storeOrderResultSchema) }, ...storeOrder },
     },
   },
 };
@@ -1478,6 +1519,7 @@ export function buildOpenApiDocument() {
       ...assetPaths,
       ...templatePaths,
       ...collectionPaths,
+      ...storePaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

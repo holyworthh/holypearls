@@ -1,4 +1,4 @@
-import type { AssetVersionStatus, CollectionStatus, OrderRequestStatus, ParticipantStatus } from "@holypearls/contracts";
+import type { AssetVersionStatus, CollectionStatus, OrderRequestStatus, ParticipantStatus, StoreStatus } from "@holypearls/contracts";
 import type { StatusTone } from "@holypearls/ui";
 
 /** Status chips on the Team page (frame 70): members and invitations share one column. */
@@ -83,4 +83,12 @@ export const PARTICIPANT_STATUS: Record<ParticipantStatus, { label: string; tone
   SUBMITTED: { label: "COMPLETE", tone: "success" },
   NEEDS_CORRECTION: { label: "NEEDS CORRECTION", tone: "warning" },
   REMOVED: { label: "REMOVED", tone: "neutral" },
+};
+
+/** Company store chips (T12-06): DRAFT → ACTIVE ⇄ PAUSED → ARCHIVED. */
+export const STORE_STATUS: Record<StoreStatus, { label: string; tone: StatusTone }> = {
+  DRAFT: { label: "DRAFT", tone: "neutral" },
+  ACTIVE: { label: "OPEN", tone: "success" },
+  PAUSED: { label: "PAUSED", tone: "warning" },
+  ARCHIVED: { label: "ARCHIVED", tone: "neutral" },
 };
