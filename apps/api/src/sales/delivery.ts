@@ -1,5 +1,5 @@
-import { type deliveryZoneInputSchema, type DeliveryZone, type fixedZoneInputSchema } from "@holypearls/contracts";
-import { and, asc, type Database, eq, schema, sql } from "@holypearls/db";
+import { type countriesZoneInputSchema, type deliveryZoneInputSchema, type DeliveryZone, type fixedZoneInputSchema } from "@holypearls/contracts";
+import { and, asc, type Database, eq, inArray, schema, sql } from "@holypearls/db";
 import type { z } from "zod";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -9,7 +9,8 @@ import { recordAudit } from "../platform/audit.js";
  * Delivery zones and rates (T04-01, OPS-FR-100–101, Pen 108) and the checkout
  * total. Every Nigerian address resolves to exactly one zone: an LGA match,
  * else a whole-state match, else the rest-of-Nigeria zone. Addresses abroad go
- * to International (freight by quote).
+ * to the destinations zone that lists their country (T13-01c, OPS-FR-101:
+ * calculated rate or staff will quote), else to International.
  */
 
 export interface Cover {
@@ -20,14 +21,18 @@ export interface Cover {
 export interface ZoneRule {
   id: string;
   name: string;
-  kind: "AREA" | "REST_OF_NIGERIA" | "INTERNATIONAL";
+  kind: "AREA" | "REST_OF_NIGERIA" | "INTERNATIONAL" | "COUNTRIES";
   covers: Cover[];
+  countries?: string[];
 }
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 export function zoneFor<Z extends ZoneRule>(zones: Z[], address: { country: string; state: string; area: string }): Z | null {
-  if (address.country !== "NG") return zones.find((zone) => zone.kind === "INTERNATIONAL") ?? null;
+  if (address.country !== "NG") {
+    const country = address.country.trim().toUpperCase();
+    return zones.find((zone) => zone.kind === "COUNTRIES" && zone.countries?.includes(country)) ?? zones.find((zone) => zone.kind === "INTERNATIONAL") ?? null;
+  }
   const areas = zones.filter((zone) => zone.kind === "AREA");
   const byLga = areas.find((zone) => zone.covers.some((cover) => cover.lga !== null && same(cover.state, address.state) && same(cover.lga, address.area)));
   if (byLga) return byLga;
@@ -83,6 +88,7 @@ export const toZone = (row: ZoneRow): DeliveryZone => ({
   name: row.name,
   kind: row.kind,
   covers: row.covers as DeliveryZone["covers"],
+  countries: row.countries,
   pricing: row.pricing,
   rateMinor: row.rateMinor === null ? null : row.rateMinor.toString(),
   transitMinDays: row.transitMinDays,
@@ -185,7 +191,7 @@ export async function updateZone(db: Database, actor: ActorContext, id: string, 
 
 export async function deleteZone(db: Database, actor: ActorContext, id: string) {
   await db.transaction(async (tx) => {
-    const [row] = await tx.delete(schema.deliveryZones).where(and(eq(schema.deliveryZones.id, id), eq(schema.deliveryZones.kind, "AREA"))).returning();
+    const [row] = await tx.delete(schema.deliveryZones).where(and(eq(schema.deliveryZones.id, id), inArray(schema.deliveryZones.kind, ["AREA", "COUNTRIES"]))).returning();
     if (!row) throw new AppError("NOT_FOUND");
     await recordAudit(tx, actor, {
       action: "delivery.zone_removed",
@@ -196,5 +202,53 @@ export async function deleteZone(db: Database, actor: ActorContext, id: string) 
       before: toZone(row),
       permission: "PRICING_MANAGE",
     });
+  });
+}
+
+/**
+ * Adds (no id) or changes a group of destinations abroad (T13-01c; OPS-FR-101;
+ * Pen 119): a calculated rate, or staff will quote (the delivery-price queue).
+ * A country is in one group at most.
+ */
+export async function saveCountriesZone(db: Database, actor: ActorContext, id: string | null, input: z.infer<typeof countriesZoneInputSchema>) {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('delivery_zones'))`);
+    const zones = await loadZones(tx as unknown as Database);
+    const before = id === null ? null : zones.find((zone) => zone.id === id && zone.kind === "COUNTRIES");
+    if (id !== null && !before) throw new AppError("NOT_FOUND");
+    const countries = [...new Set(input.countries)];
+    const taken = countries.find((country) => zones.some((zone) => zone.id !== id && zone.kind === "COUNTRIES" && zone.countries.includes(country)));
+    if (taken) throw new AppError("VALIDATION_FAILED", { fieldErrors: { countries: `${taken} is already in ${zones.find((zone) => zone.kind === "COUNTRIES" && zone.countries.includes(taken))!.name}. Remove it from one group.` } });
+    if (zones.some((zone) => zone.id !== id && same(zone.name, input.name))) throw new AppError("VALIDATION_FAILED", { fieldErrors: { name: "Another zone already has this name" } });
+    const values = {
+      name: input.name,
+      countries,
+      pricing: input.pricing,
+      rateMinor: input.pricing === "FIXED" ? BigInt(input.rateMinor!) : null,
+      transitMinDays: input.transitMinDays,
+      transitMaxDays: input.transitMaxDays,
+    };
+    const [row] = before
+      ? await tx
+          .update(schema.deliveryZones)
+          .set({ ...values, version: sql`${schema.deliveryZones.version} + 1` })
+          .where(and(eq(schema.deliveryZones.id, before.id), ...(input.version === undefined ? [] : [eq(schema.deliveryZones.version, input.version)])))
+          .returning()
+      : await tx
+          .insert(schema.deliveryZones)
+          .values({ ...values, kind: "COUNTRIES", covers: [], position: zones.filter((zone) => zone.kind === "COUNTRIES").length })
+          .returning();
+    if (!row) throw new AppError("CONFLICT", { message: "Someone else changed this zone. Reload to see their change.", context: { reason: "STALE_VERSION" } });
+    await recordAudit(tx, actor, {
+      action: before ? "delivery.zone_changed" : "delivery.zone_created",
+      summary: `Freight to ${input.name}: ${input.pricing === "QUOTE" ? "staff will quote" : summary(input)}`,
+      recordType: "DELIVERY_ZONE",
+      recordId: row.id,
+      recordLabel: input.name,
+      ...(before ? { before: toZone(before) } : {}),
+      after: toZone(row),
+      permission: "PRICING_MANAGE",
+    });
+    return toZone(row);
   });
 }

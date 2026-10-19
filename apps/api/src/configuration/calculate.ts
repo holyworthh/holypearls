@@ -79,7 +79,7 @@ export interface CalculationInput {
   /** Delivery charge from the delivery module (T04-01); null when not chosen yet. */
   delivery: { amountMinor: bigint; currency: "NGN" | "USD" } | null;
   /** Answers outside the option list that change the price state (garment sourcing, extra placements…). */
-  adjustments?: { state: PriceState; code: ReasonCode; message: string; blocking?: boolean }[];
+  adjustments?: { state: PriceState; code: ReasonCode; message: string; blocking?: boolean; charge?: { label: string; amountMinor: bigint } }[];
 }
 
 export type ReasonCode =
@@ -339,6 +339,14 @@ export function calculatePrice(input: CalculationInput): CalculationResult {
     const amount = applyBps(goods, rushBps);
     lines.push({ label: input.rush === "RUSH" ? "Rush" : "Priority rush", amountMinor: amount });
     goods += amount;
+  }
+  // Services priced by their own rules, such as installation (T13-01c): after surcharges, with VAT like goods.
+  if (!input.sample) {
+    for (const { charge } of input.adjustments ?? []) {
+      if (!charge) continue;
+      lines.push({ label: charge.label, amountMinor: charge.amountMinor });
+      goods += charge.amountMinor;
+    }
   }
 
   // Delivery must be in the same currency; the code never converts currencies (TECH-05 §2).

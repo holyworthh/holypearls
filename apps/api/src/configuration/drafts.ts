@@ -10,7 +10,9 @@ import type { StorageAdapter } from "@holypearls/storage";
 import { type CalculationInput } from "./calculate.js";
 import { insertConfigurationCopy } from "./copies.js";
 import { type Capabilities, garmentChoices, unavailableGarmentChoices } from "./capabilities.js";
-import { type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
+import { installationSetup } from "../sales/installation.js";
+import { areaSqM, type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
+import { installationAdjustments } from "./installation.js";
 import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
 import { placementBlocks } from "../catalogue/garment-data.js";
 import { currentPriceRule, currentTaxSetting } from "../catalogue/rules.js";
@@ -227,12 +229,26 @@ export async function draftView(db: Database, row: Row, now: Date): Promise<Conf
 /** Price-state changes from garment, family and delivery answers (COM-FR-022–024, 045–047, 060, 072). */
 async function adjustments(db: Database, row: Row, now: Date): Promise<NonNullable<CalculationInput["adjustments"]>> {
   const [product] = await db
-    .select({ family: schema.products.family, routes: schema.products.routes, decorations: schema.products.decorations })
+    .select({ name: schema.products.name, family: schema.products.family, routes: schema.products.routes, decorations: schema.products.decorations })
     .from(schema.products)
     .where(eq(schema.products.id, row.productId));
   const [rules] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, row.productId));
   const details = row.details as FamilyDetails;
-  const list: NonNullable<CalculationInput["adjustments"]> = [...familyAdjustments(product!.family, details), ...timingAdjustments(timingFor(rules ?? null, row.rush, details, now))];
+  const install =
+    (product!.family === "LARGE_FORMAT" || product!.family === "WALL_ART") && details.service === "INSTALLATION"
+      ? await installationSetup(db).then(({ areas, rules: installRules }) =>
+          installationAdjustments(areas, installRules, {
+            productId: row.productId,
+            productName: product!.name,
+            quantity: row.quantity ?? 1,
+            state: details.installState,
+            areaSqM: details.sizeMode === "CUSTOM" ? areaSqM(details.widthCm, details.heightCm) : null,
+            date: details.installDate,
+            now,
+          }),
+        )
+      : [];
+  const list: NonNullable<CalculationInput["adjustments"]> = [...familyAdjustments(product!.family, details), ...install, ...timingAdjustments(timingFor(rules ?? null, row.rush, details, now))];
   if (row.sourcing === "CUSTOMER_SUPPLIED") list.push({ state: "ESTIMATE_READY", code: "FINAL_AFTER_INSPECTION", message: "Your garments: the price is final after we inspect them." });
   if (row.sourcing === "MAKE_FROM_SCRATCH") list.push({ state: "QUOTE_REQUIRED", code: "MADE_TO_ORDER", message: "Made from scratch: we confirm the pattern, fabric and a sample first, then send a quote." });
   if (row.sourcing === "HELP_ME_CHOOSE") list.push({ state: "QUOTE_REQUIRED", code: "RECOMMENDATION", message: "We'll recommend the right garment and send a quote." });

@@ -10,7 +10,8 @@ describe("family answers (COM-FR-045–047)", () => {
     expect(familyAdjustments("LARGE_FORMAT", { sizeMode: "STANDARD", service: "PRINT_ONLY" })).toEqual([]);
     expect(familyAdjustments("LARGE_FORMAT", { service: "DELIVERED" })).toEqual([]);
     const custom = familyAdjustments("LARGE_FORMAT", { sizeMode: "CUSTOM", widthCm: 300, heightCm: 150, service: "INSTALLATION" });
-    expect(codes(custom)).toEqual(["CUSTOM_SIZE", "INSTALLATION"]);
+    // Installation is priced or quoted by the installation areas and rules (installation.ts, T13-01c), not here.
+    expect(codes(custom)).toEqual(["CUSTOM_SIZE"]);
     expect(custom.every((item) => item.state === "QUOTE_REQUIRED")).toBe(true);
     expect(custom[0]!.message).toContain("4.5 m²");
   });
