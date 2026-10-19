@@ -40,6 +40,7 @@ test("operations home: each queue opens its filtered list; finance sees only pay
   await page.context().clearCookies();
   await signInStaff(page, TEST_PEOPLE.financeFolake);
   await page.goto(`${ADMIN}/`);
-  await expect(queues.getByRole("link", { name: /^Payments Needing Attention\b/ })).toBeVisible();
+  // Their one queue, or "All queues are clear" when it's empty; never anyone else's queues.
+  await expect(queues.getByRole("link", { name: /^Payments Needing Attention\b/ }).or(queues.getByRole("heading", { name: "All queues are clear" }))).toBeVisible();
   await expect(queues.getByRole("link", { name: /^New Requests\b/ })).toHaveCount(0);
 });
