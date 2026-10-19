@@ -203,3 +203,37 @@ export const merchandisingLists = pgTable("merchandising_lists", {
   version: versionColumn(),
   updatedAt: updatedAt(),
 });
+
+/**
+ * Fabrics and materials with their colours and size range (T13-01b;
+ * OPS-FR-021; Pen 118). `key` matches the value key products use in their
+ * fabric option. The supplier code is for staff only.
+ */
+export const fabrics = pgTable(
+  "fabrics",
+  {
+    id: idColumn(),
+    key: text("key").notNull(),
+    name: text("name").notNull(),
+    detail: text("detail").notNull().default(""),
+    colours: text("colours").array().notNull().default(sql`'{}'::text[]`),
+    sizeRange: text("size_range").notNull().default(""),
+    supplierCode: text("supplier_code"),
+    status: text("status").notNull().default("ACTIVE"),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [uniqueIndex("fabrics_key_unique").on(table.key), check("fabrics_status", sql`${table.status} in ('ACTIVE', 'ARCHIVED')`)],
+);
+
+/** Decoration methods that can't go on a placement, with what the customer is told (T13-01b; OPS-FR-022). */
+export const placementBlocks = pgTable(
+  "placement_blocks",
+  {
+    method: text("method").notNull(),
+    position: text("position").notNull(),
+    message: text("message").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.method, table.position] }), check("placement_blocks_method", sql`${table.method} in ('EMBROIDERY', 'PRINT')`)],
+);

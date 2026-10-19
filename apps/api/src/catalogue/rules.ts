@@ -1,5 +1,5 @@
 import type { ProductRules } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, lte, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, gt, lte, schema, sql } from "@holypearls/db";
 import type { z } from "zod";
 import type { compatibilityRuleSchema, priceRuleInputSchema, taxSettingInputSchema } from "@holypearls/contracts";
 import { AppError } from "../errors.js";
@@ -324,4 +324,14 @@ export async function addTaxSetting(db: Database, actor: ActorContext, input: z.
     throw error;
   }
   return listTaxSettings(db, now);
+}
+
+/** Price versions that haven't started yet, soonest first (Pen 118 "Change scheduled"). */
+export async function scheduledPriceRules(db: Database, now: Date) {
+  return db
+    .select({ productId: schema.priceRules.productId, productName: schema.products.name, effectiveFrom: schema.priceRules.effectiveFrom })
+    .from(schema.priceRules)
+    .innerJoin(schema.products, eq(schema.products.id, schema.priceRules.productId))
+    .where(gt(schema.priceRules.effectiveFrom, now))
+    .orderBy(asc(schema.priceRules.effectiveFrom));
 }

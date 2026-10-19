@@ -12,6 +12,8 @@ import { insertConfigurationCopy } from "./copies.js";
 import { type Capabilities, garmentChoices, unavailableGarmentChoices } from "./capabilities.js";
 import { type FamilyDetails, familyAdjustments, timingAdjustments, timingFor } from "./families.js";
 import { checkPersonalizationCsv, type Placement, placementConflicts, resolutionCheck } from "./garment.js";
+import { placementBlocks } from "../catalogue/garment-data.js";
+import { currentPriceRule, currentTaxSetting } from "../catalogue/rules.js";
 import { priceProduct, pricingInputs, productOptions } from "./pricing.js";
 
 /*
@@ -194,6 +196,7 @@ export async function draftView(db: Database, row: Row, now: Date): Promise<Conf
     step: row.step,
     version: row.version,
     price: price ? { ...(price.result as Configuration["price"] & object), id: price.id } : null,
+    priceUpdate: row.previousTotalMinor !== null && price?.totalMinor != null ? { wasMinor: row.previousTotalMinor.toString(), nowMinor: price.totalMinor.toString(), currency: price.currency ?? "NGN" } : null,
     emailedTo: customer ? maskEmail(customer.email) : null,
     fromTemplate: row.controls ? { templateId: row.controls.templateId, organizationId: row.controls.organizationId, name: row.controls.name, editable: row.controls.editable } : null,
     garment: GARMENT_FAMILIES.has(product!.family)
@@ -204,7 +207,7 @@ export async function draftView(db: Database, row: Row, now: Date): Promise<Conf
           sizesUnknown: row.sizesUnknown,
           sizes: await sizesOf(db, row.id),
           placements,
-          conflicts: placementConflicts(placements, row.decoration),
+          conflicts: placementConflicts(placements, row.decoration, await placementBlocks(db)),
           personalization: {
             count: personalization.length,
             preview: personalization.slice(0, 5).map(({ row: number, name, number: shirt, department, size }) => ({ row: number, name, number: shirt, department, size })),
@@ -445,7 +448,34 @@ export async function reprice(db: Database, id: string, at: Date): Promise<Row> 
 }
 
 export async function getDraft(db: Database, access: DraftAccess, id: string) {
-  return draftView(db, await loadDraft(db, access, id), access.actor.now);
+  const row = await loadDraft(db, access, id);
+  return draftView(db, row.status === "DRAFT" ? await repriceIfRulesChanged(db, row, access.actor.now) : row, access.actor.now);
+}
+
+/**
+ * OPS-FR-130: a draft opened after its price, product rules or VAT changed is
+ * repriced, and keeps the total it had so the customer sees "Price updated ·
+ * was … now …" until they change something. Accepted quotes and orders keep
+ * their saved copies and are never repriced.
+ */
+async function repriceIfRulesChanged(db: Database, row: Row, at: Date): Promise<Row> {
+  if (!row.lastPriceResultId) return row;
+  const [last] = await db.select().from(schema.priceResults).where(eq(schema.priceResults.id, row.lastPriceResultId));
+  if (!last) return row;
+  const [rule, tax, [rules]] = await Promise.all([
+    currentPriceRule(db, row.productId, at),
+    currentTaxSetting(db, at),
+    db.select({ version: schema.productRules.version }).from(schema.productRules).where(eq(schema.productRules.productId, row.productId)),
+  ]);
+  if (last.priceRuleId === (rule?.id ?? null) && last.taxSettingId === (tax?.id ?? null) && last.productRulesVersion === (rules?.version ?? null)) return row;
+  const updated = await reprice(db, row.id, at);
+  const [now] = updated.lastPriceResultId ? await db.select({ totalMinor: schema.priceResults.totalMinor }).from(schema.priceResults).where(eq(schema.priceResults.id, updated.lastPriceResultId)) : [];
+  // The first total the customer saw is kept across several changes until they change the design.
+  if (row.previousTotalMinor === null && last.totalMinor !== null && now?.totalMinor !== last.totalMinor) {
+    const [noted] = await db.update(schema.configurations).set({ previousTotalMinor: last.totalMinor }).where(eq(schema.configurations.id, row.id)).returning();
+    return noted!;
+  }
+  return updated;
 }
 
 /**
@@ -517,6 +547,8 @@ export async function updateDraft(
         ...(patch.details && { details: { ...(row.details as object), ...patch.details } }),
         ...(patch.sizesUnknown !== undefined && { sizesUnknown: patch.sizesUnknown }),
         ...(!changesWhatIsMade && { version: sql`${schema.configurations.version} + 1` }),
+        // The customer has seen the new price once they change the design (OPS-FR-130).
+        ...(changesWhatIsMade && { previousTotalMinor: null }),
         updatedAt: new Date(),
       })
       .where(and(eq(schema.configurations.id, id), eq(schema.configurations.version, changesWhatIsMade ? patch.version + 1 : patch.version)))
@@ -835,4 +867,22 @@ export async function configurationForGroup(
     return copy;
   });
   return draftView(db, await reprice(db, id, actor.now), actor.now);
+}
+
+/** Open designs a price change will touch: drafts (repriced on next open) and designs in carts (repriced at checkout). */
+export async function openDesignCounts(db: Database, productIds: readonly string[]) {
+  if (!productIds.length) return new Map<string, { drafts: number; carts: number }>();
+  const rows = await db
+    .select({ productId: schema.configurations.productId, status: schema.configurations.status, n: sql<number>`count(*)::int` })
+    .from(schema.configurations)
+    .where(and(inArray(schema.configurations.productId, [...productIds]), inArray(schema.configurations.status, ["DRAFT", "IN_CART"])))
+    .groupBy(schema.configurations.productId, schema.configurations.status);
+  const counts = new Map<string, { drafts: number; carts: number }>();
+  for (const row of rows) {
+    const entry = counts.get(row.productId) ?? { drafts: 0, carts: 0 };
+    if (row.status === "DRAFT") entry.drafts += row.n;
+    else entry.carts += row.n;
+    counts.set(row.productId, entry);
+  }
+  return counts;
 }

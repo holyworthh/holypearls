@@ -1,4 +1,4 @@
-import { boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { products } from "./catalogue.js";
 import { customers } from "./customers.js";
@@ -49,6 +49,8 @@ export const configurations = pgTable(
     /** Set when the customer moved it out of the cart with "Save for later". */
     savedForLaterAt: timestamp("saved_for_later_at", { withTimezone: true }),
     lastPriceResultId: uuid("last_price_result_id").references(() => priceResults.id, { onDelete: "set null" }),
+    /** OPS-FR-130: the total before a price, rule or VAT change repriced this draft; cleared when the customer changes it. */
+    previousTotalMinor: bigint("previous_total_minor", { mode: "bigint" }),
     /** Reorder (T08-01, FUL-FR-061–062): the order item this was copied from, and whether it's still exactly the same. Any change clears reorderExact. */
     reorderOfItemId: uuid("reorder_of_item_id"),
     reorderExact: boolean("reorder_exact").notNull().default(false),

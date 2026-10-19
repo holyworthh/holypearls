@@ -50,13 +50,19 @@ const OVERLAPS: [Position, Position][] = [
   ["FULL_BACK", "UPPER_BACK"],
 ];
 
-const embroidered = (placement: Placement, decoration: Method | null) => (placement.method ?? decoration) === "EMBROIDERY";
 
 /**
  * Overlapping or incompatible placements, each with fixes that change only the
  * placement involved, so nothing else is reset (COM-FR-026).
  */
-export function placementConflicts(placements: Placement[], decoration: Method | null): PlacementConflict[] {
+/** A decoration method that can't go on a placement, from the garment data (T13-01b; OPS-FR-022). */
+export interface PlacementBlock {
+  method: "EMBROIDERY" | "PRINT";
+  position: string;
+  message: string;
+}
+
+export function placementConflicts(placements: Placement[], decoration: Method | null, blocked: readonly PlacementBlock[] = []): PlacementConflict[] {
   const conflicts: PlacementConflict[] = [];
   const at = (position: Position) => placements.find((placement) => placement.position === position);
   for (const [big, small] of OVERLAPS) {
@@ -87,11 +93,14 @@ export function placementConflicts(placements: Placement[], decoration: Method |
     }
   }
   for (const placement of placements) {
-    if ((placement.position === "FULL_FRONT" || placement.position === "FULL_BACK") && embroidered(placement, decoration)) {
+    const method = placement.method ?? decoration;
+    const block = blocked.find((rule) => rule.position === placement.position && rule.method === method);
+    if (block) {
+      const other = block.method === "EMBROIDERY" ? "PRINT" : "EMBROIDERY";
       conflicts.push({
         positions: [placement.position],
-        message: `Embroidery can't cover the ${POSITION_LABEL[placement.position].toLowerCase()}: it's too heavy for the fabric. Print it instead, or choose a smaller area.`,
-        fixes: [{ label: "Print this area instead", position: placement.position, change: { method: "PRINT" } }],
+        message: block.message,
+        fixes: [{ label: other === "PRINT" ? "Print this area instead" : "Embroider this area instead", position: placement.position, change: { method: other } }],
       });
     }
     if ((placement.position === "LEFT_SLEEVE" || placement.position === "RIGHT_SLEEVE") && placement.size === "LARGE") {

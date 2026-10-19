@@ -196,3 +196,58 @@ export const courierSettingsSchema = z.object({
 });
 export const courierCategoriesSchema = z.object({ categories: z.array(z.object({ id: z.number().int(), name: z.string() })) });
 export type CourierSettings = z.infer<typeof courierSettingsSchema>;
+
+/* Garment and production data (T13-01b; OPS-FR-020–022; Pen 118). */
+
+const garmentPosition = z.enum(["LEFT_CHEST", "RIGHT_CHEST", "CENTRE_CHEST", "FULL_FRONT", "UPPER_BACK", "FULL_BACK", "LEFT_SLEEVE", "RIGHT_SLEEVE"]);
+
+/** A fabric or material, with its colours and sizes. The supplier code is staff-only and never leaves the admin. */
+export const fabricSchema = z.object({
+  id: z.string(),
+  /** The value key products use for it in their fabric option, e.g. "pique-cotton". */
+  key: z.string(),
+  name: z.string(),
+  detail: z.string(),
+  colours: z.array(z.string()),
+  sizeRange: z.string(),
+  supplierCode: z.string().nullable(),
+  status: z.enum(["ACTIVE", "ARCHIVED"]),
+  /** Products whose fabric option offers this fabric. */
+  usedBy: z.array(z.object({ id: z.string(), name: z.string() })),
+  version: z.number().int(),
+});
+export type Fabric = z.infer<typeof fabricSchema>;
+
+export const fabricInputSchema = z.object({
+  key: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens, like pique-cotton").max(60),
+  name: z.string().trim().min(1, "Name the fabric").max(80),
+  detail: z.string().trim().max(120).default(""),
+  colours: z.array(z.string().trim().min(1).max(40)).max(60),
+  sizeRange: z.string().trim().max(40).default(""),
+  supplierCode: z.string().trim().max(60).nullable().default(null),
+  status: z.enum(["ACTIVE", "ARCHIVED"]).default("ACTIVE"),
+  /** 0 creates. */
+  version: z.number().int().min(0),
+});
+
+/** Which decoration methods can't go on which placement, with what the customer is told (OPS-FR-022). Anything not listed works. */
+export const placementBlockSchema = z.object({
+  method: z.enum(["EMBROIDERY", "PRINT"]),
+  position: garmentPosition,
+  message: z.string().trim().min(1, "Tell the customer why").max(200),
+});
+export const savePlacementBlocksSchema = z.object({ blocked: z.array(placementBlockSchema).max(16) });
+
+export const garmentDataSchema = z.object({
+  fabrics: z.array(fabricSchema),
+  blocked: z.array(placementBlockSchema),
+  /** How each product can be made and decorated (edited on the product, COM-FR-020). */
+  sourcing: z.array(z.object({ id: z.string(), name: z.string(), routes: z.array(z.string()), decorations: z.array(z.string()) })),
+});
+export type GarmentData = z.infer<typeof garmentDataSchema>;
+
+/** Scheduled price versions and what they'll touch (Pen 118 RW4ec). */
+export const scheduledChangesSchema = z.object({
+  changes: z.array(z.object({ productId: z.string(), productName: z.string(), effectiveFrom: z.iso.datetime(), drafts: z.number().int(), carts: z.number().int() })),
+});
+export type ScheduledChanges = z.infer<typeof scheduledChangesSchema>;
