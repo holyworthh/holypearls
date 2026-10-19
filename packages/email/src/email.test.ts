@@ -9,6 +9,7 @@ describe("templates", () => {
     const samples = {
       sign_in_link: { url: "https://holypearls.test/api/v1/auth/magic-link/verify?token=abc" },
       verify_email: { url: "https://holypearls.test/api/v1/auth/verify-email?token=abc" },
+      change_email: { url: "https://holypearls.test/api/v1/auth/verify-email?token=abc" },
       password_reset: { url: "https://holypearls.test/api/v1/auth/reset-password/abc?callbackURL=%2Freset-password" },
       email_code: { code: "391072", purpose: "accept your quote" },
       guest_link: { url: "https://holypearls.test/l#secret", what: "quote", reference: "HP-Q-2026-0142" },
@@ -46,6 +47,7 @@ describe("templates", () => {
     expect(Object.entries(TEMPLATES).filter(([, t]) => t.carriesSecret).map(([name]) => name)).toEqual([
       "sign_in_link",
       "verify_email",
+      "change_email",
       "password_reset",
       "email_code",
       "guest_link",
