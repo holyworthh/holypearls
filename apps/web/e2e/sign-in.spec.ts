@@ -122,7 +122,7 @@ test("the customer site has no admin, and non-staff get 404 in the admin app (AD
 test("staff sign in with their authenticator and see only permitted sections", async ({ page }) => {
   test.setTimeout(90_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
-  await expect(page.getByRole("heading", { name: /, Ada$/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Operations home", level: 1 })).toBeVisible();
   await expect(page.getByText(/MFA verified/).first()).toBeVisible();
 
   const nav = page.getByRole("navigation", { name: "Admin" }).first();
