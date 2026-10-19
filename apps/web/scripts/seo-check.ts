@@ -87,6 +87,14 @@ export function validateStructuredData(nodes: Node[]) {
   });
 }
 
+const same = (a: string, b: string) => {
+  try {
+    return new URL(a).href === new URL(b).href;
+  } catch {
+    return false;
+  }
+};
+
 /** One sitemap page: a self-referencing canonical, indexable, and valid structured data. */
 export function checkPage(html: string, url: string) {
   const canonical = html.match(/<link[^>]*rel="canonical"[^>]*href="([^"]+)"/)?.[1] ?? html.match(/<link[^>]*href="([^"]+)"[^>]*rel="canonical"/)?.[1];
@@ -94,7 +102,8 @@ export function checkPage(html: string, url: string) {
   return {
     types: nodes.map((node) => String(node["@type"])),
     errors: [
-      ...(canonical === url ? [] : [`canonical is ${canonical ?? "missing"}, expected ${url}`]),
+      // Compared as URLs: the site root is the same address with or without its trailing slash.
+      ...(canonical && same(canonical, url) ? [] : [`canonical is ${canonical ?? "missing"}, expected ${url}`]),
       ...(/<meta[^>]*name="robots"[^>]*content="[^"]*noindex/.test(html) ? ["a sitemap page must not be noindex"] : []),
       ...errors,
       ...validateStructuredData(nodes),
