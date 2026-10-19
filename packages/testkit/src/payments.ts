@@ -1,4 +1,4 @@
-import { type InitializeInput, type PaymentGateway, PaymentStartError, signatureMatches, paystackSignature, type VerifyResult } from "@holypearls/payments";
+import { type InitializeInput, type PaymentGateway, PaymentStartError, type RefundInput, RefundRefusedError, type RefundResult, signatureMatches, paystackSignature, type VerifyResult } from "@holypearls/payments";
 
 const FAKE_SECRET = "sk_test_fake_gateway_for_tests_only";
 
@@ -18,6 +18,11 @@ export class FakeGateway implements PaymentGateway {
   /** Set to make the next initialize fail as if Paystack refused it. */
   failNextInitialize = false;
   verifyCalls = 0;
+  /** Refunds Paystack holds, by its refund id, with the transaction they belong to. */
+  readonly refunds = new Map<string, RefundResult & { reference: string; input: RefundInput }>();
+  /** The next refund request: refused (Paystack says no) or lost (created at Paystack, but no answer reached us). */
+  nextRefund: "refuse" | "lose" | null = null;
+  private refundIds = 3_018_000;
 
   async initialize(input: InitializeInput) {
     if (this.failNextInitialize) {
@@ -40,6 +45,46 @@ export class FakeGateway implements PaymentGateway {
 
   verifyWebhook(rawBody: Buffer, signature: string | undefined) {
     return signatureMatches(FAKE_SECRET, rawBody, signature);
+  }
+
+  async refund(input: RefundInput): Promise<RefundResult> {
+    const outcome = this.nextRefund;
+    this.nextRefund = null;
+    if (outcome === "refuse") throw new RefundRefusedError("Transaction has been fully reversed");
+    const transaction = this.transactions.get(input.reference);
+    if (!transaction || transaction.result.status !== "success") throw new RefundRefusedError("Transaction not found or not successful");
+    const refund = { providerRefundId: String((this.refundIds += 1)), status: "pending" as const, providerStatus: "pending", amountMinor: input.amountMinor, reference: input.reference, input };
+    this.refunds.set(refund.providerRefundId, refund);
+    if (outcome === "lose") throw new Error("Paystack refund request timed out");
+    return this.view(refund);
+  }
+
+  async refundStatus(providerRefundId: string): Promise<RefundResult> {
+    const refund = this.refunds.get(providerRefundId);
+    if (!refund) throw new Error(`No fake refund ${providerRefundId}`);
+    return this.view(refund);
+  }
+
+  async listRefunds(reference: string): Promise<RefundResult[]> {
+    return [...this.refunds.values()].filter((refund) => refund.reference === reference).map((refund) => this.view(refund));
+  }
+
+  /** What Paystack will report for this refund from now on. */
+  settleRefund(providerRefundId: string, status: RefundResult["status"]) {
+    const refund = this.refunds.get(providerRefundId);
+    if (!refund) throw new Error(`No fake refund ${providerRefundId}`);
+    Object.assign(refund, { status, providerStatus: status });
+  }
+
+  private view(refund: RefundResult): RefundResult {
+    return { providerRefundId: refund.providerRefundId, status: refund.status, providerStatus: refund.providerStatus, amountMinor: refund.amountMinor };
+  }
+
+  /** A refund webhook as Paystack sends it: the refund's id and the original transaction's reference. */
+  refundWebhook(event: "refund.pending" | "refund.processed" | "refund.failed", providerRefundId: string) {
+    const refund = this.refunds.get(providerRefundId);
+    const body = Buffer.from(JSON.stringify({ event, data: { id: Number(providerRefundId), status: event.slice("refund.".length), transaction_reference: refund?.reference ?? null, amount: Number(refund?.amountMinor ?? 0) } }));
+    return { body, signature: paystackSignature(FAKE_SECRET, body) };
   }
 
   /** What Paystack will report for this reference from now on. Defaults to what was asked for. */

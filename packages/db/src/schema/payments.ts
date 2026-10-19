@@ -197,3 +197,51 @@ export const paymentReviews = pgTable(
     index("payment_reviews_status_idx").on(table.status, table.createdAt),
   ],
 );
+
+export const refundStatus = pgEnum("refund_status", ["PENDING", "PROCESSED", "FAILED"]);
+
+/**
+ * Refunds (T13-05; TECH-05 §11; OPS-FR-043; Pen 121). Each is a new record
+ * linked to the original successful attempt, which is never changed. Status
+ * follows Paystack (webhook, then the refund.check job confirms with its API).
+ * PENDING and PROCESSED refunds count against what's left on the attempt.
+ */
+export const refunds = pgTable(
+  "refunds",
+  {
+    id: idColumn(),
+    /** RF-0019, from refund_number_seq. */
+    number: text("number").notNull(),
+    attemptId: uuid("attempt_id")
+      .notNull()
+      .references(() => paymentAttempts.id, { onDelete: "restrict" }),
+    intentId: uuid("intent_id")
+      .notNull()
+      .references(() => paymentIntents.id, { onDelete: "restrict" }),
+    /** The payment review it settles (DUPLICATE_PAYMENT, PAID_PARTICIPANT_REMOVED), when it came from one. */
+    reviewId: uuid("review_id").references(() => paymentReviews.id, { onDelete: "restrict" }),
+    amountMinor: amountMinorColumn(),
+    currency: currencyColumn(),
+    /** Shown in the history and sent to Paystack as the merchant note. */
+    reason: text("reason").notNull(),
+    status: refundStatus("status").notNull().default("PENDING"),
+    /** Paystack's refund id; null until Paystack confirms it created the refund. */
+    providerRefundId: text("provider_refund_id"),
+    providerStatus: text("provider_status"),
+    failure: text("failure"),
+    /** Every check with Paystack: when, why and what it said. */
+    checks: jsonb("checks").notNull().default(sql`'[]'::jsonb`),
+    issuedByUserId: uuid("issued_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    issuedByName: text("issued_by_name").notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("refunds_number_unique").on(table.number),
+    uniqueIndex("refunds_provider_unique").on(table.providerRefundId),
+    index("refunds_attempt_idx").on(table.attemptId),
+    index("refunds_created_idx").on(table.createdAt.desc()),
+    check("refunds_amount_positive", sql`${table.amountMinor} > 0`),
+  ],
+);

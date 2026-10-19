@@ -126,14 +126,17 @@ test("staff sign in with their authenticator and see only permitted sections", a
   await expect(page.getByText(/MFA verified/).first()).toBeVisible();
 
   const nav = page.getByRole("navigation", { name: "Admin" }).first();
+  if (await nav.isVisible()) await expect(nav.getByRole("link", { name: "Refunds" })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+
+  // Finance (PAYMENT_VIEW only) sees Payments, not Refunds; the page itself is 403 inside the shell.
+  await page.context().clearCookies();
+  await signInStaff(page, TEST_PEOPLE.financeFolake);
   if (await nav.isVisible()) {
     await expect(nav.getByRole("link", { name: "Payments" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Refunds" })).toHaveCount(0);
   }
-  await expectNoAxeViolations(page);
-  await expectNoHorizontalScroll(page);
-
-  // Permission guard: 403 inside the shell.
   await page.goto(`${ADMIN}/refunds`);
   await expect(page.getByRole("heading", { name: "You don't have access to this" })).toBeVisible();
   await expect(page.getByText("403 · PERMISSION REQUIRED")).toBeVisible();

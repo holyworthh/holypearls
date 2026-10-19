@@ -11,6 +11,7 @@ import { customerShipments } from "../shipments/shipments.js";
 import { trackingView } from "./tracking.js";
 import { createProofsForOrder, proofsForOrder } from "../proofs/proofs.js";
 import { paymentSummaryForOrder } from "../quotes/customer.js";
+import { refundFactsForOrder } from "../payments/refunds.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { deviceHash } from "../sales/cart.js";
 import { canSeeOrganizationRecord } from "../organizations/scope.js";
@@ -261,6 +262,7 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
   const items = await db.select().from(schema.orderItems).where(eq(schema.orderItems.orderId, row.id)).orderBy(asc(schema.orderItems.position));
   const receipts = await db.select().from(schema.receipts).where(eq(schema.receipts.orderId, row.id)).orderBy(desc(schema.receipts.paidAt));
   const payments = await paymentSummaryForOrder(db, row);
+  const refunds = await refundFactsForOrder(db, row);
   const [quote] = row.quoteVersionId
     ? await db
         .select({ id: schema.quotes.id, reference: schema.quotes.reference, version: schema.quoteVersions.number })
@@ -277,9 +279,9 @@ export async function orderView(db: Database, row: OrderRow): Promise<Order> {
     placedAt: row.placedAt.toISOString(),
     // A direct order is paid in full when it's made; an order from a quote follows its schedule (T05-05).
     paymentStatus: payments
-      ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false })
+      ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false, ...refunds })
       : receipts.length
-        ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false })
+        ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false, ...refunds })
         : null,
     summaryStatus: production.summaryStatus,
     items: items.map((item) => ({

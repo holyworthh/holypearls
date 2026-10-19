@@ -1,6 +1,7 @@
 import type { CustomerPaymentStatus, WorkspaceBilling, WorkspaceOrder } from "@holypearls/contracts";
 import { and, type Database, desc, eq, gte, ilike, inArray, or, schema, sql } from "@holypearls/db";
 import { placementNames, type RecordScope, scopeWhere } from "../organizations/scope.js";
+import { refundFactsForOrder } from "../payments/refunds.js";
 import { customerPaymentStatus } from "../payments/status.js";
 import { customerProduction } from "../production/production.js";
 import { proofsForOrder } from "../proofs/proofs.js";
@@ -39,10 +40,11 @@ async function card(db: Database, row: OrderRow, locationName: string, viewerUse
     customerProduction(db, row.id),
     proofsForOrder(db, row.id),
   ]);
+  const refunds = await refundFactsForOrder(db, row);
   const paymentStatus = payments
-    ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false })
+    ? customerPaymentStatus({ installments: payments.installments.map((part) => ({ position: part.position, status: part.status, latestAttempt: null })), needsResolution: false, ...refunds })
     : receipts.length
-      ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false })
+      ? customerPaymentStatus({ installments: [{ position: 1, status: "PAID", latestAttempt: "SUCCEEDED" }], needsResolution: false, ...refunds })
       : null;
   const proofsWaiting = proofs.filter((proof) => proof.status === "AWAITING_APPROVAL").length;
   const due = paymentStatus !== null && DUE.includes(paymentStatus) && !DONE.has(production.summaryStatus) ? payments?.next ?? null : null;

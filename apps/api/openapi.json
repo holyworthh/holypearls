@@ -23451,6 +23451,764 @@
         }
       }
     },
+    "/v1/admin/refunds": {
+      "get": {
+        "summary": "Refunds, newest first, with the original attempt and what the customer sees (REFUND_ISSUE; T13-05; Pen 121)",
+        "responses": {
+          "200": {
+            "description": "Refunds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "attemptId": {
+                            "type": "string"
+                          },
+                          "intentId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "forLabel": {
+                            "type": "string"
+                          },
+                          "review": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "enum": [
+                                      "UNCLEAR_RESULT",
+                                      "AMOUNT_MISMATCH",
+                                      "DUPLICATE_PAYMENT",
+                                      "PAID_PARTICIPANT_REMOVED"
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "OPEN",
+                                      "RESOLVED"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "reason",
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PROCESSED",
+                              "FAILED"
+                            ]
+                          },
+                          "failure": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "customerSees": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_DUE",
+                                  "PAYMENT_DUE",
+                                  "DEPOSIT_DUE",
+                                  "PAYMENT_PENDING",
+                                  "DEPOSIT_PAID",
+                                  "PARTIALLY_PAID",
+                                  "BALANCE_DUE",
+                                  "PAID",
+                                  "PAYMENT_FAILED",
+                                  "PARTIALLY_REFUNDED",
+                                  "REFUNDED",
+                                  "PAYMENT_RESOLUTION_REQUIRED"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "issuedBy": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "processedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "attemptId",
+                          "intentId",
+                          "reference",
+                          "forLabel",
+                          "review",
+                          "amountMinor",
+                          "currency",
+                          "reason",
+                          "status",
+                          "failure",
+                          "customerSees",
+                          "issuedBy",
+                          "createdAt",
+                          "processedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Refund all or part of a successful attempt through Paystack (REFUND_ISSUE, MFA in the last 15 minutes, audited; TECH-05 §11). A new record; the original payment never changes. Pending and processed refunds count against what's left",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Created once per button press and reused on retry (TECH-02 §4).",
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "attemptId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "amountMinor": {
+                    "type": "string",
+                    "pattern": "^[1-9][0-9]{0,15}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "reviewId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "attemptId",
+                  "amountMinor",
+                  "reason",
+                  "reviewId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "PENDING with Paystack, or FAILED when Paystack declined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "attemptId": {
+                      "type": "string"
+                    },
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "forLabel": {
+                      "type": "string"
+                    },
+                    "review": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "UNCLEAR_RESULT",
+                                "AMOUNT_MISMATCH",
+                                "DUPLICATE_PAYMENT",
+                                "PAID_PARTICIPANT_REMOVED"
+                              ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "OPEN",
+                                "RESOLVED"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "reason",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "amountMinor": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "PENDING",
+                        "PROCESSED",
+                        "FAILED"
+                      ]
+                    },
+                    "failure": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "customerSees": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "NOT_DUE",
+                            "PAYMENT_DUE",
+                            "DEPOSIT_DUE",
+                            "PAYMENT_PENDING",
+                            "DEPOSIT_PAID",
+                            "PARTIALLY_PAID",
+                            "BALANCE_DUE",
+                            "PAID",
+                            "PAYMENT_FAILED",
+                            "PARTIALLY_REFUNDED",
+                            "REFUNDED",
+                            "PAYMENT_RESOLUTION_REQUIRED"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "issuedBy": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "processedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "number",
+                    "attemptId",
+                    "intentId",
+                    "reference",
+                    "forLabel",
+                    "review",
+                    "amountMinor",
+                    "currency",
+                    "reason",
+                    "status",
+                    "failure",
+                    "customerSees",
+                    "issuedBy",
+                    "createdAt",
+                    "processedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED (more than is left, or a review of another payment)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "FORBIDDEN or RECENT_MFA_REQUIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT: the review was already resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "RULE_FAILED: payments aren't set up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/refunds/payments/{attemptId}": {
+      "get": {
+        "summary": "The issue form for one successful attempt: paid, refunded and left, its refunds, and the review it comes from (?review=)",
+        "parameters": [
+          {
+            "name": "attemptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refundable payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "attemptId": {
+                      "type": "string"
+                    },
+                    "intentId": {
+                      "type": "string"
+                    },
+                    "reference": {
+                      "type": "string"
+                    },
+                    "forLabel": {
+                      "type": "string"
+                    },
+                    "orderId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidMinor": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "paidAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "refundedMinor": {
+                      "type": "string"
+                    },
+                    "leftMinor": {
+                      "type": "string"
+                    },
+                    "review": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "UNCLEAR_RESULT",
+                                "AMOUNT_MISMATCH",
+                                "DUPLICATE_PAYMENT",
+                                "PAID_PARTICIPANT_REMOVED"
+                              ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "OPEN",
+                                "RESOLVED"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "reason",
+                            "status"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "refunds": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "attemptId": {
+                            "type": "string"
+                          },
+                          "intentId": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "forLabel": {
+                            "type": "string"
+                          },
+                          "review": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string",
+                                    "enum": [
+                                      "UNCLEAR_RESULT",
+                                      "AMOUNT_MISMATCH",
+                                      "DUPLICATE_PAYMENT",
+                                      "PAID_PARTICIPANT_REMOVED"
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "OPEN",
+                                      "RESOLVED"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "reason",
+                                  "status"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "PENDING",
+                              "PROCESSED",
+                              "FAILED"
+                            ]
+                          },
+                          "failure": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "customerSees": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_DUE",
+                                  "PAYMENT_DUE",
+                                  "DEPOSIT_DUE",
+                                  "PAYMENT_PENDING",
+                                  "DEPOSIT_PAID",
+                                  "PARTIALLY_PAID",
+                                  "BALANCE_DUE",
+                                  "PAID",
+                                  "PAYMENT_FAILED",
+                                  "PARTIALLY_REFUNDED",
+                                  "REFUNDED",
+                                  "PAYMENT_RESOLUTION_REQUIRED"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "issuedBy": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "processedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "attemptId",
+                          "intentId",
+                          "reference",
+                          "forLabel",
+                          "review",
+                          "amountMinor",
+                          "currency",
+                          "reason",
+                          "status",
+                          "failure",
+                          "customerSees",
+                          "issuedBy",
+                          "createdAt",
+                          "processedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "attemptId",
+                    "intentId",
+                    "reference",
+                    "forLabel",
+                    "orderId",
+                    "paidMinor",
+                    "currency",
+                    "channel",
+                    "paidAt",
+                    "refundedMinor",
+                    "leftMinor",
+                    "review",
+                    "refunds"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/exports": {
       "get": {
         "summary": "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)",

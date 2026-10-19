@@ -34,6 +34,10 @@ import {
   pricingProductListSchema,
   opsHomeSchema,
   exportDownloadSchema,
+  adminRefundListSchema,
+  adminRefundSchema,
+  issueRefundSchema,
+  refundablePaymentSchema,
   exportItemSchema,
   exportListSchema,
   exportRequestSchema,
@@ -1310,6 +1314,18 @@ export function buildOpenApiDocument() {
       },
       "/v1/admin/home": {
         get: { summary: "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)", responses: { 200: { description: "Queues", content: json(opsHomeSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/refunds": {
+        get: { summary: "Refunds, newest first, with the original attempt and what the customer sees (REFUND_ISSUE; T13-05; Pen 121)", responses: { ...staffOnly, 200: { description: "Refunds", content: json(adminRefundListSchema) } } },
+        post: {
+          summary: "Refund all or part of a successful attempt through Paystack (REFUND_ISSUE, MFA in the last 15 minutes, audited; TECH-05 §11). A new record; the original payment never changes. Pending and processed refunds count against what's left",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(issueRefundSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING with Paystack, or FAILED when Paystack declined", content: json(adminRefundSchema) }, 400: error("VALIDATION_FAILED (more than is left, or a review of another payment)"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 409: error("CONFLICT: the review was already resolved"), 422: error("RULE_FAILED: payments aren't set up") },
+        },
+      },
+      "/v1/admin/refunds/payments/{attemptId}": {
+        get: { summary: "The issue form for one successful attempt: paid, refunded and left, its refunds, and the review it comes from (?review=)", parameters: [uuidParam("attemptId")], responses: { ...staffOnly, 200: { description: "Refundable payment", content: json(refundablePaymentSchema) } } },
       },
       "/v1/admin/exports": {
         get: { summary: "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)", responses: { ...staffOnly, 200: { description: "Exports", content: json(exportListSchema) }, 403: error("No export permission (FORBIDDEN)") } },

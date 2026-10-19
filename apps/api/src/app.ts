@@ -26,6 +26,7 @@ import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { GarmentDataAdminController } from "./catalogue/garment-data.controller.js";
 import { OpsHomeController } from "./platform/ops-home.controller.js";
 import { ExportsController } from "./platform/exports.controller.js";
+import { RefundsController } from "./payments/refunds.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
 import type { Courier } from "./sales/courier.js";
 import { CartController, CheckoutController, CourierSettingsAdminController, DeliveryPricesAdminController, DeliveryZonesAdminController, InstallationAdminController } from "./sales/sales.controller.js";
@@ -147,6 +148,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       GarmentDataAdminController,
       OpsHomeController,
       ExportsController,
+      RefundsController,
       PublicPricingController,
       CartController,
       CheckoutController,
