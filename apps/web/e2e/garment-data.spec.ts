@@ -27,10 +27,10 @@ test("garment data: fabrics with staff-only supplier codes, blocked placements a
   await expectNoHorizontalScroll(page);
 
   const key = `e2e-twill-${info.project.name.includes("375") ? "m" : "d"}-${Date.now()}`;
-  await page.getByLabel("Name").fill("E2E twill");
-  await page.getByLabel("Key").fill(key);
-  await page.getByLabel("Colours").fill("White, Black");
-  await page.getByLabel("Supplier code (staff only)").fill("SUP: E2E-TW65");
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("E2E twill");
+  await page.getByRole("textbox", { name: "Key", exact: true }).fill(key);
+  await page.getByRole("textbox", { name: "Colours", exact: true }).fill("White, Black");
+  await page.getByRole("textbox", { name: "Supplier code (staff only)", exact: true }).fill("SUP: E2E-TW65");
   await page.getByRole("button", { name: "Add fabric" }).click();
   await expect(page.getByText("E2E twill saved.")).toBeVisible();
   await expect(page.getByRole("cell", { name: "SUP: E2E-TW65" }).first()).toBeVisible();

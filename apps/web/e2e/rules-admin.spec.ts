@@ -16,7 +16,8 @@ test("rules & prices: products, product rules, a scheduled price version, price 
   await expect(page.getByRole("heading", { name: "Rules & prices", level: 1 })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
-  await page.getByRole("link", { name: "Business Cards" }).click();
+  // The products table (a scheduled-changes panel above may link the product too).
+  await page.getByRole("table").getByRole("link", { name: "Business Cards" }).click();
 
   // Product rules (Pen 107 pGEKn).
   await expect(page.getByRole("navigation", { name: "Rules" }).getByRole("link", { name: "Product rules" })).toHaveAttribute("aria-current", "page");
