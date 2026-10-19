@@ -98,7 +98,7 @@ export function Exports({ initial }: { initial: ExportList }) {
   };
 
   return (
-    <div className={styles.columns}>
+    <div className={css.layout}>
       <section className={styles.panel} aria-labelledby="new-export">
         <h2 id="new-export" className={styles.panelTitle}>
           New export
@@ -131,7 +131,7 @@ export function Exports({ initial }: { initial: ExportList }) {
           </div>
         </form>
       </section>
-      <section className={styles.tableCol} aria-labelledby="export-list">
+      <section className={`${styles.tableCol} ${css.wide}`} aria-labelledby="export-list">
         <h2 id="export-list" className="hp-visually-hidden">
           Requested exports
         </h2>
@@ -161,7 +161,7 @@ export function Exports({ initial }: { initial: ExportList }) {
                   <tr key={item.id}>
                     <td className={styles.strong}>{name(item)}</td>
                     <td>
-                      {item.requestedBy.replace(/ \(TEST DATA\)$/, "")} · {ago(item.requestedAt)} ago
+                      {item.requestedBy.split(" ")[0]} · {Date.now() - Date.parse(item.requestedAt) < 60_000 ? "just now" : `${ago(item.requestedAt)} ago`}
                     </td>
                     <td>
                       {item.status === "GENERATING" ? (

@@ -10,6 +10,12 @@ import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } f
 
 test("operations home: each queue opens its filtered list; finance sees only payments", async ({ page }) => {
   test.setTimeout(150_000);
+  // Some work, so the cards show even when this spec runs alone ("All queues are clear" hides them).
+  const help = await page.request.post("/api/v1/help-requests", {
+    headers: { origin: "http://localhost:3100", "idempotency-key": `e2e_${Date.now()}_ops_home_help` },
+    data: { message: "Ops home browser test (TEST DATA)", email: "ops.home.e2e@example.com", name: "Ops Home (TEST DATA)" },
+  });
+  expect(help.ok()).toBe(true);
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.goto(`${ADMIN}/`);
   await expect(page.getByRole("heading", { name: "Operations home", level: 1 })).toBeVisible();

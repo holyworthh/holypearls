@@ -1,5 +1,5 @@
 import { adminPriceRuleListSchema, adminProductRulesSchema, orderSchema, pricingProductListSchema, priceResultSchema } from "@holypearls/contracts";
-import { eq, schema } from "@holypearls/db";
+import { eq, schema, sql } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -75,6 +75,23 @@ describe("rule changes (OPS-FR-130)", () => {
     const thousand = await price(1000);
     expect(thousand.vatRateBps).toBe(1000);
     expect(priceBefore.vatRateBps).not.toBe(1000);
+  });
+});
+
+describe("price changes are high-risk (PRD-06 §18)", () => {
+  it("a new price version or VAT rate needs an authenticator check in the last 15 minutes", async () => {
+    const id = await cardsId();
+    const current = adminPriceRuleListSchema.parse((await staff().get(`/v1/admin/pricing/products/${id}/prices`)).body).entries.find((entry) => entry.current)!;
+    await harness.database.db.execute(sql`update sessions set mfa_verified_at = now() - interval '16 minutes'`);
+    try {
+      const price = await staff().post(`/v1/admin/pricing/products/${id}/prices`, { ...current, effectiveFrom: new Date(Date.now() + 86_400_000).toISOString(), note: "Stale MFA" });
+      expect(price.body.code).toBe("RECENT_MFA_REQUIRED");
+      const vat = await staff().post("/v1/admin/pricing/vat", { effectiveFrom: new Date(Date.now() + 86_400_000).toISOString(), vatRateBps: 750, vatOnDelivery: true, note: null });
+      expect(vat.body.code).toBe("RECENT_MFA_REQUIRED");
+      expect(adminPriceRuleListSchema.parse((await staff().get(`/v1/admin/pricing/products/${id}/prices`)).body).entries.some((entry) => entry.note === "Stale MFA")).toBe(false);
+    } finally {
+      await harness.database.db.execute(sql`update sessions set mfa_verified_at = now()`);
+    }
   });
 });
 
