@@ -4,8 +4,8 @@
  * secrets, so they are never logged.
  */
 export interface AuthEmail {
-  /** A sign-in link, an email check after sign-up, or a password reset link. */
-  kind: "MAGIC_LINK" | "VERIFY_EMAIL" | "PASSWORD_RESET";
+  /** A sign-in link, an email check after sign-up, a check of a new account email, or a password reset link. */
+  kind: "MAGIC_LINK" | "VERIFY_EMAIL" | "CHANGE_EMAIL" | "PASSWORD_RESET";
   to: string;
   url: string;
   sentAt: Date;

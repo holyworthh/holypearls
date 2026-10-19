@@ -18,6 +18,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  /** A new email waiting for its check link (TECH-03 §4); the account keeps `email` until it's verified. */
+  pendingEmail: text("pending_email"),
+  pendingEmailAt: at("pending_email_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

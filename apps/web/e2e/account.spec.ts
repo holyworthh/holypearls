@@ -86,3 +86,46 @@ test("password reset answers the same for any email, and an expired link says so
   await expect(page.getByRole("heading", { name: "This reset link has expired" })).toBeVisible();
   await expectNoAxeViolations(page);
 });
+
+test("changing the email shows it pending until verified; each history list has its own page", async ({ page }) => {
+  // T09-01b (Pen 91 "Email change pending"): a fresh account asks for a new email.
+  const email = `e2e.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@example.com`;
+  await page.goto("/sign-up");
+  await page.locator("#sign-up-name").fill("E2E Changer (TEST DATA)");
+  await page.locator("#sign-up-email").fill(email);
+  await page.locator("#sign-up-password").fill("an-e2e-test-password-123");
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+
+  await page.goto("/account/profile");
+  await expect(page.getByText("Changing your email needs verification and signs you out on other devices.")).toBeVisible();
+  await page.getByLabel("Email").fill("not-an-email");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Enter an email address like name@example.com")).toBeVisible();
+  const newEmail = `new.${email}`;
+  await page.getByLabel("Email").fill(newEmail);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText(`We sent a link to ${newEmail}. Your email stays ${email} until you verify.`)).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveValue(email);
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Verify your new email" })).toBeVisible();
+  await page.getByRole("button", { name: "Resend link" }).click();
+  await expect(page.getByText(`Sent again to ${newEmail}.`)).toBeVisible();
+
+  // The lists in full, from the account navigation.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.customerChidi, "/account");
+  await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Orders" }).click();
+  await expect(page).toHaveURL(/\/account\/orders$/);
+  await expect(page.getByRole("heading", { name: "Orders", level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Orders" })).toHaveAttribute("aria-current", "page");
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  for (const [path, heading] of [["/account/quotes", "Quotes"], ["/account/projects", "Projects"], ["/account/drafts", "Drafts"], ["/account/receipts", "Receipts"]] as const) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
+  }
+  expect((await page.goto("/account/payments"))?.status()).toBe(404);
+});

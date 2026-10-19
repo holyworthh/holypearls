@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Req } from "@nestjs/common";
 import type { IdentityAdapter } from "@holypearls/auth";
-import { type AccountHistory, type Me, type Profile, profileInputSchema, type SessionList } from "@holypearls/contracts";
+import { type AccountHistory, type AccountList, type Me, type Profile, profileInputSchema, type SessionList } from "@holypearls/contracts";
 import type { z } from "zod";
 import type { Request } from "express";
 import { and, type Database, eq, gt, schema, sql } from "@holypearls/db";
@@ -9,7 +9,7 @@ import { enforce, findOrHide } from "../platform/policy.js";
 import { DATABASE, IDENTITY } from "../tokens.js";
 import { canRevokeSession, findSessionForActor } from "./policies.js";
 import { requireUser, toHeaders } from "./actor.js";
-import { accountHistory, getProfile, updateProfile } from "./account.js";
+import { accountHistory, accountList, getProfile, updateProfile } from "./account.js";
 import { ZodValidationPipe } from "../validation.js";
 
 /** Describes a session by browser and system, never by raw user agent. */
@@ -60,6 +60,7 @@ export class MeController {
       email: session.email,
       emailVerified: session.emailVerified,
       phone: profile.phone,
+      pendingEmail: profile.pendingEmail,
       isStaff: actor.staff !== null,
       mfa: { enabled: session.mfaEnabled, verifiedAt: session.mfaVerifiedAt?.toISOString() ?? null },
       session: { createdAt: session.createdAt.toISOString(), expiresAt: session.expiresAt.toISOString() },
@@ -70,6 +71,12 @@ export class MeController {
   @Get("history")
   async history(@Req() request: Request): Promise<AccountHistory> {
     return accountHistory(this.db, requireUser(await request.getActor!()));
+  }
+
+  /** One history list in full: orders, quotes, projects, drafts or receipts (T09-01b). */
+  @Get("history/:list")
+  async list(@Req() request: Request, @Param("list") list: string): Promise<AccountList> {
+    return accountList(this.db, requireUser(await request.getActor!()), list);
   }
 
   @Patch("profile")

@@ -101,7 +101,7 @@ describe("sign-in (TECH-03 §3)", () => {
   });
 
   it("hides the sign-in library's routes that HolyPearls doesn't use", async () => {
-    for (const path of ["delete-user", "change-email", "two-factor/disable", "two-factor/generate-backup-codes", "list-accounts", "update-user"]) {
+    for (const path of ["delete-user", "two-factor/disable", "two-factor/generate-backup-codes", "list-accounts", "update-user"]) {
       const response = await post(`/v1/auth/${path}`).send({});
       expect({ path, status: response.status }).toEqual({ path, status: 404 });
       expect(errorOf(response.body).code).toBe("NOT_FOUND");

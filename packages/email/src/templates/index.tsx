@@ -40,6 +40,18 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  change_email: define({
+    label: "Check of a new account email",
+    carriesSecret: true,
+    data: z.object({ url: z.url() }),
+    subject: () => "Confirm your new HolyPearls email",
+    render: ({ url }) => (
+      <Layout preview="Confirm your new email" title="Confirm your new email" action={{ label: "Use this email", href: url }}>
+        <Text style={text.body}>Someone asked to use this address for a HolyPearls account. Your account keeps its old email until you confirm. Confirming signs the account out on every other device. The link expires in 24 hours.</Text>
+        <Text style={text.support}>Didn&apos;t ask for this? Ignore this email; nothing changes.</Text>
+      </Layout>
+    ),
+  }),
   password_reset: define({
     label: "Password reset link",
     carriesSecret: true,
