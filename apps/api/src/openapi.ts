@@ -32,6 +32,7 @@ import {
   adminPriceRuleSchema,
   adminProductRulesSchema,
   pricingProductListSchema,
+  opsHomeSchema,
   fabricInputSchema,
   fabricSchema,
   garmentDataSchema,
@@ -1302,6 +1303,9 @@ export function buildOpenApiDocument() {
           requestBody: { required: true, content: json(priceRequestSchema) },
           responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
+      },
+      "/v1/admin/home": {
+        get: { summary: "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)", responses: { 200: { description: "Queues", content: json(opsHomeSchema) }, ...staffOnly } },
       },
       "/v1/admin/pricing/scheduled": {
         get: { summary: "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)", responses: { 200: { description: "Scheduled", content: json(scheduledChangesSchema) }, ...staffOnly } },

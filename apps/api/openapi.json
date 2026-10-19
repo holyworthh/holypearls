@@ -23363,6 +23363,94 @@
         }
       }
     },
+    "/v1/admin/home": {
+      "get": {
+        "summary": "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)",
+        "responses": {
+          "200": {
+            "description": "Queues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "queues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "enum": [
+                              "NEW_REQUESTS",
+                              "QUOTES_TO_PREPARE",
+                              "PROOFS",
+                              "BLOCKED_ORDERS",
+                              "PRODUCTION",
+                              "QUALITY_CHECK",
+                              "READY_TO_DISPATCH",
+                              "PAYMENTS",
+                              "HELP",
+                              "PROBLEMS"
+                            ]
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "count",
+                          "detail",
+                          "href"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "queues"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/pricing/scheduled": {
       "get": {
         "summary": "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)",
