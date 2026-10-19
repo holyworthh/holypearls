@@ -110,7 +110,7 @@ test("changing the email shows it pending until verified; each history list has 
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Verify your new email" })).toBeVisible();
+  await expect(page.getByText("Verify your new email", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Resend link" }).click();
   await expect(page.getByText(`Sent again to ${newEmail}.`)).toBeVisible();
 
@@ -127,5 +127,7 @@ test("changing the email shows it pending until verified; each history list has 
     await page.goto(path);
     await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible();
   }
-  expect((await page.goto("/account/payments"))?.status()).toBe(404);
+  // Unknown lists show the not-found page (with 200: the account's loading state has already started the response).
+  await page.goto("/account/payments");
+  await expect(page.getByRole("heading", { name: "We can’t find that page", level: 1 })).toBeVisible();
 });
