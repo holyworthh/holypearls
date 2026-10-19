@@ -83,3 +83,13 @@ export const notificationQuerySchema = z.object({
   cursor: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(25),
 });
+
+/* Operations home (T13-03; PRD-06 §17; Pen 95). */
+
+export const OPS_QUEUES = ["NEW_REQUESTS", "QUOTES_TO_PREPARE", "PROOFS", "BLOCKED_ORDERS", "PRODUCTION", "QUALITY_CHECK", "READY_TO_DISPATCH", "PAYMENTS", "HELP", "PROBLEMS"] as const;
+
+/** Only the queues this person may see; hidden queues and their counts are never sent. */
+export const opsHomeSchema = z.object({
+  queues: z.array(z.object({ key: z.enum(OPS_QUEUES), label: z.string(), count: z.number().int(), detail: z.string(), href: z.string() })),
+});
+export type OpsHome = z.infer<typeof opsHomeSchema>;
