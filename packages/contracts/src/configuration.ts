@@ -108,6 +108,8 @@ export const configurationSchema = z.object({
   step: z.string(),
   version: z.number().int(),
   price: priceResultSchema.nullable(),
+  /** OPS-FR-130: the draft was repriced after a price, rule or VAT change; shown until the customer changes it ("Price updated · was … now …"). */
+  priceUpdate: z.object({ wasMinor: z.string(), nowMinor: z.string(), currency: z.string() }).nullable(),
   /** A draft link was emailed to this address (masked). */
   emailedTo: z.string().nullable(),
   /** Made from a Workspace Product Template (T11-01c): only `editable` field keys may change; the rest is locked by the company. */

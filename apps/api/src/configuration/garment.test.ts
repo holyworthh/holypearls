@@ -26,11 +26,17 @@ describe("placement conflicts (COM-FR-026)", () => {
     expect(placementConflicts(fixed, "PRINT")).toEqual([]);
   });
 
-  it("refuses embroidery across a whole front or back, fixed by printing that area", () => {
+  it("refuses what the garment data blocks (embroidery across a whole back), fixed by the other method", () => {
+    const blocked = [{ method: "EMBROIDERY" as const, position: "FULL_BACK", message: "Embroidery can't cover the full back." }];
     const placements = [place("FULL_BACK", "LARGE")];
-    const [conflict] = placementConflicts(placements, "EMBROIDERY");
-    expect(conflict!.message).toContain("Embroidery can't cover");
-    expect(placementConflicts(applyFix(placements, conflict!.fixes[0]!), "EMBROIDERY")).toEqual([]);
+    const [conflict] = placementConflicts(placements, "EMBROIDERY", blocked);
+    expect(conflict).toMatchObject({ message: "Embroidery can't cover the full back.", fixes: [{ label: "Print this area instead", change: { method: "PRINT" } }] });
+    expect(placementConflicts(applyFix(placements, conflict!.fixes[0]!), "EMBROIDERY", blocked)).toEqual([]);
+    // Printing blocked on a sleeve: the fix is to embroider it.
+    const sleeve = placementConflicts([place("LEFT_SLEEVE", "SMALL")], "PRINT", [{ method: "PRINT", position: "LEFT_SLEEVE", message: "No print on sleeves." }]);
+    expect(sleeve[0]!.fixes[0]).toMatchObject({ label: "Embroider this area instead", change: { method: "EMBROIDERY" } });
+    // With nothing blocked, everything goes.
+    expect(placementConflicts(placements, "EMBROIDERY")).toEqual([]);
   });
 
   it("keeps sleeves small or standard, and needs a description for a custom position", () => {

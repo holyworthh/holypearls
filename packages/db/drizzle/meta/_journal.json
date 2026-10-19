@@ -379,6 +379,13 @@
       "when": 1792409237673,
       "tag": "0053_pending_email",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1792412948888,
+      "tag": "0054_garment_data",
+      "breakpoints": true
     }
   ]
 }

@@ -10,6 +10,7 @@ import s from "./ledger-pdp.module.css";
 import { ArrowRight, Check, Clock, Lock, PenTool, Upload } from "lucide-react";
 import { AddToCart } from "../sales/AddToCart";
 import { DeliveryFields, FamilyFields, QuoteRequest } from "./FamilyDelivery";
+import { PriceUpdated } from "./PriceUpdated";
 
 const updateResponse = z.object({ draft: configurationSchema, removed: z.array(z.object({ option: z.string(), value: z.string(), message: z.string() })) });
 
@@ -465,6 +466,7 @@ export function Configurator({ productSlug, productName, family, data, initialDr
         </dl>
       </section>
 
+      <PriceUpdated draft={draft} />
       <section className={s.ticket} ref={totalBar} aria-label="Your price" aria-live="polite" data-no-reveal>
         <div className={s.lines}>
           <span className={s.ticketCaption}>Your {productName.toLowerCase()}</span>
