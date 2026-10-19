@@ -51,6 +51,7 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
       { slug: "categories", label: "Categories", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-01" },
       { slug: "merchandising", label: "Menus & homepage", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-03" },
       { slug: "rules", label: "Rules & prices", anyOf: ["PRICING_MANAGE"], ticket: "T13-01" },
+      { slug: "garment-data", label: "Garment data", anyOf: ["CATALOGUE_MANAGE"], ticket: "T13-01b" },
       { slug: "content", label: "Content", anyOf: ["CONTENT_MANAGE"], ticket: "T02-06" },
       { slug: "delivery", label: "Delivery & installation", anyOf: ["PRICING_MANAGE"], ticket: "T04-01" },
       { slug: "delivery-prices", label: "Delivery prices", anyOf: ["PRICING_MANAGE"], ticket: "T04-01" },

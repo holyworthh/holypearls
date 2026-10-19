@@ -8,7 +8,7 @@ import { BUYING_MODE } from "../labels";
 import { PriceVersions } from "./PriceVersions";
 import { ProductRulesForm } from "./ProductRulesForm";
 import { VatPanel } from "./VatPanel";
-import css from "./rules.module.css";
+import css from "../../form-layout.module.css";
 
 const TABS = [
   ["product", "Product rules"],

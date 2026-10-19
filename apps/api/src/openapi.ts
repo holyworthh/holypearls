@@ -32,6 +32,11 @@ import {
   adminPriceRuleSchema,
   adminProductRulesSchema,
   pricingProductListSchema,
+  fabricInputSchema,
+  fabricSchema,
+  garmentDataSchema,
+  savePlacementBlocksSchema,
+  scheduledChangesSchema,
   adminTaxSettingListSchema,
   priceRequestSchema,
   priceResultSchema,
@@ -1293,6 +1298,21 @@ export function buildOpenApiDocument() {
           requestBody: { required: true, content: json(priceRequestSchema) },
           responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
+      },
+      "/v1/admin/pricing/scheduled": {
+        get: { summary: "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)", responses: { 200: { description: "Scheduled", content: json(scheduledChangesSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/garment-data": {
+        get: { summary: "Fabrics with colours, sizes, staff-only supplier codes and the products that use them; blocked decoration placements; how each product is made (CATALOGUE_MANAGE; OPS-FR-020–022)", responses: { 200: { description: "Garment data", content: json(garmentDataSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/garment-data/fabrics": {
+        post: { summary: "Add a fabric (version 0); keys are unique", requestBody: { required: true, content: json(fabricInputSchema) }, responses: { 201: { description: "Added", content: json(fabricSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/garment-data/fabrics/{id}": {
+        put: { summary: "Change or archive a fabric", parameters: [uuidParam("id")], requestBody: { required: true, content: json(fabricInputSchema) }, responses: { 200: { description: "Saved", content: json(fabricSchema) }, 400: error("VALIDATION_FAILED"), 409: error("VERSION_CONFLICT"), ...staffOnly } },
+      },
+      "/v1/admin/garment-data/placements": {
+        put: { summary: "Replace the blocked decoration placements; the configurator refuses them and offers the other method", requestBody: { required: true, content: json(savePlacementBlocksSchema) }, responses: { 200: { description: "Saved", content: json(garmentDataSchema) }, ...staffOnly } },
       },
       "/v1/admin/pricing/products": {
         get: { summary: "Every product with whether its rules are set, its price now and whether a new price is scheduled (PRICING_MANAGE; T13-01)", responses: { 200: { description: "Products", content: json(pricingProductListSchema) }, ...staffOnly } },

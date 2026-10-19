@@ -6,7 +6,7 @@ import { api } from "@holypearls/web-kit/api";
 import { useState } from "react";
 import styles from "../../admin-list.module.css";
 import { formatTime, money, toKobo, toNaira } from "../../format";
-import css from "./rules.module.css";
+import css from "../../form-layout.module.css";
 
 type Tier = { from: string; amount: string };
 type AddOn = { option: string; value: string; per: "UNIT" | "ORDER"; amount: string };
