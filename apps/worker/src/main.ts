@@ -14,6 +14,7 @@ import {
   sendNotification,
   reportError,
   checkPaymentAttempt,
+  checkRefund,
   processPaystackEvent,
   expireQuoteVersion,
   sendQuoteExpiringReminder,
@@ -144,7 +145,15 @@ await jobs.work(
     logger.info({ queue: "payment.check", requestId: payload.requestId, check: payload.check, outcome }, "payment checked");
   }),
 );
-for (const queue of ["payment.verify", "payment.check"] as const) {
+// Refunds (T13-05): status from Paystack's refund API on the TECH-05 §11 schedule.
+await jobs.work(
+  "refund.check",
+  track("refund.check", async (payload) => {
+    const outcome = await checkRefund(payments, payload.refundId, payload.check);
+    logger.info({ queue: "refund.check", requestId: payload.requestId, check: payload.check, outcome }, "refund checked");
+  }),
+);
+for (const queue of ["payment.verify", "payment.check", "refund.check"] as const) {
   await jobs.workDeadLetters(queue, async (payload) => {
     // The 48-hour check still settles the attempt; staff see it on the Jobs page.
     logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "payment job moved to dead-letter queue");
