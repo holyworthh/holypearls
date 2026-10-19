@@ -1,4 +1,4 @@
-import { adminPriceRuleListSchema, adminProductRulesSchema, configurationSchema, orderSchema, pricingProductListSchema, priceResultSchema } from "@holypearls/contracts";
+import { adminPriceRuleListSchema, adminProductRulesSchema, orderSchema, pricingProductListSchema, priceResultSchema } from "@holypearls/contracts";
 import { eq, schema } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import request from "supertest";
