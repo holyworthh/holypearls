@@ -38,6 +38,10 @@ export type ProductRules = z.infer<typeof productRulesSchema>;
 
 export const adminProductRulesSchema = z.object({
   productId: z.string(),
+  /** For the Rules & prices page heading (T13-01; Pen 107). */
+  product: z.object({ name: z.string(), slug: z.string(), buyingMode: z.enum(["SIMPLE_CONFIGURABLE", "CONFIGURABLE_QUOTE", "CONSULTATIVE_PROJECT"]), status: z.string() }),
+  /** The product's options and values, for compatibility and add-on choices. */
+  options: z.array(z.object({ key: z.string(), label: z.string(), values: z.array(z.object({ key: z.string(), label: z.string() })) })),
   rules: productRulesSchema.nullable(),
   version: z.number().int(),
   compatibility: z.array(
@@ -52,6 +56,25 @@ export const adminProductRulesSchema = z.object({
   ),
 });
 export type AdminProductRules = z.infer<typeof adminProductRulesSchema>;
+
+/** Products for the Rules & prices section (T13-01): PRICING_MANAGE may not hold CATALOGUE_MANAGE. */
+export const pricingProductListSchema = z.object({
+  products: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      buyingMode: z.enum(["SIMPLE_CONFIGURABLE", "CONFIGURABLE_QUOTE", "CONSULTATIVE_PROJECT"]),
+      status: z.string(),
+      hasRules: z.boolean(),
+      /** The price in force now: its base amount and state, or null when it has none. */
+      price: z.object({ baseMinor: z.string(), currency: z.enum(["NGN", "USD"]), state: z.enum(["PRICE_READY", "ESTIMATE_READY"]) }).nullable(),
+      /** A later price is waiting to take effect. */
+      scheduled: z.boolean(),
+    }),
+  ),
+});
+export type PricingProductList = z.infer<typeof pricingProductListSchema>;
 
 /** Version 0 creates the rules for a product that has none. */
 export const saveProductRulesSchema = z.object({ rules: productRulesSchema, version: z.number().int().min(0) });
@@ -102,6 +125,7 @@ export const adminPriceRuleSchema = z.object({
   current: z.boolean(),
   createdAt: z.iso.datetime(),
 });
+export type AdminPriceRule = z.infer<typeof adminPriceRuleSchema>;
 export const adminPriceRuleListSchema = z.object({ entries: z.array(adminPriceRuleSchema) });
 
 export const taxSettingInputSchema = z.object({
@@ -111,6 +135,7 @@ export const taxSettingInputSchema = z.object({
   note: z.string().trim().max(300).nullable(),
 });
 export const adminTaxSettingSchema = taxSettingInputSchema.extend({ id: z.string(), current: z.boolean(), createdAt: z.iso.datetime(), effectiveFrom: z.iso.datetime() });
+export type AdminTaxSetting = z.infer<typeof adminTaxSettingSchema>;
 export const adminTaxSettingListSchema = z.object({ entries: z.array(adminTaxSettingSchema) });
 
 /** What a customer (or later the configurator) sends to price a configuration. */

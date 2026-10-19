@@ -40,8 +40,42 @@ async function productName(db: Database, productId: string): Promise<string> {
   return product.name;
 }
 
+/** Every product with whether it has rules and its price now (T13-01). */
+export async function pricingProducts(db: Database, now: Date) {
+  const products = await db
+    .select({ id: schema.products.id, name: schema.products.name, slug: schema.products.slug, buyingMode: schema.products.buyingMode, status: schema.products.status })
+    .from(schema.products)
+    .orderBy(asc(schema.products.name));
+  const withRules = new Set((await db.select({ productId: schema.productRules.productId }).from(schema.productRules)).map((row) => row.productId));
+  const prices = await db.select().from(schema.priceRules).orderBy(desc(schema.priceRules.effectiveFrom));
+  return {
+    products: products.map((product) => {
+      const own = prices.filter((price) => price.productId === product.id);
+      const current = own.find((price) => price.effectiveFrom <= now) ?? null;
+      return {
+        ...product,
+        hasRules: withRules.has(product.id),
+        price: current ? { baseMinor: current.baseMinor.toString(), currency: current.currency, state: current.state } : null,
+        scheduled: own.some((price) => price.effectiveFrom > now),
+      };
+    }),
+  };
+}
+
 export async function getProductRules(db: Database, productId: string) {
-  await productName(db, productId);
+  const [product] = await db.select({ name: schema.products.name, slug: schema.products.slug, buyingMode: schema.products.buyingMode, status: schema.products.status }).from(schema.products).where(eq(schema.products.id, productId));
+  if (!product) throw new AppError("NOT_FOUND");
+  const optionRows = await db
+    .select({ key: schema.productOptions.key, label: schema.productOptions.label, valueKey: schema.productOptionValues.key, valueLabel: schema.productOptionValues.label })
+    .from(schema.productOptions)
+    .innerJoin(schema.productOptionValues, eq(schema.productOptionValues.optionId, schema.productOptions.id))
+    .where(eq(schema.productOptions.productId, productId))
+    .orderBy(asc(schema.productOptions.position), asc(schema.productOptionValues.position));
+  const options: { key: string; label: string; values: { key: string; label: string }[] }[] = [];
+  for (const row of optionRows) {
+    const option = options.find((entry) => entry.key === row.key) ?? options[options.push({ key: row.key, label: row.label, values: [] }) - 1]!;
+    option.values.push({ key: row.valueKey, label: row.valueLabel });
+  }
   const [row] = await db.select().from(schema.productRules).where(eq(schema.productRules.productId, productId));
   const compatibility = await db
     .select()
@@ -50,6 +84,8 @@ export async function getProductRules(db: Database, productId: string) {
     .orderBy(asc(schema.compatibilityRules.createdAt));
   return {
     productId,
+    product,
+    options,
     rules: row ? toRules(row) : null,
     version: row?.version ?? 0,
     compatibility: compatibility.map(({ ifOption, ifValue, thenOption, thenValues, effect, message }) => ({ ifOption, ifValue, thenOption, thenValues, effect, message })),

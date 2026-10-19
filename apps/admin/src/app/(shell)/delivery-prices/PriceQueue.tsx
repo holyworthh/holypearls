@@ -7,17 +7,10 @@ import { naira } from "@holypearls/web-kit/money";
 import { useState } from "react";
 import { z } from "zod";
 import styles from "../admin-list.module.css";
-import { ago } from "../format";
+import { ago, toKobo } from "../format";
 
 type Item = DeliveryPriceQueue["items"][number];
 
-/** Whole naira → kobo string; "6,500" and "6500.50" both work. */
-function toKobo(value: string): string | null {
-  const clean = value.replace(/[₦,\s]/g, "");
-  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
-  const [whole, fraction = ""] = clean.split(".");
-  return (BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, "0"))).toString();
-}
 
 /** One row per waiting checkout, each with its own price form. */
 export function PriceQueue({ initial }: { initial: Item[] }) {
