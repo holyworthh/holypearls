@@ -8,6 +8,8 @@ import { ProductCard } from "../../../components/catalogue/ProductCard";
 import { Icon } from "../../../components/pen/Icon";
 import { categoryHref } from "../../../components/site/nav";
 import { SiteShell } from "../../../components/site/SiteShell";
+import { JsonLd } from "../../../components/seo/JsonLd";
+import { breadcrumbLd, collectionLd } from "../../../lib/seo";
 import { getHub } from "../../../lib/storefront";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -431,8 +433,16 @@ export default async function CategoryHubPage({ params }: Params) {
   const related = hub.sections.find((section) => section.type === "related") as Of<"related"> | undefined;
   const faq = hub.sections.find((section) => section.type === "faq") as Of<"faq"> | undefined;
   let pairShown = false;
+  const path = categoryHref(hub.category.slug);
   return (
     <SiteShell>
+      {/* Category: CollectionPage with its products, and the breadcrumb (Stage 3 §48; T14-01). */}
+      <JsonLd
+        data={[
+          collectionLd(hub.category.name, path, hub.products, hub.seoDescription ?? hub.category.description),
+          breadcrumbLd([{ name: "Home", path: "/" }, ...(hub.parent ? [{ name: hub.parent.name, path: categoryHref(hub.parent.slug) }] : []), { name: hub.category.name, path }]),
+        ]}
+      />
       {summary ? null : (
         <Summary
           section={{ type: "summary", visible: true, heading: hub.category.name, body: hub.category.description ?? "", primaryLabel: "Browse products", secondaryLabel: "", secondaryHref: "" }}
