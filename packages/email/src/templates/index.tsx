@@ -409,6 +409,20 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  staff_invitation: define({
+    label: "Staff invitation",
+    carriesSecret: true,
+    data: z.object({ invitedBy: z.string(), permissions: z.string(), expires: z.string(), url: z.url() }),
+    subject: () => "You're invited to the HolyPearls admin",
+    render: ({ invitedBy, permissions, expires, url }) => (
+      <Layout preview={`${invitedBy} invited you to the HolyPearls admin`} title="Join the HolyPearls team" action={{ label: "Accept the invitation", href: url }}>
+        <Text style={text.body}>
+          {invitedBy} invited you to the HolyPearls staff admin with these permissions: {permissions}. Sign in or create an account with this email address to accept, then sign in to the admin and set up your authenticator app.
+        </Text>
+        <Text style={text.support}>The invitation works once and expires on {expires}. Didn&apos;t expect it? Ignore this email.</Text>
+      </Layout>
+    ),
+  }),
   organization_role_changed: define({
     label: "Workspace role changed",
     carriesSecret: false,

@@ -34,6 +34,12 @@ import {
   pricingProductListSchema,
   opsHomeSchema,
   exportDownloadSchema,
+  inviteStaffSchema,
+  staffInvitationPreviewSchema,
+  acceptedStaffInvitationSchema,
+  staffInvitationSchema,
+  staffListSchema,
+  staffMemberSchema,
   adminRefundListSchema,
   adminRefundSchema,
   issueRefundSchema,
@@ -1326,6 +1332,32 @@ export function buildOpenApiDocument() {
       },
       "/v1/admin/refunds/payments/{attemptId}": {
         get: { summary: "The issue form for one successful attempt: paid, refunded and left, its refunds, and the review it comes from (?review=)", parameters: [uuidParam("attemptId")], responses: { ...staffOnly, 200: { description: "Refundable payment", content: json(refundablePaymentSchema) } } },
+      },
+      "/v1/admin/staff": {
+        get: { summary: "Staff members with permissions, MFA and status, and open invitations (STAFF_ADMIN; T13-05b; Pen 122)", responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/invitations": {
+        post: {
+          summary: "Invite someone to the staff (7 days, one use, emailed). With permissions, needs an authenticator check in the last 15 minutes. Audited",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(inviteStaffSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING", content: json(staffInvitationSchema) }, 400: error("VALIDATION_FAILED"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 422: error("RULE_FAILED: ALREADY_STAFF or ALREADY_INVITED") },
+        },
+      },
+      "/v1/admin/staff/invitations/{id}/revoke": {
+        post: { summary: "Cancel a pending staff invitation (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}": {
+        get: { summary: "One staff member: permissions, MFA, last MFA reset, active sessions, and the active STAFF_ADMIN holders", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}/deactivate": {
+        post: { summary: "Deactivate a staff member: access ends and every session is signed out; history is kept. Not yourself, and never below two active STAFF_ADMIN (FORBIDDEN, MINIMUM_STAFF_ADMINS)", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/staff-invitations/preview": {
+        get: { summary: "What a staff invitation offers, from its secret in the x-hp-invitation header (the email is masked)", responses: { 200: { description: "Preview", content: json(staffInvitationPreviewSchema) }, 404: error("NOT_FOUND") } },
+      },
+      "/v1/staff-invitations/accept": {
+        post: { summary: "Accept a staff invitation: signed in with the invited email, verified. Creates or reactivates the staff profile with the invited permissions", responses: { 200: { description: "Accepted: where to sign in to the admin and set up MFA", content: json(acceptedStaffInvitationSchema) }, 401: error("NOT_SIGNED_IN"), 404: error("NOT_FOUND"), 422: error("RULE_FAILED: WRONG_ACCOUNT, VERIFY_EMAIL_FIRST, ALREADY_STAFF or INVITATION_*") } },
       },
       "/v1/admin/exports": {
         get: { summary: "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)", responses: { ...staffOnly, 200: { description: "Exports", content: json(exportListSchema) }, 403: error("No export permission (FORBIDDEN)") } },

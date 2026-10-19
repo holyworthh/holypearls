@@ -1,5 +1,5 @@
 import type { StaffAccess, StaffPermission } from "@holypearls/contracts";
-import { and, type Database, eq, schema, withTransaction } from "@holypearls/db";
+import { and, type Database, eq, schema, sql, withTransaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { recordAudit } from "../platform/audit.js";
 import { enforce } from "../platform/policy.js";
@@ -69,14 +69,17 @@ export async function grantStaffPermission(db: Database, actor: ActorContext, st
 
 export async function revokeStaffPermission(db: Database, actor: ActorContext, staffProfileId: string, permission: StaffPermission) {
   const before = await loadStaff(db, staffProfileId);
-  const admins = await db
-    .select({ id: schema.staffPermissionGrants.id })
-    .from(schema.staffPermissionGrants)
-    .innerJoin(schema.staffProfiles, eq(schema.staffProfiles.id, schema.staffPermissionGrants.staffProfileId))
-    .where(and(eq(schema.staffPermissionGrants.permission, "STAFF_ADMIN"), eq(schema.staffProfiles.status, "ACTIVE")));
-  enforce(canRevokePermission(actor, permission, admins.length));
+  enforce(canManageStaffAccess(actor));
   if (!before.permissions.includes(permission)) return toAccess(before);
   await withTransaction(db, async (tx) => {
+    // One lock for every change to who holds STAFF_ADMIN (T13-05b), so two removals can't both pass the count.
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('staff_admins'))`);
+    const admins = await tx
+      .select({ id: schema.staffPermissionGrants.id })
+      .from(schema.staffPermissionGrants)
+      .innerJoin(schema.staffProfiles, eq(schema.staffProfiles.id, schema.staffPermissionGrants.staffProfileId))
+      .where(and(eq(schema.staffPermissionGrants.permission, "STAFF_ADMIN"), eq(schema.staffProfiles.status, "ACTIVE")));
+    enforce(canRevokePermission(actor, permission, admins.length));
     await tx
       .delete(schema.staffPermissionGrants)
       .where(and(eq(schema.staffPermissionGrants.staffProfileId, staffProfileId), eq(schema.staffPermissionGrants.permission, permission)));

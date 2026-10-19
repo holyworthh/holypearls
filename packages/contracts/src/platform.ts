@@ -148,3 +148,54 @@ export type ExportItem = z.infer<typeof exportItemSchema>;
 export const exportListSchema = z.object({ items: z.array(exportItemSchema), allowed: z.array(z.enum(EXPORT_TYPES)) });
 export type ExportList = z.infer<typeof exportListSchema>;
 export const exportDownloadSchema = z.object({ url: z.string(), expiresInSeconds: z.number().int() });
+
+/* Staff user administration (T13-05b; PRD-06 §2, §18; TECH-03 §8–11; Pen 122). */
+
+export const staffMemberSummarySchema = z.object({
+  staffProfileId: z.string(),
+  name: z.string(),
+  email: z.string(),
+  permissions: z.array(staffPermissionSchema),
+  mfaEnabled: z.boolean(),
+  status: z.enum(["ACTIVE", "DEACTIVATED"]),
+});
+export const staffInvitationSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  name: z.string(),
+  permissions: z.array(staffPermissionSchema),
+  status: z.enum(["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"]),
+  expiresAt: isoDate,
+});
+export type StaffInvitation = z.infer<typeof staffInvitationSchema>;
+/** The staff list: members, then invitations still open (PENDING or EXPIRED). */
+export const staffListSchema = z.object({ members: z.array(staffMemberSummarySchema), invitations: z.array(staffInvitationSchema) });
+export type StaffList = z.infer<typeof staffListSchema>;
+
+export const staffMemberSchema = staffMemberSummarySchema.extend({
+  /** The last MFA reset: when and by whom (Pen 122 "MFA was reset 27 Sep by Tunde Bello"). */
+  lastMfaReset: z.object({ at: isoDate, by: z.string() }).nullable(),
+  activeSessions: z.number().int(),
+  /** STAFF_ADMIN holders who are active: fewer than three blocks removing another (TECH-03 §10). */
+  activeStaffAdmins: z.array(z.string()),
+});
+export type StaffMember = z.infer<typeof staffMemberSchema>;
+
+export const inviteStaffSchema = z
+  .object({
+    email: z.email("Enter an email like name@holypearls.ng"),
+    name: z.string().trim().min(1, "Enter their name").max(120),
+    permissions: z.array(staffPermissionSchema).max(17).refine((list) => new Set(list).size === list.length, "List each permission once"),
+  })
+  .strict();
+export type InviteStaff = z.infer<typeof inviteStaffSchema>;
+
+/** What the invitation page shows before accepting (the email is masked). */
+export const staffInvitationPreviewSchema = z.object({
+  status: z.enum(["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"]),
+  invitedEmail: z.string(),
+  permissions: z.array(staffPermissionSchema),
+  expiresAt: isoDate,
+});
+export type StaffInvitationPreview = z.infer<typeof staffInvitationPreviewSchema>;
+export const acceptedStaffInvitationSchema = z.object({ adminSignInUrl: z.string() });
