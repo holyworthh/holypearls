@@ -110,7 +110,7 @@ test("changing the email shows it pending until verified; each history list has 
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Verify your new email" })).toBeVisible();
+  await expect(page.getByText("Verify your new email", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Resend link" }).click();
   await expect(page.getByText(`Sent again to ${newEmail}.`)).toBeVisible();
 
