@@ -1,7 +1,7 @@
 "use client";
 
-import { ApiError, type Configuration, type ConfigurationDetails, quoteRequestResultSchema } from "@holypearls/contracts";
-import { Button, Dialog, FormField, Notice, TextField } from "@holypearls/ui";
+import { ApiError, type Configuration, type ConfigurationDetails, NIGERIA_STATES, quoteRequestResultSchema } from "@holypearls/contracts";
+import { Button, Dialog, FormField, Notice, Select, TextField } from "@holypearls/ui";
 import { type ReactNode, useState } from "react";
 import { api } from "@holypearls/web-kit/api";
 import styles from "./configurator.module.css";
@@ -105,12 +105,19 @@ export function FamilyFields({ family, details, onChange }: { family: string; de
               options={[
                 { value: "PRINT_ONLY", title: "Print only", meta: "Collect or we deliver the print" },
                 { value: "DELIVERED", title: "Delivered", meta: "Delivery cost at checkout" },
-                { value: "INSTALLATION", title: "Installation required", meta: "We install on site · quoted" },
+                { value: "INSTALLATION", title: "Installation required", meta: "We install on site · priced where we install, otherwise quoted" },
               ]}
               onChange={(service) => onChange({ service })}
             />
             {details.service === "INSTALLATION" ? (
               <div className={styles.fieldGrid}>
+                <FormField label="State" id="install-state" hint="Where we install sets the price, or tells you it needs a quote.">
+                  <Select
+                    value={details.installState ?? ""}
+                    onChange={(event) => onChange(event.target.value ? { installState: event.target.value as (typeof NIGERIA_STATES)[number] } : {})}
+                    options={[{ value: "", label: "Choose the state" }, ...NIGERIA_STATES.map((state) => ({ value: state, label: state }))]}
+                  />
+                </FormField>
                 <Text label="Site address" id="install-site" value={details.installSite} onChange={(installSite) => onChange({ installSite })} />
                 <Text label="Surface" id="install-surface" value={details.installSurface} hint="For example glass, painted wall, metal frame" onChange={(installSurface) => onChange({ installSurface })} />
                 <Text label="Height from the ground (m)" id="install-height" type="number" value={details.installHeightM} onChange={(value) => onChange(Number(value) >= 0 && value ? { installHeightM: Number(value) } : {})} />

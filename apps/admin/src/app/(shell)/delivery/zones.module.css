@@ -74,6 +74,19 @@
   width: var(--hp-size-220);
 }
 
+/* At phone widths the fixed columns don't fit: they share the width, and the table scrolls inside its panel rather than the page (T13-01c). */
+@media (max-width: 767px) {
+  .table thead th:nth-child(2),
+  .table thead th:nth-child(3) {
+    width: auto;
+  }
+
+  .list {
+    min-width: 0;
+    overflow-x: auto;
+  }
+}
+
 .table tbody th,
 .table tbody td {
   height: var(--hp-size-59_5);

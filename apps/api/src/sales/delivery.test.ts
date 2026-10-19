@@ -7,6 +7,7 @@ const zones: ZoneRule[] = [
   { id: "abuja", name: "Abuja FCT", kind: "AREA", covers: [{ state: "FCT", lga: null }] },
   { id: "rest", name: "Other Nigerian states", kind: "REST_OF_NIGERIA", covers: [] },
   { id: "abroad", name: "International", kind: "INTERNATIONAL", covers: [] },
+  { id: "west-africa", name: "Ghana, Togo, Benin", kind: "COUNTRIES", covers: [], countries: ["GH", "TG", "BJ"] },
 ];
 
 describe("every address resolves to exactly one zone (OPS-FR-100, Pen 108)", () => {
@@ -28,7 +29,10 @@ describe("every address resolves to exactly one zone (OPS-FR-100, Pen 108)", () 
   it("falls to the rest-of-Nigeria zone, and addresses abroad to International (OPS-FR-101)", () => {
     expect(zoneFor(zones, { country: "NG", state: "Lagos", area: "Epe" })?.id).toBe("rest");
     expect(zoneFor(zones, { country: "NG", state: "Kano", area: "Nassarawa" })?.id).toBe("rest");
-    expect(zoneFor(zones, { country: "GH", state: "Greater Accra", area: "Accra" })?.id).toBe("abroad");
+    // Abroad: a country's own group first (T13-01c), else International.
+    expect(zoneFor(zones, { country: "GH", state: "Greater Accra", area: "Accra" })?.id).toBe("west-africa");
+    expect(zoneFor(zones, { country: "gh", state: "", area: "" })?.id).toBe("west-africa");
+    expect(zoneFor(zones, { country: "GB", state: "London", area: "Camden" })?.id).toBe("abroad");
   });
 
   it("compares LGA names without caring about case or spaces", () => {

@@ -62,6 +62,10 @@ import {
   checkoutDeliverySchema,
   checkoutSchema,
   deliveryZoneInputSchema,
+  countriesZoneInputSchema,
+  installationAreaInputSchema,
+  installationRulesSchema,
+  installationSetupSchema,
   adminShipmentSchema,
   bookCourierSchema,
   courierCategoriesSchema,
@@ -1467,6 +1471,25 @@ export function buildOpenApiDocument() {
             422: error("Delivery already has a zone rate"),
           },
         },
+      },
+      "/v1/admin/delivery-zones/countries": {
+        post: { summary: "Add a group of destinations abroad: calculated rate (FIXED) or staff will quote (QUOTE); a country is in one group (PRICING_MANAGE; OPS-FR-101)", requestBody: { required: true, content: json(countriesZoneInputSchema) }, responses: { 201: { description: "Added", content: json(deliveryZoneSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/delivery-zones/countries/{id}": {
+        put: { summary: "Change a group of destinations abroad", parameters: [uuidParam("id")], requestBody: { required: true, content: json(countriesZoneInputSchema) }, responses: { 200: { description: "Saved", content: json(deliveryZoneSchema) }, 400: error("VALIDATION_FAILED"), 409: error("CONFLICT"), ...staffOnly } },
+      },
+      "/v1/admin/installation": {
+        get: { summary: "Installation areas with the products each can install and how it's priced, the rules, and the installable products (PRICING_MANAGE; OPS-FR-102)", responses: { 200: { description: "Setup", content: json(installationSetupSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/installation/areas": {
+        post: { summary: "Add an installation area; a state is in one area", requestBody: { required: true, content: json(installationAreaInputSchema) }, responses: { 201: { description: "Added", content: json(installationSetupSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/installation/areas/{id}": {
+        put: { summary: "Change an installation area", parameters: [uuidParam("id")], requestBody: { required: true, content: json(installationAreaInputSchema) }, responses: { 200: { description: "Saved", content: json(installationSetupSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly } },
+        delete: { summary: "Remove an installation area (its states are then quoted)", parameters: [uuidParam("id")], responses: { 200: { description: "Removed", content: json(installationSetupSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/installation/rules": {
+        put: { summary: "The installation rules: survey above a size, notice in working days; null turns one off", requestBody: { required: true, content: json(installationRulesSchema) }, responses: { 200: { description: "Saved", content: json(installationSetupSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly } },
       },
       "/v1/admin/delivery-zones": {
         get: { summary: "Delivery zones (PRICING_MANAGE)", responses: { 200: { description: "Zones", content: json(deliveryZoneListSchema) }, 403: error("Missing PRICING_MANAGE") } },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { slugSchema } from "./catalogue.js";
 import { priceResultSchema } from "./pricing.js";
+import { NIGERIA_STATES } from "./sales.js";
 
 /* Configuration drafts (T03-03, COM-FR-010–014) and garments (T03-05, COM-FR-020–029, 050–054). */
 
@@ -58,6 +59,8 @@ export const detailsSchema = garmentDetailsSchema.extend({
   /** The unit the customer typed in; sizes are stored in centimetres. */
   sizeUnit: z.enum(["CM", "M", "IN"]),
   service: z.enum(["PRINT_ONLY", "DELIVERED", "INSTALLATION"]),
+  /** The state where we install, for the installation areas (T13-01c). */
+  installState: z.enum(NIGERIA_STATES).optional(),
   installSite: z.string().trim().max(200),
   installSurface: z.string().trim().max(100),
   installHeightM: z.number().min(0).max(200),

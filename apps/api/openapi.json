@@ -32626,6 +32626,1803 @@
         }
       }
     },
+    "/v1/admin/delivery-zones/countries": {
+      "post": {
+        "summary": "Add a group of destinations abroad: calculated rate (FIXED) or staff will quote (QUOTE); a country is in one group (PRICING_MANAGE; OPS-FR-101)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "countries": {
+                    "minItems": 1,
+                    "maxItems": 80,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2}$"
+                    }
+                  },
+                  "pricing": {
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "QUOTE"
+                    ]
+                  },
+                  "rateMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMinDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMaxDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "countries",
+                  "pricing",
+                  "rateMinor",
+                  "transitMinDays",
+                  "transitMaxDays"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "AREA",
+                        "REST_OF_NIGERIA",
+                        "INTERNATIONAL",
+                        "COUNTRIES"
+                      ]
+                    },
+                    "covers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "Abia",
+                              "Adamawa",
+                              "Akwa Ibom",
+                              "Anambra",
+                              "Bauchi",
+                              "Bayelsa",
+                              "Benue",
+                              "Borno",
+                              "Cross River",
+                              "Delta",
+                              "Ebonyi",
+                              "Edo",
+                              "Ekiti",
+                              "Enugu",
+                              "FCT",
+                              "Gombe",
+                              "Imo",
+                              "Jigawa",
+                              "Kaduna",
+                              "Kano",
+                              "Katsina",
+                              "Kebbi",
+                              "Kogi",
+                              "Kwara",
+                              "Lagos",
+                              "Nasarawa",
+                              "Niger",
+                              "Ogun",
+                              "Ondo",
+                              "Osun",
+                              "Oyo",
+                              "Plateau",
+                              "Rivers",
+                              "Sokoto",
+                              "Taraba",
+                              "Yobe",
+                              "Zamfara"
+                            ]
+                          },
+                          "lga": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "lga"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "countries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FIXED",
+                        "QUOTE"
+                      ]
+                    },
+                    "rateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "transitMinDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transitMaxDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "covers",
+                    "countries",
+                    "pricing",
+                    "rateMinor",
+                    "transitMinDays",
+                    "transitMaxDays",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/delivery-zones/countries/{id}": {
+      "put": {
+        "summary": "Change a group of destinations abroad",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "countries": {
+                    "minItems": 1,
+                    "maxItems": 80,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2}$"
+                    }
+                  },
+                  "pricing": {
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "QUOTE"
+                    ]
+                  },
+                  "rateMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMinDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "transitMaxDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "countries",
+                  "pricing",
+                  "rateMinor",
+                  "transitMinDays",
+                  "transitMaxDays"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "AREA",
+                        "REST_OF_NIGERIA",
+                        "INTERNATIONAL",
+                        "COUNTRIES"
+                      ]
+                    },
+                    "covers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "Abia",
+                              "Adamawa",
+                              "Akwa Ibom",
+                              "Anambra",
+                              "Bauchi",
+                              "Bayelsa",
+                              "Benue",
+                              "Borno",
+                              "Cross River",
+                              "Delta",
+                              "Ebonyi",
+                              "Edo",
+                              "Ekiti",
+                              "Enugu",
+                              "FCT",
+                              "Gombe",
+                              "Imo",
+                              "Jigawa",
+                              "Kaduna",
+                              "Kano",
+                              "Katsina",
+                              "Kebbi",
+                              "Kogi",
+                              "Kwara",
+                              "Lagos",
+                              "Nasarawa",
+                              "Niger",
+                              "Ogun",
+                              "Ondo",
+                              "Osun",
+                              "Oyo",
+                              "Plateau",
+                              "Rivers",
+                              "Sokoto",
+                              "Taraba",
+                              "Yobe",
+                              "Zamfara"
+                            ]
+                          },
+                          "lga": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 80
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "state",
+                          "lga"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "countries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "pricing": {
+                      "type": "string",
+                      "enum": [
+                        "FIXED",
+                        "QUOTE"
+                      ]
+                    },
+                    "rateMinor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "transitMinDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "transitMaxDays": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "version": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "covers",
+                    "countries",
+                    "pricing",
+                    "rateMinor",
+                    "transitMinDays",
+                    "transitMaxDays",
+                    "version"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/installation": {
+      "get": {
+        "summary": "Installation areas with the products each can install and how it's priced, the rules, and the installable products (PRICING_MANAGE; OPS-FR-102)",
+        "responses": {
+          "200": {
+            "description": "Setup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "states": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "FIXED_PLUS_TRAVEL",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "travelMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "states",
+                          "products",
+                          "pricing",
+                          "rateMinor",
+                          "travelMinor",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "surveyAboveSqM": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noticeWorkingDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "surveyAboveSqM",
+                        "noticeWorkingDays",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "installable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "areas",
+                    "rules",
+                    "installable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/installation/areas": {
+      "post": {
+        "summary": "Add an installation area; a state is in one area",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "states": {
+                    "minItems": 1,
+                    "maxItems": 37,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "Abia",
+                        "Adamawa",
+                        "Akwa Ibom",
+                        "Anambra",
+                        "Bauchi",
+                        "Bayelsa",
+                        "Benue",
+                        "Borno",
+                        "Cross River",
+                        "Delta",
+                        "Ebonyi",
+                        "Edo",
+                        "Ekiti",
+                        "Enugu",
+                        "FCT",
+                        "Gombe",
+                        "Imo",
+                        "Jigawa",
+                        "Kaduna",
+                        "Kano",
+                        "Katsina",
+                        "Kebbi",
+                        "Kogi",
+                        "Kwara",
+                        "Lagos",
+                        "Nasarawa",
+                        "Niger",
+                        "Ogun",
+                        "Ondo",
+                        "Osun",
+                        "Oyo",
+                        "Plateau",
+                        "Rivers",
+                        "Sokoto",
+                        "Taraba",
+                        "Yobe",
+                        "Zamfara"
+                      ]
+                    }
+                  },
+                  "productIds": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "pricing": {
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "FIXED_PLUS_TRAVEL",
+                      "QUOTE"
+                    ]
+                  },
+                  "rateMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "travelMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "states",
+                  "productIds",
+                  "pricing",
+                  "rateMinor",
+                  "travelMinor",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "states": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "FIXED_PLUS_TRAVEL",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "travelMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "states",
+                          "products",
+                          "pricing",
+                          "rateMinor",
+                          "travelMinor",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "surveyAboveSqM": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noticeWorkingDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "surveyAboveSqM",
+                        "noticeWorkingDays",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "installable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "areas",
+                    "rules",
+                    "installable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/installation/areas/{id}": {
+      "put": {
+        "summary": "Change an installation area",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "states": {
+                    "minItems": 1,
+                    "maxItems": 37,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "Abia",
+                        "Adamawa",
+                        "Akwa Ibom",
+                        "Anambra",
+                        "Bauchi",
+                        "Bayelsa",
+                        "Benue",
+                        "Borno",
+                        "Cross River",
+                        "Delta",
+                        "Ebonyi",
+                        "Edo",
+                        "Ekiti",
+                        "Enugu",
+                        "FCT",
+                        "Gombe",
+                        "Imo",
+                        "Jigawa",
+                        "Kaduna",
+                        "Kano",
+                        "Katsina",
+                        "Kebbi",
+                        "Kogi",
+                        "Kwara",
+                        "Lagos",
+                        "Nasarawa",
+                        "Niger",
+                        "Ogun",
+                        "Ondo",
+                        "Osun",
+                        "Oyo",
+                        "Plateau",
+                        "Rivers",
+                        "Sokoto",
+                        "Taraba",
+                        "Yobe",
+                        "Zamfara"
+                      ]
+                    }
+                  },
+                  "productIds": {
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "pricing": {
+                    "type": "string",
+                    "enum": [
+                      "FIXED",
+                      "FIXED_PLUS_TRAVEL",
+                      "QUOTE"
+                    ]
+                  },
+                  "rateMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "travelMinor": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^\\d{1,12}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "name",
+                  "states",
+                  "productIds",
+                  "pricing",
+                  "rateMinor",
+                  "travelMinor",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "states": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "FIXED_PLUS_TRAVEL",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "travelMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "states",
+                          "products",
+                          "pricing",
+                          "rateMinor",
+                          "travelMinor",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "surveyAboveSqM": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noticeWorkingDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "surveyAboveSqM",
+                        "noticeWorkingDays",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "installable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "areas",
+                    "rules",
+                    "installable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an installation area (its states are then quoted)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "states": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "FIXED_PLUS_TRAVEL",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "travelMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "states",
+                          "products",
+                          "pricing",
+                          "rateMinor",
+                          "travelMinor",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "surveyAboveSqM": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noticeWorkingDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "surveyAboveSqM",
+                        "noticeWorkingDays",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "installable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "areas",
+                    "rules",
+                    "installable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/installation/rules": {
+      "put": {
+        "summary": "The installation rules: survey above a size, notice in working days; null turns one off",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "surveyAboveSqM": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "noticeWorkingDays": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "surveyAboveSqM",
+                  "noticeWorkingDays",
+                  "version"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "areas": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "states": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "pricing": {
+                            "type": "string",
+                            "enum": [
+                              "FIXED",
+                              "FIXED_PLUS_TRAVEL",
+                              "QUOTE"
+                            ]
+                          },
+                          "rateMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "travelMinor": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "version": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "states",
+                          "products",
+                          "pricing",
+                          "rateMinor",
+                          "travelMinor",
+                          "version"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "rules": {
+                      "type": "object",
+                      "properties": {
+                        "surveyAboveSqM": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 10000
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noticeWorkingDays": {
+                          "anyOf": [
+                            {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 60
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "surveyAboveSqM",
+                        "noticeWorkingDays",
+                        "version"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "installable": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "areas",
+                    "rules",
+                    "installable"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff without an authenticator check (MFA_REQUIRED) or without the permission (FORBIDDEN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not staff (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "VERSION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/delivery-zones": {
       "get": {
         "summary": "Delivery zones (PRICING_MANAGE)",
@@ -32653,7 +34450,8 @@
                             "enum": [
                               "AREA",
                               "REST_OF_NIGERIA",
-                              "INTERNATIONAL"
+                              "INTERNATIONAL",
+                              "COUNTRIES"
                             ]
                           },
                           "covers": {
@@ -32723,6 +34521,12 @@
                               "additionalProperties": false
                             }
                           },
+                          "countries": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
                           "pricing": {
                             "type": "string",
                             "enum": [
@@ -32771,6 +34575,7 @@
                           "name",
                           "kind",
                           "covers",
+                          "countries",
                           "pricing",
                           "rateMinor",
                           "transitMinDays",
@@ -32964,7 +34769,8 @@
                       "enum": [
                         "AREA",
                         "REST_OF_NIGERIA",
-                        "INTERNATIONAL"
+                        "INTERNATIONAL",
+                        "COUNTRIES"
                       ]
                     },
                     "covers": {
@@ -33034,6 +34840,12 @@
                         "additionalProperties": false
                       }
                     },
+                    "countries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "pricing": {
                       "type": "string",
                       "enum": [
@@ -33082,6 +34894,7 @@
                     "name",
                     "kind",
                     "covers",
+                    "countries",
                     "pricing",
                     "rateMinor",
                     "transitMinDays",
@@ -33355,7 +35168,8 @@
                       "enum": [
                         "AREA",
                         "REST_OF_NIGERIA",
-                        "INTERNATIONAL"
+                        "INTERNATIONAL",
+                        "COUNTRIES"
                       ]
                     },
                     "covers": {
@@ -33425,6 +35239,12 @@
                         "additionalProperties": false
                       }
                     },
+                    "countries": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "pricing": {
                       "type": "string",
                       "enum": [
@@ -33473,6 +35293,7 @@
                     "name",
                     "kind",
                     "covers",
+                    "countries",
                     "pricing",
                     "rateMinor",
                     "transitMinDays",
@@ -34501,6 +36322,48 @@
                             "PRINT_ONLY",
                             "DELIVERED",
                             "INSTALLATION"
+                          ]
+                        },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
                           ]
                         },
                         "installSite": {
@@ -35704,6 +37567,48 @@
                             "INSTALLATION"
                           ]
                         },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
+                          ]
+                        },
                         "installSite": {
                           "type": "string",
                           "maxLength": 200
@@ -36180,6 +38085,48 @@
                           "PRINT_ONLY",
                           "DELIVERED",
                           "INSTALLATION"
+                        ]
+                      },
+                      "installState": {
+                        "type": "string",
+                        "enum": [
+                          "Abia",
+                          "Adamawa",
+                          "Akwa Ibom",
+                          "Anambra",
+                          "Bauchi",
+                          "Bayelsa",
+                          "Benue",
+                          "Borno",
+                          "Cross River",
+                          "Delta",
+                          "Ebonyi",
+                          "Edo",
+                          "Ekiti",
+                          "Enugu",
+                          "FCT",
+                          "Gombe",
+                          "Imo",
+                          "Jigawa",
+                          "Kaduna",
+                          "Kano",
+                          "Katsina",
+                          "Kebbi",
+                          "Kogi",
+                          "Kwara",
+                          "Lagos",
+                          "Nasarawa",
+                          "Niger",
+                          "Ogun",
+                          "Ondo",
+                          "Osun",
+                          "Oyo",
+                          "Plateau",
+                          "Rivers",
+                          "Sokoto",
+                          "Taraba",
+                          "Yobe",
+                          "Zamfara"
                         ]
                       },
                       "installSite": {
@@ -37362,6 +39309,48 @@
                             "PRINT_ONLY",
                             "DELIVERED",
                             "INSTALLATION"
+                          ]
+                        },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
                           ]
                         },
                         "installSite": {
@@ -38704,6 +40693,48 @@
                             "INSTALLATION"
                           ]
                         },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
+                          ]
+                        },
                         "installSite": {
                           "type": "string",
                           "maxLength": 200
@@ -39912,6 +41943,48 @@
                             "PRINT_ONLY",
                             "DELIVERED",
                             "INSTALLATION"
+                          ]
+                        },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
                           ]
                         },
                         "installSite": {
@@ -41136,6 +43209,48 @@
                             "PRINT_ONLY",
                             "DELIVERED",
                             "INSTALLATION"
+                          ]
+                        },
+                        "installState": {
+                          "type": "string",
+                          "enum": [
+                            "Abia",
+                            "Adamawa",
+                            "Akwa Ibom",
+                            "Anambra",
+                            "Bauchi",
+                            "Bayelsa",
+                            "Benue",
+                            "Borno",
+                            "Cross River",
+                            "Delta",
+                            "Ebonyi",
+                            "Edo",
+                            "Ekiti",
+                            "Enugu",
+                            "FCT",
+                            "Gombe",
+                            "Imo",
+                            "Jigawa",
+                            "Kaduna",
+                            "Kano",
+                            "Katsina",
+                            "Kebbi",
+                            "Kogi",
+                            "Kwara",
+                            "Lagos",
+                            "Nasarawa",
+                            "Niger",
+                            "Ogun",
+                            "Ondo",
+                            "Osun",
+                            "Oyo",
+                            "Plateau",
+                            "Rivers",
+                            "Sokoto",
+                            "Taraba",
+                            "Yobe",
+                            "Zamfara"
                           ]
                         },
                         "installSite": {

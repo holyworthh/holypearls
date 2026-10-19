@@ -91,7 +91,8 @@ test("staff see the delivery zones and can't save an overlapping zone (Pen 108)"
   test.setTimeout(180_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.goto(`${ADMIN}/delivery`);
-  const table = page.getByRole("table");
+  // The zones table (installation and freight tables follow it, T13-01c).
+  const table = page.getByRole("table", { name: /^Delivery zones/ });
   await expect(table.getByRole("rowheader", { name: "Lagos Island" })).toBeVisible();
   await expect(table.getByText("Quote required")).toBeVisible();
   await expect(table.getByText("Freight by quote")).toBeVisible();

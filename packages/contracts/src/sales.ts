@@ -60,11 +60,32 @@ export const fixedZoneInputSchema = z.object({
   version: z.number().int(),
 });
 
+/** Destinations abroad with their own freight (T13-01c; OPS-FR-101): calculated rate or staff will quote. */
+export const countriesZoneInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name the destinations, for example Ghana, Togo, Benin").max(80),
+    countries: z
+      .array(z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, "Use two-letter country codes, like GH"))
+      .min(1, "Add at least one country")
+      .max(80)
+      .refine((codes) => !codes.includes("NG"), "Nigeria is covered by the delivery zones"),
+    pricing: z.enum(["FIXED", "QUOTE"]),
+    rateMinor: z.string().regex(/^\d{1,12}$/, "Enter the rate in naira").nullable(),
+    transitMinDays: z.number().int().min(0).max(60).nullable(),
+    transitMaxDays: z.number().int().min(0).max(60).nullable(),
+    version: z.number().int().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.pricing === "FIXED" && value.rateMinor === null) context.addIssue({ code: "custom", path: ["rateMinor"], message: "Enter the rate, or choose Staff will quote" });
+  });
+
 export const deliveryZoneSchema = z.object({
   id: z.string(),
   name: z.string(),
-  kind: z.enum(["AREA", "REST_OF_NIGERIA", "INTERNATIONAL"]),
+  kind: z.enum(["AREA", "REST_OF_NIGERIA", "INTERNATIONAL", "COUNTRIES"]),
   covers: z.array(zoneCoverSchema),
+  /** COUNTRIES zones: ISO codes. */
+  countries: z.array(z.string()),
   pricing: z.enum(["FIXED", "QUOTE"]),
   rateMinor: z.string().nullable(),
   transitMinDays: z.number().int().nullable(),
@@ -244,3 +265,52 @@ export type DeliveryZone = z.infer<typeof deliveryZoneSchema>;
 export type Cart = z.infer<typeof cartSchema>;
 export type CartItem = z.infer<typeof cartItemSchema>;
 export type Checkout = z.infer<typeof checkoutSchema>;
+
+// ——— Installation (T13-01c; OPS-FR-102; Pen 119) ———
+
+export const INSTALLATION_PRICING = ["FIXED", "FIXED_PLUS_TRAVEL", "QUOTE"] as const;
+
+export const installationAreaInputSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name the area, for example Lagos").max(80),
+    states: z.array(state).min(1, "Choose at least one state").max(37),
+    productIds: z.array(z.uuid()).max(100),
+    pricing: z.enum(INSTALLATION_PRICING),
+    /** Kobo before VAT, per piece installed. */
+    rateMinor: z.string().regex(/^\d{1,12}$/, "Enter the fee in naira").nullable(),
+    /** Kobo before VAT, once per order (FIXED_PLUS_TRAVEL). */
+    travelMinor: z.string().regex(/^\d{1,12}$/, "Enter the travel fee in naira").nullable(),
+    version: z.number().int().min(0),
+  })
+  .superRefine((value, context) => {
+    if (value.pricing !== "QUOTE" && value.rateMinor === null) context.addIssue({ code: "custom", path: ["rateMinor"], message: "Enter the fee per piece, or choose Quote required" });
+    if (value.pricing === "FIXED_PLUS_TRAVEL" && value.travelMinor === null) context.addIssue({ code: "custom", path: ["travelMinor"], message: "Enter the travel fee" });
+  });
+
+export const installationAreaSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  states: z.array(z.string()),
+  products: z.array(z.object({ id: z.string(), name: z.string() })),
+  pricing: z.enum(INSTALLATION_PRICING),
+  rateMinor: z.string().nullable(),
+  travelMinor: z.string().nullable(),
+  version: z.number().int(),
+});
+export type InstallationArea = z.infer<typeof installationAreaSchema>;
+
+/** Null turns a rule off. */
+export const installationRulesSchema = z.object({
+  surveyAboveSqM: z.number().int().min(1).max(10_000).nullable(),
+  noticeWorkingDays: z.number().int().min(1).max(60).nullable(),
+  version: z.number().int(),
+});
+export type InstallationRules = z.infer<typeof installationRulesSchema>;
+
+export const installationSetupSchema = z.object({
+  areas: z.array(installationAreaSchema),
+  rules: installationRulesSchema,
+  /** Products that can be installed (large format and wall art), for the capability choices. */
+  installable: z.array(z.object({ id: z.string(), name: z.string() })),
+});
+export type InstallationSetup = z.infer<typeof installationSetupSchema>;

@@ -386,6 +386,13 @@
       "when": 1792412948888,
       "tag": "0054_garment_data",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792415890060,
+      "tag": "0055_installation_freight",
+      "breakpoints": true
     }
   ]
 }
