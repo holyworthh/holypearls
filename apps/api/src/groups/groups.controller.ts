@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
 import { StaffGuard } from "../identity/staff.guard.js";
-import { createStoreSchema, storeActionSchema, storePickSchema, storeProcurementSchema, updateStoreSchema, collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
+import { createStoreSchema, updateAllowanceSchema, storeActionSchema, storePickSchema, storeProcurementSchema, updateStoreSchema, collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { z } from "zod";
@@ -16,7 +16,7 @@ import { actOnParticipant, closeOrReopen, collectionDashboard, remindParticipant
 import { fixRow, getImport, listImports, matchColumns, runImport, startImport } from "./imports.js";
 import { createOrderDraft, orderDraftOrigin, orderDraftState, submitOrderDraft } from "./order-drafts.js";
 import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
-import { changeStore, createStore, getStore, listStores, orderFromStore, pickFromStore, updateStore } from "./stores.js";
+import { changeStore, createStore, getStore, listStores, orderFromStore, pickFromStore, updateAllowance, updateStore } from "./stores.js";
 
 const uuid = new ParseUUIDPipe();
 const actorOf = (request: Request) => request.getActor!();
@@ -298,6 +298,12 @@ export class StoresController {
   @RateLimit("COMMERCIAL_WRITE")
   async update(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(updateStoreSchema)) body: z.infer<typeof updateStoreSchema>) {
     return updateStore(this.deps, await actorOf(request), organizationId, storeId, body);
+  }
+
+  @Put(":storeId/allowance")
+  @RateLimit("COMMERCIAL_WRITE")
+  async allowance(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(updateAllowanceSchema)) body: z.infer<typeof updateAllowanceSchema>) {
+    return updateAllowance(this.deps, await actorOf(request), organizationId, storeId, body);
   }
 
   @Post(":storeId/orders")

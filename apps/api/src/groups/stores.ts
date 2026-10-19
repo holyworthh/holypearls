@@ -1,5 +1,8 @@
 import {
+  type Allowance,
+  type AllowancePeriod,
   type CreateStore,
+  displayMoney,
   GARMENT_SIZES,
   type ParticipantField,
   type Store,
@@ -9,6 +12,7 @@ import {
   type StorePick,
   type StoreProcurement,
   type StoreStatus,
+  type UpdateAllowance,
   type UpdateStore,
 } from "@holypearls/contracts";
 import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
@@ -18,6 +22,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { type Member, requireMember } from "../organizations/members.js";
 import { needsPermission } from "../organizations/policies.js";
 import type { OrganizationDeps } from "../organizations/team.js";
+import { releasedRequests } from "../organizations/approvals.js";
 import { approvalPreview, type PlacedLine, placeTemplateLines, templateLine } from "../organizations/template-orders.js";
 import { templatesFor } from "../organizations/templates.js";
 import { recordAudit } from "../platform/audit.js";
@@ -93,6 +98,8 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
   const yours = locations.filter((location) => member.allLocations || member.locationIds.has(location.id));
   const selfOrder = row.mode === "SELF_ORDER";
   const toCollection = selfOrder && row.routing === "COLLECTION";
+  // Allowances apply to an employee's own picks; a collection's picks have no price until it's quoted.
+  const allowance = selfOrder && !toCollection ? await allowanceFor(db, row.id, member, now) : null;
 
   const items: StoreItem[] = [];
   for (const item of rows) {
@@ -100,7 +107,10 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
     if (!entry) continue; // Not for this person's locations (frame 78 A "only approved products for their branch").
     const { template } = entry;
     const usual = sources.find((source) => source.id === entry.sourceConfigurationId)?.quantity ?? 1;
-    const price = await previewTemplatePrice(db, entry.sourceConfigurationId, { choices: {}, quantity: usual }, now).catch(() => null);
+    // An employee's own pick is one piece; everything else is priced at the template's usual quantity.
+    const quantity = selfOrder && !toCollection ? 1 : usual;
+    const price = await previewTemplatePrice(db, entry.sourceConfigurationId, { choices: {}, quantity }, now).catch(() => null);
+    const direct = price?.state === "PRICE_READY" && price.valid;
     const allowed = yours.filter((location) => template.allLocations || template.locations.some((place) => place.id === location.id));
     const collection = item.collectionId ? collections.get(item.collectionId) : undefined;
     const offered = availability(template.fields);
@@ -131,7 +141,7 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
         .map((field) => field.value)
         .slice(0, 4)
         .join(" · "),
-      unitMinor: price?.state === "PRICE_READY" && price.valid ? price.perUnitMinor : null,
+      unitMinor: direct ? price.perUnitMinor : null,
       currency: price?.currency ?? "NGN",
       unavailable,
       fields,
@@ -139,12 +149,16 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
       sizeUnsureAllowed: toCollection && collection?.unsureSizeRule === "ALLOW_UNSURE",
       colours: toCollection && collection && fields.includes("COLOUR") ? await colourChoices(db, collection) : [],
       branches,
-      action: !selfOrder ? "Add" : toCollection ? `Add to ${member.organizationName} team order` : "Request this item",
+      action: !selfOrder ? "Add" : toCollection ? `Add to ${member.organizationName} team order` : allowance ? "Place order" : "Request this item",
       note: !selfOrder
         ? ""
         : toCollection
           ? `Joins ${collection?.title ?? "the team order"}${collection?.deadline ? `, which closes ${shortDay(collection.deadline)}` : ""} · not a separate purchase`
-          : "Your own order, for your branch",
+          : allowance
+            ? `Paid by ${member.organizationName} from your ${allowance.policy.name.toLowerCase()}`
+            : "Your own order, for your branch",
+      covered: Boolean(allowance && direct && price.totalMinor && BigInt(price.totalMinor) <= allowance.limit),
+      pickTotalMinor: allowance && direct ? (price.totalMinor ?? null) : null,
     });
   }
   return {
@@ -163,6 +177,7 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
         : "You're ordering for yourself. Only your size, name and branch are yours to choose.",
     locations: selfOrder ? [] : yours,
     approval: await approvalPreview(db, member),
+    allowance: allowance?.view ?? null,
     blocked:
       row.status === "DRAFT"
         ? "This store isn't open yet. Activate it to let people order."
@@ -173,10 +188,116 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
             : !member.permissions.has("CREATE_REQUESTS")
               ? "Your role can't place orders here. Ask your workspace Admin."
               : null,
-    setup: manages(member) ? { routing: row.routing, items: rows.map((item) => ({ templateId: item.templateId, collectionId: item.collectionId })) } : null,
+    setup: manages(member)
+      ? {
+          routing: row.routing,
+          items: rows.map((item) => ({ templateId: item.templateId, collectionId: item.collectionId })),
+          allowance: await policyOf(db, row.id).then((policy) => ({
+            kind: policy?.kind ?? "NONE",
+            name: policy?.name ?? "Uniform allowance",
+            amountMinor: policy?.amountMinor?.toString() ?? null,
+            period: policy?.period ?? null,
+            renewsOn: policy?.renewsOn ?? null,
+          })),
+        }
+      : null,
     canManage: manages(member),
     version: row.version,
   };
+}
+
+/* ——— Allowances (T12-06b; PRD-05 B2B-FR-084; Pen 32, 78 B–C) ——— */
+
+const PERIOD_MONTHS: Record<AllowancePeriod, number> = { MONTH: 1, QUARTER: 3, YEAR: 12 };
+const LAGOS_OFFSET_MS = 3_600_000;
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * The allowance period `now` falls in, for a renewal day "MM-DD" (Lagos
+ * time): its first day, and the moment the next one starts. A yearly
+ * allowance renewing "01-01" runs 1 Jan to 31 Dec; quarterly ones step three
+ * months from the renewal month; monthly ones renew on that day each month.
+ */
+export function allowancePeriod(period: AllowancePeriod, renewsOn: string, now: Date) {
+  const lagos = new Date(now.getTime() + LAGOS_OFFSET_MS);
+  const [anchorMonth, day] = renewsOn.split("-").map(Number) as [number, number];
+  const step = PERIOD_MONTHS[period];
+  const current = lagos.getUTCFullYear() * 12 + lagos.getUTCMonth();
+  let start = current;
+  for (let back = 0; back <= 12; back++) {
+    const month = current - back;
+    if (((((month % 12) - (anchorMonth - 1)) % step) + step) % step !== 0) continue;
+    if (back === 0 && lagos.getUTCDate() < day) continue;
+    start = month;
+    break;
+  }
+  const date = (month: number) => `${Math.floor(month / 12)}-${pad((month % 12) + 1)}-${pad(day)}`;
+  const next = start + step;
+  return { start: date(start), next: new Date(Date.UTC(Math.floor(next / 12), next % 12, day) - LAGOS_OFFSET_MS) };
+}
+
+async function policyOf(db: Db, storeId: string) {
+  const [policy] = await db.select().from(schema.allowancePolicies).where(eq(schema.allowancePolicies.storeId, storeId));
+  return policy ?? null;
+}
+
+/**
+ * This member's allowance in a store, or null when there's no limit. A per
+ * period allowance counts what their picks committed this period; a pick
+ * whose approval was rejected or cancelled gives its amount back.
+ */
+async function allowanceFor(db: Db, storeId: string, member: Member, now: Date) {
+  const policy = await policyOf(db, storeId);
+  if (!policy || policy.kind === "NONE" || policy.amountMinor === null) return null;
+  const base = { kind: policy.kind, name: policy.name, amountMinor: policy.amountMinor.toString(), currency: policy.currency, period: policy.period, renewsOn: policy.renewsOn };
+  if (policy.kind === "PER_ORDER") {
+    const view: Allowance = { ...base, usedMinor: null, remainingMinor: null, renewsAt: null };
+    return { policy, view, limit: policy.amountMinor, periodStart: null };
+  }
+  const { start, next } = allowancePeriod(policy.period!, policy.renewsOn!, now);
+  const entries = await db
+    .select()
+    .from(schema.allowanceLedger)
+    .where(and(eq(schema.allowanceLedger.storeId, storeId), eq(schema.allowanceLedger.membershipId, member.membershipId), eq(schema.allowanceLedger.periodStart, start)));
+  const released = await releasedRequests(db, entries.flatMap((entry) => (entry.orderRequestId ? [entry.orderRequestId] : [])));
+  const used = entries.filter((entry) => !entry.orderRequestId || !released.has(entry.orderRequestId)).reduce((sum, entry) => sum + entry.amountMinor, 0n);
+  const remaining = used >= policy.amountMinor ? 0n : policy.amountMinor - used;
+  const view: Allowance = { ...base, usedMinor: used.toString(), remainingMinor: remaining.toString(), renewsAt: next.toISOString() };
+  return { policy, view, limit: remaining, periodStart: start };
+}
+
+/** The allowance rule (B2B-FR-084) for a self-order store: none, per order, or per period renewing on a day. People who manage stores only. */
+export async function updateAllowance(deps: Pick<OrganizationDeps, "db">, actor: ActorContext, organizationId: string, id: string, input: UpdateAllowance): Promise<Store> {
+  const db = deps.db;
+  const member = await requireMember(db, actor, organizationId);
+  enforce(needsPermission(member, "MANAGE_STORES"));
+  const row = await db.transaction(async (tx) => {
+    const store = await loadStore(tx, organizationId, id, { lock: true });
+    if (store.version !== input.version) throw new AppError("VERSION_CONFLICT", { context: { currentVersion: store.version } });
+    if (store.status === "ARCHIVED") throw new AppError("RULE_FAILED", { message: "This store is archived.", context: { reason: "STORE_ARCHIVED" } });
+    const before = await policyOf(tx, id);
+    const values = {
+      kind: input.kind,
+      name: input.name,
+      amountMinor: input.kind === "NONE" ? null : BigInt(input.amountMinor!),
+      period: input.kind === "PER_PERIOD" ? input.period : null,
+      renewsOn: input.kind === "PER_PERIOD" ? input.renewsOn : null,
+      updatedByUserId: member.userId,
+      updatedAt: actor.now,
+    };
+    await tx.insert(schema.allowancePolicies).values({ storeId: id, ...values }).onConflictDoUpdate({ target: schema.allowancePolicies.storeId, set: values });
+    const [updated] = await tx.update(schema.companyStores).set({ version: store.version + 1, updatedAt: actor.now }).where(eq(schema.companyStores.id, id)).returning();
+    await recordAudit(tx, actor, {
+      action: "store.allowance_updated",
+      summary: `Allowance for ${store.name}: ${input.kind === "NONE" ? "no limit" : `${displayMoney(input.amountMinor!, "NGN")} ${input.kind === "PER_ORDER" ? "per order" : `per ${input.period!.toLowerCase()}`}`}`,
+      recordType: RECORD_TYPE,
+      recordId: id,
+      before: before ? { kind: before.kind, amountMinor: before.amountMinor?.toString() ?? null, period: before.period, renewsOn: before.renewsOn } : null,
+      after: { kind: input.kind, amountMinor: values.amountMinor?.toString() ?? null, period: values.period, renewsOn: values.renewsOn },
+    });
+    return updated!;
+  });
+  return storeView(deps, member, row, actor.now);
 }
 
 export async function listStores(db: Database, actor: ActorContext, organizationId: string): Promise<StoreList> {
@@ -349,7 +470,7 @@ export async function orderFromStore(deps: OrganizationDeps, actor: ActorContext
     note: `Ordered from ${store.name}.`,
     origin: { storeId: store.id, storeName: store.name, mode: store.mode },
   });
-  return { ...placed, message: MESSAGES[placed.route] };
+  return { route: placed.route, next: placed.next, reference: placed.reference, message: MESSAGES[placed.route] };
 }
 
 /**
@@ -391,13 +512,55 @@ export async function pickFromStore(deps: OrganizationDeps, actor: ActorContext,
     people: [{ name: answers.personalization, size: answers.size }],
     controls,
   });
+
+  // The allowance (B2B-FR-084): within it the organization pays; over it, or with no price yet, an approver decides (Pen 78 C).
+  const estimate = draft.price?.totalMinor ? BigInt(draft.price.totalMinor) : null;
+  const money = (minor: bigint) => displayMoney(minor, draft.price?.currency ?? "NGN");
+  // Check and reserve together: the store's allowance row is locked, so two picks at once can't both spend the same balance.
+  // ponytail: one lock per store serializes all its picks; lock per member if picks ever queue behind each other.
+  const { allowance, overNote, entryId } = await db.transaction(async (tx) => {
+    await tx.select({ storeId: schema.allowancePolicies.storeId }).from(schema.allowancePolicies).where(eq(schema.allowancePolicies.storeId, store.id)).for("update");
+    const found = await allowanceFor(tx, store.id, member, actor.now);
+    const label = found?.policy.name.toLowerCase() ?? "";
+    const note = !found
+      ? null
+      : estimate === null
+        ? `This item has no price yet, so ${actor.session.name}'s ${label} can't cover it without approval.`
+        : estimate > found.limit
+          ? found.policy.kind === "PER_ORDER"
+            ? `This order is ${money(estimate - found.limit)} over the ${money(found.limit)} per-order ${label}.`
+            : `This order is ${money(estimate - found.limit)} over ${actor.session.name}'s ${label} (${money(found.limit)} left).`
+          : null;
+    const [entry] = found?.periodStart
+      ? await tx
+          .insert(schema.allowanceLedger)
+          .values({ storeId: store.id, membershipId: member.membershipId, periodStart: found.periodStart, amountMinor: estimate ?? 0n, configurationId: draft.id })
+          .returning({ id: schema.allowanceLedger.id })
+      : [];
+    return { allowance: found, overNote: note, entryId: entry?.id ?? null };
+  });
+  const label = allowance?.policy.name.toLowerCase() ?? "";
   const placed = await placeTemplateLines(deps, actor, member, {
     organizationId,
     locationId: answers.branchLocationId!,
     lines: [{ template, draft, choices: {}, quantity: 1 }],
     title: `${template.name} for ${actor.session.name}`,
-    note: `Ordered by ${actor.session.name} from ${store.name}.`,
+    note: `Ordered by ${actor.session.name} from ${store.name}${allowance ? `, from their ${label}` : ""}.`,
     origin: { storeId: store.id, storeName: store.name, mode: store.mode },
+    ...(allowance ? { allowance: { overNote } } : {}),
+  }).catch(async (error: unknown) => {
+    // Nothing was placed, so the reservation goes.
+    if (entryId) await db.delete(schema.allowanceLedger).where(eq(schema.allowanceLedger.id, entryId));
+    throw error;
   });
-  return { ...placed, message: MESSAGES[placed.route] };
+  if (entryId && placed.orderRequestId) await db.update(schema.allowanceLedger).set({ orderRequestId: placed.orderRequestId }).where(eq(schema.allowanceLedger.id, entryId));
+  const message =
+    overNote && estimate !== null
+      ? `This order is ${money(estimate - allowance!.limit)} over your allowance, so it went to your manager to approve.`
+      : overNote
+        ? "This item has no price yet, so it went to your manager to approve."
+        : allowance
+          ? `Paid from your ${label}. HolyPearls will confirm the price with ${member.organizationName}.`
+          : MESSAGES[placed.route];
+  return { route: placed.route, next: placed.next, reference: placed.reference, message };
 }

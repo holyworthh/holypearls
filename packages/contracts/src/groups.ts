@@ -311,6 +311,49 @@ export type StoreRouting = z.infer<typeof storeRoutingSchema>;
 
 const option = z.object({ id: z.string(), name: z.string() });
 
+/* Allowances (T12-06b; PRD-05 B2B-FR-084; Pen 32, 78 B–C). */
+
+/** No limit, a limit per order, or an amount per period that renews. Credit and vouchers are later (P2). */
+export const ALLOWANCE_KINDS = ["NONE", "PER_ORDER", "PER_PERIOD"] as const;
+export const allowanceKindSchema = z.enum(ALLOWANCE_KINDS);
+export type AllowanceKind = z.infer<typeof allowanceKindSchema>;
+export const ALLOWANCE_PERIODS = ["MONTH", "QUARTER", "YEAR"] as const;
+export const allowancePeriodSchema = z.enum(ALLOWANCE_PERIODS);
+export type AllowancePeriod = z.infer<typeof allowancePeriodSchema>;
+
+/** The store's allowance as this person sees it (Pen 32 "₦32,500 of ₦75,000 left · renews 1 Jan"). */
+export const allowanceSchema = z.object({
+  kind: allowanceKindSchema,
+  name: z.string(),
+  amountMinor: z.string(),
+  currency: z.string(),
+  period: allowancePeriodSchema.nullable(),
+  /** "MM-DD": when a per-period allowance starts again. */
+  renewsOn: z.string().nullable(),
+  /** This person's current period: committed so far and what's left (per period only). */
+  usedMinor: z.string().nullable(),
+  remainingMinor: z.string().nullable(),
+  renewsAt: isoDate.nullable(),
+});
+export type Allowance = z.infer<typeof allowanceSchema>;
+
+export const updateAllowanceSchema = z
+  .object({
+    kind: allowanceKindSchema,
+    name: z.string().trim().min(1, "Name the allowance, for example Uniform allowance").max(60).default("Uniform allowance"),
+    amountMinor: z.string().regex(/^\d+$/, "Enter an amount").nullable().default(null),
+    period: allowancePeriodSchema.nullable().default(null),
+    renewsOn: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])-(0[1-9]|1\d|2[0-8])$/, "Choose a day from the 1st to the 28th")
+      .nullable()
+      .default(null),
+    version: z.number().int(),
+  })
+  .refine((value) => value.kind === "NONE" || (value.amountMinor !== null && BigInt(value.amountMinor) > 0n), { message: "Enter the allowance amount", path: ["amountMinor"] })
+  .refine((value) => value.kind !== "PER_PERIOD" || (value.period !== null && value.renewsOn !== null), { message: "Choose how often it renews and from which day", path: ["period"] });
+export type UpdateAllowance = z.infer<typeof updateAllowanceSchema>;
+
 /** One approved product in the store, as the person looking at it can use it. */
 export const storeItemSchema = z.object({
   templateId: z.string(),
@@ -333,6 +376,10 @@ export const storeItemSchema = z.object({
   /** The button and the line under it, in outcome words, never routing words ("Add to ACME team order" · "Joins the 2027 team order, not a separate purchase"). */
   action: z.string(),
   note: z.string(),
+  /** Its price fits what's left of the person's allowance (Pen 32 "Covered"). */
+  covered: z.boolean(),
+  /** Self-order with an allowance: what one pick costs in total, to compare with what's left (Pen 78 B–C). */
+  pickTotalMinor: z.string().nullable(),
 });
 export type StoreItem = z.infer<typeof storeItemSchema>;
 
@@ -354,8 +401,16 @@ export const storeSchema = storeSummarySchema.extend({
   approval: z.object({ applies: z.enum(["ALWAYS", "NEVER", "ABOVE_AMOUNT"]), thresholdMinor: z.string().nullable() }),
   /** Why this person can't order here, or null. */
   blocked: z.string().nullable(),
+  /** The allowance for self-order picks that become individual orders, or null when there's none. */
+  allowance: allowanceSchema.nullable(),
   /** Only for people who manage stores: routing and each item's collection. */
-  setup: z.object({ routing: storeRoutingSchema, items: z.array(storeSetupItemSchema) }).nullable(),
+  setup: z
+    .object({
+      routing: storeRoutingSchema,
+      items: z.array(storeSetupItemSchema),
+      allowance: z.object({ kind: allowanceKindSchema, name: z.string(), amountMinor: z.string().nullable(), period: allowancePeriodSchema.nullable(), renewsOn: z.string().nullable() }),
+    })
+    .nullable(),
   canManage: z.boolean(),
   version: z.number().int(),
 });
