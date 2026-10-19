@@ -2,7 +2,8 @@
 
 import { type AdminTaxSetting, adminTaxSettingListSchema, adminTaxSettingSchema, ApiError } from "@holypearls/contracts";
 import { Button, Checkbox, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
-import { api } from "@holypearls/web-kit/api";
+import { api, errorCode } from "@holypearls/web-kit/api";
+import { StepUpDialog } from "@/components/StepUpDialog";
 import { useState } from "react";
 import styles from "../../admin-list.module.css";
 import { formatTime } from "../../format";
@@ -20,6 +21,7 @@ export function VatPanel({ initial }: { initial: AdminTaxSetting[] }) {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [stepUp, setStepUp] = useState(false);
   const now = Date.now();
 
   const save = async () => {
@@ -32,9 +34,11 @@ export function VatPanel({ initial }: { initial: AdminTaxSetting[] }) {
     try {
       await api("/v1/admin/pricing/vat", { method: "POST", body: { effectiveFrom: `${from}:00+01:00`, vatRateBps: Math.round(Number(rate) * 100), vatOnDelivery: onDelivery, note: note.trim() || null }, response: adminTaxSettingSchema });
       setEntries((await api("/v1/admin/pricing/vat", { response: adminTaxSettingListSchema })).entries);
+      setStepUp(false);
       setNotice({ tone: "success", text: "VAT rate scheduled. Accepted quotes and existing orders keep the VAT they had." });
     } catch (error) {
-      setNotice({ tone: "error", text: error instanceof ApiError ? (Object.values(error.body.fieldErrors ?? {})[0] ?? error.body.message) : "That didn't save. Try again." });
+      if (errorCode(error) === "RECENT_MFA_REQUIRED") setStepUp(true);
+      else setNotice({ tone: "error", text: error instanceof ApiError ? (Object.values(error.body.fieldErrors ?? {})[0] ?? error.body.message) : "That didn't save. Try again." });
     } finally {
       setBusy(false);
     }
@@ -102,6 +106,7 @@ export function VatPanel({ initial }: { initial: AdminTaxSetting[] }) {
             </Button>
           </div>
         </form>
+        <StepUpDialog open={stepUp} action="Change the VAT rate" confirmLabel="Confirm and save" onClose={() => setStepUp(false)} onVerified={save} />
       </section>
     </div>
   );

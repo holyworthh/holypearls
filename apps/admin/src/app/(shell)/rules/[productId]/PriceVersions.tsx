@@ -2,7 +2,8 @@
 
 import { type AdminPriceRule, adminPriceRuleListSchema, adminPriceRuleSchema, type AdminProductRules, ApiError } from "@holypearls/contracts";
 import { Button, Checkbox, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
-import { api } from "@holypearls/web-kit/api";
+import { api, errorCode } from "@holypearls/web-kit/api";
+import { StepUpDialog } from "@/components/StepUpDialog";
 import { useState } from "react";
 import styles from "../../admin-list.module.css";
 import { formatTime, money, toKobo, toNaira } from "../../format";
@@ -37,6 +38,7 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [stepUp, setStepUp] = useState(false);
   const valuesOf = (key: string) => options.find((option) => option.key === key)?.values ?? [];
 
   const save = async () => {
@@ -57,9 +59,12 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
       });
       setEntries((await api(`/v1/admin/pricing/products/${productId}/prices`, { response: adminPriceRuleListSchema })).entries);
       setNote("");
+      setStepUp(false);
       setNotice({ tone: "success", text: `Price version scheduled. New prices take effect ${formatTime(added.effectiveFrom)}. Accepted quotes and orders are unchanged. Recorded in the audit log.` });
     } catch (error) {
-      setNotice({ tone: "error", text: error instanceof ApiError ? (Object.values(error.body.fieldErrors ?? {})[0] ?? error.body.message) : "That didn't save. Try again." });
+      // A price change is high-risk (PRD-06 §18): confirm with the authenticator, then it saves.
+      if (errorCode(error) === "RECENT_MFA_REQUIRED") setStepUp(true);
+      else setNotice({ tone: "error", text: error instanceof ApiError ? (Object.values(error.body.fieldErrors ?? {})[0] ?? error.body.message) : "That didn't save. Try again." });
     } finally {
       setBusy(false);
     }
@@ -245,6 +250,7 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
             </Button>
           </div>
         </form>
+        <StepUpDialog open={stepUp} action="Schedule a new price version" confirmLabel="Confirm and save" onClose={() => setStepUp(false)} onVerified={save} />
       </section>
     </div>
   );

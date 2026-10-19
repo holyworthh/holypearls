@@ -3,7 +3,7 @@ import { and, asc, type Database, desc, eq, gt, lte, schema, sql } from "@holype
 import type { z } from "zod";
 import type { compatibilityRuleSchema, priceRuleInputSchema, taxSettingInputSchema } from "@holypearls/contracts";
 import { AppError } from "../errors.js";
-import type { ActorContext } from "../identity/actor.js";
+import { type ActorContext, requireRecentMfa } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
 
 /*
@@ -207,6 +207,8 @@ export async function listPriceRules(db: Database, productId: string, now: Date)
  * rewritten); "now" starts it immediately. Add-ons must name real option values.
  */
 export async function addPriceRule(db: Database, actor: ActorContext, productId: string, input: z.infer<typeof priceRuleInputSchema>, now: Date) {
+  // Price changes are high-risk (PRD-06 §18): an authenticator check in the last 15 minutes.
+  requireRecentMfa(actor, now);
   const name = await productName(db, productId);
   const effectiveFrom = new Date(input.effectiveFrom);
   // A minute of grace for clocks and form filling.
@@ -291,6 +293,8 @@ export async function listTaxSettings(db: Database, now: Date) {
 }
 
 export async function addTaxSetting(db: Database, actor: ActorContext, input: z.infer<typeof taxSettingInputSchema>, now: Date) {
+  // A VAT change changes every price (PRD-06 §18).
+  requireRecentMfa(actor, now);
   const effectiveFrom = new Date(input.effectiveFrom);
   if (effectiveFrom.getTime() < now.getTime() - 60_000) {
     throw new AppError("VALIDATION_FAILED", { fieldErrors: { effectiveFrom: "Choose now or a later date; past VAT settings can't be changed" } });

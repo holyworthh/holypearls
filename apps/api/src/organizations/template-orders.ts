@@ -104,10 +104,18 @@ export async function previewTemplateOrder(db: Database, actor: ActorContext, or
  * the template's and theirs, and only editable fields change. Shared with
  * company stores (T12-06).
  */
-export async function templateLine(db: Database, actor: ActorContext, organizationId: string, templateId: string, input: { locationId: string; choices: Record<string, string>; quantity: number; templateVersion?: number }) {
+export async function templateLine(
+  db: Database,
+  actor: ActorContext,
+  organizationId: string,
+  templateId: string,
+  input: { locationId: string; choices: Record<string, string>; quantity: number; templateVersion?: number },
+  /** anyMember: a self-order store pick, which any member may make for themselves (owner, 2026-10-19). */
+  options: { anyMember?: boolean } = {},
+) {
   if (actor.type !== "user") throw new AppError("NOT_SIGNED_IN");
   const { member, template, sourceConfigurationId, locations } = await context(db, actor, organizationId, templateId);
-  enforce(needsPermission(member, "CREATE_REQUESTS"));
+  if (!options.anyMember) enforce(needsPermission(member, "CREATE_REQUESTS"));
   if (input.templateVersion !== undefined && template.version !== input.templateVersion) {
     throw new AppError("VERSION_CONFLICT", { message: "This template changed. Reload to see the current version.", context: { currentVersion: template.version } });
   }

@@ -207,6 +207,8 @@ describe("company store (B2B-FR-080–083)", () => {
     // Without the rule, they go on together: the cart when both have a direct price, otherwise one quote request.
     const direct = storeOrderResultSchema.parse((await api("acmeLekkiManager").post(`${base()}/${shop.id}/orders`, order)).body);
     expect(["CHECKOUT", "QUOTE"]).toContain(direct.route);
+    // Procurement is for people who create orders: a Viewer can't (self-order picks are open to them).
+    expectForbidden(await api("acmeViewer").post(`${base()}/${shop.id}/orders`, order), "CREATE_REQUESTS");
     // Only your locations, only the store's items, each once, and never in a self-order store.
     expectForbidden(await api("acmeLekkiManager").post(`${base()}/${shop.id}/orders`, { ...order, locationId: victoriaIsland }));
     expectHidden(await api("acmeLekkiManager").post(`${base()}/${shop.id}/orders`, { ...order, lines: [{ templateId: crypto.randomUUID(), quantity: 1 }] }));
@@ -245,8 +247,10 @@ describe("company store (B2B-FR-080–083)", () => {
     expect((await store(shop.id, "acmeBuyer")).items.map((item) => item.templateId)).toEqual([polo.id, viOnly.id]);
     expectHidden(await api("acmeLekkiManager").post(`${base()}/${shop.id}/picks`, { templateId: viOnly.id, answers: { branchLocationId: lekki } }));
     // A Viewer sees it but can't order (no "Create orders").
-    expect((await store(shop.id, "acmeViewer")).blocked).toBe("Your role can't place orders here. Ask your workspace Admin.");
-    expectForbidden(await api("acmeViewer").post(`${base()}/${shop.id}/picks`, { templateId: polo.id, answers: { size: "M", branchLocationId: lekki } }), "CREATE_REQUESTS");
+    // A Viewer picks for themselves in a self-order store (owner, 2026-10-19).
+    expect((await store(shop.id, "acmeViewer")).blocked).toBeNull();
+    const viewerPick = await api("acmeViewer").post(`${base()}/${shop.id}/picks`, { templateId: polo.id, answers: { size: "M", branchLocationId: lekki } });
+    expect(viewerPick.status).toBe(200);
 
     // Paused: still visible, nothing can be ordered. Archived: gone for members.
     shop = storeSchema.parse((await api("acmeOwner").post(`${base()}/${shop.id}/pause`, { version: shop.version })).body);
