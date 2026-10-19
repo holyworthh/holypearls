@@ -8,7 +8,7 @@ import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } f
  * version starts in 2030.
  */
 
-test("rules & prices: products, product rules, a scheduled price version, price states and VAT", async ({ page }) => {
+test("rules & prices: products, product rules, a scheduled price version, price states and VAT", async ({ page }, info) => {
   test.setTimeout(150_000);
   await signInStaff(page, TEST_PEOPLE.adminAda);
 
@@ -26,12 +26,13 @@ test("rules & prices: products, product rules, a scheduled price version, price 
   await page.getByRole("button", { name: "Save rules" }).click();
   await expect(page.getByText(/^Rules saved\./)).toBeVisible();
 
-  // Price rules (Pen 107 JElIg): a version from 1 November 2030.
+  // Price rules (Pen 107 JElIg): a version from November 2030, a day apart per viewport (two versions can't start at the same moment).
+  const day = info.project.name.includes("375") ? "01" : "02";
   await page.getByRole("navigation", { name: "Rules" }).getByRole("link", { name: "Price rules" }).click();
   await expect(page.getByText("CURRENT", { exact: true })).toBeVisible();
-  await page.getByLabel("Effective from (Lagos time)").fill("2030-11-01T00:00");
+  await page.getByLabel("Effective from (Lagos time)").fill(`2030-11-${day}T00:00`);
   await page.getByRole("button", { name: "Save price version" }).click();
-  await expect(page.getByText(/^Price version scheduled\. New prices take effect 01 NOV 00:00\./)).toBeVisible();
+  await expect(page.getByText(new RegExp(`^Price version scheduled\\. New prices take effect ${day} NOV 00:00\\.`))).toBeVisible();
   await expect(page.getByText("SCHEDULED", { exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
