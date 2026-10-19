@@ -6,6 +6,7 @@ import { removeUnattachedFiles } from "../files/files.js";
 import { expireInvitations } from "../identity/invitations.js";
 import { applyRetention } from "../sales/retention.js";
 import { RateLimiter } from "./rate-limit.js";
+import { expireExports } from "./exports.js";
 
 /**
  * cleanup.daily at 03:00 WAT (TECH-02 §8): unattached uploads after 7 days,
@@ -27,5 +28,6 @@ export async function runDailyCleanup(deps: { db: Database; storage: StorageAdap
   const searchEvents = await removeExpiredSearchEvents(deps.db, now);
   const retention = await applyRetention(deps.db, now);
   const invitationsExpired = await expireInvitations(deps.db, now);
-  return { files, priceResults, searchEvents, invitationsExpired, ...retention };
+  const exportsExpired = await expireExports(deps, now);
+  return { files, priceResults, searchEvents, invitationsExpired, exportsExpired, ...retention };
 }

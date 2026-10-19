@@ -52,6 +52,8 @@ export const QUEUES = {
   "quote.expire": { payload: payload({ quoteVersionId: z.string().uuid() }), settings: {} },
   /** A reminder due at a set time: quote expiring, balance due (TECH-02 §8). Checked again when it runs. */
   "reminder.send": { payload: payload({ kind: z.enum(["QUOTE_EXPIRING", "INSTALLMENT_DUE"]), recordId: z.string().uuid() }), settings: {} },
+  /** Builds one export file into private storage (TECH-02 §8: 15-minute timeout; T13-03b). Two retries, then it shows as failed. */
+  "export.generate": { payload: payload({ exportId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 15 * 60 } },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;

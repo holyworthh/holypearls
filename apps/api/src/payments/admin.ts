@@ -1,4 +1,4 @@
-import type { AdminIntent, AdminPaymentList, AdminReview, PaymentChannel, PaymentSettings, PaymentSettingsInput, ResolveReview } from "@holypearls/contracts";
+import { type AdminIntent, type AdminPaymentList, type AdminReview, type CurrencyCode, money, type PaymentChannel, type PaymentSettings, type PaymentSettingsInput, type ResolveReview, toMajorString } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, ilike, inArray, or, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -365,4 +365,29 @@ export async function savePaymentSettings(db: Database, actor: ActorContext, inp
     });
   });
   return getPaymentSettings(db, providerConfigured);
+}
+
+/** Payments export (T13-03b): every attempt started in the range. No customer details (those are personal data). */
+export async function paymentsForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select()
+    .from(schema.paymentAttempts)
+    .where(and(sql`${schema.paymentAttempts.createdAt} >= ${range.start}`, sql`${schema.paymentAttempts.createdAt} < ${range.end}`))
+    .orderBy(asc(schema.paymentAttempts.createdAt));
+  const context = await contextOf(db, [...new Set(rows.map((row) => row.intentId))]);
+  const amount = (minor: bigint | null, currency: string) => (minor === null ? "" : toMajorString(money(minor, currency as CurrencyCode)));
+  return [
+    ["Reference", "For", "Status", "Amount", "Paid amount", "Currency", "Channel", "Started", "Paid at"],
+    ...rows.map((row) => [
+      row.reference,
+      context.get(row.intentId)?.forLabel ?? "",
+      row.status,
+      amount(row.amountMinor, row.currency),
+      amount(row.paidAmountMinor, row.paidCurrency ?? row.currency),
+      row.currency,
+      row.channel ?? "",
+      row.createdAt.toISOString(),
+      row.paidAt?.toISOString() ?? "",
+    ]),
+  ];
 }

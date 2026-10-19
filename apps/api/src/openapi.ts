@@ -33,6 +33,10 @@ import {
   adminProductRulesSchema,
   pricingProductListSchema,
   opsHomeSchema,
+  exportDownloadSchema,
+  exportItemSchema,
+  exportListSchema,
+  exportRequestSchema,
   fabricInputSchema,
   fabricSchema,
   garmentDataSchema,
@@ -1306,6 +1310,20 @@ export function buildOpenApiDocument() {
       },
       "/v1/admin/home": {
         get: { summary: "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)", responses: { 200: { description: "Queues", content: json(opsHomeSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/exports": {
+        get: { summary: "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)", responses: { ...staffOnly, 200: { description: "Exports", content: json(exportListSchema) }, 403: error("No export permission (FORBIDDEN)") } },
+        post: {
+          summary: "Request an export; the worker builds it (export.generate). Customers is personal data: EXPORT_PERSONAL_DATA and an authenticator check in the last 15 minutes. Audited",
+          requestBody: { required: true, content: json(exportRequestSchema) },
+          responses: { ...staffOnly, 201: { description: "Generating", content: json(exportItemSchema) }, 400: error("VALIDATION_FAILED"), 403: error("Missing the type's permission (FORBIDDEN) or no recent authenticator check for personal data (RECENT_MFA_REQUIRED)") },
+        },
+      },
+      "/v1/admin/exports/{id}/retry": {
+        post: { summary: "Build a failed export again (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Generating", content: json(exportItemSchema) }, 409: error("CONFLICT: not failed"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 404: error("NOT_FOUND") } },
+      },
+      "/v1/admin/exports/{id}/download": {
+        post: { summary: "A 5-minute download link for a ready export, within its 24 hours (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Link", content: json(exportDownloadSchema) }, 422: error("RULE_FAILED: not ready or expired"), 403: error("FORBIDDEN"), 404: error("NOT_FOUND") } },
       },
       "/v1/admin/pricing/scheduled": {
         get: { summary: "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)", responses: { 200: { description: "Scheduled", content: json(scheduledChangesSchema) }, ...staffOnly } },

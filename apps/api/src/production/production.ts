@@ -517,3 +517,17 @@ export async function customerProduction(db: Db, orderId: string) {
     ),
   };
 }
+
+/** Production export (T13-03b): every item of the orders placed in the range, with its production status. */
+export async function productionForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select({ item: schema.orderItems, number: schema.orders.number, placedAt: schema.orders.placedAt })
+    .from(schema.orderItems)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+    .where(and(sql`${schema.orders.placedAt} >= ${range.start}`, sql`${schema.orders.placedAt} < ${range.end}`))
+    .orderBy(asc(schema.orders.placedAt), asc(schema.orderItems.position));
+  return [
+    ["Order", "Placed", "Item", "Product", "Details", "Quantity", "Status", "Last change"],
+    ...rows.map(({ item, number, placedAt }) => [number, placedAt.toISOString(), String(item.position + 1), item.productName, item.summary, String(item.quantity), item.status, item.updatedAt.toISOString()]),
+  ];
+}

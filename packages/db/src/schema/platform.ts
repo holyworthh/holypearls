@@ -1,5 +1,6 @@
-import { index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt } from "../columns.js";
+import { users } from "./identity.js";
 
 export const demoSliceStatus = pgEnum("demo_slice_status", ["PENDING", "DONE", "FAILED"]);
 
@@ -81,4 +82,34 @@ export const idempotencyKeys = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.actorKey, table.key] }), index("idempotency_keys_expires_idx").on(table.expiresAt)],
+);
+
+export const exportType = pgEnum("export_type", ["ORDERS", "PAYMENTS", "CUSTOMERS", "PRODUCTION", "CATALOGUE", "COLLECTION_TOTALS"]);
+export const exportStatus = pgEnum("export_status", ["GENERATING", "READY", "EXPIRED", "FAILED"]);
+
+/**
+ * Exports (T13-03b; PRD-06 §19; TECH-07 §16; Pen 120). Built by the worker
+ * into private storage, downloadable for 24 hours through a 5-minute link,
+ * then removed by the daily clean-up. Requests and downloads are audited.
+ */
+export const exports = pgTable(
+  "exports",
+  {
+    id: idColumn(),
+    type: exportType("type").notNull(),
+    /** Inclusive dates in Lagos time; null for the catalogue, which has no range. */
+    fromDate: date("from_date"),
+    toDate: date("to_date"),
+    status: exportStatus("status").notNull().default("GENERATING"),
+    fileKey: text("file_key"),
+    rowCount: integer("row_count"),
+    failure: text("failure"),
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    requestedByName: text("requested_by_name").notNull(),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("exports_created_idx").on(table.createdAt.desc()), index("exports_expires_idx").on(table.status, table.expiresAt)],
 );
