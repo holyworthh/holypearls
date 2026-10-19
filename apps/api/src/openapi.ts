@@ -1,5 +1,6 @@
 import {
   accountHistorySchema,
+  accountListSchema,
   profileInputSchema,
   profileSchema,
   adminMeSchema,
@@ -729,6 +730,13 @@ export function buildOpenApiDocument() {
         get: {
           summary: "The account overview: drafts, orders, quotes and projects, receipts, and guest linking (TECH-03 §6)",
           responses: { 200: { description: "Overview", content: json(accountHistorySchema) }, ...signedIn },
+        },
+      },
+      "/v1/me/history/{list}": {
+        get: {
+          summary: "One history list in full, newest first, up to 200 (T09-01b): orders, quotes, projects, drafts or receipts",
+          parameters: [{ name: "list", in: "path", required: true, schema: { type: "string", enum: ["orders", "quotes", "projects", "drafts", "receipts"] } }],
+          responses: { 200: { description: "List", content: json(accountListSchema) }, ...signedIn, 404: error("Unknown list (NOT_FOUND)") },
         },
       },
       "/v1/me/profile": {

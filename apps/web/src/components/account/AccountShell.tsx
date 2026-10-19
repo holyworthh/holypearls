@@ -2,21 +2,21 @@ import type { ReactNode } from "react";
 import styles from "../../app/account/account.module.css";
 import { SiteShell } from "../site/SiteShell";
 
-/** Orders, quotes, projects, drafts and receipts are sections of the overview (T09-01; list pages are T09-01b). */
+/** The overview shows the newest of each; each list has its own page in full (T09-01b). */
 const ACCOUNT_NAV = [
   ["Overview", "/account"],
-  ["Orders", "/account#orders"],
-  ["Quotes", "/account#quotes"],
-  ["Projects", "/account#quotes"],
-  ["Drafts", "/account#drafts"],
-  ["Receipts", "/account#receipts"],
+  ["Orders", "/account/orders"],
+  ["Quotes", "/account/quotes"],
+  ["Projects", "/account/projects"],
+  ["Drafts", "/account/drafts"],
+  ["Receipts", "/account/receipts"],
   ["Workspace", "/workspace"],
   ["Profile", "/account/profile"],
   ["Security", "/account/security"],
 ] as const;
 
 /** The signed-in account area (Pen frames 90–92): navigation beside one column of cards. */
-export function AccountShell({ current, children }: { current: "/account" | "/account/profile" | "/account/security" | "/account/workspace"; children: ReactNode }) {
+export function AccountShell({ current, children }: { current: string; children: ReactNode }) {
   return (
     <SiteShell>
       <div className={styles.body}>

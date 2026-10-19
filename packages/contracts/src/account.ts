@@ -18,7 +18,8 @@ export const profileInputSchema = z.object({
 /** An empty phone removes it. */
 export type ProfileInput = z.infer<typeof profileInputSchema>;
 
-export const profileSchema = z.object({ name: z.string(), email: z.string(), phone: z.string().nullable() });
+/** `pendingEmail`: a new email waiting for its check link (Pen 91 "Email change pending"); the account keeps `email` until then. */
+export const profileSchema = z.object({ name: z.string(), email: z.string(), phone: z.string().nullable(), pendingEmail: z.string().nullable() });
 export type Profile = z.infer<typeof profileSchema>;
 
 /**
@@ -83,6 +84,13 @@ export const accountHistorySchema = z.object({
   receipts: z.array(accountReceiptSchema),
 });
 export type AccountHistory = z.infer<typeof accountHistorySchema>;
+
+/** One history list in full (T09-01b): its own page when the overview's newest few aren't enough. */
+export const ACCOUNT_LISTS = ["orders", "quotes", "projects", "drafts", "receipts"] as const;
+export const accountListNameSchema = z.enum(ACCOUNT_LISTS);
+export type AccountListName = z.infer<typeof accountListNameSchema>;
+export const accountListSchema = accountHistorySchema.omit({ linking: true });
+export type AccountList = z.infer<typeof accountListSchema>;
 export type AccountDraft = z.infer<typeof accountDraftSchema>;
 export type AccountOrder = z.infer<typeof accountOrderSchema>;
 export type AccountQuote = z.infer<typeof accountQuoteSchema>;

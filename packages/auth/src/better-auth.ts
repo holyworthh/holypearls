@@ -1,4 +1,4 @@
-import { type Database, eq, newId, schema } from "@holypearls/db";
+import { and, type Database, eq, ne, newId, schema } from "@holypearls/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
@@ -36,6 +36,8 @@ export interface BetterAuthIdentityOptions {
   isStaff(userId: string): Promise<boolean>;
   /** Runs when an account's email is verified, by its check link or a sign-in link (TECH-03 §6). */
   onEmailVerified?(user: { id: string; email: string; name: string }): Promise<void>;
+  /** Runs when a new account email is verified; the account's other sessions have already ended (TECH-03 §4). */
+  onEmailChanged?(user: { id: string; email: string; name: string }): Promise<void>;
   /** Runs after a password reset, which has already ended the account's other sessions. */
   onPasswordReset?(user: { id: string; email: string; name: string }): Promise<void>;
   /** Clock, for tests. */
@@ -47,6 +49,30 @@ export interface BetterAuthIdentityOptions {
 function createBetterAuth(options: BetterAuthIdentityOptions) {
   const { db } = options;
   const now = options.now ?? (() => new Date());
+
+  type Ctx = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
+
+  /**
+   * The profile's "Email change pending" state (Pen 91). Recorded whatever the
+   * library did, so the reply never reveals whether the address has an account.
+   */
+  const rememberNewEmail = async (ctx: Ctx) => {
+    const userId = ctx.context.session?.user.id;
+    const newEmail = (ctx.body as { newEmail?: unknown } | undefined)?.newEmail;
+    if (!userId || typeof newEmail !== "string" || ctx.context.returned instanceof Error) return;
+    await db.update(schema.users).set({ pendingEmail: newEmail.trim().toLowerCase(), pendingEmailAt: now() }).where(eq(schema.users.id, userId));
+  };
+
+  /** The new email was verified: every other session ends (TECH-03 §4), and the pending state clears. */
+  const finishEmailChange = async (ctx: Ctx) => {
+    const current = ctx.context.newSession ?? ctx.context.session;
+    if (!current) return;
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, current.user.id));
+    if (!user?.pendingEmail || user.pendingEmail !== user.email) return;
+    await db.delete(schema.sessions).where(and(eq(schema.sessions.userId, user.id), ne(schema.sessions.id, current.session.id)));
+    await db.update(schema.users).set({ pendingEmail: null, pendingEmailAt: null }).where(eq(schema.users.id, user.id));
+    await options.onEmailChanged?.({ id: user.id, email: user.email, name: user.name });
+  };
 
   const markMfaVerified = async (sessionId: string) => {
     await db.update(schema.sessions).set({ mfaVerifiedAt: now() }).where(eq(schema.sessions.id, sessionId));
@@ -69,7 +95,8 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
         twoFactors: schema.twoFactors,
       },
     }),
-    user: { modelName: "users" },
+    // A new email is used only once its check link is opened; until then the account keeps the old one (T09-01b).
+    user: { modelName: "users", changeEmail: { enabled: true } },
     account: { modelName: "accounts" },
     verification: { modelName: "verifications" },
     session: {
@@ -105,7 +132,10 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
       autoSignInAfterVerification: true,
       expiresIn: VERIFY_EMAIL_SECONDS,
       sendVerificationEmail: async ({ user, url }) => {
-        await options.outbox.send({ kind: "VERIFY_EMAIL", to: user.email.toLowerCase(), url, sentAt: now() });
+        // The library sends a new-email check through here too, addressed to the new email.
+        const [stored] = await db.select({ email: schema.users.email }).from(schema.users).where(eq(schema.users.id, user.id));
+        const kind = stored && stored.email !== user.email.toLowerCase() ? "CHANGE_EMAIL" : "VERIFY_EMAIL";
+        await options.outbox.send({ kind, to: user.email.toLowerCase(), url, sentAt: now() });
       },
     },
     // The API applies the AUTH limit in PostgreSQL, shared by every instance (TECH-02 §14,
@@ -157,6 +187,8 @@ function createBetterAuth(options: BetterAuthIdentityOptions) {
         }
       }),
       after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === "/change-email") return rememberNewEmail(ctx);
+        if (ctx.path === "/verify-email") return finishEmailChange(ctx);
         if (ctx.path !== "/two-factor/verify-totp") return;
         const returned = ctx.context.returned as { status?: number } | Error | undefined;
         if (returned instanceof Error) return;

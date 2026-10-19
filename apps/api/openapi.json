@@ -163,6 +163,12 @@
                         "null"
                       ]
                     },
+                    "pendingEmail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "isStaff": {
                       "type": "boolean"
                     },
@@ -218,6 +224,7 @@
                     "email",
                     "emailVerified",
                     "phone",
+                    "pendingEmail",
                     "isStaff",
                     "mfa",
                     "session"
@@ -566,6 +573,299 @@
         }
       }
     },
+    "/v1/me/history/{list}": {
+      "get": {
+        "summary": "One history list in full, newest first, up to 200 (T09-01b): orders, quotes, projects, drafts or receipts",
+        "parameters": [
+          {
+            "name": "list",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "orders",
+                "quotes",
+                "projects",
+                "drafts",
+                "receipts"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "drafts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "CONFIGURATION",
+                              "PROJECT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "savedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id",
+                          "title",
+                          "detail",
+                          "status",
+                          "savedAt",
+                          "href"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "orders": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "summaryStatus": {
+                            "type": "string",
+                            "enum": [
+                              "CONFIRMED",
+                              "AWAITING_PREREQUISITE",
+                              "IN_PRODUCTION",
+                              "PARTIALLY_READY",
+                              "BALANCE_REQUIRED",
+                              "READY_TO_DISPATCH",
+                              "ON_HOLD",
+                              "PARTIALLY_DISPATCHED",
+                              "DISPATCHED",
+                              "PARTIALLY_DELIVERED",
+                              "DELIVERED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "paymentStatus": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "enum": [
+                                  "NOT_DUE",
+                                  "PAYMENT_DUE",
+                                  "DEPOSIT_DUE",
+                                  "PAYMENT_PENDING",
+                                  "DEPOSIT_PAID",
+                                  "PARTIALLY_PAID",
+                                  "BALANCE_DUE",
+                                  "PAID",
+                                  "PAYMENT_FAILED",
+                                  "PARTIALLY_REFUNDED",
+                                  "REFUNDED",
+                                  "PAYMENT_RESOLUTION_REQUIRED"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "placedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "title",
+                          "summaryStatus",
+                          "paymentStatus",
+                          "placedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "quotes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "QUOTE",
+                              "PROJECT"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "reference": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "anyOf": [
+                              {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "validUntil": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "href": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id",
+                          "reference",
+                          "version",
+                          "title",
+                          "status",
+                          "validUntil",
+                          "href"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "receipts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "orderId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "amountMinor": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "NGN",
+                              "USD"
+                            ]
+                          },
+                          "paidAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          },
+                          "paystackReference": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "orderId",
+                          "amountMinor",
+                          "currency",
+                          "paidAt",
+                          "paystackReference"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "drafts",
+                    "orders",
+                    "quotes",
+                    "receipts"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in (NOT_SIGNED_IN)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown list (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/me/profile": {
       "patch": {
         "summary": "Change your name and phone",
@@ -623,12 +923,19 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "pendingEmail": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
                     }
                   },
                   "required": [
                     "name",
                     "email",
-                    "phone"
+                    "phone",
+                    "pendingEmail"
                   ],
                   "additionalProperties": false
                 }
