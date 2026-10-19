@@ -24,9 +24,9 @@
   "dependencies": {
     "@holypearls/config": "workspace:*",
     "@holypearls/contracts": "workspace:*",
-    "drizzle-orm": "0.45.3",
+    "drizzle-orm": "0.45.4",
     "pg": "8.23.1",
-    "uuid": "14.0.2"
+    "uuid": "14.0.3"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",
