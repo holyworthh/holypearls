@@ -199,3 +199,16 @@ export const staffInvitationPreviewSchema = z.object({
 });
 export type StaffInvitationPreview = z.infer<typeof staffInvitationPreviewSchema>;
 export const acceptedStaffInvitationSchema = z.object({ adminSignInUrl: z.string() });
+
+/* Incident switches (T15-05; TECH-06 section 14; Pen 123). */
+const switchState = z.object({ on: z.boolean(), since: z.string().nullable() });
+export const incidentStateSchema = z.object({ readOnly: switchState, uploadsPaused: switchState, paymentsPaused: switchState });
+export type IncidentState = z.infer<typeof incidentStateSchema>;
+export const incidentSwitchSchema = z.object({ switch: z.enum(["READ_ONLY", "UPLOADS_PAUSED", "PAYMENTS_PAUSED"]), on: z.boolean() }).strict();
+export type IncidentSwitchInput = z.infer<typeof incidentSwitchSchema>;
+export const revokeSessionsSchema = z.discriminatedUnion("scope", [z.object({ scope: z.literal("EVERYONE") }).strict(), z.object({ scope: z.literal("PERSON"), email: z.email() }).strict()]);
+export type RevokeSessionsInput = z.infer<typeof revokeSessionsSchema>;
+export const revokeGuestLinksSchema = z.union([z.object({ customerEmail: z.email() }).strict(), z.object({ recordId: z.uuid() }).strict()]);
+export type RevokeGuestLinksInput = z.infer<typeof revokeGuestLinksSchema>;
+export const revokedCountSchema = z.object({ revoked: z.number().int().min(0) });
+export type RevokedCount = z.infer<typeof revokedCountSchema>;

@@ -414,6 +414,13 @@
       "when": 1792433726590,
       "tag": "0058_staff_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792772609016,
+      "tag": "0059_incident_switches",
+      "breakpoints": true
     }
   ]
 }

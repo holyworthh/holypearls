@@ -374,6 +374,46 @@ export async function savePaymentSettings(db: Database, actor: ActorContext, inp
   return getPaymentSettings(db, providerConfigured);
 }
 
+/** Incident switch (TECH-06 §14): the same switch as payment settings, with its own audit wording. */
+export async function setOnlinePayments(db: Database, actor: ActorContext, on: boolean): Promise<void> {
+  requireRecentMfa(actor);
+  await db.transaction(async (tx) => {
+    const [before] = await tx.select().from(schema.paymentSettings).where(eq(schema.paymentSettings.id, 1)).for("update");
+    if (!before) throw new AppError("NOT_FOUND");
+    if (before.onlinePayments === on) return;
+    await tx
+      .update(schema.paymentSettings)
+      .set({ onlinePayments: on, version: sql`${schema.paymentSettings.version} + 1`, updatedByUserId: actor.type === "user" ? actor.session.userId : null })
+      .where(eq(schema.paymentSettings.id, 1));
+    await recordAudit(tx, actor, {
+      action: "payment.settings_changed",
+      summary: on ? "Online payments resumed (incident switch)" : "Online payments paused (incident switch)",
+      recordType: "payment_settings",
+      recordId: null,
+      before: { onlinePayments: before.onlinePayments },
+      after: { onlinePayments: on },
+      permission: "SECURITY_ADMIN",
+    });
+  });
+}
+
+/** What the payment alerts need (TECH-07 §12 A6, A7): reviews opened in the last hour, attempts started in 6 hours, and the last Paystack webhook. */
+export async function paymentWatch(db: Database, now: Date): Promise<{ newReviewIds: string[]; attemptsLast6h: number; lastWebhookAt: Date | null }> {
+  const hourAgo = new Date(now.getTime() - 3_600_000);
+  const sixHoursAgo = new Date(now.getTime() - 6 * 3_600_000);
+  const reviews = await db.select({ id: schema.paymentReviews.id }).from(schema.paymentReviews).where(and(eq(schema.paymentReviews.status, "OPEN"), sql`${schema.paymentReviews.createdAt} >= ${hourAgo}`));
+  const [attempts] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.paymentAttempts).where(sql`${schema.paymentAttempts.createdAt} >= ${sixHoursAgo}`);
+  const [last] = await db.select({ at: sql<Date | null>`max(${schema.paystackEvents.receivedAt})` }).from(schema.paystackEvents);
+  return { newReviewIds: reviews.map((row) => row.id), attemptsLast6h: attempts!.n, lastWebhookAt: last?.at ? new Date(last.at) : null };
+}
+
+/** When payments were paused. */
+export async function paymentsPausedSince(db: Database): Promise<Date | null> {
+  const [row] = await db.select({ on: schema.paymentSettings.onlinePayments, at: schema.paymentSettings.updatedAt }).from(schema.paymentSettings).where(eq(schema.paymentSettings.id, 1));
+  // ponytail: since = last settings change.
+  return row && !row.on ? row.at : null;
+}
+
 /** Payments export (T13-03b): every attempt started in the range. No customer details (those are personal data). */
 export async function paymentsForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
   const rows = await db

@@ -50,6 +50,8 @@ import { AdminHelpController, HelpController } from "./platform/help.controller.
 import { NotificationsController } from "./platform/notifications.controller.js";
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
+import { IncidentsAdminController } from "./platform/incidents.controller.js";
+import { readOnlyGuard } from "./platform/incidents.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
 import { type FrontEnds, frontEndBoundary, separated, surfaceOf } from "./identity/front-ends.js";
@@ -151,6 +153,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       ExportsController,
       RefundsController,
       StaffAdminController,
+      IncidentsAdminController,
       StaffInvitationsController,
       PublicPricingController,
       CartController,
@@ -256,6 +259,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   });
   app.use(frontEndBoundary(fronts));
   app.use(originCheck(fronts));
+  app.use(readOnlyGuard(options.db));
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.getActor = () => getActor(request);
     next();
