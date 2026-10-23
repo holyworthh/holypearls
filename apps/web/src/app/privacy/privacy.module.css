@@ -21,6 +21,7 @@
 
 .title {
   margin: 0;
+  font-family: var(--hp-font-ui);
   color: var(--hp-ink);
   font-size: var(--hp-text-title-sm);
   font-weight: var(--hp-weight-semibold);
@@ -53,6 +54,7 @@
 
 .panelTitle {
   margin: 0;
+  font-family: var(--hp-font-ui);
   color: var(--hp-ink);
   font-size: var(--hp-text-emphasis);
   font-weight: var(--hp-weight-semibold);
@@ -66,6 +68,7 @@
 }
 
 .link {
+  text-decoration: none;
   color: var(--hp-accent);
   font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-semibold);
