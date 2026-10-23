@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-// E2E_WEB_PORT and E2E_ADMIN_PORT let several checkouts run the suite on one machine.
+// E2E_WEB_PORT and E2E_ADMIN_PORT let two test runs share one machine.
 const port = Number(process.env.E2E_WEB_PORT ?? 3100);
 const origin = `http://localhost:${port}`;
 // The staff admin, its own app on its own origin (ADR-017).

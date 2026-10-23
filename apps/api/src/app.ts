@@ -50,6 +50,7 @@ import { AdminHelpController, HelpController } from "./platform/help.controller.
 import { NotificationsController } from "./platform/notifications.controller.js";
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
+import { IdentifiedGuard } from "./identity/identified.guard.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
 import { type FrontEnds, frontEndBoundary, separated, surfaceOf } from "./identity/front-ends.js";
@@ -217,6 +218,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       { provide: LOGGER, useValue: options.logger },
       { provide: IDENTITY, useValue: options.identity },
       { provide: APP_FILTER, useFactory: (logger: Logger) => new ErrorShapeFilter(logger), inject: [LOGGER] },
+      { provide: APP_GUARD, useValue: new IdentifiedGuard() },
       { provide: APP_GUARD, useValue: new RateLimitGuard(limiter) },
       { provide: APP_INTERCEPTOR, useValue: new IdempotencyInterceptor(options.db, now) },
     ],
@@ -244,6 +246,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
     response.setHeader("referrer-policy", "no-referrer");
     response.setHeader("content-security-policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     response.setHeader("x-frame-options", "DENY");
+    response.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
     response.setHeader("cross-origin-resource-policy", "same-site");
     if (options.webOrigin.startsWith("https:")) response.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
     next();

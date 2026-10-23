@@ -1,6 +1,7 @@
 import "@holypearls/ui/styles.css";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Instrument_Sans, Open_Sans, Young_Serif } from "next/font/google";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { Providers } from "./providers";
 
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
 };
 
 /** The staff admin (ADR-017). */
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // Reading the request headers forces per-request rendering, so Next can put this request's nonce on its scripts (TECH-06 §9).
+  await headers();
   return (
     <html lang="en" className={`${display.variable} ${ui.variable} ${mono.variable} ${wordmark.variable}`}>
       <body>

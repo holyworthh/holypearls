@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { createStoreSchema, updateAllowanceSchema, storeActionSchema, storePickSchema, storeProcurementSchema, updateStoreSchema, collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
@@ -217,6 +218,7 @@ export class CollectionInviteController {
   constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
 
   @Post("invite")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async invite(@Req() request: Request, @Body(new ZodValidationPipe(inviteSchema)) body: z.infer<typeof inviteSchema>) {
@@ -225,6 +227,7 @@ export class CollectionInviteController {
 
   /** Join (T12-01b): a guest session for this participant only, and their personal link by email. */
   @Post("join")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async join(@Req() request: Request, @Res({ passthrough: true }) response: Response, @Body(new ZodValidationPipe(joinCollectionSchema)) body: z.infer<typeof joinCollectionSchema>) {

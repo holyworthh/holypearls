@@ -51,6 +51,8 @@ export const adminShipmentSchema = customerShipmentSchema.extend({
     .nullable(),
   /** Whether "Book courier" applies: a courier-priced order's shipment that has no label yet. */
   bookable: z.boolean(),
+  bookingWarning: z.string().nullable(),
+  bookingNeedsReconciliation: z.boolean(),
   history: z.array(z.object({ from: shipmentStatusSchema.nullable(), status: shipmentStatusSchema, note: z.string().nullable(), by: z.string(), at: isoDate })),
 });
 export type AdminShipment = z.infer<typeof adminShipmentSchema>;
@@ -99,7 +101,16 @@ export const updateShipmentSchema = z.object({
 });
 
 /** Book a shipment with Shipbubble (T08-06). */
-export const bookCourierSchema = z.object({ version: z.number().int() });
+export const bookCourierSchema = z.object({
+  version: z.number().int(),
+  reconciliation: z.object({
+    outcome: z.enum(["BOOKED", "NOT_BOOKED"]),
+    orderId: z.string().trim().min(1).max(200).optional(),
+    trackingUrl: z.url().max(500).nullable().optional(),
+    trackingCode: z.string().trim().max(120).nullable().optional(),
+    note: z.string().trim().min(10, "Describe how you checked this booking in Shipbubble").max(1000),
+  }).refine(input => input.outcome !== "BOOKED" || Boolean(input.orderId), { path: ["orderId"], message: "Enter the existing Shipbubble order ID" }).optional(),
+});
 
 /* ---- Reorder (Pen 128) ---- */
 

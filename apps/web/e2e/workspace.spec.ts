@@ -146,7 +146,10 @@ test("the overview: Needs Attention first; a switcher only for people with more 
   await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Ngozi\.$/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
-  if (desktop(page)) await expect(page.getByLabel("Location")).toBeVisible();
+  if (desktop(page)) {
+    await expect(page.getByLabel("Location")).toBeVisible();
+    await expect(page.getByPlaceholder("Search templates, orders, projects, groups and assets")).toBeVisible();
+  }
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
@@ -168,6 +171,7 @@ test("the overview: Needs Attention first; a switcher only for people with more 
   await page.goto(page.url().replace(/\/billing.*$/, "/search?q=zzzz-nothing"));
   await expect(page.getByText('No results for “zzzz-nothing” in your locations.')).toBeVisible();
   await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
 
   // One location: no switcher, and billing is for Owners and Admins.
   await page.context().clearCookies();
@@ -292,6 +296,13 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
   await expect(page.getByText("APPROVED", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Edit controls" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Order from template" })).toHaveCount(0);
+  await page.goto(workspace);
+  await expect(page.getByRole("heading", { name: "Approved templates" })).toBeVisible();
+  const cards = page.getByRole("list", { name: "Templates" }).getByRole("link");
+  expect(await cards.count()).toBeGreaterThan(0);
+  expect(await cards.evaluateAll((entries) => entries.flatMap((card) => [...card.querySelectorAll("span")].filter((span) => span.getBoundingClientRect().right > card.getBoundingClientRect().right + 1).map((span) => span.textContent)))).toEqual([]);
+  expect(await page.getByRole("main").getByRole("link", { name: "View all", exact: true }).evaluateAll((links) => links.filter((link) => link.getBoundingClientRect().height < 44).map((link) => link.textContent))).toEqual([]);
+  await expectNoHorizontalScroll(page);
 });
 
 test("approvals: the Owner turns on approval; a Lekki manager's template order waits; the Approver approves it", async ({ page }) => {

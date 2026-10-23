@@ -1,3 +1,5 @@
+import { detachConfigurationFile } from "../configuration/drafts.js";
+import { detachProjectFile } from "../projects/projects.js";
 import { and, type Database, eq, inArray, isNull, lt, or, schema, sql } from "@holypearls/db";
 import { cancelCheckoutPayments } from "../payments/payments.js";
 
@@ -61,13 +63,8 @@ export async function applyRetention(db: Database, now: Date) {
     if (ids.length) {
       await tx.delete(schema.configurationPersonalizationRows).where(inArray(schema.configurationPersonalizationRows.configurationId, ids));
       // Their files become unattached, so the file clean-up removes them after its 7 days.
-      const links = await tx.delete(schema.configurationFiles).where(inArray(schema.configurationFiles.configurationId, ids)).returning({ fileId: schema.configurationFiles.fileId });
-      if (links.length) {
-        await tx
-          .update(schema.files)
-          .set({ ownerType: null, ownerId: null, attachedAt: null })
-          .where(and(inArray(schema.files.id, links.map((link) => link.fileId)), sql`not exists (select 1 from configuration_files cf where cf.file_id = ${schema.files.id})`));
-      }
+      const links = await tx.delete(schema.configurationFiles).where(inArray(schema.configurationFiles.configurationId, ids)).returning({ fileId: schema.configurationFiles.fileId, ownerId: schema.configurationFiles.configurationId });
+      for (const link of links) await detachConfigurationFile(tx, link.fileId, link.ownerId);
     }
     return ids.length;
   });
@@ -81,13 +78,8 @@ export async function applyRetention(db: Database, now: Date) {
       .returning({ id: schema.projects.id });
     const ids = expiredProjects.map((project) => project.id);
     if (ids.length) {
-      const links = await tx.delete(schema.projectFiles).where(inArray(schema.projectFiles.projectId, ids)).returning({ fileId: schema.projectFiles.fileId });
-      if (links.length) {
-        await tx
-          .update(schema.files)
-          .set({ ownerType: null, ownerId: null, attachedAt: null })
-          .where(and(inArray(schema.files.id, links.map((link) => link.fileId)), eq(schema.files.ownerType, "PROJECT")));
-      }
+      const links = await tx.delete(schema.projectFiles).where(inArray(schema.projectFiles.projectId, ids)).returning({ fileId: schema.projectFiles.fileId, ownerId: schema.projectFiles.projectId });
+      for (const link of links) await detachProjectFile(tx, link.fileId, link.ownerId);
     }
     return ids.length;
   });
