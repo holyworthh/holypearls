@@ -233,10 +233,8 @@ export async function notificationsForPerson(db: Database, subject: PersonSubjec
 
 /** Privacy erasure (T15-03): the log of what was sent stays, without the address or the sealed data (it may hold links and codes). */
 export async function eraseNotifications(tx: Transaction, subject: PersonSubject) {
-  const rows = await tx
+  await tx
     .update(schema.notifications)
     .set({ recipient: subject.placeholder, sealedData: null, resendable: false })
-    .where(or(ofPerson(subject, schema.notifications.customerId), eq(schema.notifications.recipient, subject.email))!)
-    .returning({ id: schema.notifications.id });
-  return rows.length;
+    .where(or(ofPerson(subject, schema.notifications.customerId), eq(schema.notifications.recipient, subject.email))!);
 }

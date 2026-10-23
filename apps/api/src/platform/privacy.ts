@@ -27,11 +27,6 @@ import { eraseNotifications, notificationsForPerson } from "./notifications.js";
  * both are audited without the email. The log of requests is the audit log.
  */
 
-function requirePrivacyPermission(actor: ActorContext) {
-  const granted = actor.type === "user" && actor.staff?.permissions.has("EXPORT_PERSONAL_DATA");
-  if (!granted) throw new AppError("FORBIDDEN", { context: { reason: "PERMISSION_REQUIRED", permission: "EXPORT_PERSONAL_DATA" } });
-}
-
 /** Reasons not to erase now, in the order they are shown. */
 async function blockers(db: Database | Transaction, subject: PersonSubject) {
   const found = [await staffBlocker(db, subject), await memberBlocker(db, subject), await openOrdersBlocker(db, subject), await paymentBlocker(db, subject)];
@@ -63,7 +58,6 @@ const NONE: PrivacyPerson = { found: false, erasedAt: null, hasAccount: false, m
 
 /** What the admin page shows before anything is changed. */
 export async function lookupPerson(db: Database, actor: ActorContext, email: string): Promise<PrivacyPerson> {
-  requirePrivacyPermission(actor);
   const subject = await findPerson(db, email);
   if (!subject) return NONE;
   const data = await collect(db, subject, actor.now);
@@ -80,7 +74,6 @@ export async function lookupPerson(db: Database, actor: ActorContext, email: str
 
 /** A JSON copy of the person's data. Built at once: one person's data is small. The audit entry has no email. */
 export async function exportPerson(db: Database, actor: ActorContext, email: string) {
-  requirePrivacyPermission(actor);
   requireRecentMfa(actor);
   const subject = await findPerson(db, email);
   if (!subject) throw new AppError("NOT_FOUND", { message: "No personal data is held under this email." });
@@ -98,7 +91,6 @@ export async function exportPerson(db: Database, actor: ActorContext, email: str
 
 /** Erases and anonymizes in one transaction; erasing again finds nothing and changes nothing. */
 export async function erasePerson(db: Database, actor: ActorContext, email: string): Promise<PrivacyPerson> {
-  requirePrivacyPermission(actor);
   requireRecentMfa(actor);
   const subject = await findPerson(db, email);
   if (!subject) return NONE;

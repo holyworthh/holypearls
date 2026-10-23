@@ -445,5 +445,4 @@ export async function eraseInvitations(tx: Transaction, subject: PersonSubject, 
       .set({ emailNormalized: erasedEmail(row.id), ...(row.status === "PENDING" ? { status: "REVOKED" as const, revokedAt: now } : {}) })
       .where(eq(schema.invitations.id, row.id));
   }
-  return rows.length;
 }

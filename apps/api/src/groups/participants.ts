@@ -6,7 +6,7 @@ import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, ensureGuestCustomer, ERASED_NAME, ofPerson, type PersonSubject, sha256, startGuestSession } from "../identity/customers.js";
 import type { OrganizationDeps } from "../organizations/team.js";
 import { queueEmail } from "../platform/notifications.js";
-import { inviteView } from "./collections.js";
+import { clearImportRows, inviteView } from "./collections.js";
 
 /*
  * The participant flow (T12-01b; PRD-05 B2B-FR-060–064; Pen 31, 76). No
@@ -249,6 +249,5 @@ export async function eraseParticipants(tx: Transaction, subject: PersonSubject)
     .set({ name: ERASED_NAME, email: subject.placeholder })
     .where(ofParticipant(subject))
     .returning({ id: schema.participants.id });
-  if (rows.length) await tx.update(schema.importRows).set({ raw: [], values: {} }).where(inArray(schema.importRows.participantId, rows.map((row) => row.id)));
-  return rows.length;
+  await clearImportRows(tx, rows.map((row) => row.id));
 }

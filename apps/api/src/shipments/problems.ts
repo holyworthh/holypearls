@@ -213,10 +213,8 @@ export async function problemsForPerson(db: Database, subject: PersonSubject) {
 /** Privacy erasure (T15-03): free text loses emails and phone numbers; the report stays as the order's history. */
 export async function eraseProblems(tx: Transaction, subject: PersonSubject) {
   const reports = await tx.select({ id: schema.problemReports.id, description: schema.problemReports.description }).from(schema.problemReports).where(ofPerson(subject, schema.problemReports.customerId));
-  for (const report of reports) {
-    await tx.update(schema.problemReports).set({ description: String(withoutPersonalData(report.description)) }).where(eq(schema.problemReports.id, report.id));
-    const replies = await tx.select({ id: schema.problemReplies.id, body: schema.problemReplies.body }).from(schema.problemReplies).where(eq(schema.problemReplies.problemReportId, report.id));
-    for (const reply of replies) await tx.update(schema.problemReplies).set({ body: String(withoutPersonalData(reply.body)) }).where(eq(schema.problemReplies.id, reply.id));
-  }
-  return reports.length;
+  if (!reports.length) return;
+  for (const report of reports) await tx.update(schema.problemReports).set({ description: String(withoutPersonalData(report.description)) }).where(eq(schema.problemReports.id, report.id));
+  const replies = await tx.select({ id: schema.problemReplies.id, body: schema.problemReplies.body }).from(schema.problemReplies).where(inArray(schema.problemReplies.problemReportId, reports.map((report) => report.id)));
+  for (const reply of replies) await tx.update(schema.problemReplies).set({ body: String(withoutPersonalData(reply.body)) }).where(eq(schema.problemReplies.id, reply.id));
 }

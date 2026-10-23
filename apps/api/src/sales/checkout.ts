@@ -441,6 +441,5 @@ export async function eraseCheckouts(tx: Transaction, subject: PersonSubject, no
     await tx.update(schema.checkouts).set({ status: "ABANDONED" }).where(inArray(schema.checkouts.id, closing));
     await cancelCheckoutPayments(tx, closing);
   }
-  const purged = await tx.update(schema.checkouts).set({ contact: null, address: null, billing: null, personalDataPurgedAt: now }).where(own).returning({ id: schema.checkouts.id });
-  return purged.length;
+  await tx.update(schema.checkouts).set({ contact: null, address: null, billing: null, personalDataPurgedAt: now }).where(own);
 }

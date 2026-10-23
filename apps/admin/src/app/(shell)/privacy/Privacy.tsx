@@ -1,7 +1,7 @@
 "use client";
 
 import { type PrivacyPerson, privacyPersonSchema } from "@holypearls/contracts";
-import { Button, Checkbox, Dialog, FormField, Notice, PermissionDenied, StatusChip, TextField } from "@holypearls/ui";
+import { Button, Checkbox, Dialog, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorCode, errorReason, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { type FormEvent, useRef, useState } from "react";
 import { z } from "zod";
@@ -24,7 +24,6 @@ export function Privacy() {
   const [person, setPerson] = useState<PrivacyPerson | null>(null);
   const [looked, setLooked] = useState("");
   const [message, setMessage] = useState<Message | null>(null);
-  const [denied, setDenied] = useState(false);
   const [busy, setBusy] = useState<"lookup" | Step | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [stepUp, setStepUp] = useState<Step | null>(null);
@@ -34,7 +33,6 @@ export function Privacy() {
   const fail = (problem: unknown, step?: Step) => {
     const code = errorCode(problem);
     if (code === "RECENT_MFA_REQUIRED" && step) return setStepUp(step);
-    if (code === "FORBIDDEN" && errorReason(problem) === "PERMISSION_REQUIRED") return setDenied(true);
     const reason = errorReason(problem);
     if (code === "RULE_FAILED" && reason) return setMessage({ tone: "error", title: "This can't be erased yet", text: problem instanceof Error ? problem.message : "A rule stops it." });
     setMessage({ tone: "error", title: "That didn't work", text: "Something went wrong on our side. Try again." });
@@ -96,7 +94,6 @@ export function Privacy() {
     }
   };
 
-  if (denied) return <PermissionDenied permission="EXPORT_PERSONAL_DATA" />;
   const erased = person?.erasedAt != null;
   const blocked = (person?.blockers.length ?? 0) > 0;
 

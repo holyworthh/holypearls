@@ -15,7 +15,7 @@ import { RateLimit } from "./rate-limit.js";
  * idempotent-cached: its response is personal data.
  */
 @Controller("admin/privacy")
-@UseGuards(StaffGuard())
+@UseGuards(StaffGuard("EXPORT_PERSONAL_DATA"))
 export class PrivacyController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 

@@ -590,5 +590,4 @@ export async function eraseQuotes(tx: Transaction, subject: PersonSubject) {
   }
   const notes = await tx.select({ id: schema.quoteChangeRequests.id, note: schema.quoteChangeRequests.note }).from(schema.quoteChangeRequests).where(ofPerson(subject, schema.quoteChangeRequests.customerId));
   for (const row of notes) await tx.update(schema.quoteChangeRequests).set({ note: String(withoutPersonalData(row.note)) }).where(eq(schema.quoteChangeRequests.id, row.id));
-  return rows.length;
 }

@@ -304,6 +304,5 @@ export async function helpRequestsForPerson(db: Database, subject: PersonSubject
 
 /** Privacy erasure (T15-03): help requests are deleted with their replies; they hold only contact details and a message. */
 export async function eraseHelpRequests(tx: Transaction, subject: PersonSubject) {
-  const rows = await tx.delete(schema.helpRequests).where(ofPerson(subject, schema.helpRequests.customerId, schema.helpRequests.userId)).returning({ id: schema.helpRequests.id });
-  return rows.length;
+  await tx.delete(schema.helpRequests).where(ofPerson(subject, schema.helpRequests.customerId, schema.helpRequests.userId));
 }

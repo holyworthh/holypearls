@@ -336,6 +336,11 @@ export async function purgeParticipantContacts(db: Database, now: Date) {
     where email <> '' and collection_id in (select collection_id from done)
     returning id`);
   const ids = result.rows.map((row) => row.id);
-  if (ids.length) await db.update(schema.importRows).set({ raw: [], values: {} }).where(inArray(schema.importRows.participantId, ids));
+  await clearImportRows(db, ids);
   return ids.length;
+}
+
+/** Imported cells and values hold the person's name and email: emptied with the participant's contact. */
+export async function clearImportRows(db: Database | Transaction, participantIds: string[]) {
+  if (participantIds.length) await db.update(schema.importRows).set({ raw: [], values: {} }).where(inArray(schema.importRows.participantId, participantIds));
 }

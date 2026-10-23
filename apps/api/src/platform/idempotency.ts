@@ -95,9 +95,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
   }
 }
 
-
 /** Privacy erasure (T15-03): saved replies (kept 24 hours) that carry the email, such as a submitted project or a checkout. */
 export async function eraseIdempotencyKeys(tx: Transaction, email: string) {
-  const rows = await tx.delete(schema.idempotencyKeys).where(sql`${schema.idempotencyKeys.responseBody}::text ilike ${`%${email.replace(/[%_\\]/g, (char) => `\\${char}`)}%`}`).returning({ key: schema.idempotencyKeys.key });
-  return rows.length;
+  await tx.delete(schema.idempotencyKeys).where(sql`${schema.idempotencyKeys.responseBody}::text ilike ${`%${email.replace(/[%_\\]/g, (char) => `\\${char}`)}%`}`);
 }

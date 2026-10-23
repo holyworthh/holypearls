@@ -635,5 +635,4 @@ export async function eraseProjects(tx: Transaction, subject: PersonSubject) {
       })
       .where(eq(schema.projects.id, row.id));
   }
-  return rows.length;
 }

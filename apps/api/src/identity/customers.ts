@@ -369,11 +369,10 @@ export const ERASED_NAME = "Erased customer";
 export const ERASED_DOMAIN = "erased.invalid";
 /** A unique stand-in email: customers.email_normalized and users.email are unique. */
 export const erasedEmail = (id: string) => `erased+${id}@${ERASED_DOMAIN}`;
-const NIL_UUID = "00000000-0000-0000-0000-000000000000";
 
 /** Rows of a table that belong to the person: by customer id, or (when the table has one) by owner account. */
 export const ofPerson = (subject: PersonSubject, customerColumn: AnyColumn, userColumn?: AnyColumn) =>
-  or(inArray(customerColumn, subject.customerIds.length ? subject.customerIds : [NIL_UUID]), userColumn && subject.userId ? eq(userColumn, subject.userId) : undefined)!;
+  or(inArray(customerColumn, subject.customerIds), userColumn && subject.userId ? eq(userColumn, subject.userId) : undefined)!;
 
 /** Finds the customer rows and account behind an email, or null when HolyPearls holds nothing under it. */
 export async function findPerson(db: Db, email: string): Promise<PersonSubject | null> {
@@ -432,12 +431,9 @@ export async function recordMarketingConsent(db: Db, customerId: string, now: Da
 
 /** Last step of an erasure: the customer rows, the account and everything that signs it in. */
 export async function eraseIdentity(tx: Transaction, subject: PersonSubject, now: Date) {
-  if (subject.customerIds.length) {
-    await tx.delete(schema.guestLinks).where(inArray(schema.guestLinks.customerId, subject.customerIds));
-    await tx.delete(schema.emailCodes).where(inArray(schema.emailCodes.customerId, subject.customerIds));
-  }
-  const customers = await tx.select({ id: schema.customers.id }).from(schema.customers).where(ofPerson(subject, schema.customers.id, schema.customers.userId));
-  for (const { id } of customers) {
+  await tx.delete(schema.guestLinks).where(inArray(schema.guestLinks.customerId, subject.customerIds));
+  await tx.delete(schema.emailCodes).where(inArray(schema.emailCodes.customerId, subject.customerIds));
+  for (const id of subject.customerIds) {
     await tx
       .update(schema.customers)
       .set({ email: erasedEmail(id), emailNormalized: erasedEmail(id), name: null, phone: null, marketingConsentAt: null, emailVerifiedAt: null, userId: null, erasedAt: now, updatedAt: now })
@@ -457,5 +453,5 @@ export async function eraseIdentity(tx: Transaction, subject: PersonSubject, now
       .set({ name: ERASED_NAME, email: erasedEmail(subject.userId), emailVerified: false, image: null, pendingEmail: null, pendingEmailAt: null, updatedAt: now })
       .where(eq(schema.users.id, subject.userId));
   }
-  return customers.length;
+  return subject.customerIds.length;
 }

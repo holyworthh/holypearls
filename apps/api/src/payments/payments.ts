@@ -564,8 +564,7 @@ export async function paymentAttemptsForPerson(db: Database, subject: PersonSubj
 export async function erasePaymentEvents(tx: Tx, subject: PersonSubject) {
   const rows = await subjectAttempts(tx).where(ofSubject(subject));
   const references = rows.map(({ attempt }) => attempt.reference);
-  if (!references.length) return 0;
+  if (!references.length) return;
   const events = await tx.select({ id: schema.paystackEvents.id, rawBody: schema.paystackEvents.rawBody }).from(schema.paystackEvents).where(inArray(schema.paystackEvents.reference, references));
   for (const event of events) await tx.update(schema.paystackEvents).set({ rawBody: scrubJsonText(event.rawBody) }).where(eq(schema.paystackEvents.id, event.id));
-  return events.length;
 }
