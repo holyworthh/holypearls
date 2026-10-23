@@ -35,3 +35,5 @@ minimumReleaseAgeExclude:
 overrides:
   # GHSA-68fv-2mgg-jv7q (high): reached through next, postcss and sanitize-html.
   source-map-js: ^1.2.2
+  # GHSA-587h-7wmj-h5pm (high): reached through better-auth and vitest.
+  vite: ^8.3.3
