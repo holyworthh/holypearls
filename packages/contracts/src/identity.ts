@@ -71,6 +71,11 @@ export type AdminMe = z.infer<typeof adminMeSchema>;
 
 /* Sign-in requests the web app sends to /api/v1/auth (the IdentityAdapter's routes). */
 
+/** A path on this site: one leading slash, never "//", no backslash or control characters (TECH-06 §2). Browsers read "/\host" and "/<TAB>/host" as "//host". */
+export const RELATIVE_PATH = /^\/(?![/\\])[^\\\p{Cc}]*$/u;
+export const isRelativePath = (value: string) => RELATIVE_PATH.test(value);
+export const relativePathSchema = z.string().max(2048).regex(RELATIVE_PATH);
+
 export const signInEmailRequestSchema = z.object({
   email: z.email("Enter an email like name@example.com"),
   password: z.string().min(1, "Enter your password"),
@@ -78,8 +83,8 @@ export const signInEmailRequestSchema = z.object({
 
 export const magicLinkRequestSchema = z.object({
   email: z.email("Enter an email like name@example.com"),
-  callbackURL: z.string().startsWith("/"),
-  errorCallbackURL: z.string().startsWith("/").optional(),
+  callbackURL: relativePathSchema,
+  errorCallbackURL: relativePathSchema.optional(),
 });
 
 const newPassword = z.string().min(12, "Use at least 12 characters").max(128, "Use 128 characters or fewer");
@@ -89,18 +94,18 @@ export const signUpRequestSchema = z.object({
   name: z.string().trim().min(1, "Enter your name").max(120, "Use 120 characters or fewer"),
   email: z.email("Enter an email like name@example.com"),
   password: newPassword,
-  callbackURL: z.string().startsWith("/"),
+  callbackURL: relativePathSchema,
 });
 
 export const sendVerificationRequestSchema = z.object({
   email: z.email("Enter an email like name@example.com"),
-  callbackURL: z.string().startsWith("/"),
+  callbackURL: relativePathSchema,
 });
 
 /** Asks for a reset link (Pen frame 89). The answer is the same whether or not an account uses the email. */
 export const passwordResetRequestSchema = z.object({
   email: z.email("Enter an email like name@example.com"),
-  redirectTo: z.string().startsWith("/"),
+  redirectTo: relativePathSchema,
 });
 
 export const newPasswordRequestSchema = z.object({ token: z.string().min(1), newPassword });

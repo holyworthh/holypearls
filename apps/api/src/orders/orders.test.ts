@@ -164,6 +164,15 @@ describe("the receipt and its email (PAY-FR-006, TECH-05 §9)", () => {
     expect((pdf.body as Buffer).subarray(0, 5).toString()).toBe("%PDF-");
     expectHidden(await browser().get(`/v1/orders/${orderId}/receipts/${receipt.id}/pdf`));
   });
+
+  it("never serves another order's receipt under your own order's path (TECH-03 §17)", async () => {
+    const mine = await paidCheckout();
+    const theirs = await paidCheckout();
+    const theirReceipt = orderSchema.parse((await theirs.b.get(`/v1/orders/${theirs.orderId}`)).body).receipts[0]!.id;
+    expect((await theirs.b.get(`/v1/orders/${theirs.orderId}/receipts/${theirReceipt}`)).status).toBe(200);
+    expectHidden(await mine.b.get(`/v1/orders/${mine.orderId}/receipts/${theirReceipt}`));
+    expectHidden(await mine.b.get(`/v1/orders/${mine.orderId}/receipts/${theirReceipt}/pdf`));
+  });
 });
 
 describe("payments admin (OPS-FR-041, 045)", () => {

@@ -216,6 +216,13 @@ describe("the customer's decisions (FUL-FR-002–004)", () => {
     expectHidden(await as(harness, actors.customerChidi!).get(`/v1/orders/${orderId}/proofs/${proofId}`));
   });
 
+  it("never serves another order's proof under your own order's path (TECH-03 §17)", async () => {
+    const mine = await awaiting();
+    const theirs = await awaiting();
+    expect((await theirs.b.get(`/v1/orders/${theirs.orderId}/proofs/${theirs.proofId}`)).status).toBe(200);
+    expectHidden(await mine.b.get(`/v1/orders/${mine.orderId}/proofs/${theirs.proofId}`));
+  });
+
   it("needs the tick and an email code to approve; approval is kept and queues the paid item (T07-01)", async () => {
     const { orderId, proofId, contact } = await awaiting();
     const { guest, code } = await guestFromProofEmail(orderId, contact.email);

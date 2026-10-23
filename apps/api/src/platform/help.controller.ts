@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   type AdminHelpRequest,
@@ -30,6 +31,7 @@ export class HelpController {
   constructor(@Inject(HELP_DEPS) private readonly deps: HelpDepsToken) {}
 
   @Post()
+  @Public()
   @RateLimit("CONTACT")
   async create(
     @Req() request: Request,

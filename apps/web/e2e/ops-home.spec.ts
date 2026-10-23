@@ -12,7 +12,7 @@ test("operations home: each queue opens its filtered list; finance sees only pay
   test.setTimeout(150_000);
   // Some work, so the cards show even when this spec runs alone ("All queues are clear" hides them).
   const help = await page.request.post("/api/v1/help-requests", {
-    headers: { origin: "http://localhost:3100", "idempotency-key": `e2e_${Date.now()}_ops_home_help` },
+    headers: { origin: `http://localhost:${process.env.E2E_WEB_PORT ?? 3100}`, "idempotency-key": `e2e_${Date.now()}_ops_home_help` },
     data: { message: "Ops home browser test (TEST DATA)", email: "ops.home.e2e@example.com", name: "Ops Home (TEST DATA)", context: { page: { path: "/contact", title: "Contact" } } },
   });
   expect(help.status(), await help.text()).toBe(201);

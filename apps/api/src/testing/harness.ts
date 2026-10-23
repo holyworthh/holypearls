@@ -18,6 +18,9 @@ import { accountEvents } from "../identity/account.js";
 import { createLogger } from "../logger.js";
 
 export const TEST_WEB_ORIGIN = "http://localhost:3000";
+/** The two front ends' proxy secrets, for tests of separated front ends and of the visitor's address. */
+export const TEST_WEB_PROXY_SECRET = "web-proxy-secret-for-tests-0123456789ab";
+export const TEST_ADMIN_PROXY_SECRET = "admin-proxy-secret-for-tests-0123456789";
 export const TEST_AUTH_SECRET = "test-secret-for-api-tests-only-0123456789";
 export const TEST_SEAL_KEY = "test-seal-key-for-api-tests-only-0123456789";
 export const TEST_HELP_INBOX = "help@holypearls.test";

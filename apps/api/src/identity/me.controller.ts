@@ -5,6 +5,7 @@ import type { z } from "zod";
 import type { Request } from "express";
 import { and, type Database, eq, gt, schema, sql } from "@holypearls/db";
 import { recordAudit } from "../platform/audit.js";
+import { RateLimit } from "../platform/rate-limit.js";
 import { enforce, findOrHide } from "../platform/policy.js";
 import { DATABASE, IDENTITY } from "../tokens.js";
 import { canRevokeSession, findSessionForActor } from "./policies.js";
@@ -81,6 +82,7 @@ export class MeController {
   }
 
   @Patch("profile")
+  @RateLimit("COMMERCIAL_WRITE")
   async profile(@Req() request: Request, @Body(new ZodValidationPipe(profileInputSchema)) body: z.infer<typeof profileInputSchema>): Promise<Profile> {
     return updateProfile(this.db, requireUser(await request.getActor!()), body);
   }
@@ -113,6 +115,7 @@ export class MeController {
 
   /** Sign out everywhere, including this device. */
   @Post("sessions/revoke-all")
+  @RateLimit("COMMERCIAL_WRITE")
   @HttpCode(200)
   async revokeAll(@Req() request: Request) {
     const actor = requireUser(await request.getActor!());
@@ -129,6 +132,7 @@ export class MeController {
 
   /** Ends one of the person's own sessions. Anyone else's session is 404 (TECH-03 §12). */
   @Delete("sessions/:sessionId")
+  @RateLimit("COMMERCIAL_WRITE")
   async revokeOne(@Req() request: Request, @Param("sessionId", new ParseUUIDPipe()) sessionId: string) {
     const actor = requireUser(await request.getActor!());
     const session = await findOrHide(() => findSessionForActor(this.db, sessionId, actor));
