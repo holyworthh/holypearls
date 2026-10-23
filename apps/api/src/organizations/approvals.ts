@@ -1,12 +1,13 @@
 import type { ApprovalPolicy, Configuration, DecideOrderRequest, OrderRequest, OrderRequestList, OrderRequestStatus, UpdateApprovalPolicy } from "@holypearls/contracts";
 import { displayMoney } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, ne, schema, type Transaction } from "@holypearls/db";
 import { currentDesigns, heldQuotable, holdForApproval, quoteIn, releaseFromApproval } from "../configuration/drafts.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { enforce } from "../platform/policy.js";
+import { scopeFor, scopeWhere } from "./scope.js";
 import { findActiveMember, type Member, requireMember } from "./members.js";
 import { canSeeLocation, needsPermission } from "./policies.js";
 import type { OrganizationDeps } from "./team.js";
@@ -215,8 +216,8 @@ async function approversFor(db: Db, row: RequestRow) {
 
 /** Who sees a request: its requester; approvers and record viewers for its location (Buyers see only their own). */
 function canSee(member: Member, row: RequestRow) {
-  if (row.requestedByUserId === member.userId) return true;
   if (!(member.allLocations || member.locationIds.has(row.locationId))) return false;
+  if (row.requestedByUserId === member.userId) return true;
   return member.permissions.has("APPROVE_REQUESTS") || member.permissions.has("VIEW_RECORDS");
 }
 
@@ -251,10 +252,17 @@ async function summaries(db: Db, member: Member, rows: RequestRow[], policy: Pol
   }));
 }
 
-export async function listOrderRequests(db: Database, actor: ActorContext, organizationId: string): Promise<OrderRequestList> {
+export async function listOrderRequests(db: Database, actor: ActorContext, organizationId: string, options: { locationId?: string | null; needsDecision?: boolean; limit?: number } = {}): Promise<OrderRequestList> {
   const member = await requireMember(db, actor, organizationId);
   const policy = await policyFor(db, organizationId);
-  const rows = await db.select().from(schema.orderRequests).where(eq(schema.orderRequests.organizationId, organizationId)).orderBy(desc(schema.orderRequests.createdAt)).limit(200);
+  const scope = scopeFor(member, options.locationId);
+  if (member.permissions.has("APPROVE_REQUESTS")) scope.ownerUserId = null;
+  if (options.needsDecision && !member.permissions.has("APPROVE_REQUESTS")) return { requests: [], canApprove: false };
+  const rows = await db.select().from(schema.orderRequests).where(and(
+    scopeWhere({ organizationId: schema.orderRequests.organizationId, locationId: schema.orderRequests.locationId, ownerUserId: schema.orderRequests.requestedByUserId }, scope),
+    options.needsDecision ? eq(schema.orderRequests.status, "PENDING_APPROVAL") : undefined,
+    options.needsDecision && policy.separateRequesterApprover ? ne(schema.orderRequests.requestedByUserId, member.userId) : undefined,
+  )).orderBy(desc(schema.orderRequests.createdAt)).limit(options.limit ?? 200);
   const list = await summaries(db, member, rows.filter((row) => canSee(member, row)), policy);
   // Waiting for this person first, then the newest.
   list.sort((a, b) => Number(b.needsMyDecision) - Number(a.needsMyDecision));

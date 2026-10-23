@@ -61,15 +61,15 @@ export function PaymentSummary({ orderId, summary }: { orderId: string; summary:
       <dl className={s.totals}>
         <div>
           <dt>Total</dt>
-          <dd>{naira(summary.totalMinor)}</dd>
+          <dd>{naira(summary.totalMinor, summary.currency)}</dd>
         </div>
         <div>
           <dt>Paid</dt>
-          <dd>{naira(summary.paidMinor)}</dd>
+          <dd>{naira(summary.paidMinor, summary.currency)}</dd>
         </div>
         <div>
           <dt>Remaining</dt>
-          <dd>{naira(summary.remainingMinor)}</dd>
+          <dd>{naira(summary.remainingMinor, summary.currency)}</dd>
         </div>
       </dl>
       <ol className={s.parts}>
@@ -83,7 +83,7 @@ export function PaymentSummary({ orderId, summary }: { orderId: string; summary:
                 {part.paidAt ? ` · paid ${new Date(part.paidAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" })}` : ""}
               </span>
             </span>
-            <span className={s.amount}>{naira(part.amountMinor)}</span>
+            <span className={s.amount}>{naira(part.amountMinor, summary.currency)}</span>
             <StatusChip tone={STATUS[part.status]!.tone}>{STATUS[part.status]!.label}</StatusChip>
           </li>
         ))}
@@ -100,7 +100,7 @@ export function PaymentSummary({ orderId, summary }: { orderId: string; summary:
       ) : null}
       {summary.next && summary.next.payable ? (
         <button type="button" className={s.pay} onClick={() => void pay()} disabled={busy}>
-          {busy ? "Opening Paystack…" : `Pay ${summary.next.label.toLowerCase()} · ${naira(summary.next.amountMinor)}`}
+          {busy ? "Opening Paystack…" : `Pay ${summary.next.label.toLowerCase()} · ${naira(summary.next.amountMinor, summary.currency)}`}
         </button>
       ) : null}
       {summary.next && summary.next.status === "NOT_DUE" ? <p className={s.meta}>You can pay early. We&apos;ll email you when it&apos;s due.</p> : null}

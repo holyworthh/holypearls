@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { brandAssetSummarySchema, templateSummarySchema } from "./brand-assets.js";
+import { collectionSummarySchema } from "./groups.js";
 import { orderSummaryStatusSchema } from "./orders.js";
 import { customerPaymentStatusSchema } from "./payments.js";
 import { projectStatusSchema, quoteStatusSchema } from "./projects.js";
@@ -35,6 +37,7 @@ export type WorkspaceOrderView = z.infer<typeof workspaceOrderViewSchema>;
 
 export const workspaceOrderListSchema = z.object({
   orders: z.array(workspaceOrderSchema),
+  nextCursor: z.string().nullable(),
   counts: z.object({ attention: z.number().int(), active: z.number().int(), complete: z.number().int(), all: z.number().int() }),
 });
 export type WorkspaceOrderList = z.infer<typeof workspaceOrderListSchema>;
@@ -65,7 +68,7 @@ export type WorkspaceProjectList = z.infer<typeof workspaceProjectListSchema>;
 
 /** One Needs Attention row on the overview (Pen 28: proofs, balances, quotes). */
 export const attentionItemSchema = z.object({
-  kind: z.enum(["PROOF", "PAYMENT", "QUOTE"]),
+  kind: z.enum(["PROOF", "PAYMENT", "QUOTE", "APPROVAL"]),
   title: z.string(),
   detail: z.string(),
   actionLabel: z.string(),
@@ -80,15 +83,17 @@ export const workspaceOverviewSchema = z.object({
   activeProjects: z.array(workspaceProjectSchema),
   /** The person can place orders and projects for the organization. */
   canCreate: z.boolean(),
+  canManageCollections: z.boolean(),
+  templates: z.array(templateSummarySchema),
+  groups: z.array(collectionSummarySchema),
 });
 export type WorkspaceOverview = z.infer<typeof workspaceOverviewSchema>;
 
 /** Billing (Pen 130 · juM56): Owner and Admin only (B2B-FR-012). */
 export const workspaceBillingSchema = z.object({
-  currency: z.enum(["NGN", "USD"]),
-  dueMinor: minor,
-  paidThisYearMinor: minor,
-  receiptsThisYear: z.number().int(),
+  totals: z.array(z.object({ currency: z.enum(["NGN", "USD"]), dueMinor: minor, paidThisYearMinor: minor, receiptsThisYear: z.number().int() })),
+  receiptsNextCursor: z.string().nullable(),
+  needsResolution: z.number().int(),
   balancesDue: z.array(
     z.object({
       orderId: z.string(),
@@ -111,7 +116,7 @@ export const workspaceBillingSchema = z.object({
       currency: z.enum(["NGN", "USD"]),
       paidAt: isoDate,
       /** REFUNDED once a refund covers the order (refunds arrive with T13-05). */
-      status: z.enum(["PAID", "REFUNDED", "PARTIALLY_REFUNDED"]),
+      status: z.enum(["PAID", "REFUNDED", "PARTIALLY_REFUNDED", "PAYMENT_RESOLUTION_REQUIRED"]),
     }),
   ),
 });
@@ -120,6 +125,9 @@ export type WorkspaceBilling = z.infer<typeof workspaceBillingSchema>;
 /** Workspace search (Pen 130 · pjuPc): only records the person may see (B2B-FR-013). */
 export const workspaceSearchSchema = z.object({
   query: z.string(),
+  templates: z.array(templateSummarySchema),
+  groups: z.array(collectionSummarySchema),
+  assets: z.array(brandAssetSummarySchema),
   orders: z.array(workspaceOrderSchema),
   projects: z.array(workspaceProjectSchema),
 });

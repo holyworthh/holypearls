@@ -2,6 +2,7 @@ import { workspaceBillingSchema } from "@holypearls/contracts";
 import { ButtonLink, ErrorState, PageState, StatusChip } from "@holypearls/ui";
 import { naira } from "@holypearls/web-kit/money";
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import { PAYMENT_STATUS } from "../../../../components/orders/status";
 import { chosenLocation, loadWorkspace } from "../../../../components/workspace/load";
 import { SettingsTabs, WorkspaceShell } from "../../../../components/workspace/WorkspaceShell";
@@ -14,11 +15,21 @@ export const dynamic = "force-dynamic";
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Africa/Lagos" });
 
 /** Billing (Pen 130 · juM56 desktop, tDzhI 375): balances due, receipts and payment history. Owner and Admin only (B2B-FR-012). */
-export default async function WorkspaceBillingPage({ params, searchParams }: { params: Promise<{ organizationId: string }>; searchParams: Promise<{ location?: string }> }) {
+export default async function WorkspaceBillingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ organizationId: string }>;
+  searchParams: Promise<{ location?: string; cursor?: string }>;
+}) {
   const { organizationId } = await params;
   const { me, organization } = await loadWorkspace(organizationId, `/workspace/${organizationId}/billing`);
-  const location = chosenLocation(organization, (await searchParams).location);
-  const billing = organization.me.permissions.includes("VIEW_BILLING") ? await serverApi(`/v1/organizations/${organizationId}/billing${location ? `?location=${location}` : ""}`, workspaceBillingSchema) : null;
+  const query = await searchParams;
+  const location = chosenLocation(organization, query.location);
+  const paging = new URLSearchParams({ ...(location ? { location } : {}), ...(query.cursor ? { cursor: query.cursor } : {}) });
+  const billing = organization.me.permissions.includes("VIEW_BILLING")
+    ? await serverApi(`/v1/organizations/${organizationId}/billing${paging.size ? `?${paging}` : ""}`, workspaceBillingSchema)
+    : null;
   return (
     <WorkspaceShell organization={organization} userName={me.name} section="settings" location={location}>
       <SettingsTabs organizationId={organizationId} current="billing" me={organization.me} />
@@ -26,23 +37,42 @@ export default async function WorkspaceBillingPage({ params, searchParams }: { p
       {!billing || (!billing.ok && billing.status === 403) ? (
         <PageState eyebrow="403 · VIEW BILLING" title="You don't have access to this" body="Billing is only for the workspace Owner and Admins. Ask your Owner for a receipt." />
       ) : !billing.ok ? (
-        <ErrorState title="We couldn't load this list" body="Something went wrong on our side. Try again, or share the request ID with support." requestId={billing.error.requestId} action={<ButtonLink variant="secondary" href={`/workspace/${organizationId}/billing`}>Try again</ButtonLink>} />
+        <ErrorState
+          title="We couldn't load this list"
+          body="Something went wrong on our side. Try again, or share the request ID with support."
+          requestId={billing.error.requestId}
+          action={
+            <ButtonLink variant="secondary" href={`/workspace/${organizationId}/billing`}>
+              Try again
+            </ButtonLink>
+          }
+        />
       ) : (
         <>
           <div className={styles.totals}>
+            {billing.data.totals.map((total) => (
+              <Fragment key={total.currency}>
+                <div className={styles.total}>
+                  <span className={styles.eyebrow}>Balances due · {total.currency}</span>
+                  <span className={styles.totalValue}>{naira(total.dueMinor, total.currency)}</span>
+                  <span className={styles.rowMeta}>
+                    {billing.data.balancesDue.filter((row) => row.currency === total.currency).length}{" "}
+                    {billing.data.balancesDue.filter((row) => row.currency === total.currency).length === 1 ? "order" : "orders"}
+                  </span>
+                </div>
+                <div className={styles.total}>
+                  <span className={styles.eyebrow}>Paid this year · {total.currency}</span>
+                  <span className={styles.totalValue}>{naira(total.paidThisYearMinor, total.currency)}</span>
+                  <span className={styles.rowMeta}>
+                    {total.receiptsThisYear} {total.receiptsThisYear === 1 ? "receipt" : "receipts"}
+                  </span>
+                </div>
+              </Fragment>
+            ))}
             <div className={styles.total}>
-              <span className={styles.eyebrow}>Balances due</span>
-              <span className={styles.totalValue}>{naira(billing.data.dueMinor, billing.data.currency)}</span>
-              <span className={styles.rowMeta}>
-                {billing.data.balancesDue.length} {billing.data.balancesDue.length === 1 ? "order" : "orders"}
-              </span>
-            </div>
-            <div className={styles.total}>
-              <span className={styles.eyebrow}>Paid this year</span>
-              <span className={styles.totalValue}>{naira(billing.data.paidThisYearMinor, billing.data.currency)}</span>
-              <span className={styles.rowMeta}>
-                {billing.data.receiptsThisYear} {billing.data.receiptsThisYear === 1 ? "receipt" : "receipts"}
-              </span>
+              <span className={styles.eyebrow}>Needs resolution</span>
+              <span className={styles.totalValue}>{billing.data.needsResolution}</span>
+              <span className={styles.rowMeta}>Across your workspace · open the order for help</span>
             </div>
           </div>
           <section className={styles.panel} aria-labelledby="due-title">
@@ -102,6 +132,19 @@ export default async function WorkspaceBillingPage({ params, searchParams }: { p
               <p className={styles.emptyRow}>No receipts yet.</p>
             )}
           </section>
+          {billing.data.receiptsNextCursor ? (
+            <ButtonLink
+              variant="secondary"
+              href={`/workspace/${organizationId}/billing?${new URLSearchParams({ ...(location ? { location } : {}), cursor: billing.data.receiptsNextCursor })}`}
+            >
+              Older receipts
+            </ButtonLink>
+          ) : null}
+          {query.cursor ? (
+            <a className={styles.rowLink} href={`/workspace/${organizationId}/billing${location ? `?location=${location}` : ""}`}>
+              Back to newest receipts
+            </a>
+          ) : null}
         </>
       )}
     </WorkspaceShell>

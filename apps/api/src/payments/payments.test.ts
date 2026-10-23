@@ -116,6 +116,56 @@ describe("starting a payment (TECH-05 §5)", () => {
     jobs.rows.forEach((row, index) => expect(Math.abs(row.delay - CHECK_SCHEDULE_SECONDS[index]!)).toBeLessThanOrEqual(2));
   });
 
+  it("commits all checks before external initialization can be interrupted", async () => {
+    const { b, checkout } = await readyToPay();
+    let reference = "";
+    const initialize = vi.spyOn(gateway, "initialize").mockImplementationOnce(async input => { reference = input.reference; throw new Error("process interrupted"); });
+    try { expect((await pay(b, checkout.id)).status).toBe(500); }
+    finally { initialize.mockRestore(); }
+    const attempt = await attemptOf(reference);
+    expect(attempt.status).toBe("CREATED");
+    expect((await intentOf(attempt.intentId)).status).toBe("PROCESSING");
+    const jobs = await db().execute<{ n: number }>(sql`select count(*)::int n from pgboss.job where name = 'payment.check' and data->>'attemptId' = ${attempt.id}`);
+    expect(jobs.rows[0]!.n).toBe(CHECK_SCHEDULE_SECONDS.length);
+    expect(await checkPaymentAttempt(deps(), attempt.id, CHECK_SCHEDULE_SECONDS.length, new Date(Date.now() + 49 * 60 * 60 * 1000))).toBe("unknown");
+    expect((await intentOf(attempt.intentId)).status).toBe("REVIEW_REQUIRED");
+  });
+
+  it("keeps checks when the provider accepts but storing its response fails", async () => {
+    const { b, checkout } = await readyToPay();
+    let reference = "";
+    let transaction: ReturnType<typeof vi.spyOn> | undefined;
+    const original = gateway.initialize.bind(gateway);
+    const initialize = vi.spyOn(gateway, "initialize").mockImplementationOnce(async input => {
+      reference = input.reference;
+      const result = await original(input);
+      transaction = vi.spyOn(db(), "transaction").mockRejectedValueOnce(new Error("database commit unavailable"));
+      return result;
+    });
+    try { expect((await pay(b, checkout.id)).status).toBe(500); }
+    finally { initialize.mockRestore(); transaction?.mockRestore(); }
+    const attempt = await attemptOf(reference);
+    expect(attempt.status).toBe("CREATED");
+    const jobs = await db().execute<{ n: number }>(sql`select count(*)::int n from pgboss.job where name = 'payment.check' and data->>'attemptId' = ${attempt.id}`);
+    expect(jobs.rows[0]!.n).toBe(CHECK_SCHEDULE_SECONDS.length);
+    gateway.settle(reference, { status: "success" });
+    expect(await checkPaymentAttempt(deps(), attempt.id, 1)).toBe("succeeded");
+    expect(await checkPaymentAttempt(deps(), attempt.id, 2)).toBe("skipped");
+    expect((await db().select().from(schema.orders).where(eq(schema.orders.checkoutId, checkout.id))).length).toBe(1);
+  });
+
+  it("rolls back an unscheduled attempt before calling the provider", async () => {
+    const { b, checkout } = await readyToPay();
+    const initialize = vi.spyOn(gateway, "initialize");
+    const send = vi.spyOn(harness.jobs, "send").mockRejectedValueOnce(new Error("queue write unavailable"));
+    try {
+      expect((await pay(b, checkout.id)).status).toBe(500);
+      expect(initialize).not.toHaveBeenCalled();
+      const rows = await db().execute<{ n: number }>(sql`select count(*)::int n from payment_attempts pa join payment_intents pi on pi.id = pa.intent_id join installments i on i.id = pi.installment_id join payment_schedules ps on ps.id = i.schedule_id where ps.checkout_id = ${checkout.id}`);
+      expect(rows.rows[0]!.n).toBe(0);
+    } finally { initialize.mockRestore(); send.mockRestore(); }
+  });
+
   it("returns the same attempt for the same Idempotency-Key, and refuses a second payment while one is pending", async () => {
     const { b, checkout } = await readyToPay();
     const key = `test_${randomUUID().replaceAll("-", "")}`;
