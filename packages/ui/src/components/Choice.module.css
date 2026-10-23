@@ -23,6 +23,13 @@
   color: var(--hp-graphite);
 }
 
+.checkboxError {
+  display: block;
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-medium);
+  color: var(--hp-error);
+}
+
 .group {
   margin: 0;
   padding: 0;
