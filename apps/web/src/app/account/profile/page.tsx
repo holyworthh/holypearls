@@ -26,7 +26,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <p>Your account email is now {me.data.email}. You were signed out on your other devices.</p>
         </Notice>
       ) : null}
-      <ProfileForm initial={{ name: me.data.name, email: me.data.email, phone: me.data.phone, emailVerified: me.data.emailVerified, pendingEmail: me.data.pendingEmail }} />
+      <ProfileForm initial={{ name: me.data.name, email: me.data.email, phone: me.data.phone, emailVerified: me.data.emailVerified, pendingEmail: me.data.pendingEmail, marketingConsent: me.data.marketingConsent }} />
     </AccountShell>
   );
 }

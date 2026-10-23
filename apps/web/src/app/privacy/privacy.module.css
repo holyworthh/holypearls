@@ -1,0 +1,129 @@
+/* Privacy notice and processor list (Pen 136 · TLRc6, nDtGs, TDnMA, HBwdg). Page background is white, as on the rest of the site, so panels carry a line. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-24);
+  max-width: var(--hp-layout-content-width);
+  margin: 0 auto;
+  padding: var(--hp-space-40) var(--hp-space-16);
+  font-family: var(--hp-font-ui);
+}
+
+.kicker {
+  margin: 0;
+  color: var(--hp-graphite);
+  font-family: var(--hp-font-mono);
+  font-size: var(--hp-text-mono);
+  letter-spacing: var(--hp-tracking-mono);
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-text-title-sm);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-24);
+}
+
+.main,
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-16);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+  padding: var(--hp-space-20);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-panel);
+  background: var(--hp-paper);
+  scroll-margin-top: var(--hp-space-24);
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-text-emphasis);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.body {
+  margin: 0;
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  line-height: var(--hp-leading-body);
+}
+
+.link {
+  color: var(--hp-accent);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.toc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-12);
+}
+
+.line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-2);
+  padding: var(--hp-space-12) 0;
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+}
+
+.line:last-child {
+  border-bottom: 0;
+}
+
+.name {
+  color: var(--hp-ink);
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.sub {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+@media (min-width: 1024px) {
+  .page {
+    padding: var(--hp-space-40) var(--hp-space-56) var(--hp-space-80);
+  }
+
+  .title {
+    font-size: var(--hp-text-h3);
+  }
+
+  .columns {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .main {
+    flex: 1;
+  }
+
+  .rail {
+    width: 300px;
+  }
+}
+
+.list {
+  margin: 0;
+  list-style: none;
+}

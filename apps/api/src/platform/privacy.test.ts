@@ -3,6 +3,7 @@ import { apiErrorSchema, checkoutSchema, configurationSchema, paymentStartSchema
 import { eq, schema, sql } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import { randomInt, randomUUID } from "node:crypto";
+import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
 import { type Browser, orderFlows } from "../testing/flows.js";
@@ -43,7 +44,7 @@ async function tablesHolding(terms: string[]) {
 }
 
 /** A checkout up to the Pay button, for a person with the given details. */
-async function readyCheckout(person: { name: string; email: string; phone: string; street: string }) {
+async function readyCheckout(person: { name: string; email: string; phone: string; street: string; marketingConsent?: boolean }) {
   const b = flows.browser();
   const created = configurationSchema.parse((await b.post("/v1/configurations", { productSlug: "business-cards", choices: { paper: "350gsm-matte", sides: "both-sides" } })).body);
   const cards = configurationSchema.parse((await b.patch(`/v1/configurations/${created.id}`, { version: created.version, quantity: 250 })).body.draft);
@@ -52,7 +53,7 @@ async function readyCheckout(person: { name: string; email: string; phone: strin
   const step = async (method: "put", path: string, body: object) => {
     checkout = checkoutSchema.parse((await b[method](`/v1/checkouts/${checkout.id}/${path}`, { ...body, version: checkout.version })).body);
   };
-  await step("put", "contact", { name: person.name, email: person.email, phone: person.phone });
+  await step("put", "contact", { name: person.name, email: person.email, phone: person.phone, ...(person.marketingConsent === undefined ? {} : { marketingConsent: person.marketingConsent }) });
   await step("put", "address", { country: "NG", name: person.name, phone: person.phone, street: person.street, area: "Eti-Osa", state: "Lagos", landmark: "", });
   await step("put", "delivery", { option: "STANDARD" });
   await step("put", "billing", { sameAsDelivery: true });
@@ -278,5 +279,44 @@ describe("privacy requests: who may (TECH-03 §17)", () => {
 
   it("an erase without the confirmation is refused", async () => {
     expect((await ada().post("/v1/admin/privacy/erase", { email, confirm: false })).status).toBe(400);
+  });
+});
+
+describe("marketing consent (TECH-06 §12)", () => {
+  const consentOf = async (email: string) => (await db().select().from(schema.customers).where(eq(schema.customers.emailNormalized, email)))[0]!.marketingConsentAt;
+
+  it("is off by default, set by the checkout tick, never kept in the checkout's contact, and not withdrawn by leaving it unticked", async () => {
+    const plain = newPerson();
+    const first = await readyCheckout(plain);
+    expect(await consentOf(plain.email)).toBeNull();
+    const ticked = { ...newPerson(), marketingConsent: true };
+    const second = await readyCheckout(ticked);
+    const at = await consentOf(ticked.email);
+    expect(at).not.toBeNull();
+    const [row] = await db().select().from(schema.checkouts).where(eq(schema.checkouts.id, second.checkout.id));
+    expect(row!.contact).toEqual({ name: ticked.name, email: ticked.email, phone: ticked.phone });
+    // The same person goes through contact again without the tick: the first date stays.
+    const again = await second.b.put(`/v1/checkouts/${second.checkout.id}/contact`, { name: ticked.name, email: ticked.email, phone: ticked.phone, marketingConsent: false, version: (await db().select().from(schema.checkouts).where(eq(schema.checkouts.id, second.checkout.id)))[0]!.version });
+    expect(again.status).toBe(200);
+    expect(await consentOf(ticked.email)).toEqual(at);
+    expect(first.checkout.id).toBeDefined();
+  });
+
+  it("the Profile setting turns it on and off, is audited without the email, and needs a verified email", async () => {
+    const patch = (body: object) => request(harness.url).patch("/v1/me/profile").set("origin", "http://localhost:3000").set("cookie", actors.customerChidi!).send(body);
+    const base = { name: "Chidi Test (TEST DATA)", phone: null };
+    expect((await patch(base)).body.marketingConsent).toBe(false);
+    const on = await patch({ ...base, marketingConsent: true });
+    expect(on.status).toBe(200);
+    expect(on.body.marketingConsent).toBe(true);
+    expect(await consentOf(TEST_PEOPLE.customerChidi.email)).not.toBeNull();
+    // Leaving it out changes nothing.
+    expect((await patch(base)).body.marketingConsent).toBe(true);
+    const off = await patch({ ...base, marketingConsent: false });
+    expect(off.body.marketingConsent).toBe(false);
+    expect(await consentOf(TEST_PEOPLE.customerChidi.email)).toBeNull();
+    const changes = await rows<{ after: unknown }>(sql`select "after" from audit_log where action = 'account.marketing_consent_changed' order by occurred_at`);
+    expect(changes.map((row) => row.after)).toEqual([{ marketingConsent: true }, { marketingConsent: false }]);
+    expect(JSON.stringify(changes)).not.toContain(TEST_PEOPLE.customerChidi.email);
   });
 });

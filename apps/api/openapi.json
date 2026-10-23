@@ -163,6 +163,9 @@
                         "null"
                       ]
                     },
+                    "marketingConsent": {
+                      "type": "boolean"
+                    },
                     "pendingEmail": {
                       "type": [
                         "string",
@@ -224,6 +227,7 @@
                     "email",
                     "emailVerified",
                     "phone",
+                    "marketingConsent",
                     "pendingEmail",
                     "isStaff",
                     "mfa",

@@ -88,6 +88,10 @@ describe("sign-up and guest linking (TECH-03 §6)", () => {
     const phone = await as(harness, cookie).patch("/v1/me/profile").send({ name: "New Customer", phone: "+234 803 000 0000" });
     expect(phone.status).toBe(422);
     expect(apiErrorSchema.parse(phone.body).context).toMatchObject({ reason: "VERIFY_EMAIL_FIRST" });
+    // Product news can't be turned on for a record the account doesn't own yet either (T15-03).
+    const news = await as(harness, cookie).patch("/v1/me/profile").send({ name: "New Customer", phone: null, marketingConsent: true });
+    expect(news.status).toBe(422);
+    expect(apiErrorSchema.parse(news.body).context).toMatchObject({ reason: "VERIFY_EMAIL_FIRST" });
   });
 
   it("verifying the email links every earlier order, receipt, quote, project and design, and audits it", async () => {

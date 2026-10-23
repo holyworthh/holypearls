@@ -146,7 +146,7 @@ function SiteFooter() {
       <div className={footer.bottom}>
         <p className={footer.legal}>© {year} Holypearls</p>
         <nav aria-label="Legal" className={footer.legalLinks}>
-          <a className={footer.link} href="/help?topic=privacy">
+          <a className={footer.link} href="/privacy">
             Privacy
           </a>
           <a className={footer.link} href="/help?topic=terms">

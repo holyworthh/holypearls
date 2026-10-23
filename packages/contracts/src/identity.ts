@@ -35,6 +35,8 @@ export const meSchema = z.object({
   email: z.string(),
   emailVerified: z.boolean(),
   phone: z.string().nullable(),
+  /** Product news, off unless turned on (TECH-06 §12). */
+  marketingConsent: z.boolean(),
   /** A new email waiting for its check link (T09-01b). */
   pendingEmail: z.string().nullable(),
   isStaff: z.boolean(),
