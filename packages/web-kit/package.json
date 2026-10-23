@@ -8,6 +8,7 @@
     "./api": "./src/api.ts",
     "./server-api": "./src/server-api.ts",
     "./visitor": "./src/visitor.ts",
+    "./security-headers": "./src/security-headers.ts",
     "./money": "./src/money.ts",
     "./catalogue-labels": "./src/catalogue-labels.ts",
     "./file-upload": "./src/FileUpload.tsx",

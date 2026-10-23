@@ -1,3 +1,4 @@
+import { contentSecurityPolicy, newNonce } from "@holypearls/web-kit/security-headers";
 import { proxyRequestHeaders } from "@holypearls/web-kit/visitor";
 import { NextResponse, type NextRequest } from "next/server";
 import { WEB_IDENTITY } from "./lib/visitor";
@@ -41,7 +42,13 @@ export function proxy(request: NextRequest) {
     headers.set("x-request-id", `req_web_${crypto.randomUUID().replaceAll("-", "")}`);
   }
   headers.set("x-hp-pathname", pathname);
+  // A new nonce per page request (TECH-06 §9). Next reads it from the request's CSP header and puts it on its own scripts.
+  const nonce = newNonce();
+  const csp = contentSecurityPolicy({ nonce, surface: "web", development: process.env.NODE_ENV === "development", production: process.env.HP_ENV === "production" });
+  headers.set("x-nonce", nonce);
+  headers.set("content-security-policy", csp);
   const response = NextResponse.next({ request: { headers } });
+  response.headers.set("content-security-policy", csp);
   if (isPrivatePath(pathname)) response.headers.set("x-robots-tag", "noindex, nofollow");
   return response;
 }
