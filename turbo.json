@@ -38,7 +38,9 @@
     "PAYSTACK_SECRET_KEY",
     "ADMIN_ORIGIN",
     "ADMIN_PROXY_SECRET",
-    "SITE_URL"
+    "SITE_URL",
+    "SHIPBUBBLE_API_KEY",
+    "INDEXNOW_KEY"
   ],
   "tasks": {
     "build": {

@@ -97,6 +97,8 @@ export const RateLimit = (name: RateLimitClass) => SetMetadata(RATE_LIMIT_CLASS,
 /** Header names the web app's proxy sets on every /api request (apps/web/src/proxy.ts). */
 export const CLIENT_IP_HEADER = "x-hp-client-ip";
 export const PROXY_SECRET_HEADER = "x-hp-proxy-secret";
+/** The "address" of a request a front end's server makes for itself, not for a visitor (cached catalogue and content reads). */
+export const FRONT_END_SERVER = "front-end-server";
 
 /**
  * The visitor's address (review P1-08). X-Forwarded-For is never trusted: anyone
@@ -112,6 +114,8 @@ export function clientIpFrom(request: Request, proxySecrets: (string | null)[]):
   if (vouched && claimed && /^[0-9a-fA-F.:]{2,45}$/.test(claimed)) {
     return claimed;
   }
+  // The front end's own server-side reads carry its secret and no visitor address.
+  if (vouched && !claimed) return FRONT_END_SERVER;
   return request.socket.remoteAddress ?? "unknown";
 }
 
@@ -119,7 +123,7 @@ export function clientIpFrom(request: Request, proxySecrets: (string | null)[]):
 export const clientIp = (request: Request) => request.clientIp ?? request.socket.remoteAddress ?? "unknown";
 
 /** The device cookie's value, without importing the drafts module (it's only hashed into a bucket key). */
-function deviceCookieValue(request: Request): string | null {
+export function deviceCookieValue(request: Request): string | null {
   const match = /(?:^|;\s*)hp\.device=([A-Za-z0-9-]{40,100})(?:;|$)/.exec(request.header("cookie") ?? "");
   return match?.[1] ?? null;
 }
@@ -136,6 +140,8 @@ export class RateLimitGuard implements CanActivate {
     const name = Reflect.getMetadata(RATE_LIMIT_CLASS, context.getHandler()) as RateLimitClass | undefined;
     if (!name) return true;
     const request = context.switchToHttp().getRequest<Request>();
+    // ponytail: the front end's own cached catalogue reads; hosting-level protection covers floods
+    if (name === "PUBLIC_READ" && clientIp(request) === FRONT_END_SERVER) return true;
     const actor = await request.getActor!();
     const device = deviceCookieValue(request);
     const subject =

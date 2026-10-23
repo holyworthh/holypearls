@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, UseGuards } from "@nestjs/common";
 import {
   priceRequestSchema,
@@ -97,6 +98,7 @@ export class PublicPricingController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
   @Post(":slug/price")
+  @Public()
   @HttpCode(200)
   @RateLimit("SEARCH")
   async price(@Req() request: Request, @Param("slug", new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80))) slug: string, @Body(new ZodValidationPipe(priceRequestSchema)) body: z.infer<typeof priceRequestSchema>) {

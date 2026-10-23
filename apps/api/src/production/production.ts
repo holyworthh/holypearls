@@ -518,6 +518,11 @@ export async function customerProduction(db: Db, orderId: string) {
   };
 }
 
+/** Open holds for a page's item facts; item status precedence stays in orderSummaryStatus. */
+export async function heldItemIds(db: Database, itemIds: string[]) {
+  return new Set((await openHolds(db, itemIds)).keys());
+}
+
 /** Production export (T13-03b): every item of the orders placed in the range, with its production status. */
 export async function productionForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
   const rows = await db

@@ -12,6 +12,9 @@ import type { ActorContext } from "./actor.js";
  */
 export function StaffGuard(permission?: StaffPermission): Type<CanActivate> {
   class Guard implements CanActivate {
+    /** Read by the route-access test (testing/routes.ts). */
+    static readonly staffPermission = permission ?? null;
+
     async canActivate(context: ExecutionContext): Promise<boolean> {
       const request = context.switchToHttp().getRequest<Request>();
       // Admin routes answer only through the admin front end (ADR-017); frontEndBoundary already refuses

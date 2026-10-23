@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { AppError } from "../errors.js";
 import { type AnyColumn, desc, type SQL, sql } from "@holypearls/db";
 
 /*
@@ -26,4 +28,14 @@ export function pageOf<T>(rows: T[], limit: number, key: (row: T) => { at: Date;
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   return { page, nextCursor: rows.length > limit && last ? encodeCursor(key(last).at, key(last).id) : null };
+}
+
+/** Validate a public page link before using the shared keyset reader. */
+export function parseCursor(value?: string): string | undefined {
+  if (value === undefined) return undefined;
+  try {
+    if (value.length > 200 || !/^[A-Za-z0-9_-]+$/.test(value)) throw new Error();
+    z.tuple([z.iso.datetime(), z.uuid()]).parse(Buffer.from(value, "base64url").toString("utf8").split("|"));
+    return value;
+  } catch { throw new AppError("VALIDATION_FAILED", { message: "This page link is invalid. Open the list again." }); }
 }

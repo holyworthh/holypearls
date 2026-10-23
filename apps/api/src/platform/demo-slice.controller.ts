@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req } from "@nestjs/common";
 import { type DemoSlice, demoSliceCreateSchema } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
@@ -19,6 +20,7 @@ export class DemoSliceController {
   ) {}
 
   @Post()
+  @Public()
   create(
     @Req() request: Request,
     @Body(new ZodValidationPipe(demoSliceCreateSchema)) body: z.infer<typeof demoSliceCreateSchema>,

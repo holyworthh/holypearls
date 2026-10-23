@@ -1,4 +1,4 @@
-import { ApiError, createApiClient } from "@holypearls/contracts";
+import { ApiError, createApiClient, isRelativePath } from "@holypearls/contracts";
 
 /** Browser-side API client. Calls go to /api/* on this domain (next.config.mjs forwards them). */
 export const api = createApiClient({ baseUrl: "/api" });
@@ -10,7 +10,7 @@ export const errorReason = (error: unknown) =>
 
 /** Only same-site paths are followed after sign-in. */
 export function safeNext(next: string | null | undefined, fallback: string): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+  return next && isRelativePath(next) ? next : fallback;
 }
 
 /** One key per button press, reused if the same press is retried (TECH-02 §4). */

@@ -780,6 +780,7 @@
   align-items: center;
   gap: var(--hp-space-8);
   width: var(--hp-size-420);
+  max-width: 100%;
   min-height: var(--hp-space-40);
   padding: 0 var(--hp-space-12);
   border-radius: var(--hp-r-tag);
@@ -936,6 +937,9 @@
 }
 
 .viewAll {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hp-touch-target);
   color: var(--hp-accent);
   font-size: var(--hp-text-support);
   font-weight: var(--hp-weight-semibold);
@@ -1015,7 +1019,7 @@
 .rowAction {
   display: inline-flex;
   align-items: center;
-  min-height: var(--hp-space-40);
+  min-height: var(--hp-touch-target);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-r-tag);
   background: var(--hp-accent);
@@ -1031,6 +1035,9 @@
 }
 
 .rowLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hp-touch-target);
   color: var(--hp-ink);
   font-size: var(--hp-text-support);
   font-weight: var(--hp-weight-semibold);
@@ -1112,7 +1119,7 @@
 
 @media (min-width: 768px) {
   .totals {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1417,6 +1424,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--hp-space-12);
 }
+
+/* Overview's work column and templates/groups sidebar (Pen 28 · MblNx). */
+.overviewColumns, .overviewResources { display: grid; gap: var(--hp-space-24); min-width: 0; align-items: start; }
+.overviewColumns .columns { grid-template-columns: minmax(0, 1fr); }
+.overviewResources .assetGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hp-space-8); padding: var(--hp-space-16); }
+.overviewResources .assetCardBody { padding: var(--hp-space-8); }
+.overviewResources .assetCard { overflow-wrap: anywhere; }
+@media (min-width: 1024px) { .overviewColumns { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
 
 /* Company store (T12-06; Pen 77 · sSl53, 32 · qfJ9a, 78 · m8W6b). */
 

@@ -1,3 +1,4 @@
+import { Public } from "./identity/identified.guard.js";
 import { Body, Controller, Get, type INestApplication, Post } from "@nestjs/common";
 import type { IdentityAdapter } from "@holypearls/auth";
 import { apiErrorSchema } from "@holypearls/contracts";
@@ -21,6 +22,7 @@ const signupSchema = z.object({
 @Controller("conventions")
 class ConventionsController {
   @Post("echo")
+  @Public()
   echo(@Body(new ZodValidationPipe(signupSchema)) body: z.infer<typeof signupSchema>) {
     return { quantity: body.quantity };
   }
@@ -67,8 +69,17 @@ describe("API conventions", () => {
   });
 
   it("sends the security headers on every response (review P2-07)", async () => {
-    for (const path of ["/health/live", "/v1/conventions/expired", "/no-such-path"]) {
-      const response = await request(app.getHttpServer()).get(path);
+    const paths = [
+      ["get", "/health/live"],
+      ["get", "/v1/conventions/expired"],
+      ["get", "/no-such-path"],
+      ["get", "/v1/me"],
+      ["get", "/v1/admin/me"],
+      ["post", "/v1/webhooks/paystack"],
+    ] as const;
+    for (const [method, path] of paths) {
+      const response = await request(app.getHttpServer())[method](path);
+      expect(response.headers["permissions-policy"]).toBe("camera=(), microphone=(), geolocation=()");
       expect(response.headers["x-content-type-options"]).toBe("nosniff");
       expect(response.headers["referrer-policy"]).toBe("no-referrer");
       expect(response.headers["content-security-policy"]).toContain("frame-ancestors 'none'");

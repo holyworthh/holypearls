@@ -11,6 +11,9 @@ import { type Harness, TEST_WEB_ORIGIN } from "./harness.js";
  * is 403, and a signed-out request is 401 or 404.
  */
 
+/** A fresh idempotency key for a test write. */
+export const testIdempotencyKey = () => `test_${randomUUID().replaceAll("-", "")}`;
+
 export type Actors = Record<TestPersonKey | "signedOut", string>;
 
 /** Signs in every test person once; `signedOut` is an empty cookie. */
@@ -27,7 +30,7 @@ export function as(harness: Harness, cookie: string) {
   return {
     get: (path: string) => withHeaders(agent.get(path)),
     post: (path: string, body: object = {}, key?: string) =>
-      withHeaders(agent.post(path)).set("idempotency-key", key ?? `test_${randomUUID().replaceAll("-", "")}`).send(body),
+      withHeaders(agent.post(path)).set("idempotency-key", key ?? testIdempotencyKey()).send(body),
     delete: (path: string) => withHeaders(agent.delete(path)),
     patch: (path: string) => withHeaders(agent.patch(path)),
     put: (path: string, body: object = {}) => withHeaders(agent.put(path)).send(body),
@@ -38,6 +41,12 @@ export function as(harness: Harness, cookie: string) {
 export function expectHidden(response: request.Response) {
   expect(response.status).toBe(404);
   expect(apiErrorSchema.parse(response.body).code).toBe("NOT_FOUND");
+}
+
+/** A caller with no sign-in, guest session or device (a write to someone's record): 401 before anything is read, or 404. */
+export function expectNoIdentity(response: request.Response) {
+  expect([401, 404]).toContain(response.status);
+  expect(["NOT_SIGNED_IN", "NOT_FOUND"]).toContain(apiErrorSchema.parse(response.body).code);
 }
 
 /** The person can see it but may not do this. */
