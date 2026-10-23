@@ -194,7 +194,9 @@ export function TypeCard({ type, className, children }: { type: ProjectType; cla
   const { busy, failed, start } = useStart();
   return (
     <>
-      <button type="button" className={className} onClick={() => start(type, { type })} disabled={busy !== null} aria-label={`Start a project: ${PROJECT_TYPE_INFO[type].label}`}>
+      <button type="button" className={className} onClick={() => start(type, { type })} disabled={busy !== null}>
+        {/* The name is the card's own text plus this prefix, so it contains everything the card shows (WCAG 2.5.3). */}
+        <span className="hp-visually-hidden">Start a project: </span>
         {children}
       </button>
       {failed ? (

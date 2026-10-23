@@ -21,7 +21,7 @@ export interface BrandLockupProps {
 /** Mark + tracked Open Sans wordmark, linked home (the header lockup). */
 export function BrandLockup({ tone = "colour", tag, href = "/", className }: BrandLockupProps) {
   return (
-    <a className={cx(styles.lockup, tone === "reversed" && styles.reversed, className)} href={href} aria-label="Holypearls home">
+    <a className={cx(styles.lockup, tone === "reversed" && styles.reversed, className)} href={href} aria-label={tag ? `Holypearls ${tag} home` : "Holypearls home"}>
       <svg className={styles.mark} viewBox="90 64 650 600" aria-hidden="true" focusable="false">
         <path className={styles.brick} d={BRAND_BRICK} />
         <path className={styles.blue} d={BRAND_BLUE} />
@@ -29,7 +29,8 @@ export function BrandLockup({ tone = "colour", tag, href = "/", className }: Bra
       <span className={styles.wordmark} aria-hidden="true">
         Holypearls
       </span>
-      {tag ? <span className={styles.tag}>{tag}</span> : null}
+      {/* The space keeps the wordmark and tag separate words for the accessible-name check; flex layout ignores it. */}
+      {tag ? <> <span className={styles.tag}>{tag}</span></> : null}
     </a>
   );
 }
