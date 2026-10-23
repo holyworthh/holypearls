@@ -58,6 +58,26 @@ export const searchClickSchema = z
   })
   .strict();
 
+export const siteEventKindSchema = z.enum(["PRODUCT", "CATEGORY", "PROJECT", "START_PROJECT", "CONFIGURE", "CONTACT"]);
+export const siteEventSchema = z.object({ kind: siteEventKindSchema, fromGuide: z.boolean() }).strict();
+export type SiteEvent = z.infer<typeof siteEventSchema>;
+/** What the browser may send: a Configure entry is counted by the server when a design is first saved. */
+export const siteEventBodySchema = siteEventSchema.refine((event) => event.kind !== "CONFIGURE");
+
+const SITE_EVENT_LINKS: [RegExp, SiteEvent["kind"]][] = [
+  [/^\/products\/[a-z0-9-]+\/?$/, "PRODUCT"],
+  [/^\/categories\/[a-z0-9-]+\/?$/, "CATEGORY"],
+  [/^\/projects\/[a-z0-9-]+\/?$/, "PROJECT"],
+  [/^\/start\/?$/, "START_PROJECT"],
+  [/^\/contact\/?$/, "CONTACT"],
+];
+
+/** What a click on a link counts as (PRD-01 §11), from the current page's path and the link's path; null if it isn't counted. */
+export function siteEventFor(currentPath: string, linkPath: string): SiteEvent | null {
+  const kind = SITE_EVENT_LINKS.find(([pattern]) => pattern.test(linkPath))?.[1];
+  return kind ? { kind, fromGuide: currentPath.startsWith("/resources/") } : null;
+}
+
 /** Everyday phrases staff add so ordinary words find the right page (PUB-FR-007). */
 export const searchPhraseTargetSchema = z.enum(["PRODUCT", "CATEGORY", "PAGE"]);
 export const searchPhraseSchema = z.object({

@@ -16293,6 +16293,67 @@
         }
       }
     },
+    "/v1/analytics/events": {
+      "post": {
+        "summary": "Count where a visitor went (PRD-01 §11): the kind of entry and whether it came from a guide; nothing personal; CONFIGURE is counted by the server",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "PRODUCT",
+                      "CATEGORY",
+                      "PROJECT",
+                      "START_PROJECT",
+                      "CONFIGURE",
+                      "CONTACT"
+                    ]
+                  },
+                  "fromGuide": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "fromGuide"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Counted"
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "PUBLIC_READ limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/search/phrases": {
       "get": {
         "summary": "Everyday search phrases and where they lead (CATALOGUE_MANAGE or CONTENT_MANAGE)",

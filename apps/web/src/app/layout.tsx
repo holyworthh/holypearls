@@ -2,6 +2,7 @@ import "@holypearls/ui/styles.css";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Instrument_Sans, Open_Sans, Young_Serif } from "next/font/google";
 import type { ReactNode } from "react";
+import { LinkTracker } from "../components/analytics/LinkTracker";
 import { Motion, MOTION_BOOT } from "../components/motion/Motion";
 import { Tooltips } from "../components/tooltip/Tooltips";
 import { SITE_URL, verification } from "../lib/seo";
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <Providers>{children}</Providers>
         <Motion />
         <Tooltips />
+        <LinkTracker />
       </body>
     </html>
   );

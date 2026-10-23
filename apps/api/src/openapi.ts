@@ -134,6 +134,7 @@ import {
   searchPhraseSchema,
   searchTargetOptionsSchema,
   searchReportSchema,
+  siteEventSchema,
   sitemapSchema,
   contentIndexSchema,
   publicContentPageSchema,
@@ -1188,6 +1189,13 @@ export function buildOpenApiDocument() {
           summary: "Record which result was chosen, for search analytics; no personal details are kept",
           requestBody: { required: true, content: json(searchClickSchema) },
           responses: { 204: { description: "Recorded" }, 400: error("Bad input"), 429: error("SEARCH limit (RATE_LIMITED)") },
+        },
+      },
+      "/v1/analytics/events": {
+        post: {
+          summary: "Count where a visitor went (PRD-01 §11): the kind of entry and whether it came from a guide; nothing personal; CONFIGURE is counted by the server",
+          requestBody: { required: true, content: json(siteEventSchema) },
+          responses: { 204: { description: "Counted" }, 400: error("Bad input"), 429: error("PUBLIC_READ limit (RATE_LIMITED)") },
         },
       },
       "/v1/admin/search/phrases": {

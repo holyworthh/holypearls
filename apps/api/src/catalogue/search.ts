@@ -7,6 +7,7 @@ import {
   type SearchResults,
   type SearchScope,
   type SearchSuggestions,
+  type SiteEvent,
 } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, gte, inArray, lt, type SQL, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -566,17 +567,23 @@ export async function searchTargets(db: Database, q: string) {
   ];
 }
 
+/** Counts one entry (PRD-01 §11). Callers never wait on it: analytics must not block anyone (TECH-00 §9). */
+export async function recordSiteEvent(db: Database, event: SiteEvent): Promise<void> {
+  await db.insert(schema.siteEvents).values(event);
+}
+
 /**
- * Raw search events are kept for 90 days, then deleted by cleanup.daily.
- * Queries are redacted when stored, but people still type names and order
- * references, so nothing keeps them longer. The report reads the last 30 days.
+ * Raw search events and site events are kept for 90 days, then deleted by
+ * cleanup.daily. Queries are redacted when stored, but people still type names
+ * and order references, so nothing keeps them longer. The report reads the last 30 days.
  */
 export const SEARCH_EVENT_RETENTION_DAYS = 90;
 
 export async function removeExpiredSearchEvents(db: Database, now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - SEARCH_EVENT_RETENTION_DAYS * 86_400_000);
   const removed = await db.delete(schema.searchEvents).where(lt(schema.searchEvents.createdAt, cutoff)).returning({ id: schema.searchEvents.id });
-  return removed.length;
+  const entries = await db.delete(schema.siteEvents).where(lt(schema.siteEvents.createdAt, cutoff)).returning({ id: schema.siteEvents.id });
+  return removed.length + entries.length;
 }
 
 /** Last 30 days: how many searches, how many found nothing, and the most common of each. */
