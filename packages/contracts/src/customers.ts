@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { relativePathSchema } from "./identity.js";
 
 const isoDate = z.iso.datetime();
 const label = z.string().trim().max(160);
@@ -22,7 +23,7 @@ export const redeemResultSchema = z.object({
   purpose: guestLinkPurposeSchema,
   targetId: z.string(),
   /** A clean URL without the secret. */
-  redirectTo: z.string().startsWith("/"),
+  redirectTo: relativePathSchema,
 });
 
 export const emailCodePurposeSchema = z.enum([

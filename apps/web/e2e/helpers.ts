@@ -36,7 +36,7 @@ export async function expectNoHorizontalScroll(page: Page) {
 }
 
 /** The staff admin app (ADR-017), started beside the customer site by playwright.config.ts. */
-export const ADMIN = "http://localhost:3200";
+export const ADMIN = `http://localhost:${process.env.E2E_ADMIN_PORT ?? 3200}`;
 
 /** Staff sign-in with the authenticator step. Codes can't be reused, so a rejected code waits for the next one. */
 export async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {

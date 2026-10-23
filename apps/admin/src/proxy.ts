@@ -1,3 +1,4 @@
+import { contentSecurityPolicy, newNonce } from "@holypearls/web-kit/security-headers";
 import { proxyRequestHeaders } from "@holypearls/web-kit/visitor";
 import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_IDENTITY } from "./lib/visitor";
@@ -17,7 +18,14 @@ export function proxy(request: NextRequest) {
     headers.set("x-request-id", `req_admin_${crypto.randomUUID().replaceAll("-", "")}`);
   }
   headers.set("x-hp-pathname", request.nextUrl.pathname);
-  return NextResponse.next({ request: { headers } });
+  // A new nonce per page request (TECH-06 §9). Next reads it from the request's CSP header and puts it on its own scripts.
+  const nonce = newNonce();
+  const csp = contentSecurityPolicy({ nonce, surface: "admin" });
+  headers.set("x-nonce", nonce);
+  headers.set("content-security-policy", csp);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set("content-security-policy", csp);
+  return response;
 }
 
 export const config = { matcher: ["/((?!_next/|favicon.ico).*)"] };

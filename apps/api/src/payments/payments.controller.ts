@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Controller, HttpCode, Inject, Post, Req } from "@nestjs/common";
 import type { Request } from "express";
 import { AppError } from "../errors.js";
@@ -15,6 +16,7 @@ export class PaystackWebhookController {
   constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
 
   @Post()
+  @Public()
   @HttpCode(200)
   async receive(@Req() request: Request) {
     const raw = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);

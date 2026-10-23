@@ -1,9 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
-const port = 3100;
+// E2E_WEB_PORT and E2E_ADMIN_PORT let two test runs share one machine.
+const port = Number(process.env.E2E_WEB_PORT ?? 3100);
 const origin = `http://localhost:${port}`;
 // The staff admin, its own app on its own origin (ADR-017).
-const adminPort = 3200;
+const adminPort = Number(process.env.E2E_ADMIN_PORT ?? 3200);
 const adminOrigin = `http://localhost:${adminPort}`;
 // The web build forwards /api/* to API_URL, which CI and .env set to port 3001.
 // E2E_API_PORT runs the tests beside a dev API (build the web with API_URL on that port).

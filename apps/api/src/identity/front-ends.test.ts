@@ -2,7 +2,7 @@ import { TEST_PEOPLE } from "@holypearls/auth";
 import { apiErrorSchema } from "@holypearls/contracts";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
+import { createHarness, type Harness, TEST_ADMIN_PROXY_SECRET as ADMIN_SECRET, TEST_WEB_ORIGIN, TEST_WEB_PROXY_SECRET as WEB_SECRET } from "../testing/harness.js";
 
 /*
  * T00-10, ADR-017: two front ends. The API serves admin routes and staff
@@ -14,8 +14,6 @@ import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness
 vi.setConfig({ testTimeout: 120_000 });
 
 const ADMIN_ORIGIN = "http://localhost:3002";
-const ADMIN_SECRET = "admin-proxy-secret-for-tests-0123456789";
-const WEB_SECRET = "web-proxy-secret-for-tests-0123456789ab";
 
 let harness: Harness;
 let staff: string;
