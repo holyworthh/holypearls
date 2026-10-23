@@ -8,7 +8,7 @@ import {
   type SearchScope,
   type SearchSuggestions,
 } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, gte, inArray, lt, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, gte, inArray, lt, type SQL, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
@@ -70,7 +70,8 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
       title: product.name,
       summary: product.summary ?? "",
       bodyText: [product.description ?? "", product.categoryName].join(" "),
-      phrasesText: [...product.phrases, ...phrasesFor("PRODUCT", product.id)].join(" "),
+      // One phrase per line, so an exact phrase can be told from a word inside one.
+      phrasesText: [...product.phrases, ...phrasesFor("PRODUCT", product.id)].map((phrase) => phrase.toLowerCase()).join("\n"),
       categorySlug: product.categorySlug,
       boost: popular.includes(product.id) ? popular.length - popular.indexOf(product.id) : 0,
     })),
@@ -81,7 +82,7 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
       title: category.name,
       summary: category.description ?? "",
       bodyText: "",
-      phrasesText: phrasesFor("CATEGORY", category.id).join(" "),
+      phrasesText: phrasesFor("CATEGORY", category.id).join("\n"),
       categorySlug: category.slug,
       boost: 0,
     })),
@@ -99,7 +100,7 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
         title: live.title,
         summary: live.summary,
         bodyText: `${plainText(live.body)} ${extra}`.slice(0, 20_000),
-        phrasesText: phrasesFor("PAGE", page.id).join(" "),
+        phrasesText: phrasesFor("PAGE", page.id).join("\n"),
         categorySlug: null,
         boost: live.featured ? 1 : 0,
       };
@@ -224,12 +225,23 @@ const GROUP: Record<Exclude<SearchScope, "all">, DocType[]> = {
 const ALL_LIMIT = { products: 3, projects: 2, guides: 3 };
 const PAGE_SIZE = 12;
 
+/** ts_rank_cd weights for D, C, B, A (title + phrases = A). Postgres defaults; tuned on the launch catalogue in T14-01b. */
+export const RANK_WEIGHTS = "{0.1, 0.2, 0.4, 1.0}";
+const d = schema.searchDocuments;
+/** Result order: an exact title or phrase first, then relevance, popularity, name (T14-01b). */
+const rankOrder = (q: SQL) => [
+  desc(sql`(lower(${d.title}) = lower(${q}) or position(E'\n' || lower(${q}) || E'\n' in E'\n' || lower(${d.phrasesText}) || E'\n') > 0)`),
+  desc(sql`ts_rank_cd(${RANK_WEIGHTS}::float4[], ${d.tsv}, websearch_to_tsquery('english', ${q}), 32)`),
+  desc(d.boost),
+  asc(d.title),
+];
+
 async function ranked(db: Database, q: string, types: DocType[], limit: number, offset = 0) {
   return db
     .select({ refId: schema.searchDocuments.refId, docType: schema.searchDocuments.docType })
     .from(schema.searchDocuments)
     .where(and(inArray(schema.searchDocuments.docType, types), matches(q)))
-    .orderBy(desc(sql`ts_rank_cd(${schema.searchDocuments.tsv}, ${tsQuery(q)}, 32)`), desc(schema.searchDocuments.boost), asc(schema.searchDocuments.title))
+    .orderBy(...rankOrder(sql`${q}`))
     .limit(limit)
     .offset(offset);
 }
