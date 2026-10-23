@@ -108,6 +108,18 @@ describe("sign-in (TECH-03 §3)", () => {
     }
   });
 
+  it("refuses redirect targets that leave the site, before anything is sent (TECH-06 §2)", async () => {
+    const email = "open.redirect@holypearls.test";
+    for (const callbackURL of ["//evil.example", "/\\evil.example", "https://evil.example/x"]) {
+      const response = await post("/v1/auth/sign-in/magic-link").send({ email, callbackURL });
+      expect({ callbackURL, status: response.status }).toEqual({ callbackURL, status: 400 });
+      expect(errorOf(response.body).context).toMatchObject({ reason: "REDIRECT_NOT_RELATIVE" });
+    }
+    const verify = await http().get("/v1/auth/verify-email?token=x&callbackURL=//evil.example");
+    expect(verify.status).toBe(400);
+    expect(harness.outbox.latestTo(email)).toBeUndefined();
+  });
+
   it("never creates an account from a sign-in link; accounts come from the sign-up form (T09-01)", async () => {
     const email = "no.account.yet@holypearls.test";
     expect((await post("/v1/auth/sign-in/magic-link").send({ email, callbackURL: "/account" })).status).toBe(200);

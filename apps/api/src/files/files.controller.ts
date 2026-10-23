@@ -21,6 +21,7 @@ export class FilesController {
   }
 
   @Post(":id/complete")
+  @RateLimit("COMMERCIAL_WRITE")
   @HttpCode(200)
   async complete(@Req() request: Request, @Param("id", new ParseUUIDPipe()) id: string): Promise<FileView> {
     return completeUpload(this.deps, await request.getActor!(), id);

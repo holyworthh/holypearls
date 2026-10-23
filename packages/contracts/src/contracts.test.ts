@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { ApiError, createApiClient } from "./client.js";
 import { apiErrorSchema, ERROR_CODES, toFieldErrors } from "./errors.js";
+import { isRelativePath, magicLinkRequestSchema } from "./identity.js";
 import { money } from "./money.js";
 import { moneyWireSchema, toMoneyWire } from "./money-wire.js";
 
@@ -78,5 +79,18 @@ describe("API client", () => {
     const error = (await request("/v1/x", { response: z.unknown() }).catch((e: unknown) => e)) as ApiError;
     expect(error.code).toBe("INTERNAL");
     expect(error.body.requestId).toBe("req_2");
+  });
+});
+
+describe("redirect targets (TECH-06 §2)", () => {
+  it("accepts paths on this site", () => {
+    for (const path of ["/account", "/checkout/x?a=1#b", "/"]) expect(isRelativePath(path)).toBe(true);
+  });
+
+  it("refuses anything a browser could read as another site", () => {
+    for (const path of ["//evil.example", "/\\evil.example", "/\t/evil.example", "/\n/evil.example", "https://evil.example", "javascript:alert(1)", "evil.example", ""]) {
+      expect(isRelativePath(path)).toBe(false);
+      expect(magicLinkRequestSchema.safeParse({ email: "a@example.com", callbackURL: path }).success).toBe(false);
+    }
   });
 });

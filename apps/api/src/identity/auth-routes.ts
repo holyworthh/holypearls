@@ -1,5 +1,5 @@
 import type { IdentityAdapter } from "@holypearls/auth";
-import { type ApiErrorBody, ERROR_CODES, type ErrorCode } from "@holypearls/contracts";
+import { type ApiErrorBody, ERROR_CODES, type ErrorCode, isRelativePath } from "@holypearls/contracts";
 import { type Database, eq, schema } from "@holypearls/db";
 import type { NextFunction, Request, Response } from "express";
 import type { Logger } from "pino";
@@ -63,6 +63,18 @@ async function readBody(request: Request): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
+/** Where a request asks the library to send the person afterwards (TECH-06 §2). */
+const REDIRECT_FIELDS = ["callbackURL", "errorCallbackURL", "newUserCallbackURL", "redirectTo"];
+
+function redirectTargets(body: Buffer): unknown[] {
+  try {
+    const parsed = JSON.parse(body.toString("utf8")) as Record<string, unknown> | null;
+    return parsed && typeof parsed === "object" ? REDIRECT_FIELDS.map((field) => parsed[field]).filter((value) => value !== undefined) : [];
+  } catch {
+    return [];
+  }
+}
+
 function emailFrom(body: Buffer): string | undefined {
   try {
     const email = (JSON.parse(body.toString("utf8")) as { email?: unknown }).email;
@@ -110,6 +122,10 @@ export function authRoutes({ identity, webOrigin, fronts, logger, db, limiter }:
     response.status(ERROR_CODES[code].status).json(body);
   };
 
+  // The library puts absolute links to our own front ends in emailed links; anything else must be a relative path.
+  const ownOrigins = new Set([webOrigin, fronts.adminOrigin].filter((origin): origin is string => Boolean(origin)).map((origin) => new URL(origin).origin));
+  const isOurs = (value: unknown) => typeof value === "string" && (isRelativePath(value) || (URL.canParse(value) && ownOrigins.has(new URL(value).origin)));
+
   return async (request: Request, response: Response, next: NextFunction) => {
     if (!request.path.startsWith(AUTH_ROUTE_PREFIX)) return next();
     const requestId = request.requestId ?? "unknown";
@@ -119,6 +135,10 @@ export function authRoutes({ identity, webOrigin, fronts, logger, db, limiter }:
       const hasBody = !["GET", "HEAD"].includes(request.method);
       const body = hasBody ? await readBody(request) : undefined;
       const email = body ? emailFrom(body) : undefined;
+
+      // Redirect targets are checked here, not left to the library (TECH-06 §2, open redirects).
+      const given = [...(body ? redirectTargets(body) : []), ...REDIRECT_FIELDS.map((field) => request.query[field]).filter((value) => value !== undefined)];
+      if (!given.every(isOurs)) return sendError(response, "VALIDATION_FAILED", requestId, { reason: "REDIRECT_NOT_RELATIVE" });
 
       if (AUTH_LIMITED.includes(path)) {
         const limit = await limiter.hit("AUTH", { ip: clientIp(request), subject: email });

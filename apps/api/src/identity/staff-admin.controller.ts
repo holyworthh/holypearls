@@ -1,3 +1,4 @@
+import { Public } from "./identified.guard.js";
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { acceptInvitationSchema, INVITATION_TOKEN_HEADER, type InviteStaff, inviteStaffSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
@@ -66,6 +67,7 @@ export class StaffInvitationsController {
   }
 
   @Post("accept")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async accept(@Req() request: Request, @Body(new ZodValidationPipe(acceptInvitationSchema)) body: z.infer<typeof acceptInvitationSchema>) {
