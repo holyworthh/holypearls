@@ -1,4 +1,4 @@
-import type { AdminIntent, AdminPaymentList, AdminReview, PaymentChannel, PaymentSettings, PaymentSettingsInput, ResolveReview } from "@holypearls/contracts";
+import { type AdminIntent, type AdminPaymentList, type AdminReview, type CurrencyCode, money, type PaymentChannel, type PaymentSettings, type PaymentSettingsInput, type ResolveReview, toMajorString } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, ilike, inArray, or, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -36,6 +36,9 @@ async function contextOf(db: Database, intentIds: string[]) {
       customerEmail: schema.customers.email,
       latest: sql<string | null>`(select a.status from payment_attempts a where a.intent_id = ${schema.paymentIntents.id} order by a.created_at desc limit 1)`,
       openReview: sql<boolean>`exists (select 1 from payment_reviews r where r.intent_id = ${schema.paymentIntents.id} and r.status = 'OPEN')`,
+      // Refunds (T13-05): PARTIALLY_REFUNDED and REFUNDED come from processed refunds against what was paid.
+      paid: sql<string>`(select coalesce(sum(coalesce(a.paid_amount_minor, a.amount_minor)), 0)::text from payment_attempts a where a.intent_id = ${schema.paymentIntents.id} and a.status = 'SUCCEEDED')`,
+      refunded: sql<string>`(select coalesce(sum(f.amount_minor), 0)::text from refunds f where f.intent_id = ${schema.paymentIntents.id} and f.status = 'PROCESSED')`,
     })
     .from(schema.paymentIntents)
     .innerJoin(schema.installments, eq(schema.installments.id, schema.paymentIntents.installmentId))
@@ -58,6 +61,8 @@ async function contextOf(db: Database, intentIds: string[]) {
         customerSees: customerPaymentStatus({
           installments: [{ position: row.position, status: row.installmentStatus, latestAttempt: (row.latest as Attempt["status"] | null) ?? null }],
           needsResolution: row.openReview,
+          paidMinor: BigInt(row.paid),
+          refundedMinor: BigInt(row.refunded),
         }),
       },
     ]),
@@ -127,6 +132,7 @@ export async function getIntent(db: Database, id: string): Promise<AdminIntent> 
   const reviews = await db.select().from(schema.paymentReviews).where(eq(schema.paymentReviews.intentId, id)).orderBy(desc(schema.paymentReviews.createdAt));
   const [receipt] = await db.select().from(schema.receipts).where(eq(schema.receipts.intentId, id)).orderBy(asc(schema.receipts.createdAt)).limit(1);
   const history = await db.select().from(schema.auditLog).where(eq(schema.auditLog.recordId, id)).orderBy(desc(schema.auditLog.occurredAt)).limit(50);
+  const refunds = await db.select().from(schema.refunds).where(eq(schema.refunds.intentId, id)).orderBy(desc(schema.refunds.createdAt));
   return {
     id: intent.id,
     status: intent.status,
@@ -153,6 +159,7 @@ export async function getIntent(db: Database, id: string): Promise<AdminIntent> 
     })),
     events: events.map((event) => ({ id: event.id, event: event.event, reference: event.reference, receivedAt: event.receivedAt.toISOString(), processedAt: event.processedAt?.toISOString() ?? null })),
     reviews: reviews.map((review) => ({ id: review.id, reason: review.reason, status: review.status })),
+    refunds: refunds.map((refund) => ({ id: refund.id, number: refund.number, attemptId: refund.attemptId, amountMinor: refund.amountMinor.toString(), currency: refund.currency, status: refund.status, createdAt: refund.createdAt.toISOString() })),
     receipt: receipt
       ? { id: receipt.id, number: receipt.number, amountMinor: receipt.amountMinor.toString(), currency: receipt.currency as "NGN" | "USD", paidAt: receipt.paidAt.toISOString(), channel: receipt.channel, paystackReference: receipt.paystackReference }
       : null,
@@ -365,4 +372,29 @@ export async function savePaymentSettings(db: Database, actor: ActorContext, inp
     });
   });
   return getPaymentSettings(db, providerConfigured);
+}
+
+/** Payments export (T13-03b): every attempt started in the range. No customer details (those are personal data). */
+export async function paymentsForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select()
+    .from(schema.paymentAttempts)
+    .where(and(sql`${schema.paymentAttempts.createdAt} >= ${range.start}`, sql`${schema.paymentAttempts.createdAt} < ${range.end}`))
+    .orderBy(asc(schema.paymentAttempts.createdAt));
+  const context = await contextOf(db, [...new Set(rows.map((row) => row.intentId))]);
+  const amount = (minor: bigint | null, currency: string) => (minor === null ? "" : toMajorString(money(minor, currency as CurrencyCode)));
+  return [
+    ["Reference", "For", "Status", "Amount", "Paid amount", "Currency", "Channel", "Started", "Paid at"],
+    ...rows.map((row) => [
+      row.reference,
+      context.get(row.intentId)?.forLabel ?? "",
+      row.status,
+      amount(row.amountMinor, row.currency),
+      amount(row.paidAmountMinor, row.paidCurrency ?? row.currency),
+      row.currency,
+      row.channel ?? "",
+      row.createdAt.toISOString(),
+      row.paidAt?.toISOString() ?? "",
+    ]),
+  ];
 }

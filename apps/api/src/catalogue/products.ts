@@ -301,3 +301,16 @@ export async function setRelatedProducts(db: Database, actor: ActorContext, id: 
   });
   return load(db, id);
 }
+
+/** Catalogue export (T13-03b): every product, as it is now. */
+export async function catalogueForExport(db: Database): Promise<string[][]> {
+  const rows = await db
+    .select({ product: schema.products, category: schema.categories.name })
+    .from(schema.products)
+    .innerJoin(schema.categories, eq(schema.categories.id, schema.products.categoryId))
+    .orderBy(asc(schema.products.sku));
+  return [
+    ["SKU", "Name", "Category", "Family", "Buying mode", "Status", "Listed", "Address"],
+    ...rows.map(({ product, category }) => [product.sku, product.name, category, product.family, product.buyingMode, product.status, product.listed ? "Yes" : "No", `/products/${product.slug}`]),
+  ];
+}

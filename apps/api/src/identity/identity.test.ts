@@ -273,7 +273,7 @@ describe("staff access (TECH-03 §8, §10)", () => {
     const response = await http().get("/v1/admin/me").set("cookie", cookie);
     expect(response.status).toBe(200);
     const me = adminMeSchema.parse(response.body);
-    expect(me.permissions).toEqual(["AUDIT_VIEW", "CATALOGUE_MANAGE", "CONTENT_MANAGE", "CUSTOMER_SUPPORT", "FULFILMENT_MANAGE", "ORGANIZATION_APPROVE", "ORGANIZATION_SUPPORT", "PAYMENT_MANAGE", "PAYMENT_VIEW", "PRICING_MANAGE", "PRODUCTION_MANAGE", "PROOF_MANAGE", "QUOTE_MANAGE", "SECURITY_ADMIN", "STAFF_ADMIN"]);
+    expect(me.permissions).toEqual(["AUDIT_VIEW", "CATALOGUE_MANAGE", "CONTENT_MANAGE", "CUSTOMER_SUPPORT", "EXPORT_PERSONAL_DATA", "FULFILMENT_MANAGE", "ORGANIZATION_APPROVE", "ORGANIZATION_SUPPORT", "PAYMENT_MANAGE", "PAYMENT_VIEW", "PRICING_MANAGE", "PRODUCTION_MANAGE", "PROOF_MANAGE", "QUOTE_MANAGE", "REFUND_ISSUE", "SECURITY_ADMIN", "STAFF_ADMIN"]);
   });
 
   it("returns 403 when staff lack the route's permission", async () => {

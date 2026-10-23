@@ -185,7 +185,7 @@ async function storeView(deps: Pick<OrganizationDeps, "db">, member: Member, row
           ? "This store is paused. Try again later."
           : row.status === "ARCHIVED"
             ? "This store is archived."
-            : !member.permissions.has("CREATE_REQUESTS")
+            : !selfOrder && !member.permissions.has("CREATE_REQUESTS")
               ? "Your role can't place orders here. Ask your workspace Admin."
               : null,
     setup: manages(member)
@@ -429,7 +429,8 @@ async function orderable(db: Database, actor: ActorContext, organizationId: stri
   const member = await requireMember(db, actor, organizationId);
   const store = await loadStore(db, organizationId, id);
   if (!canSee(member, store)) throw new AppError("NOT_FOUND");
-  enforce(needsPermission(member, "CREATE_REQUESTS"));
+  // Buyers order for a location; any member picks for themselves in a self-order store (owner, 2026-10-19).
+  if (mode === "PROCUREMENT") enforce(needsPermission(member, "CREATE_REQUESTS"));
   if (store.status !== "ACTIVE") throw new AppError("RULE_FAILED", { message: store.status === "PAUSED" ? "This store is paused. Try again later." : "This store isn't open.", context: { reason: "STORE_NOT_OPEN", status: store.status } });
   if (store.mode !== mode) throw new AppError("RULE_FAILED", { message: "This store doesn't take that kind of order.", context: { reason: "WRONG_MODE" } });
   const items = await itemsOf(db, [id]);
@@ -504,7 +505,7 @@ export async function pickFromStore(deps: OrganizationDeps, actor: ActorContext,
   if (view.fields.includes("SIZE") ? !answers.size || !view.sizes.includes(answers.size) : answers.size) refuse("size", view.fields.includes("SIZE") ? "Choose your size." : "This item has no sizes.");
   if (answers.personalization && !view.fields.includes("PERSONALIZATION")) refuse("personalization", "Names aren't offered on this item.");
   if (!answers.branchLocationId || !view.branches.some((branch) => branch.id === answers.branchLocationId)) refuse("branchLocationId", "Choose your branch.");
-  const { template, sourceConfigurationId, controls } = await templateLine(db, actor, organizationId, input.templateId, { locationId: answers.branchLocationId!, choices: {}, quantity: 1 });
+  const { template, sourceConfigurationId, controls } = await templateLine(db, actor, organizationId, input.templateId, { locationId: answers.branchLocationId!, choices: {}, quantity: 1 }, { anyMember: true });
   const draft = await configurationForGroup(db, actor, {
     sourceConfigurationId,
     quantity: 1,

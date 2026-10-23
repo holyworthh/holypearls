@@ -337,3 +337,16 @@ export async function requireRecentEmailCode(db: Database, actor: ActorContext):
     throw new AppError("RECENT_EMAIL_CODE_REQUIRED", { context: { validHours: EMAIL_CODE_VALID_HOURS } });
   }
 }
+
+/** Customers export (T13-03b): personal data, so EXPORT_PERSONAL_DATA and a recent MFA check (TECH-03 §9). Customers first seen in the range. */
+export async function customersForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select()
+    .from(schema.customers)
+    .where(and(sql`${schema.customers.createdAt} >= ${range.start}`, sql`${schema.customers.createdAt} < ${range.end}`))
+    .orderBy(schema.customers.createdAt);
+  return [
+    ["Name", "Email", "Phone", "Email verified", "Has an account", "First seen"],
+    ...rows.map((row) => [row.name ?? "", row.email, row.phone ?? "", row.emailVerifiedAt ? "Yes" : "No", row.userId ? "Yes" : "No", row.createdAt.toISOString()]),
+  ];
+}

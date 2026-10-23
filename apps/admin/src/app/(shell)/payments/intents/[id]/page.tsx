@@ -28,6 +28,11 @@ export default async function IntentPage({ params }: { params: Promise<{ id: str
   }
   const intent = result.data;
   const openReview = intent.reviews.find((review) => review.status === "OPEN");
+  const canRefund = admin.permissions.includes("REFUND_ISSUE");
+  // A refund settles a duplicate or removed-participant review (T13-05): pass it along from the extra attempt.
+  const settles = openReview && (openReview.reason === "DUPLICATE_PAYMENT" || openReview.reason === "PAID_PARTICIPANT_REMOVED") ? openReview : null;
+  const refundHref = (attempt: { id: string; reference: string }) =>
+    `/refunds/new?attempt=${attempt.id}${settles && (settles.reason === "PAID_PARTICIPANT_REMOVED" || attempt.reference !== intent.succeededAttemptReference) ? `&review=${settles.id}` : ""}`;
 
   return (
     <>
@@ -75,6 +80,11 @@ export default async function IntentPage({ params }: { params: Promise<{ id: str
                   <th scope="col">AMOUNT</th>
                   <th scope="col">CREATED</th>
                   <th scope="col">STATUS</th>
+                  {canRefund ? (
+                    <th scope="col">
+                      <span className="hp-visually-hidden">Refund</span>
+                    </th>
+                  ) : null}
                 </tr>
               </thead>
               <tbody>
@@ -92,12 +102,54 @@ export default async function IntentPage({ params }: { params: Promise<{ id: str
                     <td>
                       <StatusChip tone={ATTEMPT_TONE[attempt.status]}>{attempt.status}</StatusChip>
                     </td>
+                    {canRefund ? (
+                      <td>
+                        {attempt.status === "SUCCEEDED" ? (
+                          <a className={styles.action} href={refundHref(attempt)}>
+                            Refund<span className="hp-visually-hidden"> {attempt.reference}</span>
+                          </a>
+                        ) : null}
+                      </td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className={styles.hint}>Attempt statuses: CREATED, PENDING, SUCCEEDED, FAILED, ABANDONED, UNKNOWN (after 48 h).</p>
           </section>
+
+          {intent.refunds.length ? (
+            <section aria-labelledby="refunds-title">
+              <h2 id="refunds-title" className={styles.panelTitle}>
+                Refunds ({intent.refunds.length})
+              </h2>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">REFUND</th>
+                    <th scope="col">OF ATTEMPT</th>
+                    <th scope="col">AMOUNT</th>
+                    <th scope="col">ISSUED</th>
+                    <th scope="col">STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {intent.refunds.map((refund) => (
+                    <tr key={refund.id}>
+                      <td className={styles.mono}>{refund.number}</td>
+                      <td className={styles.mono}>{shortReference(intent.attempts.find((attempt) => attempt.id === refund.attemptId)?.reference ?? "—")}</td>
+                      <td className={styles.mono}>{money(refund.amountMinor, refund.currency)}</td>
+                      <td className={styles.mono}>{formatTime(refund.createdAt)}</td>
+                      <td>
+                        <StatusChip tone={refund.status === "PROCESSED" ? "success" : refund.status === "FAILED" ? "error" : "info"}>{refund.status}</StatusChip>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className={styles.hint}>Refunds are new records. The attempts above are never changed (TECH-05 §11).</p>
+            </section>
+          ) : null}
 
           <section aria-labelledby="events-title">
             <h2 id="events-title" className={styles.panelTitle}>

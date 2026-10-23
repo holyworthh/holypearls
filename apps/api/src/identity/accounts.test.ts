@@ -218,7 +218,8 @@ describe("limits and front ends (TECH-02 §14, ADR-017)", () => {
       ["/change-email", () => ({ newEmail: "same.person@example.com", callbackURL: "/account/profile" })],
     ] as const) {
       const codes: number[] = [];
-      for (let n = 0; n < 12; n++) codes.push((await auth(path, body(n), "", limited.url).set("x-forwarded-for", `198.51.100.${path.length}`)).status);
+      // 21 calls: even split across a minute boundary, one 60-second window gets 11 (the IP limit is 10).
+      for (let n = 0; n < 21; n++) codes.push((await auth(path, body(n), "", limited.url).set("x-forwarded-for", `198.51.100.${path.length}`)).status);
       expect({ path, limited: codes.includes(429) }).toEqual({ path, limited: true });
     }
   });

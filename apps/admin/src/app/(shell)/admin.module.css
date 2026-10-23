@@ -12,3 +12,60 @@
   font-size: var(--hp-text-label);
   line-height: var(--hp-leading-body);
 }
+
+/* Operations home (T13-03; Pen 95): one card per work queue. */
+
+.queues {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--hp-space-128) + var(--hp-space-64)), 1fr));
+  gap: var(--hp-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hp-space-6);
+  height: 100%;
+  padding: var(--hp-space-20);
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-card);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  text-decoration: none;
+}
+
+.queue:hover {
+  border-color: var(--hp-line-strong);
+}
+
+.queue:focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
+  outline-offset: var(--hp-focus-ring-width);
+}
+
+.queueLabel {
+  font-size: var(--hp-text-label);
+  font-weight: var(--hp-weight-semibold);
+}
+
+.queueCount {
+  font-size: var(--hp-text-title);
+  font-weight: var(--hp-weight-semibold);
+  line-height: var(--hp-leading-tight);
+}
+
+.queueDetail {
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+}
+
+.queueOpen {
+  margin-top: auto;
+  padding-top: var(--hp-space-8);
+  color: var(--hp-accent);
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-semibold);
+}

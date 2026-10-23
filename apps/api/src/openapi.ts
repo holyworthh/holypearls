@@ -32,6 +32,21 @@ import {
   adminPriceRuleSchema,
   adminProductRulesSchema,
   pricingProductListSchema,
+  opsHomeSchema,
+  exportDownloadSchema,
+  inviteStaffSchema,
+  staffInvitationPreviewSchema,
+  acceptedStaffInvitationSchema,
+  staffInvitationSchema,
+  staffListSchema,
+  staffMemberSchema,
+  adminRefundListSchema,
+  adminRefundSchema,
+  issueRefundSchema,
+  refundablePaymentSchema,
+  exportItemSchema,
+  exportListSchema,
+  exportRequestSchema,
   fabricInputSchema,
   fabricSchema,
   garmentDataSchema,
@@ -1302,6 +1317,61 @@ export function buildOpenApiDocument() {
           requestBody: { required: true, content: json(priceRequestSchema) },
           responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
+      },
+      "/v1/admin/home": {
+        get: { summary: "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)", responses: { 200: { description: "Queues", content: json(opsHomeSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/refunds": {
+        get: { summary: "Refunds, newest first, with the original attempt and what the customer sees (REFUND_ISSUE; T13-05; Pen 121)", responses: { ...staffOnly, 200: { description: "Refunds", content: json(adminRefundListSchema) } } },
+        post: {
+          summary: "Refund all or part of a successful attempt through Paystack (REFUND_ISSUE, MFA in the last 15 minutes, audited; TECH-05 §11). A new record; the original payment never changes. Pending and processed refunds count against what's left",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(issueRefundSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING with Paystack, or FAILED when Paystack declined", content: json(adminRefundSchema) }, 400: error("VALIDATION_FAILED (more than is left, or a review of another payment)"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 409: error("CONFLICT: the review was already resolved"), 422: error("RULE_FAILED: payments aren't set up") },
+        },
+      },
+      "/v1/admin/refunds/payments/{attemptId}": {
+        get: { summary: "The issue form for one successful attempt: paid, refunded and left, its refunds, and the review it comes from (?review=)", parameters: [uuidParam("attemptId")], responses: { ...staffOnly, 200: { description: "Refundable payment", content: json(refundablePaymentSchema) } } },
+      },
+      "/v1/admin/staff": {
+        get: { summary: "Staff members with permissions, MFA and status, and open invitations (STAFF_ADMIN; T13-05b; Pen 122)", responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/invitations": {
+        post: {
+          summary: "Invite someone to the staff (7 days, one use, emailed). With permissions, needs an authenticator check in the last 15 minutes. Audited",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(inviteStaffSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING", content: json(staffInvitationSchema) }, 400: error("VALIDATION_FAILED"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 422: error("RULE_FAILED: ALREADY_STAFF or ALREADY_INVITED") },
+        },
+      },
+      "/v1/admin/staff/invitations/{id}/revoke": {
+        post: { summary: "Cancel a pending staff invitation (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}": {
+        get: { summary: "One staff member: permissions, MFA, last MFA reset, active sessions, and the active STAFF_ADMIN holders", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}/deactivate": {
+        post: { summary: "Deactivate a staff member: access ends and every session is signed out; history is kept. Not yourself, and never below two active STAFF_ADMIN (FORBIDDEN, MINIMUM_STAFF_ADMINS)", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/staff-invitations/preview": {
+        get: { summary: "What a staff invitation offers, from its secret in the x-hp-invitation header (the email is masked)", responses: { 200: { description: "Preview", content: json(staffInvitationPreviewSchema) }, 404: error("NOT_FOUND") } },
+      },
+      "/v1/staff-invitations/accept": {
+        post: { summary: "Accept a staff invitation: signed in with the invited email, verified. Creates or reactivates the staff profile with the invited permissions", responses: { 200: { description: "Accepted: where to sign in to the admin and set up MFA", content: json(acceptedStaffInvitationSchema) }, 401: error("NOT_SIGNED_IN"), 404: error("NOT_FOUND"), 422: error("RULE_FAILED: WRONG_ACCOUNT, VERIFY_EMAIL_FIRST, ALREADY_STAFF or INVITATION_*") } },
+      },
+      "/v1/admin/exports": {
+        get: { summary: "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)", responses: { ...staffOnly, 200: { description: "Exports", content: json(exportListSchema) }, 403: error("No export permission (FORBIDDEN)") } },
+        post: {
+          summary: "Request an export; the worker builds it (export.generate). Customers is personal data: EXPORT_PERSONAL_DATA and an authenticator check in the last 15 minutes. Audited",
+          requestBody: { required: true, content: json(exportRequestSchema) },
+          responses: { ...staffOnly, 201: { description: "Generating", content: json(exportItemSchema) }, 400: error("VALIDATION_FAILED"), 403: error("Missing the type's permission (FORBIDDEN) or no recent authenticator check for personal data (RECENT_MFA_REQUIRED)") },
+        },
+      },
+      "/v1/admin/exports/{id}/retry": {
+        post: { summary: "Build a failed export again (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Generating", content: json(exportItemSchema) }, 409: error("CONFLICT: not failed"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 404: error("NOT_FOUND") } },
+      },
+      "/v1/admin/exports/{id}/download": {
+        post: { summary: "A 5-minute download link for a ready export, within its 24 hours (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Link", content: json(exportDownloadSchema) }, 422: error("RULE_FAILED: not ready or expired"), 403: error("FORBIDDEN"), 404: error("NOT_FOUND") } },
       },
       "/v1/admin/pricing/scheduled": {
         get: { summary: "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)", responses: { 200: { description: "Scheduled", content: json(scheduledChangesSchema) }, ...staffOnly } },

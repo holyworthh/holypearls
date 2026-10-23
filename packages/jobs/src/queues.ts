@@ -48,10 +48,14 @@ export const QUEUES = {
   "payment.check": { payload: payload({ attemptId: z.string().uuid(), check: z.number().int().min(1).max(20) }), settings: {} },
   /** Follows up a saved Paystack webhook: confirms with the verify API before changing anything (TECH-02 §9). */
   "payment.verify": { payload: payload({ eventId: z.string().uuid() }), settings: {} },
+  /** Asks Paystack for a refund's status on the TECH-05 §11 schedule (T13-05); `check` is its place in REFUND_CHECK_SECONDS. */
+  "refund.check": { payload: payload({ refundId: z.string().uuid(), check: z.number().int().min(1).max(20) }), settings: {} },
   /** Expires a sent quote version at its valid-until time (TECH-02 §8), queued when the version is sent. */
   "quote.expire": { payload: payload({ quoteVersionId: z.string().uuid() }), settings: {} },
   /** A reminder due at a set time: quote expiring, balance due (TECH-02 §8). Checked again when it runs. */
   "reminder.send": { payload: payload({ kind: z.enum(["QUOTE_EXPIRING", "INSTALLMENT_DUE"]), recordId: z.string().uuid() }), settings: {} },
+  /** Builds one export file into private storage (TECH-02 §8: 15-minute timeout; T13-03b). Two retries, then it shows as failed. */
+  "export.generate": { payload: payload({ exportId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 15 * 60 } },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;
