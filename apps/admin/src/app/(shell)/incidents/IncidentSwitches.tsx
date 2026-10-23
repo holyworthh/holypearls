@@ -8,18 +8,17 @@ import { StepUpDialog } from "@/components/StepUpDialog";
 import styles from "../admin-list.module.css";
 import css from "./incidents.module.css";
 
-type Name = "READ_ONLY" | "UPLOADS_PAUSED" | "PAYMENTS_PAUSED" | "SESSIONS" | "GUEST_LINKS";
-
 const lagosTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Africa/Lagos" });
 
 /** What each switch says and does, in the words of Pen 123 (JqxuW). */
-const SWITCHES: { name: Name; title: string; text: string; runbook: string; off: string; on: string; action: string }[] = [
-  { name: "READ_ONLY", title: "Read-only mode", text: "Browsing works. Every change is blocked with a message.", runbook: "Runbook 6", off: "Turn on", on: "Turn off", action: "Turn on read-only mode for the whole site" },
-  { name: "UPLOADS_PAUSED", title: "Pause uploads", text: "New file uploads are refused. Existing files still work.", runbook: "Runbook 5", off: "Pause", on: "Resume", action: "Pause uploads for the whole site" },
-  { name: "PAYMENTS_PAUSED", title: "Pause online payments", text: "Same switch as Payment settings. Pending attempts are still checked.", runbook: "Runbook 4", off: "Pause", on: "Resume", action: "Pause online payments" },
-  { name: "SESSIONS", title: "Revoke sessions", text: "End all sessions for everyone, or for one person.", runbook: "Runbook 2", off: "Revoke…", on: "Revoke…", action: "Revoke sessions" },
-  { name: "GUEST_LINKS", title: "Revoke guest links", text: "For one customer or one record (quote, order, proof, draft, collection).", runbook: "—", off: "Revoke…", on: "Revoke…", action: "Revoke guest links" },
+const SWITCHES = [
+  { name: "READ_ONLY", key: "readOnly" as const, title: "Read-only mode", text: "Browsing works. Every change is blocked with a message.", runbook: "Runbook 6", off: "Turn on", on: "Turn off", action: "Turn on read-only mode for the whole site" },
+  { name: "UPLOADS_PAUSED", key: "uploadsPaused" as const, title: "Pause uploads", text: "New file uploads are refused. Existing files still work.", runbook: "Runbook 5", off: "Pause", on: "Resume", action: "Pause uploads for the whole site" },
+  { name: "PAYMENTS_PAUSED", key: "paymentsPaused" as const, title: "Pause online payments", text: "Same switch as Payment settings. Pending attempts are still checked.", runbook: "Runbook 4", off: "Pause", on: "Resume", action: "Pause online payments" },
+  { name: "SESSIONS", key: null, title: "Revoke sessions", text: "End all sessions for everyone, or for one person.", runbook: "Runbook 2", off: "Revoke…", on: "Revoke…", action: "Revoke sessions" },
+  { name: "GUEST_LINKS", key: null, title: "Revoke guest links", text: "For one customer or one record (quote, order, proof, draft, collection).", runbook: "—", off: "Revoke…", on: "Revoke…", action: "Revoke guest links" },
 ];
+type Name = (typeof SWITCHES)[number]["name"];
 
 const READ_ONLY_NOTE = `Customers see: "We're doing maintenance. You can browse, but changes are paused." Recorded in the audit log with your request ID.`;
 
@@ -36,7 +35,10 @@ export function IncidentSwitches({ initial }: { initial: IncidentState }) {
   const [error, setError] = useState<string>();
   const [message, setMessage] = useState<{ tone: "success" | "error"; title: string; text: string } | null>(null);
 
-  const stateOf = (name: Name) => (name === "READ_ONLY" ? state.readOnly : name === "UPLOADS_PAUSED" ? state.uploadsPaused : name === "PAYMENTS_PAUSED" ? state.paymentsPaused : null);
+  const stateOf = (name: Name) => {
+    const key = SWITCHES.find((item) => item.name === name)?.key;
+    return key ? state[key] : null;
+  };
   const entry = SWITCHES.find((item) => item.name === pending);
   const turningOn = pending !== null && !stateOf(pending)?.on;
 

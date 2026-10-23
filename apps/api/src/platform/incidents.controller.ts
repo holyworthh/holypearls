@@ -13,9 +13,8 @@ import type { Request } from "express";
 import { revokeGuestLinks, revokeSessions } from "../identity/incidents.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { paymentsPausedSince, setOnlinePayments } from "../payments/admin.js";
-import { HELP_DEPS } from "../tokens.js";
+import { DATABASE } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
-import type { HelpDeps } from "./help-requests.js";
 import { incidentSwitches, setIncidentSwitch } from "./incidents.js";
 import { RateLimit } from "./rate-limit.js";
 
@@ -30,11 +29,11 @@ async function incidentState(db: Database): Promise<IncidentState> {
 @Controller("admin/incidents")
 @UseGuards(StaffGuard("SECURITY_ADMIN"))
 export class IncidentsAdminController {
-  constructor(@Inject(HELP_DEPS) private readonly deps: HelpDeps) {}
+  constructor(@Inject(DATABASE) private readonly db: Database) {}
 
   @Get()
   state(): Promise<IncidentState> {
-    return incidentState(this.deps.db);
+    return incidentState(this.db);
   }
 
   @Post("switch")
@@ -42,22 +41,22 @@ export class IncidentsAdminController {
   @RateLimit("ADMIN_WRITE")
   async change(@Req() request: Request, @Body(new ZodValidationPipe(incidentSwitchSchema)) body: IncidentSwitchInput): Promise<IncidentState> {
     const actor = await request.getActor!();
-    if (body.switch === "PAYMENTS_PAUSED") await setOnlinePayments(this.deps.db, actor, !body.on);
-    else await setIncidentSwitch(this.deps.db, actor, body.switch, body.on);
-    return incidentState(this.deps.db);
+    if (body.switch === "PAYMENTS_PAUSED") await setOnlinePayments(this.db, actor, !body.on);
+    else await setIncidentSwitch(this.db, actor, body.switch, body.on);
+    return incidentState(this.db);
   }
 
   @Post("revoke-sessions")
   @HttpCode(200)
   @RateLimit("ADMIN_WRITE")
   async sessions(@Req() request: Request, @Body(new ZodValidationPipe(revokeSessionsSchema)) body: RevokeSessionsInput) {
-    return revokeSessions(this.deps.db, await request.getActor!(), body);
+    return revokeSessions(this.db, await request.getActor!(), body);
   }
 
   @Post("revoke-guest-links")
   @HttpCode(200)
   @RateLimit("ADMIN_WRITE")
   async guestLinks(@Req() request: Request, @Body(new ZodValidationPipe(revokeGuestLinksSchema)) body: RevokeGuestLinksInput) {
-    return revokeGuestLinks(this.deps.db, await request.getActor!(), body);
+    return revokeGuestLinks(this.db, await request.getActor!(), body);
   }
 }

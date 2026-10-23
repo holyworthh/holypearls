@@ -211,4 +211,3 @@ export type RevokeSessionsInput = z.infer<typeof revokeSessionsSchema>;
 export const revokeGuestLinksSchema = z.union([z.object({ customerEmail: z.email() }).strict(), z.object({ recordId: z.uuid() }).strict()]);
 export type RevokeGuestLinksInput = z.infer<typeof revokeGuestLinksSchema>;
 export const revokedCountSchema = z.object({ revoked: z.number().int().min(0) });
-export type RevokedCount = z.infer<typeof revokedCountSchema>;
