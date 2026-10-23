@@ -270,3 +270,12 @@ describe("deposits and balances (PAY-FR-001–004)", () => {
     expect(row!.status).toBe("DUE");
   });
 });
+
+it("lets a quote guest read only the quote's source-project artwork", async () => {
+  const { quoteId, guest } = await sentQuote();
+  const [quote] = await db().select().from(schema.quotes).where(eq(schema.quotes.id, quoteId));
+  const [file] = await db().insert(schema.files).values({ purpose: "PROJECT_ATTACHMENT", status: "READY", bucket: "private", originalName: "reference.pdf", safeName: "reference.pdf", declaredType: "application/pdf", declaredSize: 20, storageKey: `guest-reference/${randomUUID()}`, ownerType: "PROJECT", ownerId: quote!.projectId!, attachedAt: new Date() }).returning();
+  expect((await guest.get(`/v1/files/${file!.id}/download`)).status).toBe(200);
+  const unrelated = await sentQuote();
+  expect((await unrelated.guest.get(`/v1/files/${file!.id}/download`)).status).toBe(404);
+});

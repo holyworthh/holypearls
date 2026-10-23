@@ -9,7 +9,7 @@ import { PaymentSummary } from "../../../components/sales/PaymentSummary";
 import { SiteShell } from "../../../components/site/SiteShell";
 import { naira } from "@holypearls/web-kit/money";
 import { serverApi } from "../../../lib/server-api";
-import { ORDER_SUMMARY as SUMMARY } from "../../../components/orders/status";
+import { ORDER_SUMMARY as SUMMARY, PAYMENT_STATUS } from "../../../components/orders/status";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false }, referrer: "no-referrer" };
 export const dynamic = "force-dynamic";
@@ -109,7 +109,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     { title: order.quote ? `Quote V${order.quote.version} accepted` : "Order placed", meta: day(order.placedAt), state: "done" },
     ...(scheduled
       ? deposit
-        ? [{ title: `${deposit.label} · ${naira(deposit.amountMinor)}`, meta: deposit.status === "PAID" && deposit.paidAt ? `Paid ${day(deposit.paidAt)}` : "Due now", state: deposit.status === "PAID" ? ("done" as const) : ("now" as const) }]
+        ? [{ title: `${deposit.label} · ${naira(deposit.amountMinor, order.currency)}`, meta: deposit.status === "PAID" && deposit.paidAt ? `Paid ${day(deposit.paidAt)}` : "Due now", state: deposit.status === "PAID" ? ("done" as const) : ("now" as const) }]
         : []
       : [{ title: "Paid", meta: order.receipts[0] ? day(order.receipts[0].paidAt) : day(order.placedAt), state: "done" as const }]),
     ...(required.length
@@ -120,7 +120,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       meta: made ? "Made and checked" : started ? [making ? `${making} in production` : null, checking ? `${checking} in Quality Check` : null].filter(Boolean).join(" · ") || "Under way" : "Starts once proofs and payment are in",
       state: made ? "done" : started ? "now" : "todo",
     },
-    ...(balance ? [{ title: `${balance.label} · ${naira(balance.amountMinor)}`, meta: balance.status === "PAID" && balance.paidAt ? `Paid ${day(balance.paidAt)}` : "Due before dispatch", state: balance.status === "PAID" ? ("done" as const) : made ? ("now" as const) : ("todo" as const) }] : []),
+    ...(balance ? [{ title: `${balance.label} · ${naira(balance.amountMinor, order.currency)}`, meta: balance.status === "PAID" && balance.paidAt ? `Paid ${day(balance.paidAt)}` : "Due before dispatch", state: balance.status === "PAID" ? ("done" as const) : made ? ("now" as const) : ("todo" as const) }] : []),
     { title: "Dispatch + delivery", meta: order.deliverTo ?? "Delivery details on your order", state: dispatched === live.length && live.length > 0 ? "done" : dispatched ? "now" : "todo" },
   ];
 
@@ -145,9 +145,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
         <div className={s.split}>
           <div className={s.main}>
+            {order.paymentStatus === "PAYMENT_RESOLUTION_REQUIRED" ? (
+              <Notice tone="warning" title={PAYMENT_STATUS[order.paymentStatus].label}>
+                We're reviewing this payment. <a href={`/contact?topic=order&order=${encodeURIComponent(order.number)}`}>Contact us about your payment</a> before paying again.
+              </Notice>
+            ) : null}
             {order.cancellation ? (
               <Notice tone="neutral" title={`Cancelled ${day(order.cancellation.at)}${order.cancellation.by === "STAFF" ? " by HolyPearls" : ""}`}>
-                {BigInt(order.cancellation.refundDueMinor) > 0n ? `Our finance team will refund ${naira(order.cancellation.refundDueMinor)} to your original payment method. You'll get an email when it's done.` : "Nothing was paid, so there's nothing to refund."}
+                {BigInt(order.cancellation.refundDueMinor) > 0n ? `Our finance team will refund ${naira(order.cancellation.refundDueMinor, order.currency)} to your original payment method. You'll get an email when it's done.` : "Nothing was paid, so there's nothing to refund."}
               </Notice>
             ) : null}
 
@@ -182,7 +187,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                         PAYMENT · {payNow.trigger === "BEFORE_DISPATCH" ? "BEFORE DISPATCH" : "DUE NOW"}
                       </p>
                       <h3 className={s.attTitle}>
-                        {payNow.label} {naira(payNow.amountMinor)}
+                        {payNow.label} {naira(payNow.amountMinor, order.currency)}
                       </h3>
                       <p className={s.attBody}>{payNow.trigger === "BEFORE_DISPATCH" ? (made ? "Your order is made and checked. It ships once the balance clears." : "Finished items ship once the balance clears.") : "Production starts once this is paid."}</p>
                       <a className={s.action} href="#payments-title">
@@ -233,7 +238,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                         <td>
                           <span className={s.itemName}>{item.productName}</span>
                           <span className={s.itemQty}>
-                            {item.quantity.toLocaleString("en-NG")} pcs · {naira(item.totalMinor)}
+                            {item.quantity.toLocaleString("en-NG")} pcs · {naira(item.totalMinor, order.currency)}
                           </span>
                         </td>
                         <td data-label="Proof">{proofCell(proof)}</td>
@@ -300,7 +305,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <div className={s.state}>
                   <div className={s.row}>
                     <span>Paid</span>
-                    <strong>{naira(order.totals.totalMinor)}</strong>
+                    <strong>{naira(order.totals.totalMinor, order.currency)}</strong>
                   </div>
                   {order.receipts[0] ? <p className={s.muted}>Paid {day(order.receipts[0].paidAt)}</p> : null}
                 </div>
@@ -373,7 +378,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   <li key={receipt.id}>
                     <a href={`/orders/${order.id}/receipts/${receipt.id}`}>
                       <Receipt size={18} aria-hidden="true" />
-                      Receipt {receipt.number} · {naira(receipt.amountMinor)}
+                      Receipt {receipt.number} · {naira(receipt.amountMinor, receipt.currency)}
                     </a>
                   </li>
                 ))}

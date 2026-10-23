@@ -26,11 +26,12 @@ export interface FileUploadProps {
 }
 
 /** PUT with progress events; fetch can't report upload progress. */
-function putWithProgress(url: string, file: File, onProgress: (percent: number) => void): Promise<void> {
+function putWithProgress(url: string, headers: Record<string, string>, file: File, onProgress: (percent: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("PUT", url);
     request.setRequestHeader("content-type", file.type);
+    for (const [name, value] of Object.entries(headers)) request.setRequestHeader(name, value);
     request.upload.onprogress = (event) => event.lengthComputable && onProgress(Math.round((event.loaded / event.total) * 100));
     request.onload = () => (request.status >= 200 && request.status < 300 ? resolve() : reject(new Error(`Upload failed (${request.status})`)));
     request.onerror = () => reject(new Error("Network error"));
@@ -94,7 +95,7 @@ export function FileUpload({
         body: { purpose, fileName: file.name, size: file.size, contentType: file.type || "application/octet-stream", owner },
         response: uploadCreatedSchema,
       });
-      await putWithProgress(created.uploadUrl, file, (percent) => setPhase({ kind: "uploading", percent }));
+      await putWithProgress(created.uploadUrl, created.uploadHeaders, file, (percent) => setPhase({ kind: "uploading", percent }));
       const done = await api(`/v1/files/${created.file.id}/complete`, { method: "POST", response: fileViewSchema });
       setPhase({ kind: "checking", file: done });
       onUploaded?.(done);

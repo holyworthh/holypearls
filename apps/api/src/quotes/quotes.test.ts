@@ -4,7 +4,7 @@ import { unseal } from "@holypearls/email";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { as, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
 import { no5xx, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "../testing/harness.js";
 import { expireQuoteVersion, sendQuoteExpiringReminder } from "./quotes.js";
@@ -134,7 +134,7 @@ describe("submitting a project (PROJ-FR-010–011)", () => {
 
   it("is hidden from everyone but its owner and link", async () => {
     const { project } = await submitted();
-    expectHidden(await browser().post(`/v1/projects/${project.id}/submit`, { version: project.version, email: "x@example.com" }));
+    expectNoIdentity(await browser().post(`/v1/projects/${project.id}/submit`, { version: project.version, email: "x@example.com" }));
     expectHidden(await as(harness, actors.customerChidi!).get(`/v1/projects/${project.id}`));
   });
 });

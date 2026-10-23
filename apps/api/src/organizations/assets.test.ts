@@ -143,3 +143,10 @@ describe("who can see and change assets", () => {
     expect(support.assets.map((asset) => asset.name)).toEqual(expect.arrayContaining(["Primary Logo", "Embroidery file", "Brand guidelines"]));
   });
 });
+
+it("searches brand assets in the current organization without granting access to outsiders", async () => {
+  const asset = brandAssetSchema.parse((await api("acmeOwner").post(base(), { name: "Audit Search Logo", kind: "LOGO", fileId: await uploaded("acmeOwner") })).body);
+  const search = (await api("acmeViewer").get(`/v1/organizations/${acme}/search?q=Audit%20Search`)).body;
+  expect(search.assets.map((row: { id: string }) => row.id)).toContain(asset.id);
+  expectHidden(await api("customerChidi").get(`/v1/organizations/${acme}/search?q=Audit%20Search`));
+});

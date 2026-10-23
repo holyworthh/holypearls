@@ -1,5 +1,5 @@
 import type { AdminTemplate, AdminTemplateList, CreateTemplate, Template, TemplateField, TemplateList, TemplateSourceList, TemplateStatus, UpdateTemplate } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, ilike, inArray, schema, type Transaction } from "@holypearls/db";
 import { productMainImages } from "../catalogue/storefront.js";
 import { configurationSpecification, draftSources, ownsConfiguration, productIsLive } from "../configuration/specification.js";
 import { AppError } from "../errors.js";
@@ -117,11 +117,13 @@ function visible(member: Member, view: Awaited<ReturnType<typeof views>>[number]
   return view.summary.locations.some((location) => member.locationIds.has(location.id));
 }
 
-export async function listTemplates(db: Database, actor: ActorContext, organizationId: string, options: { archived?: boolean } = {}): Promise<TemplateList> {
+export async function listTemplates(db: Database, actor: ActorContext, organizationId: string, options: { archived?: boolean; query?: string; locationId?: string | null; approved?: boolean; limit?: number } = {}): Promise<TemplateList> {
   const member = await requireMember(db, actor, organizationId);
-  const rows = await db.select().from(schema.templates).where(eq(schema.templates.organizationId, organizationId)).orderBy(schema.templates.name);
+  if (options.locationId) enforce(canSeeLocation(member, options.locationId));
+  const term = options.query?.trim().replace(/[%_\\]/g, "\\$&");
+  const rows = await db.select().from(schema.templates).where(and(eq(schema.templates.organizationId, organizationId), options.approved ? eq(schema.templates.status, "APPROVED") : undefined, term ? ilike(schema.templates.name, `%${term}%`) : undefined)).orderBy(schema.templates.name);
   const all = await views(db, rows.filter((row) => options.archived || row.status !== "ARCHIVED"));
-  return { templates: all.filter((view) => visible(member, view)).map((view) => view.summary), canManage: member.permissions.has("MANAGE_BRAND") };
+  return { templates: all.filter((view) => visible(member, view) && (!options.locationId || view.row.allLocations || view.summary.locations.some(location => location.id === options.locationId))).slice(0, options.limit).map((view) => view.summary), canManage: member.permissions.has("MANAGE_BRAND") };
 }
 
 async function loadTemplate(db: Db, organizationId: string, templateId: string, options: { lock?: boolean } = {}) {

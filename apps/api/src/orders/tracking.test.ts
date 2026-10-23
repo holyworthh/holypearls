@@ -3,7 +3,7 @@ import { and, desc, eq, schema, sql } from "@holypearls/db";
 import { unseal } from "@holypearls/email";
 import { FakeGateway } from "@holypearls/testkit";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { as, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
 import { orderFlows } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_SEAL_KEY } from "../testing/harness.js";
 
@@ -98,7 +98,7 @@ describe("customer cancellation (FUL-FR-050–051)", () => {
   it("cancels before production with the refund due recorded, once, and only for someone who can open the order", async () => {
     const { b, orderId } = await flows.paidOrder();
     expectHidden(await as(harness, actors.customerChidi!).post(`/v1/orders/${orderId}/cancel`, {}));
-    expectHidden(await flows.browser().post(`/v1/orders/${orderId}/cancel`, {}));
+    expectNoIdentity(await flows.browser().post(`/v1/orders/${orderId}/cancel`, {}));
 
     expect((await b.post(`/v1/orders/${orderId}/cancel`, { reason: "Event postponed" })).status).toBe(200);
     const cancelled = await view(b, orderId);

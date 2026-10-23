@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, index, integer, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { customers } from "./customers.js";
 import { files } from "./files.js";
@@ -164,3 +164,26 @@ export const problemReplies = pgTable(
   },
   (table) => [index("problem_replies_report_idx").on(table.problemReportId, table.createdAt)],
 );
+
+/** One durable provider call. Unclear outcomes block another call until staff reconcile them. */
+export const courierBookings = pgTable("courier_bookings", {
+  id: idColumn(),
+  shipmentId: uuid("shipment_id").notNull().references(() => shipments.id, { onDelete: "restrict" }),
+  status: text("status").notNull(),
+  requestToken: text("request_token").notNull(),
+  serviceCode: text("service_code").notNull(),
+  courierId: text("courier_id").notNull(),
+  courierName: text("courier_name").notNull(),
+  costMinor: bigint("cost_minor", { mode: "bigint" }).notNull(),
+  pricedMinor: bigint("priced_minor", { mode: "bigint" }),
+  note: text("note").notNull(),
+  result: jsonb("result"),
+  failureMessage: text("failure_message"),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, table => [
+  uniqueIndex("courier_bookings_active_unique").on(table.shipmentId).where(sql`${table.status} in ('SENDING', 'UNKNOWN', 'ACCEPTED')`),
+  index("courier_bookings_shipment_idx").on(table.shipmentId, table.createdAt),
+  check("courier_bookings_status", sql`${table.status} in ('SENDING', 'UNKNOWN', 'ACCEPTED', 'FINALIZED', 'NOT_BOOKED')`),
+  check("courier_bookings_result", sql`${table.status} not in ('ACCEPTED', 'FINALIZED') or ${table.result} is not null`),
+]);

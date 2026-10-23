@@ -2,32 +2,14 @@ import { loadAdminEnv } from "@holypearls/config";
 
 const env = loadAdminEnv();
 const production = env.HP_ENV === "production";
-const development = process.env.NODE_ENV === "development";
 
 /**
  * The staff admin (ADR-017): its own app on its own subdomain, never indexed,
- * never framed. Stricter than the customer site: no third-party scripts,
- * frames or forms. Inline scripts are allowed for Next.js until per-request
- * nonces (as on the customer site). Uploads go straight to R2.
+ * never framed. Its Content-Security-Policy is set per page request in
+ * src/proxy.ts, with a script nonce and no third parties (TECH-06 §9).
  */
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${development ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  `connect-src 'self' https://*.r2.cloudflarestorage.com${development ? " ws: http://localhost:*" : ""}`,
-  "media-src 'self' blob:",
-  "object-src 'none'",
-  "frame-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  ...(production ? ["upgrade-insecure-requests"] : []),
-].join("; ");
 
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
   { key: "X-Frame-Options", value: "DENY" },

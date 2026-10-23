@@ -269,6 +269,9 @@ export async function beginAttempt(
     // Marked as being paid before Paystack is called, so a second key can't start a parallel attempt.
     await tx.update(schema.paymentIntents).set({ status: "PROCESSING", version: sql`${schema.paymentIntents.version} + 1` }).where(eq(schema.paymentIntents.id, intent.id));
     await tx.update(schema.installments).set({ status: "PROCESSING" }).where(eq(schema.installments.id, intent.installmentId));
+    for (const [index, seconds] of CHECK_SCHEDULE_SECONDS.entries()) {
+      await deps.jobs.send("payment.check", { v: 1, requestId: actor.requestId, attemptId: attempt!.id, check: index + 1 }, { tx, startAfterSeconds: seconds });
+    }
     return { attempt: attempt!, intent };
   });
 
@@ -300,9 +303,6 @@ export async function beginAttempt(
       .update(schema.paymentAttempts)
       .set({ status: "PENDING", accessCode: opened.accessCode, authorizationUrl: opened.authorizationUrl })
       .where(and(eq(schema.paymentAttempts.id, attempt.id), eq(schema.paymentAttempts.status, "CREATED")));
-    for (const [index, seconds] of CHECK_SCHEDULE_SECONDS.entries()) {
-      await deps.jobs.send("payment.check", { v: 1, requestId: actor.requestId, attemptId: attempt.id, check: index + 1 }, { tx, startAfterSeconds: seconds });
-    }
   });
   return { reference: attempt.reference, accessCode: opened.accessCode, authorizationUrl: opened.authorizationUrl, amountMinor: attempt.amountMinor.toString(), currency: attempt.currency as "NGN" | "USD" };
 }

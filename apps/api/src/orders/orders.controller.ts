@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req, Res } from "@nestjs/common";
 import { cancelOrderSchema, findOrderSchema } from "@holypearls/contracts";
 import type { Database } from "@holypearls/db";
@@ -37,6 +38,7 @@ export class OrdersController {
 
   /** Find my order (FUL-FR-033): emails the order's secure link to the checkout address. Rate-limited per address. */
   @Post("find")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async find(@Req() request: Request, @Body(new ZodValidationPipe(findOrderSchema)) body: z.infer<typeof findOrderSchema>) {

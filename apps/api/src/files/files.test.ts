@@ -8,7 +8,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
 import { createHarness, type Harness } from "../testing/harness.js";
 import { runDailyCleanup } from "../platform/cleanup.js";
-import { detectType } from "./rules.js";
+import { crc32 } from "node:zlib";
+import { detectType, safeFileName } from "./rules.js";
 import { inspectFile, markFileNeedsReview } from "./files.js";
 import { previewFile } from "./processing.js";
 
@@ -182,6 +183,24 @@ describe("uploads (TECH-04 §3–4)", () => {
     );
     const put = await request(harness.url).put(new URL(intent.uploadUrl).pathname.replace(/^\/api/, "")).send(png);
     expect(put.status).toBe(413);
+  });
+
+  it("cleans hostile file names before they are shown or put in a download header (T15-01)", () => {
+    expect(safeFileName("../../etc/passwd")).toBe("passwd");
+    expect(safeFileName("..\\..\\win.ini")).toBe("win.ini");
+    expect(safeFileName("invoice‮fdp.exe")).not.toContain("‮");
+    expect(safeFileName('a"; filename=x.html')).not.toMatch(/["';]/);
+    expect(safeFileName("x".repeat(300)).length).toBeLessThanOrEqual(120);
+  });
+
+  it("never marks a pixel bomb ready: a tiny PNG that claims 30000 × 30000 pixels (T15-01)", async () => {
+    const bomb = await sharp({ create: { width: 1, height: 1, channels: 3, background: "#fff" } }).png().toBuffer();
+    bomb.writeUInt32BE(30_000, 16);
+    bomb.writeUInt32BE(30_000, 20);
+    bomb.writeUInt32BE(crc32(bomb.subarray(12, 29)), 29);
+    const { file } = await upload(actors.customerChidi!, bomb, { fileName: "bomb.png", contentType: "image/png" });
+    await until(async () => ["REJECTED", "NEEDS_REVIEW"].includes((await status(actors.customerChidi!, file!.id)).status));
+    expect((await status(actors.customerChidi!, file!.id)).status).not.toBe("READY");
   });
 
   it("needs a sign-in or guest session, and staff purposes need their permission", async () => {

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { runDailyCleanup } from "../platform/cleanup.js";
-import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { as, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
 import { createHarness, type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "../testing/harness.js";
 
 /*
@@ -194,7 +194,7 @@ describe("who can open a project (TECH-03 §17)", () => {
     expectHidden(await as(harness, actors.adminAda!).get(`/v1/projects/${project.id}`));
     expectHidden(await browser().get(`/v1/projects/${randomUUID()}`));
     const changed = await browser().patch(`/v1/projects/${project.id}`, { version: project.version, title: "Not mine" });
-    expectHidden(changed);
+    expectNoIdentity(changed);
   });
 
   it("becomes the account's when the browser signs in", async () => {

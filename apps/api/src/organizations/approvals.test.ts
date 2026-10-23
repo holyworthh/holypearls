@@ -196,3 +196,29 @@ describe("decisions (B2B-FR-041–042)", () => {
     expect(buyerList.requests.map((row) => row.id)).not.toContain(lekkiRequest.id);
   });
 });
+
+it("puts actionable approvals on the overview without exposing another location or self-approval", async () => {
+  await setPolicy({ rule: "ALL" });
+  const request = await requestFor("acmeBuyer", victoriaIsland);
+  const owner = (await api("acmeOwner").get(`${base()}/overview`)).body;
+  expect(owner.needsAttention).toEqual(expect.arrayContaining([expect.objectContaining({ kind: "APPROVAL", href: `/workspace/${acme}/approvals/${request.id}` })]));
+  const own = (await api("acmeBuyer").get(`${base()}/overview`)).body;
+  expect(own.needsAttention.some((row: { kind: string }) => row.kind === "APPROVAL")).toBe(false);
+  const lekkiOnly = (await api("acmeOwner").get(`${base()}/overview?location=${lekki}`)).body;
+  expect(lekkiOnly.needsAttention.some((row: { href: string }) => row.href.endsWith(request.id))).toBe(false);
+});
+
+it("revokes the requester's direct approval-record access when their location is removed", async () => {
+  await setPolicy({ rule: "ALL" });
+  const request = await requestFor("acmeBuyer", victoriaIsland);
+  const [row] = await db().select().from(schema.orderRequests).where(eq(schema.orderRequests.id, request.id));
+  const [member] = await db().select().from(schema.memberships).where(eq(schema.memberships.userId, row!.requestedByUserId!));
+  const grants = await db().select().from(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+  await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+  await db().insert(schema.membershipLocations).values({ organizationId: acme, membershipId: member!.id, locationId: lekki });
+  try { expectHidden(await api("acmeBuyer").get(`${base()}/order-requests/${request.id}`)); }
+  finally {
+    await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+    if (grants.length) await db().insert(schema.membershipLocations).values(grants);
+  }
+});
