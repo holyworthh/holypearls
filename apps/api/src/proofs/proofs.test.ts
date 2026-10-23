@@ -7,6 +7,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { checkPaymentAttempt } from "../payments/payments.js";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { no5xx, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "../testing/harness.js";
 
 /*
@@ -223,7 +224,8 @@ describe("the customer's decisions (FUL-FR-002–004)", () => {
     const noCode = await guest.post(`/v1/orders/${orderId}/proofs/${proofId}/approve`, { versionNumber: 1, acknowledged: true });
     expect(apiErrorSchema.parse(noCode.body).code).toBe("RECENT_EMAIL_CODE_REQUIRED");
     expect((await guest.post("/v1/email-codes/verify", { purpose: "APPROVE_PROOF", code })).status).toBe(200);
-    const presses = await Promise.all([1, 2].map(() => guest.post(`/v1/orders/${orderId}/proofs/${proofId}/approve`, { versionNumber: 1, acknowledged: true })));
+    const presses = await Promise.all(Array.from({ length: STRESS_RUNS }, () => guest.post(`/v1/orders/${orderId}/proofs/${proofId}/approve`, { versionNumber: 1, acknowledged: true })));
+    no5xx(presses);
     expect(presses.every((response) => response.status === 200)).toBe(true);
     const approved = customerProofSchema.parse(presses[0]!.body);
     expect(approved).toMatchObject({ status: "APPROVED", canDecide: false, current: { status: "APPROVED", decision: { decision: "APPROVED" } } });

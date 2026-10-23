@@ -2,6 +2,7 @@ import { approvalPolicySchema, configurationSchema, orderRequestListSchema, orde
 import { desc, eq, schema, sql } from "@holypearls/db";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { type Actors, as, expectForbidden, expectHidden, signInActors } from "../testing/actors.js";
+import { no5xx, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness } from "../testing/harness.js";
 
 /*
@@ -145,6 +146,19 @@ describe("decisions (B2B-FR-041–042)", () => {
     await expect(db().delete(schema.organizationApprovals).where(eq(schema.organizationApprovals.id, approvalId))).rejects.toThrow();
     const [row] = await db().select().from(schema.organizationApprovals).where(eq(schema.organizationApprovals.id, approvalId));
     expect(row!.approvedAmountMinor).toBe(10_000_000n);
+  });
+
+  it("makes one approval and one quote however many approvers press at once", async () => {
+    await setPolicy({ rule: "ALL" });
+    const request = await requestFor("acmeLekkiManager", lekki, 500);
+    const presses = await Promise.all(Array.from({ length: STRESS_RUNS }, () => decide("acmeApprover", request, { decision: "APPROVE" })));
+    no5xx(presses);
+    expect(presses.filter((response) => response.status === 200)).toHaveLength(1);
+    expect(presses.filter((response) => response.status !== 200).every((response) => response.status === 409 || response.status === 422)).toBe(true);
+    const approvals = await db().select().from(schema.organizationApprovals).where(eq(schema.organizationApprovals.orderRequestId, request.id));
+    expect(approvals.map((row) => row.decision)).toEqual(["APPROVED"]);
+    const approved = orderRequestSchema.parse((await api("acmeApprover").get(`${base()}/order-requests/${request.id}`)).body);
+    expect(await db().select().from(schema.quotes).where(eq(schema.quotes.reference, approved.quoteReference!))).toHaveLength(1);
   });
 
   it("request changes gives the design back; it's sent again; decline needs a note; the requester can cancel", async () => {

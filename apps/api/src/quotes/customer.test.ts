@@ -7,6 +7,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { checkPaymentAttempt } from "../payments/payments.js";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { no5xx, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "../testing/harness.js";
 import { expireQuoteVersion } from "./quotes.js";
 import { sendInstallmentDueReminder } from "./customer.js";
@@ -144,11 +145,16 @@ describe("accepting (QUOTE-FR-007–008, TECH-05 §8)", () => {
   it("makes exactly one order however many accepts arrive, from the version's lines with its schedule", async () => {
     const { quoteId, guest, email } = await sentQuote();
     await verifyEmail(guest, email);
-    const presses = await Promise.all(Array.from({ length: 4 }, () => guest.post(`/v1/quotes/${quoteId}/accept`, { versionNumber: 1, acknowledged: true })));
+    const presses = await Promise.all(Array.from({ length: STRESS_RUNS }, () => guest.post(`/v1/quotes/${quoteId}/accept`, { versionNumber: 1, acknowledged: true })));
+    no5xx(presses);
     const orders = new Set(presses.filter((response) => response.status === 200).map((response) => response.body.id));
     expect(orders.size).toBe(1);
     const orderId = [...orders][0]!;
     expect(await db().select().from(schema.orders).where(eq(schema.orders.id, orderId))).toHaveLength(1);
+    const [version] = await db().select().from(schema.quoteVersions).where(eq(schema.quoteVersions.quoteId, quoteId));
+    expect(await db().select().from(schema.orders).where(eq(schema.orders.quoteVersionId, version!.id))).toHaveLength(1);
+    expect(await db().select().from(schema.quoteAcceptances).where(eq(schema.quoteAcceptances.quoteVersionId, version!.id))).toHaveLength(1);
+    expect(await db().select().from(schema.paymentSchedules).where(eq(schema.paymentSchedules.quoteVersionId, version!.id))).toHaveLength(1);
 
     const quote = customerQuoteSchema.parse((await guest.get(`/v1/quotes/${quoteId}`)).body);
     expect(quote).toMatchObject({ status: "ACCEPTED", canAccept: false, order: { id: orderId }, version: { status: "ACCEPTED" } });

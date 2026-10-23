@@ -4,8 +4,15 @@ import { unseal } from "@holypearls/email";
 import type { FakeGateway } from "@holypearls/testkit";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
+import { expect } from "vitest";
 import { checkPaymentAttempt } from "../payments/payments.js";
 import { type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "./harness.js";
+
+/** Parallel requests in each stress test (T15-03). */
+export const STRESS_RUNS = 100;
+
+/** No answer may be a server error, whatever the race. */
+export const no5xx = (responses: { status: number }[]) => expect(responses.filter((response) => response.status >= 500).map((response) => response.status)).toEqual([]);
 
 /*
  * Customer and staff flows shared by the order tests (T07-01 on): a browser
@@ -37,7 +44,7 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
       });
     };
     return {
-      post: (path: string, body: object = {}) => send(request(harness().url).post(path).set("idempotency-key", `test_${randomUUID().replaceAll("-", "")}`).send(body)),
+      post: (path: string, body: object = {}, key = `test_${randomUUID().replaceAll("-", "")}`) => send(request(harness().url).post(path).set("idempotency-key", key).send(body)),
       patch: (path: string, body: object) => send(request(harness().url).patch(path).send(body)),
       put: (path: string, body: object) => send(request(harness().url).put(path).send(body)),
       get: (path: string) => send(request(harness().url).get(path)),
@@ -53,8 +60,8 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     };
   };
 
-  /** A paid business-cards checkout: the order and the browser that paid. */
-  async function paidOrder() {
+  /** A business-cards checkout through billing, ready to pay: the browser, the checkout and its contact. */
+  async function readyCheckout() {
     const b = browser();
     const contact = { name: "Order Tester (TEST DATA)", email: `order.${randomUUID().slice(0, 8)}@example.com`, phone: "0800 000 0000" };
     const created = configurationSchema.parse((await b.post("/v1/configurations", { productSlug: "business-cards", choices: { paper: "350gsm-matte", sides: "both-sides" } })).body);
@@ -65,6 +72,12 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     checkout = checkoutSchema.parse((await b.put(`/v1/checkouts/${checkout.id}/address`, { country: "NG", name: contact.name, phone: contact.phone, street: "12 Admiralty Way", area: "Eti-Osa", state: "Lagos", landmark: "", version: checkout.version })).body);
     checkout = checkoutSchema.parse((await b.put(`/v1/checkouts/${checkout.id}/delivery`, { option: "STANDARD", version: checkout.version })).body);
     checkout = checkoutSchema.parse((await b.put(`/v1/checkouts/${checkout.id}/billing`, { sameAsDelivery: true, version: checkout.version })).body);
+    return { b, checkout, contact };
+  }
+
+  /** A paid business-cards checkout: the order and the browser that paid. */
+  async function paidOrder() {
+    const { b, checkout, contact } = await readyCheckout();
     const started = paymentStartSchema.parse((await b.post(`/v1/checkouts/${checkout.id}/payments`)).body);
     gateway().settle(started.reference, { status: "success" });
     const [attempt] = await db().select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.reference, started.reference));
@@ -80,7 +93,11 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     let project = projectSchema.parse((await b.post("/v1/projects", { type: "EVENT", title: "Order test (TEST DATA)" })).body);
     project = projectSchema.parse((await b.patch(`/v1/projects/${project.id}`, { version: project.version, answers: { attendees: 200, crew: 20 } })).body);
     project = projectSchema.parse((await b.post(`/v1/projects/${project.id}/submit`, { version: project.version, email })).body);
-    const quoteId = project.quote!.id;
+    return sendAndAccept(ada, project.quote!.id, email);
+  }
+
+  /** Prices a submitted quote (two lines, 60/40 schedule), sends it, and accepts it as the guest who got the link. */
+  async function sendAndAccept(ada: ReturnType<typeof staff>, quoteId: string, email: string) {
     const quote = adminQuoteSchema.parse((await ada.post(`/v1/admin/quotes/${quoteId}/versions`)).body);
     const draft = quote.versions.find((version) => version.status === "DRAFT")!;
     const lines = quote.candidates.slice(0, 2).map((candidate, index) => ({ source: candidate.source, sourceKey: candidate.sourceKey, title: candidate.title, summary: candidate.summary, quantity: candidate.quantity ?? 1, unitMinor: String((index + 1) * 200_000) }));
@@ -119,5 +136,5 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     return orderSchema.parse((await guest.get(`/v1/orders/${orderId}`)).body);
   }
 
-  return { browser, staff, paidOrder, acceptedQuote, payNext, notify };
+  return { browser, staff, readyCheckout, paidOrder, acceptedQuote, sendAndAccept, payNext, notify };
 }

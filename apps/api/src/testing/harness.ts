@@ -60,12 +60,14 @@ export async function createHarness(
     payments?: PaymentGateway | null;
     /** The courier for prices outside the zones (T08-05); none by default, so staff price them. */
     courier?: Courier | null;
+    /** Database connections in the pool; 4 by default, 10 in the stress tests to match production. */
+    poolSize?: number;
     /** Share another harness's database, for example to run two API instances. */
     database?: TestDatabase;
   } = {},
 ): Promise<Harness> {
   const ownDatabase = !options.database;
-  const database = options.database ?? (await createTestDatabase(loadTestDatabaseEnv().TEST_DATABASE_URL));
+  const database = options.database ?? (await createTestDatabase(loadTestDatabaseEnv().TEST_DATABASE_URL, { max: options.poolSize }));
   if (ownDatabase && options.seed !== false) await runSeed(database.db, buildSeedSteps({ authSecret: TEST_AUTH_SECRET }));
   const logs: string[] = [];
   const logger = createLogger({
