@@ -1,4 +1,4 @@
-import { schema, sql } from "@holypearls/db";
+import { eq, schema, sql } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,6 +19,7 @@ const signals = (alerts: Alert[], signal: Alert["signal"]) => alerts.filter((ale
 beforeAll(async () => {
   gateway = new FakeGateway();
   harness = await createHarness({ payments: gateway });
+  await db().update(schema.paymentSettings).set({ onlinePayments: true }).where(eq(schema.paymentSettings.id, 1));
 });
 
 afterAll(async () => {

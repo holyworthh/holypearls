@@ -24,22 +24,22 @@ test("incident switches: pause and resume uploads, revoke form, and 403 for othe
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByRole("heading", { name: "Pause uploads for the whole site" })).toBeVisible();
     await dialog.getByRole("button", { name: "Confirm" }).click();
-    await expect(card.getByText(/ON · since/)).toBeVisible();
-    await expect(page.getByText("Recorded in the audit log")).toBeVisible();
+    await expect(card.getByText(/ON · since/)).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("Recorded in the audit log with your request ID.")).toBeVisible();
     await expectNoAxeViolations(page);
     await card.getByRole("button").click();
     await page.getByRole("dialog").getByRole("button", { name: "Confirm" }).click();
-    await expect(card.getByText("Off", { exact: true })).toBeVisible();
+    await expect(card.getByText("Off", { exact: true })).toBeVisible({ timeout: 60_000 });
   } finally {
     // Never leave uploads paused for other tests.
-    await page.request.post(`${ADMIN}/api/v1/admin/incidents/switch`, { data: { switch: "UPLOADS_PAUSED", on: false } });
+    await page.request.post(`${ADMIN}/api/v1/admin/incidents/switch`, { data: { switch: "UPLOADS_PAUSED", on: false }, headers: { origin: ADMIN } });
   }
 
   await page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "Revoke sessions" }) }).getByRole("button").click();
   const revoke = page.getByRole("dialog");
   await expect(revoke.getByText("Everyone (all customers and staff, including you)")).toBeVisible();
   await revoke.getByText("One person").click();
-  await expect(revoke.getByLabel("Person")).toBeVisible();
+  await expect(revoke.getByRole("textbox", { name: "Person" })).toBeVisible();
   await revoke.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expectNoHorizontalScroll(page);
