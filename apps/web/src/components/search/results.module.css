@@ -33,6 +33,11 @@
   background: var(--hp-paper);
 }
 
+/* The field always shows its ink outline (Pen); Holy Blue marks that the cursor is in it. */
+.field:focus-within {
+  outline-color: var(--hp-brand);
+}
+
 .fieldIcon {
   flex: none;
   width: var(--hp-size-22);
