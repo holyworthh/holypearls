@@ -107,7 +107,7 @@ test("pages run under the policy: nothing is blocked", async ({ page }) => {
     await page.waitForLoadState("networkidle");
   }
   await page.goto(`${ADMIN}/sign-in`);
-  await expect(page.getByRole("button", { name: /sign in/i }).first()).toBeVisible();
+  await page.locator("#staff-email").fill("staff@example.com");
 
   // One checkout page, reached the way a customer does.
   await page.goto("/products/business-cards");
