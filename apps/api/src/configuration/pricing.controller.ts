@@ -18,7 +18,6 @@ import { ZodValidationPipe } from "../validation.js";
 import { priceProduct, pricePublishedProduct } from "./pricing.js";
 
 const uuid = new ParseUUIDPipe();
-const slugPipe = new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80));
 
 /** Product rules, compatibility, prices and VAT (OPS-FR-010–019). PRICING_MANAGE; every change audited. */
 @Controller("admin/pricing")
@@ -100,7 +99,7 @@ export class PublicPricingController {
   @Post(":slug/price")
   @HttpCode(200)
   @RateLimit("SEARCH")
-  async price(@Req() request: Request, @Param("slug", slugPipe) slug: string, @Body(new ZodValidationPipe(priceRequestSchema)) body: z.infer<typeof priceRequestSchema>) {
+  async price(@Req() request: Request, @Param("slug", new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80))) slug: string, @Body(new ZodValidationPipe(priceRequestSchema)) body: z.infer<typeof priceRequestSchema>) {
     return pricePublishedProduct(this.db, slug, body, (await request.getActor!()).now);
   }
 }
