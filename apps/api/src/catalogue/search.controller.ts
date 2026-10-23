@@ -43,6 +43,7 @@ export class AnalyticsController {
   constructor(@Inject(FILE_DEPS) private readonly deps: FileDeps) {}
 
   @Post("events")
+  @Public()
   @HttpCode(204)
   @RateLimit("PUBLIC_READ")
   async event(@Body(new ZodValidationPipe(siteEventBodySchema)) body: SiteEvent) {

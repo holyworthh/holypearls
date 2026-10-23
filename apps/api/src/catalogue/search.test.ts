@@ -317,6 +317,11 @@ describe("where people go (PRD-01 §11, T14-01b)", () => {
     expect(await harness.database.db.select().from(schema.siteEvents)).toHaveLength(after.length);
   });
 
+  it("accepts the beacon from a visitor with no cookie at all", async () => {
+    const response = await request(harness.url).post("/v1/analytics/events").set("origin", TEST_WEB_ORIGIN).send({ kind: "PRODUCT", fromGuide: false });
+    expect(response.status).toBe(204);
+  });
+
   it("counts a Configure entry when a design is first saved", async () => {
     const configure = async () => (await report()).entries.find((entry) => entry.kind === "CONFIGURE")!.total;
     const before = await configure();
