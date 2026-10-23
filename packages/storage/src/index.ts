@@ -195,6 +195,7 @@ export interface StorageConfig {
   S3_REGION?: string;
   S3_BUCKET?: string;
   S3_PUBLIC_BUCKET?: string;
+  S3_BACKUP_BUCKET?: string;
   S3_ACCESS_KEY_ID?: string;
   S3_SECRET_ACCESS_KEY?: string;
   S3_FORCE_PATH_STYLE: "true" | "false";
@@ -224,7 +225,7 @@ export function createStorage(config: StorageConfig, options: { publicBaseUrl: s
   if (config.STORAGE_DRIVER === "local") {
     const root = localStorageRoot(config.LOCAL_STORAGE_DIR);
     const make = (name: string) => new LocalDiskStorage(join(root, name), options.publicBaseUrl, options.signingSecret);
-    return { storage: make("private"), publicStorage: make("public-media") };
+    return { storage: make("private"), publicStorage: make("public-media"), backupStorage: null };
   }
   const need = (value: string | undefined, name: string) => {
     if (!value) throw new Error(`Invalid environment: ${name}`);
@@ -240,5 +241,6 @@ export function createStorage(config: StorageConfig, options: { publicBaseUrl: s
   return {
     storage: new S3Storage({ ...base, bucket: need(config.S3_BUCKET, "S3_BUCKET") }),
     publicStorage: new S3Storage({ ...base, bucket: need(config.S3_PUBLIC_BUCKET, "S3_PUBLIC_BUCKET") }),
+    backupStorage: config.S3_BACKUP_BUCKET ? new S3Storage({ ...base, bucket: config.S3_BACKUP_BUCKET }) : null,
   };
 }
