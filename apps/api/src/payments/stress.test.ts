@@ -5,7 +5,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type Browser, no5xx, orderFlows, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness } from "../testing/harness.js";
-import { checkPaymentAttempt, processPaystackEvent } from "./payments.js";
+import { checkPaymentAttempt, processPaystackEvent, settleUnanswered } from "./payments.js";
 
 /*
  * T15-03 payment stress (TECH-05 §16, "no duplicates across 100 parallel
@@ -257,6 +257,12 @@ describe("results arriving 100 at once", () => {
     expect(lost.every((result) => result.status === "rejected")).toBe(true);
     expect((await attemptOf(silent.reference)).status).toBe("PENDING");
     expect(await reviewsOf(silent.intentId)).toHaveLength(0);
+
+    // The worker's dead-letter handler settles it: UNKNOWN, one UNCLEAR_RESULT review, however often it runs.
+    await Promise.all(Array.from({ length: N }, () => settleUnanswered(deps(), silent.id)));
+    expect((await attemptOf(silent.reference)).status).toBe("UNKNOWN");
+    expect((await intentById(silent.intentId)).status).toBe("REVIEW_REQUIRED");
+    expect((await reviewsOf(silent.intentId)).map((review) => review.reason)).toEqual(["UNCLEAR_RESULT"]);
   });
 });
 
