@@ -1,4 +1,4 @@
-import { and, type AnyColumn, type Database, eq, inArray, schema, sql, type SQL, type Transaction } from "@holypearls/db";
+import { and, type AnyColumn, type Database, eq, inArray, isNull, or, schema, sql, type SQL, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { enforce } from "../platform/policy.js";
@@ -56,6 +56,16 @@ export async function canSeeOrganizationRecord(db: Database, actor: ActorContext
   if (!member) return false;
   if (!member.allLocations && !member.locationIds.has(record.locationId)) return false;
   return member.permissions.has("VIEW_RECORDS") || record.ownerUserId === actor.session.userId;
+}
+
+/** Apply current membership and location grants before limiting personal account history. */
+export function organizationAccessWhere(columns: { organizationId: AnyColumn | SQL; locationId: AnyColumn | SQL; ownerUserId: AnyColumn | SQL }, userId: string) {
+  return or(isNull(columns.organizationId), sql`exists (
+    select 1 from memberships m join organizations o on o.id = m.organization_id
+    where m.organization_id = ${columns.organizationId} and m.user_id = ${userId}::uuid and m.status = 'ACTIVE' and o.archived_at is null
+      and (m.all_locations or exists (select 1 from membership_locations ml where ml.membership_id = m.id and ml.location_id = ${columns.locationId}))
+      and (${columns.ownerUserId} = ${userId}::uuid or exists (select 1 from membership_permissions mp where mp.membership_id = m.id and mp.permission = 'VIEW_RECORDS'))
+  )`)!;
 }
 
 /**

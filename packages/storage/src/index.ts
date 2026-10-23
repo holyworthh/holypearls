@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { link, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 
@@ -50,8 +50,8 @@ export class S3Storage implements StorageAdapter {
   presignUpload(key: string, options: { contentType: string; contentLength: number; expiresInSeconds: number }) {
     return getSignedUrl(
       this.client,
-      new PutObjectCommand({ Bucket: this.options.bucket, Key: key, ContentType: options.contentType, ContentLength: options.contentLength }),
-      { expiresIn: options.expiresInSeconds },
+      new PutObjectCommand({ Bucket: this.options.bucket, Key: key, ContentType: options.contentType, ContentLength: options.contentLength, IfNoneMatch: "*" }),
+      { expiresIn: options.expiresInSeconds, signableHeaders: new Set(["if-none-match"]) },
     );
   }
 
@@ -181,6 +181,19 @@ export class LocalDiskStorage implements StorageAdapter {
     void _contentType;
     await mkdir(dirname(this.path(key)), { recursive: true });
     await writeFile(this.path(key), body);
+  }
+
+  async writeUpload(key: string, body: Buffer) {
+    const target = this.path(key);
+    await mkdir(dirname(target), { recursive: true });
+    const temporary = `${target}.${randomUUID()}.upload`;
+    try {
+      await writeFile(temporary, body, { flag: "wx" });
+      // Publish complete bytes atomically; an existing upload can never be replaced.
+      await link(temporary, target);
+    } finally {
+      await rm(temporary, { force: true });
+    }
   }
 
   async remove(key: string) {

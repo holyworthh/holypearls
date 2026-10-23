@@ -1,5 +1,5 @@
 {
-  "id": "7c76bfba-e2a3-4d23-a81f-9ecdd3849611",
+  "id": "225c4694-a560-441c-85f2-94e23e003cf6",
   "prevId": "f6fbf637-9f27-4f21-acfd-0b435a1ca0dd",
   "version": "7",
   "dialect": "postgresql",
@@ -6993,62 +6993,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.site_events": {
-      "name": "site_events",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "site_event_kind",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "from_guide": {
-          "name": "from_guide",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "site_events_created_idx": {
-          "name": "site_events_created_idx",
-          "columns": [
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.installments": {
       "name": "installments",
       "schema": "",
@@ -11800,6 +11744,166 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.courier_bookings": {
+      "name": "courier_bookings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "shipment_id": {
+          "name": "shipment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_token": {
+          "name": "request_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_code": {
+          "name": "service_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "courier_id": {
+          "name": "courier_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "courier_name": {
+          "name": "courier_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cost_minor": {
+          "name": "cost_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priced_minor": {
+          "name": "priced_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "result": {
+          "name": "result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_message": {
+          "name": "failure_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "courier_bookings_active_unique": {
+          "name": "courier_bookings_active_unique",
+          "columns": [
+            {
+              "expression": "shipment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"courier_bookings\".\"status\" in ('SENDING', 'UNKNOWN', 'ACCEPTED')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "courier_bookings_shipment_idx": {
+          "name": "courier_bookings_shipment_idx",
+          "columns": [
+            {
+              "expression": "shipment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "courier_bookings_shipment_id_shipments_id_fk": {
+          "name": "courier_bookings_shipment_id_shipments_id_fk",
+          "tableFrom": "courier_bookings",
+          "tableTo": "shipments",
+          "columnsFrom": [
+            "shipment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "courier_bookings_status": {
+          "name": "courier_bookings_status",
+          "value": "\"courier_bookings\".\"status\" in ('SENDING', 'UNKNOWN', 'ACCEPTED', 'FINALIZED', 'NOT_BOOKED')"
+        },
+        "courier_bookings_result": {
+          "name": "courier_bookings_result",
+          "value": "\"courier_bookings\".\"status\" not in ('ACCEPTED', 'FINALIZED') or \"courier_bookings\".\"result\" is not null"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.courier_events": {
@@ -16977,18 +17081,6 @@
         "PRODUCT",
         "CATEGORY",
         "PAGE"
-      ]
-    },
-    "public.site_event_kind": {
-      "name": "site_event_kind",
-      "schema": "public",
-      "values": [
-        "PRODUCT",
-        "CATEGORY",
-        "PROJECT",
-        "START_PROJECT",
-        "CONFIGURE",
-        "CONTACT"
       ]
     },
     "public.installment_status": {

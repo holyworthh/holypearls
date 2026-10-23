@@ -77,21 +77,6 @@ async function customerSeesFor(db: Tx, intentIds: string[]) {
   );
 }
 
-/** Paid and refunded totals for an order's payments, for its customer-facing status (TECH-01 §4). */
-export async function refundFactsForOrder(db: Tx, order: { checkoutId: string | null; quoteVersionId: string | null }) {
-  const [row] = await db.execute<{ paid: string; refunded: string }>(sql`
-    with intents as (
-      select pi.id from payment_intents pi
-      join installments i on i.id = pi.installment_id
-      join payment_schedules s on s.id = i.schedule_id
-      where s.checkout_id = ${order.checkoutId} or s.quote_version_id = ${order.quoteVersionId}
-    )
-    select
-      (select coalesce(sum(coalesce(a.paid_amount_minor, a.amount_minor)), 0)::text from payment_attempts a where a.intent_id in (select id from intents) and a.status = 'SUCCEEDED') as paid,
-      (select coalesce(sum(f.amount_minor), 0)::text from refunds f where f.intent_id in (select id from intents) and f.status = 'PROCESSED') as refunded`).then((result) => result.rows);
-  return { paidMinor: BigInt(row?.paid ?? "0"), refundedMinor: BigInt(row?.refunded ?? "0") };
-}
-
 async function views(db: Tx, rows: Row[]): Promise<AdminRefund[]> {
   if (!rows.length) return [];
   const about = await db

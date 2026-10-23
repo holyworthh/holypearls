@@ -1,3 +1,4 @@
+import type { SQL } from "@holypearls/db";
 import type { Cart, CartItem, Configuration } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, inArray, isNotNull, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -248,3 +249,9 @@ export async function readyItems(db: Db, access: CartAccess) {
 }
 
 export { findCart, ownerOf, groupOf };
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function cartRetainsFile(fileId: string | SQL) {
+  return sql`exists (select 1 from checkouts where items::text like '%' || ${fileId}::text || '%')
+    or exists (select 1 from cart_items where snapshot::text like '%' || ${fileId}::text || '%')`;
+}
