@@ -161,9 +161,7 @@ export class PaystackGateway implements PaymentGateway {
   }
 
   async initialize(input: InitializeInput): Promise<InitializeResult> {
-    let result: { httpStatus: number; envelope: PaystackEnvelope<{ access_code: string; authorization_url: string }> };
-    try {
-      result = await this.call("POST", "/transaction/initialize", {
+    const result = await this.call<{ access_code: string; authorization_url: string }>("POST", "/transaction/initialize", {
         email: input.email,
         amount: input.amountMinor.toString(),
         currency: input.currency,
@@ -171,12 +169,14 @@ export class PaystackGateway implements PaymentGateway {
         callback_url: input.callbackUrl,
         channels: input.channels,
         metadata: input.metadata,
-      });
-    } catch (error) {
-      throw new PaymentStartError(`Paystack could not be reached: ${(error as Error).message}`);
-    }
+    });
     const data = result.envelope.data;
-    if (!result.envelope.status || !data?.access_code) throw new PaymentStartError(`Paystack refused the transaction (${result.httpStatus}): ${result.envelope.message ?? "no message"}`);
+    if (!result.envelope.status || !data?.access_code || !data.authorization_url) {
+      const message = `Paystack initialization failed (${result.httpStatus}): ${result.envelope.message ?? "no message"}`;
+      // A lost response or duplicate reference may already represent a transaction.
+      if (result.httpStatus >= 400 && result.httpStatus < 500 && result.httpStatus !== 409 && !/duplicate|already|reference.*exist/i.test(result.envelope.message ?? "")) throw new PaymentStartError(message);
+      throw new Error(message);
+    }
     return { accessCode: data.access_code, authorizationUrl: data.authorization_url };
   }
 

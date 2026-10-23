@@ -74,7 +74,7 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
   }
 
   /** An accepted two-line quote (60% deposit, 40% before dispatch); proofs set NOT_REQUIRED so payment is the only gate. */
-  async function acceptedQuote(ada: ReturnType<typeof staff>) {
+  async function acceptedQuote(ada: ReturnType<typeof staff>, currency: "NGN" | "USD" = "NGN") {
     const email = `quote.${randomUUID().slice(0, 8)}@example.com`;
     const b = browser();
     let project = projectSchema.parse((await b.post("/v1/projects", { type: "EVENT", title: "Order test (TEST DATA)" })).body);
@@ -89,7 +89,7 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
       { label: "Deposit", kind: "PERCENT", value: "6000", trigger: "ON_ACCEPTANCE" },
       { label: "Balance", kind: "PERCENT", value: "4000", trigger: "BEFORE_DISPATCH" },
     ];
-    const saved = quoteVersionSchema.parse((await ada.put(`/v1/admin/quotes/${quoteId}/versions/${draft.id}`, { version: draft.version, currency: "NGN", lines, fees, validDays: 14, terms: "Terms", assumptions: "", productionSequence: "", schedule })).body);
+    const saved = quoteVersionSchema.parse((await ada.put(`/v1/admin/quotes/${quoteId}/versions/${draft.id}`, { version: draft.version, currency, lines, fees, validDays: 14, terms: "Terms", assumptions: "", productionSequence: "", schedule })).body);
     await ada.post(`/v1/admin/quotes/${quoteId}/versions/${draft.id}/send`, { version: saved.version });
     const [mail] = await db().select().from(schema.notifications).where(sql`${schema.notifications.recordId} = ${quoteId} and ${schema.notifications.template} = 'quote_ready'`).orderBy(desc(schema.notifications.createdAt)).limit(1);
     const { url } = unseal(mail!.sealedData!, TEST_SEAL_KEY) as { url: string };
@@ -105,7 +105,7 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
       .update(schema.proofs)
       .set({ status: "NOT_REQUIRED", requirement: "NOT_REQUIRED" })
       .where(sql`${schema.proofs.orderItemId} in (${sql.join(items.map((row) => sql`${row.id}`), sql`, `)})`);
-    return { guest, orderId: order.id, items, email };
+    return { guest, orderId: order.id, quoteId, items, email };
   }
 
   /** Pays the order's next installment through the fake gateway. */

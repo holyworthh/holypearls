@@ -5825,6 +5825,15 @@
                       "type": "string",
                       "format": "uri"
                     },
+                    "uploadHeaders": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
                     "expiresInSeconds": {
                       "type": "integer",
                       "minimum": -9007199254740991,
@@ -5834,6 +5843,7 @@
                   "required": [
                     "file",
                     "uploadUrl",
+                    "uploadHeaders",
                     "expiresInSeconds"
                   ],
                   "additionalProperties": false
@@ -34468,6 +34478,56 @@
                     "type": "integer",
                     "minimum": -9007199254740991,
                     "maximum": 9007199254740991
+                  },
+                  "reconciliation": {
+                    "type": "object",
+                    "properties": {
+                      "outcome": {
+                        "type": "string",
+                        "enum": [
+                          "BOOKED",
+                          "NOT_BOOKED"
+                        ]
+                      },
+                      "orderId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "trackingUrl": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 500,
+                            "format": "uri"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "trackingCode": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 120
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "note": {
+                        "type": "string",
+                        "minLength": 10,
+                        "maxLength": 1000
+                      }
+                    },
+                    "required": [
+                      "outcome",
+                      "note"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": [
@@ -34704,6 +34764,15 @@
                     },
                     "bookable": {
                       "type": "boolean"
+                    },
+                    "bookingWarning": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "bookingNeedsReconciliation": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -34722,7 +34791,9 @@
                     "version",
                     "next",
                     "courier",
-                    "bookable"
+                    "bookable",
+                    "bookingWarning",
+                    "bookingNeedsReconciliation"
                   ],
                   "additionalProperties": false
                 }
@@ -51693,7 +51764,8 @@
                             "enum": [
                               "PROOF",
                               "PAYMENT",
-                              "QUOTE"
+                              "QUOTE",
+                              "APPROVAL"
                             ]
                           },
                           "title": {
@@ -51900,13 +51972,221 @@
                     },
                     "canCreate": {
                       "type": "boolean"
+                    },
+                    "canManageCollections": {
+                      "type": "boolean"
+                    },
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "AWAITING_APPROVAL",
+                              "APPROVED",
+                              "NEEDS_REVIEW",
+                              "ARCHIVED"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "height": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt",
+                                  "width",
+                                  "height"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "assetLabel": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "allLocations": {
+                            "type": "boolean"
+                          },
+                          "locations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "status",
+                          "productName",
+                          "productSlug",
+                          "image",
+                          "assetLabel",
+                          "allLocations",
+                          "locations",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "OPEN",
+                              "PAUSED",
+                              "CLOSED",
+                              "NEEDS_REVIEW",
+                              "READY_TO_ORDER",
+                              "ORDER_DRAFT_CREATED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "locationName": {
+                            "type": "string"
+                          },
+                          "deadline": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "submittedCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "templateId",
+                          "status",
+                          "productName",
+                          "locationName",
+                          "deadline",
+                          "submittedCount",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
                     "needsAttention",
                     "activeOrders",
                     "activeProjects",
-                    "canCreate"
+                    "canCreate",
+                    "canManageCollections",
+                    "templates",
+                    "groups"
                   ],
                   "additionalProperties": false
                 }
@@ -52070,6 +52350,12 @@
                         "additionalProperties": false
                       }
                     },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
                     "counts": {
                       "type": "object",
                       "properties": {
@@ -52105,6 +52391,7 @@
                   },
                   "required": [
                     "orders",
+                    "nextCursor",
                     "counts"
                   ],
                   "additionalProperties": false
@@ -52322,22 +52609,48 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "currency": {
-                      "type": "string",
-                      "enum": [
-                        "NGN",
-                        "USD"
+                    "totals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "enum": [
+                              "NGN",
+                              "USD"
+                            ]
+                          },
+                          "dueMinor": {
+                            "type": "string",
+                            "pattern": "^-?\\d+$"
+                          },
+                          "paidThisYearMinor": {
+                            "type": "string",
+                            "pattern": "^-?\\d+$"
+                          },
+                          "receiptsThisYear": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "currency",
+                          "dueMinor",
+                          "paidThisYearMinor",
+                          "receiptsThisYear"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "receiptsNextCursor": {
+                      "type": [
+                        "string",
+                        "null"
                       ]
                     },
-                    "dueMinor": {
-                      "type": "string",
-                      "pattern": "^-?\\d+$"
-                    },
-                    "paidThisYearMinor": {
-                      "type": "string",
-                      "pattern": "^-?\\d+$"
-                    },
-                    "receiptsThisYear": {
+                    "needsResolution": {
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
@@ -52441,7 +52754,8 @@
                             "enum": [
                               "PAID",
                               "REFUNDED",
-                              "PARTIALLY_REFUNDED"
+                              "PARTIALLY_REFUNDED",
+                              "PAYMENT_RESOLUTION_REQUIRED"
                             ]
                           }
                         },
@@ -52461,10 +52775,9 @@
                     }
                   },
                   "required": [
-                    "currency",
-                    "dueMinor",
-                    "paidThisYearMinor",
-                    "receiptsThisYear",
+                    "totals",
+                    "receiptsNextCursor",
+                    "needsResolution",
                     "balancesDue",
                     "receipts"
                   ],
@@ -52548,6 +52861,417 @@
                   "properties": {
                     "query": {
                       "type": "string"
+                    },
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "AWAITING_APPROVAL",
+                              "APPROVED",
+                              "NEEDS_REVIEW",
+                              "ARCHIVED"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "productSlug": {
+                            "type": "string"
+                          },
+                          "image": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "url": {
+                                    "type": "string"
+                                  },
+                                  "thumbnailUrl": {
+                                    "type": "string"
+                                  },
+                                  "alt": {
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "height": {
+                                    "anyOf": [
+                                      {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "url",
+                                  "thumbnailUrl",
+                                  "alt",
+                                  "width",
+                                  "height"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "assetLabel": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "allLocations": {
+                            "type": "boolean"
+                          },
+                          "locations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "status",
+                          "productName",
+                          "productSlug",
+                          "image",
+                          "assetLabel",
+                          "allLocations",
+                          "locations",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "groups": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "templateId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "OPEN",
+                              "PAUSED",
+                              "CLOSED",
+                              "NEEDS_REVIEW",
+                              "READY_TO_ORDER",
+                              "ORDER_DRAFT_CREATED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "locationName": {
+                            "type": "string"
+                          },
+                          "deadline": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "submittedCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "templateId",
+                          "status",
+                          "productName",
+                          "locationName",
+                          "deadline",
+                          "submittedCount",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "assets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "LOGO",
+                              "PRINT",
+                              "EMBROIDERY",
+                              "GUIDELINES",
+                              "PACKAGING"
+                            ]
+                          },
+                          "current": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "number": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "PROCESSING",
+                                      "NEEDS_REVIEW",
+                                      "PRODUCTION_READY",
+                                      "SUPERSEDED",
+                                      "RETIRED",
+                                      "ARCHIVED"
+                                    ]
+                                  },
+                                  "fileId": {
+                                    "type": "string"
+                                  },
+                                  "fileName": {
+                                    "type": "string"
+                                  },
+                                  "fileType": {
+                                    "type": "string"
+                                  },
+                                  "hasThumbnail": {
+                                    "type": "boolean"
+                                  },
+                                  "reviewNote": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "uploadedBy": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "createdAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  "reviewedAt": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "number",
+                                  "status",
+                                  "fileId",
+                                  "fileName",
+                                  "fileType",
+                                  "hasThumbnail",
+                                  "reviewNote",
+                                  "uploadedBy",
+                                  "createdAt",
+                                  "reviewedAt"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "latest": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "number": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "PROCESSING",
+                                  "NEEDS_REVIEW",
+                                  "PRODUCTION_READY",
+                                  "SUPERSEDED",
+                                  "RETIRED",
+                                  "ARCHIVED"
+                                ]
+                              },
+                              "fileId": {
+                                "type": "string"
+                              },
+                              "fileName": {
+                                "type": "string"
+                              },
+                              "fileType": {
+                                "type": "string"
+                              },
+                              "hasThumbnail": {
+                                "type": "boolean"
+                              },
+                              "reviewNote": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "uploadedBy": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                              },
+                              "reviewedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "number",
+                              "status",
+                              "fileId",
+                              "fileName",
+                              "fileType",
+                              "hasThumbnail",
+                              "reviewNote",
+                              "uploadedBy",
+                              "createdAt",
+                              "reviewedAt"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "versionCount": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "kind",
+                          "current",
+                          "latest",
+                          "versionCount",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "orders": {
                       "type": "array",
@@ -52731,6 +53455,9 @@
                   },
                   "required": [
                     "query",
+                    "templates",
+                    "groups",
+                    "assets",
                     "orders",
                     "projects"
                   ],

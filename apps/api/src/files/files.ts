@@ -1,5 +1,14 @@
+import type { SQL } from "@holypearls/db";
+import { catalogueRetainsFile } from "../catalogue/media.js";
+import { assetRetainsFile } from "../organizations/assets.js";
+import { canSeeImportFile, importRetainsFile } from "../groups/imports.js";
+import { canReadOrder, orderRetainsFile } from "../orders/orders.js";
+import { cartRetainsFile } from "../sales/cart.js";
+import { quoteRetainsFile } from "../quotes/customer.js";
+import { canSeeProjectFile, projectRetainsFile } from "../projects/projects.js";
+import { canSeeConfigurationFile, configurationRetainsFile } from "../configuration/drafts.js";
 import type { FileView } from "@holypearls/contracts";
-import { and, type Database, eq, inArray, isNull, lt, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, inArray, isNull, lt, schema, sql, type Transaction } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
 import type { StorageAdapter } from "@holypearls/storage";
 import { AppError } from "../errors.js";
@@ -37,43 +46,34 @@ const storageFor = (deps: Pick<FileDeps, "storage" | "publicStorage">, row: { bu
  * permissions.
  */
 export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, ownerId: string) => Promise<boolean>> = {
+  CONFIGURATION: canSeeConfigurationFile,
+  PRODUCT: async (_db, actor) => actor.type === "user" && Boolean(actor.staff?.permissions.has("CATALOGUE_MANAGE")),
+  IMPORT_BATCH: canSeeImportFile,
   /** Content-page images are public once shown; in admin, content staff manage them. */
   CONTENT_PAGE: async (_db, actor) => actor.type === "user" && Boolean(actor.staff?.permissions.has("CONTENT_MANAGE")),
   /** Project files: the project's owner or its link's guest; staff who quote it (QUOTE_MANAGE). */
-  PROJECT: async (db, actor, ownerId) => {
-    if (actor.type === "user" && actor.staff?.permissions.has("QUOTE_MANAGE")) return true;
-    if (actor.type === "guest") return actor.guest.targetType === "PROJECT" && actor.guest.targetId === ownerId;
-    if (actor.type !== "user") return false;
-    const [row] = await db.select({ owner: schema.projects.ownerUserId }).from(schema.projects).where(eq(schema.projects.id, ownerId));
-    return row?.owner === actor.session.userId;
-  },
+  PROJECT: canSeeProjectFile,
   /** A published proof version's files: whoever can open its order; staff with PROOF_MANAGE (TECH-04 §10). */
   PROOF_VERSION: async (db, actor, ownerId) => {
     if (actor.type === "user" && actor.staff?.permissions.has("PROOF_MANAGE")) return true;
     const [row] = await db
-      .select({ status: schema.proofVersions.status, orderId: schema.orderItems.orderId, owner: schema.orders.ownerUserId, customerUser: schema.customers.userId })
+      .select({ status: schema.proofVersions.status, orderId: schema.orderItems.orderId })
       .from(schema.proofVersions)
       .innerJoin(schema.proofs, eq(schema.proofs.id, schema.proofVersions.proofId))
       .innerJoin(schema.orderItems, eq(schema.orderItems.id, schema.proofs.orderItemId))
-      .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
-      .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
       .where(eq(schema.proofVersions.id, ownerId));
     if (!row || row.status === "DRAFT") return false;
-    if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
-    return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
+    return canReadOrder(db, actor, row.orderId);
   },
   /** Problem report photos: support staff, or whoever can open the order (T08-01). */
   PROBLEM_REPORT: async (db, actor, ownerId) => {
     if (actor.type === "user" && actor.staff?.permissions.has("CUSTOMER_SUPPORT")) return true;
     const [row] = await db
-      .select({ orderId: schema.orders.id, owner: schema.orders.ownerUserId, customerUser: schema.customers.userId })
+      .select({ orderId: schema.problemReports.orderId })
       .from(schema.problemReports)
-      .innerJoin(schema.orders, eq(schema.orders.id, schema.problemReports.orderId))
-      .innerJoin(schema.customers, eq(schema.customers.id, schema.orders.customerId))
       .where(eq(schema.problemReports.id, ownerId));
     if (!row) return false;
-    if (actor.type === "user") return row.owner === actor.session.userId || row.customerUser === actor.session.userId;
-    return actor.type === "guest" && actor.guest.targetType === "ORDER" && actor.guest.targetId === row.orderId;
+    return canReadOrder(db, actor, row.orderId);
   },
   /** A brand asset version (T11-01): members of its organization, and staff who support or review organizations. */
   BRAND_ASSET_VERSION: async (db, actor, ownerId) => canSeeBrandAssetVersion(db, actor, ownerId),
@@ -85,9 +85,10 @@ export const FILE_OWNERS: Record<string, (db: Database, actor: ActorContext, own
 
 /** Until attached, a file belongs to whoever uploaded it. After that, to its record. */
 async function canUseFile(db: Database, actor: ActorContext, row: FileRow): Promise<boolean> {
-  if (row.ownerType && row.ownerId) {
+  if (row.ownerType || row.ownerId) {
+    if (!row.ownerType || !row.ownerId) return false;
     const check = FILE_OWNERS[row.ownerType];
-    if (check && (await check(db, actor, row.ownerId))) return true;
+    return check ? check(db, actor, row.ownerId) : false;
   }
   if (actor.type === "user" && row.uploadedByUserId === actor.session.userId) return true;
   if (actor.type === "guest" && row.uploadedByGuestSessionId === actor.guest.guestSessionId) return true;
@@ -194,7 +195,7 @@ export async function createUpload(
     contentLength: input.size,
     expiresInSeconds: UPLOAD_URL_SECONDS,
   });
-  return { file: await toFileView(deps.db, { ...row!, storageKey }), uploadUrl, expiresInSeconds: UPLOAD_URL_SECONDS };
+  return { file: await toFileView(deps.db, { ...row!, storageKey }), uploadUrl, uploadHeaders: { "if-none-match": "*" }, expiresInSeconds: UPLOAD_URL_SECONDS };
 }
 
 /** Steps 5–6: the browser says it finished; the API checks the object and its real size, then queues file.inspect. */
@@ -285,24 +286,33 @@ export async function attachFile(tx: Transaction, fileId: string, owner: { type:
     .where(and(eq(schema.files.id, fileId), isNull(schema.files.ownerId)));
 }
 
+const unreferenced = (fileId: string | SQL) => and(
+  ...[configurationRetainsFile, projectRetainsFile, quoteRetainsFile, cartRetainsFile, orderRetainsFile, importRetainsFile, assetRetainsFile, catalogueRetainsFile]
+    .map(retained => sql`not (${retained(fileId)})`),
+);
+
 /** cleanup.daily: removes uploads never attached to anything after 7 days, with their previews (TECH-04 §13). */
 export async function removeUnattachedFiles(deps: Pick<FileDeps, "db" | "storage" | "publicStorage">, now: Date): Promise<number> {
   const cutoff = new Date(now.getTime() - UNATTACHED_DAYS * 86_400_000);
-  const stale = await deps.db
-    .select()
-    .from(schema.files)
-    .where(and(isNull(schema.files.ownerId), lt(schema.files.createdAt, cutoff)))
-    .limit(500);
-  if (stale.length === 0) return 0;
-  const renditions = await deps.db
-    .select()
-    .from(schema.fileRenditions)
-    .where(inArray(schema.fileRenditions.fileId, stale.map((row) => row.id)));
-  for (const row of stale) {
-    const store = storageFor(deps, row);
-    await store.remove(row.storageKey);
-    for (const rendition of renditions.filter((item) => item.fileId === row.id)) await store.remove(rendition.storageKey);
+  const candidates = await deps.db.select({ id: schema.files.id }).from(schema.files)
+    .where(and(isNull(schema.files.ownerId), lt(schema.files.createdAt, cutoff), unreferenced(sql`${schema.files.id}`))).limit(500);
+  let removed = 0;
+  for (const candidate of candidates) {
+    removed += await deps.db.transaction(async tx => {
+      const [row] = await tx.select().from(schema.files)
+        .where(and(eq(schema.files.id, candidate.id), isNull(schema.files.ownerId), lt(schema.files.createdAt, cutoff)))
+        .for("update", { skipLocked: true });
+      if (!row) return 0;
+      const [eligible] = await tx.select({ id: schema.files.id }).from(schema.files).where(and(eq(schema.files.id, row.id), unreferenced(row.id)));
+      if (!eligible) return 0;
+      const renditions = await tx.select().from(schema.fileRenditions).where(eq(schema.fileRenditions.fileId, row.id));
+      const store = storageFor(deps, row);
+      // Hold the attachment lock and retain retry metadata until every object is gone.
+      await store.remove(row.storageKey);
+      for (const rendition of renditions) await store.remove(rendition.storageKey);
+      await tx.delete(schema.files).where(eq(schema.files.id, row.id));
+      return 1;
+    });
   }
-  await deps.db.delete(schema.files).where(inArray(schema.files.id, stale.map((row) => row.id)));
-  return stale.length;
+  return removed;
 }

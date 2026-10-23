@@ -1,3 +1,4 @@
+import type { SQL } from "@holypearls/db";
 import type { AdminProductOptions } from "@holypearls/contracts";
 import { and, asc, type Database, eq, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -144,4 +145,14 @@ export async function removeOptionImage(db: Database, actor: ActorContext, produ
     await audit(tx, actor, productId, product.name, "catalogue.option_image_removed", `Image removed for ${optionKey} · ${value.label}`, { option: optionKey, value: valueKey });
   });
   return productOptionImages(db, productId);
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function catalogueRetainsFile(fileId: string | SQL) {
+  return sql`exists (select 1 from product_media where file_id = ${fileId}::uuid)
+    or exists (select 1 from product_option_values where image_file_id = ${fileId}::uuid)
+    or exists (select 1 from categories where hero_file_id = ${fileId}::uuid)
+    or exists (select 1 from content_pages where hero_file_id = ${fileId}::uuid)
+    or exists (select 1 from content_page_media where file_id = ${fileId}::uuid)
+    or exists (select 1 from content_page_published_media where file_id = ${fileId}::uuid)`;
 }
