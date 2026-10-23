@@ -120,7 +120,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         <FormField label="Phone" optional id="profile-phone" hint={initial.emailVerified ? "Used only for delivery questions." : "Verify your email to add a phone number. Used only for delivery questions."} error={errors.phone}>
           <TextField name="phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </FormField>
-        <Checkbox id="profile-news" checked={news} onChange={(event) => setNews(event.target.checked)} label="Email me product news and offers (optional)" hint={initial.emailVerified ? undefined : "Verify your email to turn this on."} />
+        <Checkbox id="profile-news" checked={news} onChange={(event) => setNews(event.target.checked)} label="Send me product news and offers (optional)" hint={initial.emailVerified ? undefined : "Verify your address to turn this on."} />
         {state === "saved" && news ? (
           <Notice tone="success" live>
             <p>You&apos;ll get product news. Turn this off any time in Profile.</p>

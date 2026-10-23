@@ -327,7 +327,7 @@ function ContactStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
         </FormField>
       </div>
       <p className={styles.lead}>We send your receipt and order updates to this email.</p>
-      <Checkbox id="contact-marketing" checked={form.marketingConsent} onChange={(event) => setForm({ ...form, marketingConsent: event.target.checked })} label="Email me product news and offers (optional)" />
+      <Checkbox id="contact-marketing" checked={form.marketingConsent} onChange={(event) => setForm({ ...form, marketingConsent: event.target.checked })} label="Send me product news and offers (optional)" />
       <p className={styles.lead}>
         We&apos;ll only use your email for this order unless you tick the box. <a href="/privacy">Privacy notice</a>
       </p>
