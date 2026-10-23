@@ -116,7 +116,7 @@ export default function HomePage() {
     <SiteShell>
       <JsonLd data={[organizationLd(), websiteLd()]} />
 
-      <section className={s.hero} aria-labelledby="hero-title">
+      <section className={`${s.hero} hp-surface-dark`} aria-labelledby="hero-title">
         <div className={s.swatches} aria-hidden="true">
           {SWATCHES.map((swatch, i) => (
             <figure key={swatch.name} className={`${s.swatchCard} ${s[`swatch${i + 1}`]} ${swatch.mobile ? "" : s.deskOnly}`}>

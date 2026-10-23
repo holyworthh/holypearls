@@ -718,7 +718,7 @@
 }
 
 .tellUsText:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-accent);
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
   outline-offset: var(--hp-space-2);
 }
 

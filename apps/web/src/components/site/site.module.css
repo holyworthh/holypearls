@@ -76,6 +76,11 @@
   z-index: 30;
 }
 
+/* The sticky header never covers the element that has focus (2.4.11). */
+:global(html):has([data-sticky-header]) {
+  scroll-padding-top: var(--hp-header-height);
+}
+
 .header {
   position: relative;
   z-index: 20;
@@ -362,12 +367,6 @@
   }
 }
 
-a:focus-visible,
-button:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-brand);
-  outline-offset: var(--hp-size-3);
-}
-
 /* Reading progress under the header (Motion board): drawn by the page scroll where CSS scroll timelines exist. */
 .progress {
   position: absolute;
@@ -533,7 +532,19 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--hp-ink);
   background: var(--hp-paper);
+}
+
+.mobile:not([open]) {
+  display: none;
 }
 
 .mobileTop {

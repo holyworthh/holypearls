@@ -26,10 +26,10 @@ export function CartView({ initial }: { initial: Cart | null }) {
 
   if (!cart) {
     return (
-      <main id="main" className={styles.body}>
+      <div className={styles.body}>
         <h1 className={styles.title}>Your cart</h1>
         {notice ? <Notice tone="error" title="Something went wrong">{notice.text}</Notice> : null}
-      </main>
+      </div>
     );
   }
 
@@ -76,7 +76,7 @@ export function CartView({ initial }: { initial: Cart | null }) {
 
   if (!cart.items.length) {
     return (
-      <main id="main" className={styles.body}>
+      <div className={styles.body}>
         <h1 className={styles.title}>Your cart</h1>
         {notice ? (
           <Notice tone={notice.tone} title={notice.tone === "success" ? "Done" : "Something went wrong"} live>
@@ -97,14 +97,14 @@ export function CartView({ initial }: { initial: Cart | null }) {
           </div>
         </section>
         <Saved cart={cart} busy={busy} onMove={moveBack} onForget={(id) => act(id, () => api(`/v1/cart/saved/${id}`, { method: "DELETE", response: cartSchema }))} />
-      </main>
+      </div>
     );
   }
 
   const vatLabel = cart.ready.vatRateBps !== null ? `VAT ${percent(cart.ready.vatRateBps)}` : "VAT";
 
   return (
-    <main id="main" className={styles.body}>
+    <div className={styles.body}>
       <h1 className={styles.title}>Your cart</h1>
       {notice ? (
         <Notice tone={notice.tone} title={notice.tone === "success" ? "Done" : "Something went wrong"} live>
@@ -249,7 +249,7 @@ export function CartView({ initial }: { initial: Cart | null }) {
           setNotice({ tone: "success", text: `Quote requested: ${references.join(", ")}. We'll email your quote; every choice is saved with it.` });
         }}
       />
-    </main>
+    </div>
   );
 }
 

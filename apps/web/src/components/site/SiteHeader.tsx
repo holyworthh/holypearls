@@ -38,6 +38,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
   const header = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDialogElement>(null);
   const panelId = useId();
 
   // Desktop mega-menus also open on hover, after a short pause so passing the pointer across doesn't flash them.
@@ -92,6 +93,10 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open, close]);
+  // A modal dialog: focus moves in and stays in, and the page behind is inert (2.4.3, 2.4.11).
+  useEffect(() => {
+    if (mobile) menu.current?.showModal();
+  }, [mobile]);
   useEffect(() => {
     if (!mobile) return;
     const previous = document.body.style.overflow;
@@ -235,7 +240,17 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
       </div>
 
       {mobile ? (
-        <div id={`${panelId}-mobile`} className={styles.mobile} role="dialog" aria-modal="true" aria-label="Menu">
+        <dialog
+          ref={menu}
+          id={`${panelId}-mobile`}
+          className={styles.mobile}
+          aria-label="Menu"
+          onCancel={(event) => {
+            event.preventDefault();
+            setMobile(false);
+            menuButton.current?.focus();
+          }}
+        >
           <div className={styles.mobileTop}>
             {drill === null ? (
               <p className={styles.mobileTitle}>Menu</p>
@@ -322,7 +337,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
               </a>
             </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
     </div>
   );
