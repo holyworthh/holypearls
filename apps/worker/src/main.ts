@@ -33,7 +33,7 @@ const env = loadWorkerEnv();
 const logger = createLogger({ service: "worker", environment: env.HP_ENV });
 initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "worker" });
 // Worker jobs call the same services as the API (TECH-00 §5) on a bounded pool (TECH-07 §4).
-const database = createDatabaseClient(env.DATABASE_URL, { max: 5 });
+const database = createDatabaseClient(env.DATABASE_URL, { max: 5, onError: (error) => logger.error({ err: error, source: "database" }, "idle database connection error") });
 // Production runs on a row-only database role; a schema owner here means the wrong URL (review P1-02).
 if (env.HP_ENV === "production") {
   const problems = await runtimePrivilegeProblems(database.db);

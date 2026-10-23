@@ -19,7 +19,7 @@ initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "api" })
 if (env.HP_ENV === "production" && env.HP_DEMO_SLICE === "on") {
   throw new Error("The demo routes are never on in production.");
 }
-const database = createDatabaseClient(env.DATABASE_URL);
+const database = createDatabaseClient(env.DATABASE_URL, { onError: (error) => logger.error({ err: error, source: "database" }, "idle database connection error") });
 // Production runs on a row-only database role; a schema owner here means the wrong URL (review P1-02).
 if (env.HP_ENV === "production") {
   const problems = await runtimePrivilegeProblems(database.db);
