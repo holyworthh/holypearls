@@ -1,13 +1,13 @@
 import type { Courier } from "../sales/courier.js";
 import { type CheckoutPayment, displayMoney, type PaymentChannel, type PaymentStart } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, or, schema, sql, type Transaction } from "@holypearls/db";
 import type { Jobs } from "@holypearls/jobs";
 import { type PaymentGateway, PaymentStartError, type VerifyResult } from "@holypearls/payments";
 import { createHash, randomUUID } from "node:crypto";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink } from "../identity/customers.js";
-import { recordAudit } from "../platform/audit.js";
+import { createGuestLink, ofPerson, type PersonSubject } from "../identity/customers.js";
+import { recordAudit, scrubJsonText } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
 import { confirmRefundEvent } from "./refunds.js";
@@ -530,4 +530,42 @@ export async function processPaystackEvent(deps: Pick<PaymentDeps, "db" | "gatew
   }
   await deps.db.update(schema.paystackEvents).set({ processedAt: now }).where(eq(schema.paystackEvents.id, eventId));
   return outcome;
+}
+
+/** Privacy (T15-03): the person's attempts, through the checkouts and quotes they paid for. */
+const subjectAttempts = (db: Tx) =>
+  db
+    .select({ attempt: schema.paymentAttempts, intent: schema.paymentIntents })
+    .from(schema.paymentAttempts)
+    .innerJoin(schema.paymentIntents, eq(schema.paymentIntents.id, schema.paymentAttempts.intentId))
+    .innerJoin(schema.installments, eq(schema.installments.id, schema.paymentIntents.installmentId))
+    .innerJoin(schema.paymentSchedules, eq(schema.paymentSchedules.id, schema.installments.scheduleId))
+    .leftJoin(schema.checkouts, eq(schema.checkouts.id, schema.paymentSchedules.checkoutId))
+    .leftJoin(schema.quoteVersions, eq(schema.quoteVersions.id, schema.paymentSchedules.quoteVersionId))
+    .leftJoin(schema.quotes, eq(schema.quotes.id, schema.quoteVersions.quoteId));
+
+const ofSubject = (subject: PersonSubject) => or(ofPerson(subject, schema.checkouts.customerId, schema.checkouts.ownerUserId), ofPerson(subject, schema.quotes.customerId))!;
+
+/** A payment being confirmed (or waiting for staff) can't lose the contact details its order will be made from. */
+export async function paymentBlocker(db: Tx, subject: PersonSubject) {
+  const [busy] = await subjectAttempts(db)
+    .where(and(ofSubject(subject), inArray(schema.paymentIntents.status, ["PROCESSING", "REVIEW_REQUIRED"])))
+    .limit(1);
+  return busy ? { code: "PAYMENT_IN_PROGRESS" as const, message: "A payment is being confirmed. Try again when it has finished." } : null;
+}
+
+/** Privacy export (T15-03): references and results only; Paystack's raw bodies are not exported. */
+export async function paymentAttemptsForPerson(db: Database, subject: PersonSubject) {
+  const rows = await subjectAttempts(db).where(ofSubject(subject)).orderBy(schema.paymentAttempts.createdAt);
+  return rows.map(({ attempt }) => ({ reference: attempt.reference, status: attempt.status, amountMinor: attempt.amountMinor, currency: attempt.currency, channel: attempt.channel, createdAt: attempt.createdAt, paidAt: attempt.paidAt }));
+}
+
+/** Privacy erasure (T15-03): Paystack's saved events keep their row and key; the customer block inside the body goes. Attempts hold no contact data. */
+export async function erasePaymentEvents(tx: Tx, subject: PersonSubject) {
+  const rows = await subjectAttempts(tx).where(ofSubject(subject));
+  const references = rows.map(({ attempt }) => attempt.reference);
+  if (!references.length) return 0;
+  const events = await tx.select({ id: schema.paystackEvents.id, rawBody: schema.paystackEvents.rawBody }).from(schema.paystackEvents).where(inArray(schema.paystackEvents.reference, references));
+  for (const event of events) await tx.update(schema.paystackEvents).set({ rawBody: scrubJsonText(event.rawBody) }).where(eq(schema.paystackEvents.id, event.id));
+  return events.length;
 }

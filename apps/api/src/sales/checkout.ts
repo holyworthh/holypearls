@@ -1,10 +1,10 @@
 import type { Checkout, checkoutAddressSchema, checkoutBillingSchema, checkoutContactSchema, Configuration, PlacedForInput } from "@holypearls/contracts";
-import { and, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import type { z } from "zod";
 import { AppError } from "../errors.js";
 import { currentTaxSetting } from "../catalogue/rules.js";
 import { draftView, reprice } from "../configuration/drafts.js";
-import { ensureAccountCustomer, ensureGuestCustomer } from "../identity/customers.js";
+import { ensureAccountCustomer, ensureGuestCustomer, ofPerson, type PersonSubject, recordMarketingConsent } from "../identity/customers.js";
 import { type CartAccess, choiceSummary, deviceHash, groupOf, readyItems } from "./cart.js";
 import { type Cover, checkoutTotals, loadZones, zoneFor } from "./delivery.js";
 import { checkPlacement, placementView } from "../organizations/scope.js";
@@ -338,7 +338,10 @@ export async function setContact(deps: CheckoutDeps, access: CartAccess, id: str
     const row = await load(tx, access, id);
     // Signed in, the checkout belongs to the account's customer; the typed email is only where we write to.
     const owner = access.actor.type === "user" ? await ensureAccountCustomer(tx, access.actor.session, access.actor.now) : await ensureGuestCustomer(tx, input);
-    return save({ ...deps, db: tx }, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
+    const saved = await save({ ...deps, db: tx }, row, input.version, { contact: { name: input.name, email: input.email, phone: input.phone }, customerId: owner.id, step: advance(row.step, "contact") });
+    // The tick is kept on the customer, never in the checkout's contact. Unticked changes nothing: withdrawing is in Profile.
+    if (input.marketingConsent) await recordMarketingConsent(tx, owner.id, access.actor.now);
+    return saved;
   });
 }
 
@@ -403,4 +406,41 @@ export async function setBilling(deps: CheckoutDeps, access: CartAccess, id: str
   const { version: _version, ...billing } = input;
   void _version;
   return save(deps, row, input.version, { billing, step: advance(row.step, "billing") });
+}
+
+/** Privacy export (T15-03): the person's checkouts with the details they typed. */
+export async function checkoutsForPerson(db: Database, subject: PersonSubject) {
+  return db
+    .select({
+      id: schema.checkouts.id,
+      status: schema.checkouts.status,
+      contact: schema.checkouts.contact,
+      address: schema.checkouts.address,
+      billing: schema.checkouts.billing,
+      currency: schema.checkouts.currency,
+      totalMinor: schema.checkouts.totalMinor,
+      personalDataPurgedAt: schema.checkouts.personalDataPurgedAt,
+      createdAt: schema.checkouts.createdAt,
+    })
+    .from(schema.checkouts)
+    .where(ofPerson(subject, schema.checkouts.customerId, schema.checkouts.ownerUserId))
+    .orderBy(schema.checkouts.createdAt);
+}
+
+/**
+ * Privacy erasure (T15-03): open checkouts without a payment are closed, then
+ * every checkout of the person loses contact, address and billing. Amounts
+ * and frozen items stay.
+ */
+export async function eraseCheckouts(tx: Transaction, subject: PersonSubject, now: Date) {
+  const own = ofPerson(subject, schema.checkouts.customerId, schema.checkouts.ownerUserId);
+  const open = (await tx.select({ id: schema.checkouts.id }).from(schema.checkouts).where(and(own, eq(schema.checkouts.status, "OPEN")))).map((row) => row.id);
+  const paying = new Set(await checkoutsWithActivePayment(tx, open));
+  const closing = open.filter((id) => !paying.has(id));
+  if (closing.length) {
+    await tx.update(schema.checkouts).set({ status: "ABANDONED" }).where(inArray(schema.checkouts.id, closing));
+    await cancelCheckoutPayments(tx, closing);
+  }
+  const purged = await tx.update(schema.checkouts).set({ contact: null, address: null, billing: null, personalDataPurgedAt: now }).where(own).returning({ id: schema.checkouts.id });
+  return purged.length;
 }

@@ -15,12 +15,13 @@ import {
   type RuleQuantity,
 } from "@holypearls/contracts";
 import { checkPlacement, placementView } from "../organizations/scope.js";
-import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type Transaction } from "@holypearls/db";
 import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
 import { findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customersForContact, maskEmail, sha256, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, customersForContact, ERASED_NAME, maskEmail, ofPerson, type PersonSubject, sha256, startGuestSession } from "../identity/customers.js";
+import { withoutPersonalData } from "../platform/audit.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { deadlineState, openItems, reconcile, type RuleInput, type SuggestionRow } from "./recommend.js";
 
@@ -607,4 +608,32 @@ export async function submitProject(
     });
   });
   return getProject(deps.db, access, id);
+}
+
+/** Privacy export (T15-03): the person's projects with their answers and contact. */
+export async function projectsForPerson(db: Database, subject: PersonSubject) {
+  return db
+    .select({ id: schema.projects.id, reference: schema.projects.reference, status: schema.projects.status, answers: schema.projects.answers, contact: schema.projects.contact, createdAt: schema.projects.createdAt })
+    .from(schema.projects)
+    .where(ofPerson(subject, schema.projects.customerId, schema.projects.ownerUserId))
+    .orderBy(schema.projects.createdAt);
+}
+
+/** Privacy erasure (T15-03): answers and the submitted brief lose personal details; the project and its quote stay. */
+export async function eraseProjects(tx: Transaction, subject: PersonSubject) {
+  const rows = await tx
+    .select({ id: schema.projects.id, answers: schema.projects.answers, submittedSnapshot: schema.projects.submittedSnapshot, contact: schema.projects.contact })
+    .from(schema.projects)
+    .where(ofPerson(subject, schema.projects.customerId, schema.projects.ownerUserId));
+  for (const row of rows) {
+    await tx
+      .update(schema.projects)
+      .set({
+        answers: withoutPersonalData(row.answers) as object,
+        submittedSnapshot: row.submittedSnapshot ? (withoutPersonalData(row.submittedSnapshot) as object) : null,
+        contact: row.contact ? { name: ERASED_NAME, email: subject.placeholder } : null,
+      })
+      .where(eq(schema.projects.id, row.id));
+  }
+  return rows.length;
 }

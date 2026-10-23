@@ -1,9 +1,9 @@
 import { GARMENT_SIZES, type ParticipantAnswers, type ParticipantField, type Participation } from "@holypearls/contracts";
-import { and, type Database, eq, ne, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, inArray, ne, or, schema, sql, type Transaction } from "@holypearls/db";
 import { productOptions } from "../configuration/pricing.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureGuestCustomer, sha256, startGuestSession } from "../identity/customers.js";
+import { createGuestLink, ensureGuestCustomer, ERASED_NAME, ofPerson, type PersonSubject, sha256, startGuestSession } from "../identity/customers.js";
 import type { OrganizationDeps } from "../organizations/team.js";
 import { queueEmail } from "../platform/notifications.js";
 import { inviteView } from "./collections.js";
@@ -229,4 +229,26 @@ export async function submitFromStore(deps: OrganizationDeps, actor: ActorContex
     await emailCopy(deps, tx, actor, collection, participant!, input.answers);
     return { participantId: participant!.id, collection };
   });
+}
+
+/** Privacy (T15-03): a participant is the person by customer row, or by the email an organizer typed or imported. */
+const ofParticipant = (subject: PersonSubject) => or(ofPerson(subject, schema.participants.customerId), sql`lower(${schema.participants.email}) = ${subject.email}`)!;
+
+export async function participantsForPerson(db: Database, subject: PersonSubject) {
+  return db
+    .select({ id: schema.participants.id, collectionId: schema.participants.collectionId, name: schema.participants.name, email: schema.participants.email, status: schema.participants.status, createdAt: schema.participants.createdAt })
+    .from(schema.participants)
+    .where(ofParticipant(subject))
+    .orderBy(schema.participants.createdAt);
+}
+
+/** Privacy erasure (T15-03): name and email go, the participant's size answers stay with the collection; imported cells and values are emptied. */
+export async function eraseParticipants(tx: Transaction, subject: PersonSubject) {
+  const rows = await tx
+    .update(schema.participants)
+    .set({ name: ERASED_NAME, email: subject.placeholder })
+    .where(ofParticipant(subject))
+    .returning({ id: schema.participants.id });
+  if (rows.length) await tx.update(schema.importRows).set({ raw: [], values: {} }).where(inArray(schema.importRows.participantId, rows.map((row) => row.id)));
+  return rows.length;
 }

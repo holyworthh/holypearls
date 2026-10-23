@@ -1,10 +1,10 @@
 import { type AdminShipment, type CustomerShipment, type OrderShipping, SHIPMENT_NEXT, type ShipmentStatus } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, ne, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, ne, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink } from "../identity/customers.js";
 import type { OrderEmailDeps } from "../orders/orders.js";
-import { recordAudit } from "../platform/audit.js";
+import { recordAudit, REMOVED, scrubJsonText } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 
 /*
@@ -277,4 +277,30 @@ export async function shipmentView(db: Db, id: string) {
   const [row] = await db.select().from(schema.shipments).where(eq(schema.shipments.id, id));
   if (!row) throw new AppError("NOT_FOUND");
   return (await views(db, [row]))[0]!;
+}
+
+/** Privacy export (T15-03): shipments of the person's orders, with where they went. */
+export async function shipmentsForOrders(db: Database, orderIds: string[]) {
+  if (!orderIds.length) return [];
+  return db
+    .select({ number: schema.shipments.number, status: schema.shipments.status, carrier: schema.shipments.carrier, trackingNumber: schema.shipments.trackingNumber, destination: schema.shipments.destination, deliveredAt: schema.shipments.deliveredAt })
+    .from(schema.shipments)
+    .where(inArray(schema.shipments.orderId, orderIds))
+    .orderBy(schema.shipments.createdAt);
+}
+
+/** Privacy erasure (T15-03): the destination and the courier's raw webhook bodies for these shipments lose personal details. */
+export async function eraseShipments(tx: Transaction, orderIds: string[]) {
+  if (!orderIds.length) return 0;
+  const rows = await tx
+    .update(schema.shipments)
+    .set({ destination: REMOVED })
+    .where(inArray(schema.shipments.orderId, orderIds))
+    .returning({ courierOrderId: schema.shipments.courierOrderId });
+  const courierIds = rows.map((row) => row.courierOrderId).filter((id): id is string => !!id);
+  if (courierIds.length) {
+    const events = await tx.select({ id: schema.courierEvents.id, rawBody: schema.courierEvents.rawBody }).from(schema.courierEvents).where(inArray(schema.courierEvents.courierOrderId, courierIds));
+    for (const event of events) await tx.update(schema.courierEvents).set({ rawBody: scrubJsonText(event.rawBody) }).where(eq(schema.courierEvents.id, event.id));
+  }
+  return rows.length;
 }

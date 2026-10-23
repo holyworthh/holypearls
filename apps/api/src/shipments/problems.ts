@@ -1,12 +1,12 @@
 import type { AdminProblem } from "@holypearls/contracts";
 import { PROBLEM_TYPE_LABEL } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, customerForActor } from "../identity/customers.js";
+import { createGuestLink, customerForActor, ofPerson, type PersonSubject } from "../identity/customers.js";
 import { attachFile, findFileForActor } from "../files/files.js";
 import { loadOrderFor, type OrderAccess, type OrderEmailDeps } from "../orders/orders.js";
-import { recordAudit } from "../platform/audit.js";
+import { recordAudit, withoutPersonalData } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 
 /*
@@ -196,4 +196,27 @@ export async function replyToProblem(deps: OrderEmailDeps, actor: ActorContext, 
     });
   });
   return getProblem(deps.db, id);
+}
+
+/** Privacy export (T15-03): problem reports the person sent, with the replies. */
+export async function problemsForPerson(db: Database, subject: PersonSubject) {
+  const reports = await db
+    .select({ id: schema.problemReports.id, number: schema.problemReports.number, type: schema.problemReports.type, description: schema.problemReports.description, status: schema.problemReports.status, createdAt: schema.problemReports.createdAt })
+    .from(schema.problemReports)
+    .where(ofPerson(subject, schema.problemReports.customerId));
+  const replies = reports.length
+    ? await db.select({ problemReportId: schema.problemReplies.problemReportId, body: schema.problemReplies.body, createdAt: schema.problemReplies.createdAt }).from(schema.problemReplies).where(inArray(schema.problemReplies.problemReportId, reports.map((report) => report.id)))
+    : [];
+  return reports.map((report) => ({ ...report, replies: replies.filter((reply) => reply.problemReportId === report.id) }));
+}
+
+/** Privacy erasure (T15-03): free text loses emails and phone numbers; the report stays as the order's history. */
+export async function eraseProblems(tx: Transaction, subject: PersonSubject) {
+  const reports = await tx.select({ id: schema.problemReports.id, description: schema.problemReports.description }).from(schema.problemReports).where(ofPerson(subject, schema.problemReports.customerId));
+  for (const report of reports) {
+    await tx.update(schema.problemReports).set({ description: String(withoutPersonalData(report.description)) }).where(eq(schema.problemReports.id, report.id));
+    const replies = await tx.select({ id: schema.problemReplies.id, body: schema.problemReplies.body }).from(schema.problemReplies).where(eq(schema.problemReplies.problemReportId, report.id));
+    for (const reply of replies) await tx.update(schema.problemReplies).set({ body: String(withoutPersonalData(reply.body)) }).where(eq(schema.problemReplies.id, reply.id));
+  }
+  return reports.length;
 }
