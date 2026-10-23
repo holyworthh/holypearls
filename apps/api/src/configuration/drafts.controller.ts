@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Req, Res } from "@nestjs/common";
 import {
   attachConfigurationFileSchema,
@@ -48,6 +49,7 @@ export class ConfigurationsController {
   }
 
   @Post()
+  @Public()
   @RateLimit("COMMERCIAL_WRITE")
   async create(
     @Req() request: Request,

@@ -1,3 +1,4 @@
+import { Public } from "./identified.guard.js";
 import { Body, Controller, Delete, HttpCode, Inject, Param, ParseUUIDPipe, Post, Req, Res, UseGuards } from "@nestjs/common";
 import {
   redeemGuestLinkSchema,
@@ -30,6 +31,7 @@ export class CustomerAccessController {
 
   /** Exchanges a link secret for a guest session; the page then moves to a clean URL. */
   @Post("guest-links/redeem")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async redeem(
@@ -46,6 +48,7 @@ export class CustomerAccessController {
   }
 
   @Delete("guest-session")
+  @Public()
   @HttpCode(200)
   endGuestSession(@Res({ passthrough: true }) response: Response) {
     response.clearCookie(GUEST_SESSION_COOKIE, { path: "/" });
@@ -53,6 +56,7 @@ export class CustomerAccessController {
   }
 
   @Post("email-codes")
+  @Public()
   @RateLimit("GUEST_LINK_VERIFY")
   async requestCode(
     @Req() request: Request,
@@ -64,6 +68,7 @@ export class CustomerAccessController {
   }
 
   @Post("email-codes/verify")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async verifyCode(

@@ -3,7 +3,7 @@ import { and, eq, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { as, expectForbidden, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { as, expectForbidden, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
 
 /*
@@ -328,7 +328,7 @@ describe("carts and checkouts are private (TECH-03 §17)", () => {
     const cart = cartSchema.parse((await b.get("/v1/cart")).body);
     const stranger = browser();
     expectHidden(await stranger.get(`/v1/checkouts/${checkout.id}`));
-    expectHidden(await stranger.put(`/v1/checkouts/${checkout.id}/contact`, { ...contact, version: checkout.version }));
+    expectNoIdentity(await stranger.put(`/v1/checkouts/${checkout.id}/contact`, { ...contact, version: checkout.version }));
     expectHidden(await stranger.delete(`/v1/cart/items/${cart.items[0]!.id}`));
     expectHidden(await as(harness, actors.customerChidi!).get(`/v1/checkouts/${checkout.id}`));
     expectHidden(await as(harness, actors.customerChidi!).delete(`/v1/cart/items/${cart.items[0]!.id}`));

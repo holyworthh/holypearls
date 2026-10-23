@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Req, UseGuards } from "@nestjs/common";
 import {
   addToCartSchema,
@@ -56,6 +57,7 @@ export class CartController {
   }
 
   @Post("items")
+  @Public()
   @HttpCode(200)
   @RateLimit("COMMERCIAL_WRITE")
   async add(@Req() request: Request, @Body(new ZodValidationPipe(addToCartSchema)) body: z.infer<typeof addToCartSchema>) {
@@ -63,6 +65,7 @@ export class CartController {
   }
 
   @Delete("items/:id")
+  @Public()
   @RateLimit("COMMERCIAL_WRITE")
   async remove(@Req() request: Request, @Param("id", uuid) id: string) {
     return removeFromCart(this.deps.db, await access(this.deps.db, request), id, { saveForLater: false });
@@ -70,6 +73,7 @@ export class CartController {
 
   /** "Save for later": the design goes back to the customer's saved drafts. */
   @Post("items/:id/save-for-later")
+  @Public()
   @HttpCode(200)
   @RateLimit("COMMERCIAL_WRITE")
   async saveForLater(@Req() request: Request, @Param("id", uuid) id: string) {
@@ -77,6 +81,7 @@ export class CartController {
   }
 
   @Delete("saved/:configurationId")
+  @Public()
   @RateLimit("COMMERCIAL_WRITE")
   async forget(@Req() request: Request, @Param("configurationId", uuid) id: string) {
     return forgetSaved(this.deps.db, await access(this.deps.db, request), id);
@@ -84,6 +89,7 @@ export class CartController {
 
   /** "Submit quote items": the quote items become one quote request. */
   @Post("quote-request")
+  @Public()
   @HttpCode(200)
   @RateLimit("CONTACT")
   async quote(@Req() request: Request, @Body(new ZodValidationPipe(cartQuoteRequestSchema)) body: z.infer<typeof cartQuoteRequestSchema>) {
@@ -104,6 +110,7 @@ export class CheckoutController {
   }
 
   @Post()
+  @Public()
   @HttpCode(200)
   @Idempotent()
   @RateLimit("COMMERCIAL_WRITE")

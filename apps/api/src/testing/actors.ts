@@ -40,6 +40,12 @@ export function expectHidden(response: request.Response) {
   expect(apiErrorSchema.parse(response.body).code).toBe("NOT_FOUND");
 }
 
+/** A caller with no sign-in, guest session or device (a write to someone's record): 401 before anything is read, or 404. */
+export function expectNoIdentity(response: request.Response) {
+  expect([401, 404]).toContain(response.status);
+  expect(["NOT_SIGNED_IN", "NOT_FOUND"]).toContain(apiErrorSchema.parse(response.body).code);
+}
+
 /** The person can see it but may not do this. */
 export function expectForbidden(response: request.Response, reason?: string) {
   expect(response.status).toBe(403);

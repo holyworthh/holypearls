@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   acceptInvitationSchema,
@@ -451,6 +452,7 @@ export class InvitationsController {
   }
 
   @Post("accept")
+  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async accept(@Req() request: Request, @Body(new ZodValidationPipe(acceptInvitationSchema)) body: z.infer<typeof acceptInvitationSchema>) {
