@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from "@nestjs/common";
 import { StaffGuard } from "../identity/staff.guard.js";
-import { collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
+import { createStoreSchema, updateAllowanceSchema, storeActionSchema, storePickSchema, storeProcurementSchema, updateStoreSchema, collectionActionSchema, correctionSchema, fixImportRowSchema, matchColumnsSchema, runImportSchema, startImportSchema, createCollectionSchema, joinCollectionSchema, participantActionSchema, reopenCollectionSchema, saveParticipationSchema, settleSizeSchema, submitParticipationSchema, updateCollectionSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { actOnParticipant, closeOrReopen, collectionDashboard, remindParticipant
 import { fixRow, getImport, listImports, matchColumns, runImport, startImport } from "./imports.js";
 import { createOrderDraft, orderDraftOrigin, orderDraftState, submitOrderDraft } from "./order-drafts.js";
 import { getParticipation, joinCollection, saveParticipation, submitParticipation } from "./participants.js";
+import { changeStore, createStore, getStore, listStores, orderFromStore, pickFromStore, updateAllowance, updateStore } from "./stores.js";
 
 const uuid = new ParseUUIDPipe();
 const actorOf = (request: Request) => request.getActor!();
@@ -267,5 +268,71 @@ export class OrderDraftsAdminController {
   @Get(":draftId")
   origin(@Param("draftId", uuid) draftId: string) {
     return orderDraftOrigin(this.deps.db, draftId);
+  }
+}
+
+/** Company stores (T12-06; Pen 32, 77, 78). */
+@Controller("organizations/:organizationId/stores")
+export class StoresController {
+  constructor(@Inject(HELP_DEPS) private readonly deps: OrganizationDeps) {}
+
+  @Get()
+  async list(@Req() request: Request, @Param("organizationId", uuid) organizationId: string) {
+    return listStores(this.deps.db, await actorOf(request), organizationId);
+  }
+
+  @Post()
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async create(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Body(new ZodValidationPipe(createStoreSchema)) body: z.infer<typeof createStoreSchema>) {
+    return createStore(this.deps, await actorOf(request), organizationId, body);
+  }
+
+  @Get(":storeId")
+  async get(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string) {
+    return getStore(this.deps, await actorOf(request), organizationId, storeId);
+  }
+
+  @Put(":storeId")
+  @RateLimit("COMMERCIAL_WRITE")
+  async update(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(updateStoreSchema)) body: z.infer<typeof updateStoreSchema>) {
+    return updateStore(this.deps, await actorOf(request), organizationId, storeId, body);
+  }
+
+  @Put(":storeId/allowance")
+  @RateLimit("COMMERCIAL_WRITE")
+  async allowance(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(updateAllowanceSchema)) body: z.infer<typeof updateAllowanceSchema>) {
+    return updateAllowance(this.deps, await actorOf(request), organizationId, storeId, body);
+  }
+
+  @Post(":storeId/orders")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async order(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(storeProcurementSchema)) body: z.infer<typeof storeProcurementSchema>) {
+    return orderFromStore(this.deps, await actorOf(request), organizationId, storeId, body);
+  }
+
+  @Post(":storeId/picks")
+  @HttpCode(200)
+  @Idempotent()
+  @RateLimit("COMMERCIAL_WRITE")
+  async pick(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Param("storeId", uuid) storeId: string, @Body(new ZodValidationPipe(storePickSchema)) body: z.infer<typeof storePickSchema>) {
+    return pickFromStore(this.deps, await actorOf(request), organizationId, storeId, body);
+  }
+
+  @Post(":storeId/:action")
+  @HttpCode(200)
+  @RateLimit("COMMERCIAL_WRITE")
+  async change(
+    @Req() request: Request,
+    @Param("organizationId", uuid) organizationId: string,
+    @Param("storeId", uuid) storeId: string,
+    @Param("action") action: string,
+    @Body(new ZodValidationPipe(storeActionSchema)) body: z.infer<typeof storeActionSchema>,
+  ) {
+    if (action !== "activate" && action !== "pause" && action !== "archive") throw new AppError("NOT_FOUND");
+    return changeStore(this.deps, await actorOf(request), organizationId, storeId, action, body.version);
   }
 }

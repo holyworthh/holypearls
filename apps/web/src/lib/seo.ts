@@ -24,6 +24,12 @@ export const BUSINESS = {
   city: "Lagos",
 };
 
+/** Search Console and Bing Webmaster ownership tags (Stage 3 §53); nothing is printed until a token is set. */
+export const verification: Metadata["verification"] = {
+  ...(env.GOOGLE_SITE_VERIFICATION ? { google: env.GOOGLE_SITE_VERIFICATION } : {}),
+  ...(env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": env.BING_SITE_VERIFICATION } } : {}),
+};
+
 export const absoluteUrl = (path: string) => `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 
 export type PageKind = "product" | "category" | "project" | "guide" | "case-study" | "page";
@@ -151,7 +157,47 @@ export function productLd(product: PublicProduct | PublicProductCard): Ld {
       ...(product.moq && product.moq > 1 ? { eligibleQuantity: { "@type": "QuantitativeValue", minValue: product.moq } } : {}),
     };
   }
-  return ld;
+  return variantGroup(product, ld);
+}
+
+/** Options that are product variants in schema.org terms (Stage 3 §49): one page, one ProductGroup. */
+const VARIES_BY: Record<string, "color" | "size" | "material"> = { colour: "color", size: "size", fabric: "material" };
+const MAX_VARIANTS = 100;
+
+/**
+ * A product whose colour, size or fabric choices make variants (PUB-SEO-002,
+ * Stage 3 §48–49) is described as a ProductGroup with each variant listed.
+ * Variants carry no Offer of their own: prices are set by the whole design,
+ * not per colour or size, so the group's "from" Offer (when real) is the only
+ * price stated (PUB-SEO-003, 004).
+ */
+function variantGroup(product: PublicProduct | PublicProductCard, ld: Ld): Ld {
+  const options = "configurator" in product && product.configurator ? product.configurator.options.filter((option) => VARIES_BY[option.key] && option.values.length > 1) : [];
+  if (!options.length) return ld;
+  let combos: { label: string; props: Ld; image?: string }[] = [{ label: "", props: {} }];
+  for (const option of options) {
+    combos = combos.flatMap((combo) =>
+      option.values.map((value) => ({
+        label: combo.label ? `${combo.label}, ${value.label}` : value.label,
+        props: { ...combo.props, [VARIES_BY[option.key]!]: value.label },
+        image: value.image ? absoluteUrl(value.image.url) : combo.image,
+      })),
+    );
+    // ponytail: listing stops at 100 variants; per-variant pages or feeds come with Merchant Center (Stage 3 §53).
+    if (combos.length > MAX_VARIANTS) return ld;
+  }
+  return {
+    ...ld,
+    "@type": "ProductGroup",
+    productGroupID: product.slug,
+    variesBy: options.map((option) => `https://schema.org/${VARIES_BY[option.key]}`),
+    hasVariant: combos.map((combo) => ({
+      "@type": "Product",
+      name: `${product.name} — ${combo.label}`,
+      ...combo.props,
+      ...(combo.image ? { image: combo.image } : {}),
+    })),
+  };
 }
 
 /** Category hubs and the directory: a collection with its listed products. */

@@ -1,5 +1,5 @@
 import { adminReviewListSchema, adminReviewSchema } from "@holypearls/contracts";
-import { EmptyState, ErrorState, PermissionDenied, StatusChip } from "@holypearls/ui";
+import { ButtonLink, EmptyState, ErrorState, PermissionDenied, StatusChip } from "@holypearls/ui";
 import { Fragment } from "react";
 import { serverApi } from "@/lib/server-api";
 import styles from "../../admin-list.module.css";
@@ -117,10 +117,25 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                   </dl>
                   {review.status === "RESOLVED" ? (
                     <p className={styles.hint}>
-                      Resolved by {review.resolvedBy ?? "staff"} {review.resolvedAt ? formatTime(review.resolvedAt) : ""}: intent {review.resolution}. Note: {review.note}
+                      Resolved by {review.resolvedBy ?? "staff"} {review.resolvedAt ? formatTime(review.resolvedAt) : ""}: {review.resolution === "REFUNDED" ? "refunded" : `intent ${review.resolution}`}. Note: {review.note}
                     </p>
                   ) : null}
                 </section>
+                {review.status === "OPEN" && admin.permissions.includes("REFUND_ISSUE") && (review.reason === "DUPLICATE_PAYMENT" || review.reason === "PAID_PARTICIPANT_REMOVED") ? (
+                  <section className={styles.panel} aria-labelledby="refund-title">
+                    <h3 id="refund-title" className={styles.panelTitle}>
+                      Refund
+                    </h3>
+                    <p className={styles.hint}>
+                      {review.reason === "DUPLICATE_PAYMENT" ? "Refund the extra attempt" : "Refund the removed participant's payment"}. The review resolves when Paystack processes the refund.
+                    </p>
+                    {(() => {
+                      const paid = review.attempts.filter((attempt) => attempt.status === "SUCCEEDED");
+                      const target = review.reason === "DUPLICATE_PAYMENT" ? paid.find((attempt) => !attempt.credited) : paid[0];
+                      return target ? <ButtonLink href={`/refunds/new?attempt=${target.id}&review=${review.id}`}>Refund {target.reference}</ButtonLink> : null;
+                    })()}
+                  </section>
+                ) : null}
                 {review.status === "OPEN" ? (
                   canDecide ? (
                     <ReviewDecision review={review} />

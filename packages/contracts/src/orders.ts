@@ -185,6 +185,8 @@ export const adminIntentSchema = z.object({
   ),
   events: z.array(z.object({ id: z.string(), event: z.string(), reference: z.string().nullable(), receivedAt: isoDate, processedAt: isoDate.nullable() })),
   reviews: z.array(z.object({ id: z.string(), reason: reviewReasonSchema, status: z.enum(["OPEN", "RESOLVED"]) })),
+  /** Refunds of this intent's attempts (T13-05): new records; the attempts above never change. */
+  refunds: z.array(z.object({ id: z.string(), number: z.string(), attemptId: z.string(), amountMinor: minor, currency: z.string(), status: z.enum(["PENDING", "PROCESSED", "FAILED"]), createdAt: isoDate })),
   receipt: receiptSummarySchema.nullable(),
   history: z.array(z.object({ action: z.string(), summary: z.string(), actorLabel: z.string(), occurredAt: isoDate })),
 });
@@ -201,7 +203,8 @@ export const adminReviewSchema = z.object({
   details: z.record(z.string(), z.unknown()),
   attempts: z.array(z.object({ id: z.string(), reference: z.string(), status: attemptStatusSchema, amountMinor: minor, paidAmountMinor: minor.nullable(), channel: z.string().nullable(), credited: z.boolean() })),
   createdAt: isoDate,
-  resolution: z.enum(["SUCCEEDED", "OPEN"]).nullable(),
+  /** SUCCEEDED or OPEN by a staff decision; REFUNDED once a refund from this review is processed (T13-05). */
+  resolution: z.enum(["SUCCEEDED", "OPEN", "REFUNDED"]).nullable(),
   note: z.string().nullable(),
   resolvedBy: z.string().nullable(),
   resolvedAt: isoDate.nullable(),
@@ -264,3 +267,60 @@ export const paymentSettingsInputSchema = z.object({
   checklist: z.record(z.string(), z.boolean()),
 });
 export type PaymentSettingsInput = z.infer<typeof paymentSettingsInputSchema>;
+
+// ---- Refunds (T13-05; TECH-05 §11; OPS-FR-043; Pen 121) ----------------
+
+export const refundStatusSchema = z.enum(["PENDING", "PROCESSED", "FAILED"]);
+
+/** One refund: a new record linked to the original attempt, which never changes. */
+export const adminRefundSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  attemptId: z.string(),
+  intentId: z.string(),
+  reference: z.string(),
+  /** Order number (or checkout) and what kind of refund: "HP-2026-0162 · duplicate". */
+  forLabel: z.string(),
+  review: z.object({ id: z.string(), reason: reviewReasonSchema, status: z.enum(["OPEN", "RESOLVED"]) }).nullable(),
+  amountMinor: minor,
+  currency: z.string(),
+  reason: z.string(),
+  status: refundStatusSchema,
+  failure: z.string().nullable(),
+  customerSees: customerPaymentStatusSchema.nullable(),
+  issuedBy: z.string(),
+  createdAt: isoDate,
+  processedAt: isoDate.nullable(),
+});
+export type AdminRefund = z.infer<typeof adminRefundSchema>;
+export const adminRefundListSchema = z.object({ items: z.array(adminRefundSchema) });
+
+/** The issue form (Pen 121 mRG8q): the original attempt, what's left to refund, and its refunds so far. */
+export const refundablePaymentSchema = z.object({
+  attemptId: z.string(),
+  intentId: z.string(),
+  reference: z.string(),
+  forLabel: z.string(),
+  orderId: z.string().nullable(),
+  paidMinor: minor,
+  currency: z.string(),
+  channel: z.string().nullable(),
+  paidAt: isoDate.nullable(),
+  /** Pending and processed refunds count against the payment. */
+  refundedMinor: minor,
+  leftMinor: minor,
+  review: z.object({ id: z.string(), reason: reviewReasonSchema, status: z.enum(["OPEN", "RESOLVED"]) }).nullable(),
+  refunds: z.array(adminRefundSchema),
+});
+export type RefundablePayment = z.infer<typeof refundablePaymentSchema>;
+
+export const issueRefundSchema = z
+  .object({
+    attemptId: z.string().uuid(),
+    amountMinor: z.string().regex(/^[1-9][0-9]{0,15}$/, "Enter an amount above zero"),
+    reason: z.string().trim().min(1, "Add the reason shown in the history").max(500),
+    /** The review this refund settles, when it came from one. */
+    reviewId: z.string().uuid().nullable(),
+  })
+  .strict();
+export type IssueRefund = z.infer<typeof issueRefundSchema>;

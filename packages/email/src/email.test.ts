@@ -9,6 +9,7 @@ describe("templates", () => {
     const samples = {
       sign_in_link: { url: "https://holypearls.test/api/v1/auth/magic-link/verify?token=abc" },
       verify_email: { url: "https://holypearls.test/api/v1/auth/verify-email?token=abc" },
+      change_email: { url: "https://holypearls.test/api/v1/auth/verify-email?token=abc" },
       password_reset: { url: "https://holypearls.test/api/v1/auth/reset-password/abc?callbackURL=%2Freset-password" },
       email_code: { code: "391072", purpose: "accept your quote" },
       guest_link: { url: "https://holypearls.test/l#secret", what: "quote", reference: "HP-Q-2026-0142" },
@@ -16,6 +17,7 @@ describe("templates", () => {
       help_request_received: { reference: "HR-2026-0001", name: "Bisi" },
       help_reply: { reference: "HR-2026-0001", reply: "Yes — 12 colours works." },
       organization_invitation: { organization: "ACME", role: "Buyer", invitedBy: "Ada", expires: "15 October 2026", url: "https://holypearls.test/invitations#abc" },
+      staff_invitation: { invitedBy: "Ada", permissions: "PRODUCTION_MANAGE", expires: "26 October 2026", url: "https://holypearls.test/invitations#abc" },
       organization_role_changed: { organization: "ACME", role: "Approver", url: "https://holypearls.test/workspace" },
       organization_request_staff: { company: "ACME", locations: 2, url: "https://admin.holypearls.test/organization-requests" },
       organization_request_approved: { organization: "ACME", url: "https://holypearls.test/workspace" },
@@ -46,6 +48,7 @@ describe("templates", () => {
     expect(Object.entries(TEMPLATES).filter(([, t]) => t.carriesSecret).map(([name]) => name)).toEqual([
       "sign_in_link",
       "verify_email",
+      "change_email",
       "password_reset",
       "email_code",
       "guest_link",
@@ -66,6 +69,7 @@ describe("templates", () => {
       "problem_received",
       "problem_reply",
       "organization_invitation",
+      "staff_invitation",
     ]);
   });
 });

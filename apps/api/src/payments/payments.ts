@@ -10,6 +10,7 @@ import { createGuestLink } from "../identity/customers.js";
 import { recordAudit } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { type OrderEmailDeps, orderForCheckout, queueOrderConfirmation, receiptForAttempt } from "../orders/orders.js";
+import { confirmRefundEvent } from "./refunds.js";
 import { customerPaymentStatus } from "./status.js";
 import { releaseAfterPayment } from "../production/production.js";
 
@@ -492,14 +493,16 @@ export async function checkPaymentAttempt(deps: Pick<PaymentDeps, "db" | "gatewa
  */
 export async function receivePaystackWebhook(deps: Pick<PaymentDeps, "db" | "jobs" | "gateway">, rawBody: Buffer, signature: string | undefined, requestId: string) {
   if (!deps.gateway || !deps.gateway.verifyWebhook(rawBody, signature)) return false;
-  let body: { event?: unknown; data?: { id?: unknown; reference?: unknown } };
+  let body: { event?: unknown; data?: { id?: unknown; reference?: unknown; transaction_reference?: unknown } };
   try {
     body = JSON.parse(rawBody.toString("utf8"));
   } catch {
     return false;
   }
   const event = typeof body.event === "string" ? body.event.slice(0, 100) : "unknown";
-  const reference = typeof body.data?.reference === "string" ? body.data.reference.slice(0, 200) : null;
+  // Charge events carry the transaction's reference; refund events carry it as transaction_reference (T13-05).
+  const rawReference = body.data?.reference ?? body.data?.transaction_reference;
+  const reference = typeof rawReference === "string" ? rawReference.slice(0, 200) : null;
   const providerId = body.data?.id !== undefined ? String(body.data.id) : createHash("sha256").update(rawBody).digest("hex");
   await deps.db.transaction(async (tx) => {
     const [saved] = await tx
@@ -508,18 +511,20 @@ export async function receivePaystackWebhook(deps: Pick<PaymentDeps, "db" | "job
       .onConflictDoNothing()
       .returning({ id: schema.paystackEvents.id });
     // A resent event is already saved: nothing more to do.
-    if (saved && reference && event.startsWith("charge.")) await deps.jobs.send("payment.verify", { v: 1, requestId, eventId: saved.id }, { tx });
+    if (saved && reference && (event.startsWith("charge.") || event.startsWith("refund."))) await deps.jobs.send("payment.verify", { v: 1, requestId, eventId: saved.id }, { tx });
   });
   return true;
 }
 
-/** payment.verify: confirms a webhook's transaction with Paystack, then applies it. */
+/** payment.verify: confirms a webhook's transaction (or refund, T13-05) with Paystack, then applies it. */
 export async function processPaystackEvent(deps: Pick<PaymentDeps, "db" | "gateway"> & ResultDeps, eventId: string, now = new Date()) {
   const [event] = await deps.db.select().from(schema.paystackEvents).where(eq(schema.paystackEvents.id, eventId));
   if (!event || event.processedAt) return "skipped" as const;
   const [attempt] = event.reference ? await deps.db.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.reference, event.reference)) : [];
   let outcome: string = "not ours";
-  if (attempt) {
+  if (event.event.startsWith("refund.")) {
+    outcome = await confirmRefundEvent(deps, event, now);
+  } else if (attempt) {
     if (!deps.gateway) throw new Error("Payments aren't set up here: no Paystack key");
     outcome = await applyResult(deps, attempt.id, await deps.gateway.verify(attempt.reference), { source: "webhook", now });
   }

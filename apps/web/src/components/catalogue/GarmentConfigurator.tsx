@@ -26,6 +26,7 @@ import { GarmentPreview, POSITION_LABEL, type Position } from "./GarmentPreview"
 import s from "./ledger-pdp.module.css";
 import { PdpGallery } from "./PdpGallery";
 import { useDraft } from "./useDraft";
+import { PriceUpdated } from "./PriceUpdated";
 
 type Sourcing = NonNullable<NonNullable<Configuration["garment"]>["sourcing"]>;
 type Decoration = NonNullable<NonNullable<Configuration["garment"]>["decoration"]>;
@@ -866,6 +867,7 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
             </div>
           ) : null}
 
+          <PriceUpdated draft={draft} />
           <section className={s.ticket} id="price-ticket" ref={ticket} aria-label="Your estimate" aria-live="polite" data-no-reveal>
             <div className={s.ticketTop}>
               <div className={s.ticketAmount}>

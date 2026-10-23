@@ -1,12 +1,12 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
+import { bigint, check, date, foreignKey, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { ALLOWANCE_KINDS, ALLOWANCE_PERIODS, COLLECTION_STATUSES, DELIVERY_MODES, ORDER_DRAFT_STATUSES, PARTICIPANT_STATUSES, STORE_MODES, STORE_ROUTINGS, STORE_STATUSES, UNSURE_SIZE_RULES } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt, versionColumn } from "../columns.js";
 import { configurations } from "./configuration.js";
 import { customers } from "./customers.js";
 import { files } from "./files.js";
 import { users } from "./identity.js";
-import { locations, organizations, templates } from "./organizations.js";
+import { locations, memberships, organizations, templates } from "./organizations.js";
 
 /*
  * Group collections (T12-01; PRD-05 B2B-FR-050–052; TECH-01 §2 groups,
@@ -201,4 +201,107 @@ export const importRows = pgTable(
     check("import_rows_outcome", sql`${table.outcome} in ('PENDING', 'IMPORTED', 'SKIPPED')`),
     check("import_rows_decision", sql`${table.decision} is null or ${table.decision} in ('MERGE', 'KEEP_BOTH', 'REPLACE', 'SKIP')`),
   ],
+);
+
+export const storeStatus = pgEnum("store_status", STORE_STATUSES);
+export const storeMode = pgEnum("store_mode", STORE_MODES);
+export const storeRouting = pgEnum("store_routing", STORE_ROUTINGS);
+
+/**
+ * A company store (T12-06; PRD-05 B2B-FR-080–083): a private, never-indexed
+ * mini-catalogue of the organization's approved templates. Procurement or
+ * self-order; self-order picks go to individual orders or into a group
+ * collection, which employees never see or choose.
+ */
+export const companyStores = pgTable(
+  "company_stores",
+  {
+    id: idColumn(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    status: storeStatus("status").notNull().default("DRAFT"),
+    mode: storeMode("mode").notNull(),
+    routing: storeRouting("routing").notNull().default("INDIVIDUAL"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [index("company_stores_organization_idx").on(table.organizationId, table.status)],
+);
+
+/** The approved templates a store offers, in order; with COLLECTION routing, the group collection each item's picks join. */
+export const companyStoreItems = pgTable(
+  "company_store_items",
+  {
+    storeId: uuid("store_id")
+      .notNull()
+      .references(() => companyStores.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
+      .notNull()
+      .references(() => templates.id, { onDelete: "restrict" }),
+    position: integer("position").notNull().default(0),
+    collectionId: uuid("collection_id").references(() => groupCollections.id, { onDelete: "restrict" }),
+  },
+  (table) => [primaryKey({ columns: [table.storeId, table.templateId] })],
+);
+
+export const allowanceKind = pgEnum("allowance_kind", ALLOWANCE_KINDS);
+export const allowancePeriod = pgEnum("allowance_period", ALLOWANCE_PERIODS);
+
+/**
+ * A store's allowance (T12-06b; PRD-05 B2B-FR-084): no limit, a limit per
+ * order, or an amount per period that renews on a day of the year. One per
+ * store; it applies to each employee's own picks.
+ */
+export const allowancePolicies = pgTable(
+  "allowance_policies",
+  {
+    storeId: uuid("store_id")
+      .primaryKey()
+      .references(() => companyStores.id, { onDelete: "cascade" }),
+    kind: allowanceKind("kind").notNull().default("NONE"),
+    name: text("name").notNull().default("Uniform allowance"),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }),
+    currency: text("currency").notNull().default("NGN"),
+    period: allowancePeriod("period"),
+    /** "MM-DD" in Lagos time. */
+    renewsOn: text("renews_on"),
+    updatedByUserId: uuid("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    check("allowance_policies_amount", sql`${table.kind} = 'NONE' or (${table.amountMinor} is not null and ${table.amountMinor} > 0)`),
+    check("allowance_policies_period", sql`${table.kind} <> 'PER_PERIOD' or (${table.period} is not null and ${table.renewsOn} is not null)`),
+  ],
+);
+
+/**
+ * What each employee's picks committed against a per-period allowance. A
+ * pick that went for approval counts while its order request is open or
+ * approved; a rejected or cancelled request gives the amount back.
+ */
+export const allowanceLedger = pgTable(
+  "allowance_ledger",
+  {
+    id: idColumn(),
+    storeId: uuid("store_id")
+      .notNull()
+      .references(() => companyStores.id, { onDelete: "cascade" }),
+    membershipId: uuid("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "cascade" }),
+    /** The first day of the allowance period it counts in (Lagos). */
+    periodStart: date("period_start").notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    configurationId: uuid("configuration_id")
+      .notNull()
+      .references(() => configurations.id, { onDelete: "restrict" }),
+    orderRequestId: uuid("order_request_id"),
+    createdAt: createdAt(),
+  },
+  (table) => [index("allowance_ledger_member_idx").on(table.storeId, table.membershipId, table.periodStart), uniqueIndex("allowance_ledger_configuration_unique").on(table.configurationId)],
 );

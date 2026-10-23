@@ -8,7 +8,10 @@ import {
   checkoutDeliverySchema,
   courierSettingsInputSchema,
   deliveryPriceInputSchema,
+  countriesZoneInputSchema,
   deliveryZoneInputSchema,
+  installationAreaInputSchema,
+  installationRulesSchema,
   fixedZoneInputSchema,
   setPlacedForSchema,
 } from "@holypearls/contracts";
@@ -25,7 +28,8 @@ import { ZodValidationPipe } from "../validation.js";
 import { addToCart, type CartAccess, forgetSaved, getCart, removeFromCart, requestCartQuotes } from "./cart.js";
 import { getCheckout, payCheckout, setAddress, setBilling, setContact, setDelivery, setPlacedFor, startCheckout } from "./checkout.js";
 import { claimDeviceCommerce } from "./claim.js";
-import { createZone, deleteZone, listZones, updateZone } from "./delivery.js";
+import { createZone, deleteZone, listZones, saveCountriesZone, updateZone } from "./delivery.js";
+import { getInstallationSetup, removeInstallationArea, saveInstallationArea, saveInstallationRules } from "./installation.js";
 import { CourierError } from "./courier.js";
 import { getCourierSettings, saveCourierSettings } from "./courier-pricing.js";
 import { AppError } from "../errors.js";
@@ -227,6 +231,19 @@ export class DeliveryZonesAdminController {
     return createZone(this.db, await request.getActor!(), body);
   }
 
+  /** A group of destinations abroad with its own freight (T13-01c; OPS-FR-101). */
+  @Post("countries")
+  @RateLimit("ADMIN_WRITE")
+  async createCountries(@Req() request: Request, @Body(new ZodValidationPipe(countriesZoneInputSchema)) body: z.infer<typeof countriesZoneInputSchema>) {
+    return saveCountriesZone(this.db, await request.getActor!(), null, body);
+  }
+
+  @Put("countries/:id")
+  @RateLimit("ADMIN_WRITE")
+  async updateCountries(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(countriesZoneInputSchema)) body: z.infer<typeof countriesZoneInputSchema>) {
+    return saveCountriesZone(this.db, await request.getActor!(), id, body);
+  }
+
   /** Area zones send the full zone; the rest-of-Nigeria and International rows send only pricing. */
   @Patch(":id")
   @RateLimit("ADMIN_WRITE")
@@ -239,5 +256,41 @@ export class DeliveryZonesAdminController {
   @RateLimit("ADMIN_WRITE")
   async remove(@Req() request: Request, @Param("id", uuid) id: string) {
     await deleteZone(this.db, await request.getActor!(), id);
+  }
+}
+
+/** Installation areas, capabilities and rules (T13-01c; OPS-FR-102; Pen 119). PRICING_MANAGE; every change audited. */
+@Controller("admin/installation")
+@UseGuards(StaffGuard("PRICING_MANAGE"))
+export class InstallationAdminController {
+  constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  @Get()
+  setup() {
+    return getInstallationSetup(this.db);
+  }
+
+  @Post("areas")
+  @RateLimit("ADMIN_WRITE")
+  async addArea(@Req() request: Request, @Body(new ZodValidationPipe(installationAreaInputSchema)) body: z.infer<typeof installationAreaInputSchema>) {
+    return saveInstallationArea(this.db, await request.getActor!(), null, body);
+  }
+
+  @Put("areas/:id")
+  @RateLimit("ADMIN_WRITE")
+  async changeArea(@Req() request: Request, @Param("id", uuid) id: string, @Body(new ZodValidationPipe(installationAreaInputSchema)) body: z.infer<typeof installationAreaInputSchema>) {
+    return saveInstallationArea(this.db, await request.getActor!(), id, body);
+  }
+
+  @Delete("areas/:id")
+  @RateLimit("ADMIN_WRITE")
+  async removeArea(@Req() request: Request, @Param("id", uuid) id: string) {
+    return removeInstallationArea(this.db, await request.getActor!(), id);
+  }
+
+  @Put("rules")
+  @RateLimit("ADMIN_WRITE")
+  async rules(@Req() request: Request, @Body(new ZodValidationPipe(installationRulesSchema)) body: z.infer<typeof installationRulesSchema>) {
+    return saveInstallationRules(this.db, await request.getActor!(), body);
   }
 }

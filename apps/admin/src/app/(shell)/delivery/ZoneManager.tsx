@@ -8,6 +8,7 @@ import { type FormEvent, useState } from "react";
 import { z } from "zod";
 import { api } from "@holypearls/web-kit/api";
 import { naira } from "@holypearls/web-kit/money";
+import { toKobo } from "../format";
 import styles from "./zones.module.css";
 
 type Cover = DeliveryZone["covers"][number];
@@ -35,13 +36,6 @@ function coversLabel(zone: DeliveryZone) {
   return labels.length > 3 ? `${labels.slice(0, 3).join(", ")} +${labels.length - 3}` : labels.join(", ");
 }
 
-/** Whole naira → kobo string; "6,500" and "6500.50" both work. */
-function toKobo(value: string): string | null {
-  const clean = value.replace(/[₦,\s]/g, "");
-  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
-  const [whole, fraction = ""] = clean.split(".");
-  return (BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, "0"))).toString();
-}
 
 /**
  * Delivery zones and rates (Pen 108). The table says what checkout shows for

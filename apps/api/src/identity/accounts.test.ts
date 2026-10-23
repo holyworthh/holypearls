@@ -215,14 +215,16 @@ describe("limits and front ends (TECH-02 §14, ADR-017)", () => {
       ["/request-password-reset", () => ({ email: "same.person@example.com", redirectTo: "/reset-password" })],
       ["/reset-password", () => ({ token: "not-a-token", newPassword: PASSWORD })],
       ["/send-verification-email", () => ({ email: "same.person@example.com", callbackURL: "/account" })],
+      ["/change-email", () => ({ newEmail: "same.person@example.com", callbackURL: "/account/profile" })],
     ] as const) {
       const codes: number[] = [];
-      for (let n = 0; n < 12; n++) codes.push((await auth(path, body(n), "", limited.url).set("x-forwarded-for", `198.51.100.${path.length}`)).status);
+      // 21 calls: even split across a minute boundary, one 60-second window gets 11 (the IP limit is 10).
+      for (let n = 0; n < 21; n++) codes.push((await auth(path, body(n), "", limited.url).set("x-forwarded-for", `198.51.100.${path.length}`)).status);
       expect({ path, limited: codes.includes(429) }).toEqual({ path, limited: true });
     }
   });
 
-  it("sign-up and its email check are never served on the admin", async () => {
+  it("sign-up, its email check and email changes are never served on the admin", async () => {
     const response = await request(limited.url)
       .post("/v1/auth/sign-up/email")
       .set("origin", "http://localhost:3002")
@@ -231,5 +233,7 @@ describe("limits and front ends (TECH-02 §14, ADR-017)", () => {
     expect(response.status).toBe(404);
     const check = await request(limited.url).get("/v1/auth/verify-email?token=x").set("origin", "http://localhost:3002");
     expect(check.status).toBe(404);
+    const change = await request(limited.url).post("/v1/auth/change-email").set("origin", "http://localhost:3002").set("content-type", "application/json").send({ newEmail: "someone@example.com" });
+    expect(change.status).toBe(404);
   });
 });

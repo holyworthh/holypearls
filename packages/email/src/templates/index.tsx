@@ -40,6 +40,18 @@ export const TEMPLATES = {
       </Layout>
     ),
   }),
+  change_email: define({
+    label: "Check of a new account email",
+    carriesSecret: true,
+    data: z.object({ url: z.url() }),
+    subject: () => "Confirm your new HolyPearls email",
+    render: ({ url }) => (
+      <Layout preview="Confirm your new email" title="Confirm your new email" action={{ label: "Use this email", href: url }}>
+        <Text style={text.body}>Someone asked to use this address for a HolyPearls account. Your account keeps its old email until you confirm. Confirming signs the account out on every other device. The link expires in 24 hours.</Text>
+        <Text style={text.support}>Didn&apos;t ask for this? Ignore this email; nothing changes.</Text>
+      </Layout>
+    ),
+  }),
   password_reset: define({
     label: "Password reset link",
     carriesSecret: true,
@@ -392,6 +404,20 @@ export const TEMPLATES = {
       <Layout preview={`${invitedBy} invited you to ${organization}`} title={`Join ${organization}`} action={{ label: "Accept the invitation", href: url }}>
         <Text style={text.body}>
           {invitedBy} invited you to {organization}&apos;s HolyPearls workspace as {role}. Sign in or create an account with this email address to accept.
+        </Text>
+        <Text style={text.support}>The invitation works once and expires on {expires}. Didn&apos;t expect it? Ignore this email.</Text>
+      </Layout>
+    ),
+  }),
+  staff_invitation: define({
+    label: "Staff invitation",
+    carriesSecret: true,
+    data: z.object({ invitedBy: z.string(), permissions: z.string(), expires: z.string(), url: z.url() }),
+    subject: () => "You're invited to the HolyPearls admin",
+    render: ({ invitedBy, permissions, expires, url }) => (
+      <Layout preview={`${invitedBy} invited you to the HolyPearls admin`} title="Join the HolyPearls team" action={{ label: "Accept the invitation", href: url }}>
+        <Text style={text.body}>
+          {invitedBy} invited you to the HolyPearls staff admin with these permissions: {permissions}. Sign in or create an account with this email address to accept, then sign in to the admin and set up your authenticator app.
         </Text>
         <Text style={text.support}>The invitation works once and expires on {expires}. Didn&apos;t expect it? Ignore this email.</Text>
       </Layout>

@@ -1,5 +1,6 @@
 import {
   accountHistorySchema,
+  accountListSchema,
   profileInputSchema,
   profileSchema,
   adminMeSchema,
@@ -30,6 +31,27 @@ import {
   adminPriceRuleListSchema,
   adminPriceRuleSchema,
   adminProductRulesSchema,
+  pricingProductListSchema,
+  opsHomeSchema,
+  exportDownloadSchema,
+  inviteStaffSchema,
+  staffInvitationPreviewSchema,
+  acceptedStaffInvitationSchema,
+  staffInvitationSchema,
+  staffListSchema,
+  staffMemberSchema,
+  adminRefundListSchema,
+  adminRefundSchema,
+  issueRefundSchema,
+  refundablePaymentSchema,
+  exportItemSchema,
+  exportListSchema,
+  exportRequestSchema,
+  fabricInputSchema,
+  fabricSchema,
+  garmentDataSchema,
+  savePlacementBlocksSchema,
+  scheduledChangesSchema,
   adminTaxSettingListSchema,
   priceRequestSchema,
   priceResultSchema,
@@ -55,6 +77,10 @@ import {
   checkoutDeliverySchema,
   checkoutSchema,
   deliveryZoneInputSchema,
+  countriesZoneInputSchema,
+  installationAreaInputSchema,
+  installationRulesSchema,
+  installationSetupSchema,
   adminShipmentSchema,
   bookCourierSchema,
   courierCategoriesSchema,
@@ -155,6 +181,15 @@ import {
   adminTemplateListSchema,
   collectionActionSchema,
   collectionDashboardSchema,
+  createStoreSchema,
+  storeActionSchema,
+  updateAllowanceSchema,
+  storeListSchema,
+  storeOrderResultSchema,
+  storePickSchema,
+  storeProcurementSchema,
+  storeSchema,
+  updateStoreSchema,
   fixImportRowSchema,
   importBatchListSchema,
   importBatchSchema,
@@ -642,6 +677,47 @@ const collectionPaths = {
   },
 };
 
+const storeParam = uuidParam("storeId");
+const storeWrite = { ...member, 400: error("Invalid input, a template that isn't approved, or a collection not made from the item's template (VALIDATION_FAILED)"), 403: error("No MANAGE_STORES (FORBIDDEN)"), 409: error("VERSION_CONFLICT") };
+const storeOrder = { ...member, 400: error("Invalid input, or a choice the template doesn't offer (VALIDATION_FAILED)"), 403: error("No CREATE_REQUESTS, or a location that isn't yours (FORBIDDEN)"), 422: error("STORE_NOT_OPEN, WRONG_MODE, ITEM_UNAVAILABLE, LOCKED_FIELD or COLLECTION_CLOSED (RULE_FAILED)") };
+const storePaths = {
+  "/v1/organizations/{organizationId}/stores": {
+    get: { summary: "Company stores (T12-06): open ones for members; drafts and paused ones too for people who manage stores", parameters: [orgParam], responses: { 200: { description: "Stores", content: json(storeListSchema) }, ...member } },
+    post: { summary: "Start a DRAFT store with a name and a mode (PROCUREMENT or SELF_ORDER)", parameters: [orgParam, idempotencyHeader], requestBody: { required: true, content: json(createStoreSchema) }, responses: { 200: { description: "Created", content: json(storeSchema) }, ...storeWrite } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}": {
+    get: { summary: "The store as this person can use it: approved items for their locations, choices each allows, prices and the approval rule. Routing only for people who manage stores.", parameters: [orgParam, storeParam], responses: { 200: { description: "Store", content: json(storeSchema) }, ...member } },
+    put: { summary: "Name, mode, routing (INDIVIDUAL or COLLECTION) and items; with COLLECTION each item names its group collection", parameters: [orgParam, storeParam], requestBody: { required: true, content: json(updateStoreSchema) }, responses: { 200: { description: "Updated", content: json(storeSchema) }, ...storeWrite, 422: error("STORE_ARCHIVED (RULE_FAILED)") } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/{action}": {
+    post: {
+      summary: "DRAFT → ACTIVE ⇄ PAUSED → ARCHIVED. Opening needs an item, and each collection item its collection.",
+      parameters: [orgParam, storeParam, { name: "action", in: "path", required: true, schema: { type: "string", enum: ["activate", "pause", "archive"] } }],
+      requestBody: { required: true, content: json(storeActionSchema) },
+      responses: { 200: { description: "Changed", content: json(storeSchema) }, ...storeWrite, 422: error("WRONG_STATUS, NO_ITEMS or COLLECTION_MISSING (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/allowance": {
+    put: {
+      summary: "The store's allowance (T12-06b; B2B-FR-084): none, per order, or per period renewing on a day (MM-DD, Lagos). Within it the organization pays; over it, a pick goes for approval.",
+      parameters: [orgParam, storeParam],
+      requestBody: { required: true, content: json(updateAllowanceSchema) },
+      responses: { 200: { description: "Updated", content: json(storeSchema) }, ...storeWrite, 422: error("STORE_ARCHIVED (RULE_FAILED)") },
+    },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/orders": {
+    post: { summary: "Procurement order: several items for one location, then one order request over the approval rule, else the cart or one quote request", parameters: [orgParam, storeParam, idempotencyHeader], requestBody: { required: true, content: json(storeProcurementSchema) }, responses: { 200: { description: "Placed", content: json(storeOrderResultSchema) }, ...storeOrder } },
+  },
+  "/v1/organizations/{organizationId}/stores/{storeId}/picks": {
+    post: {
+      summary: "Self-order pick with the employee's size, name and branch. The store's routing decides the record: an individual order (template-order route) or a sent participant in the item's group collection.",
+      parameters: [orgParam, storeParam, idempotencyHeader],
+      requestBody: { required: true, content: json(storePickSchema) },
+      responses: { 200: { description: "Placed", content: json(storeOrderResultSchema) }, ...storeOrder },
+    },
+  },
+};
+
 /**
  * The OpenAPI document, generated from the contract schemas (TECH-02 §12).
  * Each ticket that adds an endpoint adds it here; CI fails when the
@@ -679,6 +755,13 @@ export function buildOpenApiDocument() {
         get: {
           summary: "The account overview: drafts, orders, quotes and projects, receipts, and guest linking (TECH-03 §6)",
           responses: { 200: { description: "Overview", content: json(accountHistorySchema) }, ...signedIn },
+        },
+      },
+      "/v1/me/history/{list}": {
+        get: {
+          summary: "One history list in full, newest first, up to 200 (T09-01b): orders, quotes, projects, drafts or receipts",
+          parameters: [{ name: "list", in: "path", required: true, schema: { type: "string", enum: ["orders", "quotes", "projects", "drafts", "receipts"] } }],
+          responses: { 200: { description: "List", content: json(accountListSchema) }, ...signedIn, 404: error("Unknown list (NOT_FOUND)") },
         },
       },
       "/v1/me/profile": {
@@ -1235,8 +1318,81 @@ export function buildOpenApiDocument() {
           responses: { 200: { description: "Result", content: json(priceResultSchema) }, 400: error("Bad input"), 404: error("Not published"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
       },
+      "/v1/admin/home": {
+        get: { summary: "The operations home's work queues with counts and the filtered list each opens; only the queues this staff member's permissions allow (T13-03; PRD-06 §17)", responses: { 200: { description: "Queues", content: json(opsHomeSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/refunds": {
+        get: { summary: "Refunds, newest first, with the original attempt and what the customer sees (REFUND_ISSUE; T13-05; Pen 121)", responses: { ...staffOnly, 200: { description: "Refunds", content: json(adminRefundListSchema) } } },
+        post: {
+          summary: "Refund all or part of a successful attempt through Paystack (REFUND_ISSUE, MFA in the last 15 minutes, audited; TECH-05 §11). A new record; the original payment never changes. Pending and processed refunds count against what's left",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(issueRefundSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING with Paystack, or FAILED when Paystack declined", content: json(adminRefundSchema) }, 400: error("VALIDATION_FAILED (more than is left, or a review of another payment)"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 409: error("CONFLICT: the review was already resolved"), 422: error("RULE_FAILED: payments aren't set up") },
+        },
+      },
+      "/v1/admin/refunds/payments/{attemptId}": {
+        get: { summary: "The issue form for one successful attempt: paid, refunded and left, its refunds, and the review it comes from (?review=)", parameters: [uuidParam("attemptId")], responses: { ...staffOnly, 200: { description: "Refundable payment", content: json(refundablePaymentSchema) } } },
+      },
+      "/v1/admin/staff": {
+        get: { summary: "Staff members with permissions, MFA and status, and open invitations (STAFF_ADMIN; T13-05b; Pen 122)", responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/invitations": {
+        post: {
+          summary: "Invite someone to the staff (7 days, one use, emailed). With permissions, needs an authenticator check in the last 15 minutes. Audited",
+          parameters: [idempotencyHeader],
+          requestBody: { required: true, content: json(inviteStaffSchema) },
+          responses: { ...staffOnly, 201: { description: "PENDING", content: json(staffInvitationSchema) }, 400: error("VALIDATION_FAILED"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 422: error("RULE_FAILED: ALREADY_STAFF or ALREADY_INVITED") },
+        },
+      },
+      "/v1/admin/staff/invitations/{id}/revoke": {
+        post: { summary: "Cancel a pending staff invitation (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Staff", content: json(staffListSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}": {
+        get: { summary: "One staff member: permissions, MFA, last MFA reset, active sessions, and the active STAFF_ADMIN holders", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/admin/staff/{staffProfileId}/deactivate": {
+        post: { summary: "Deactivate a staff member: access ends and every session is signed out; history is kept. Not yourself, and never below two active STAFF_ADMIN (FORBIDDEN, MINIMUM_STAFF_ADMINS)", parameters: [uuidParam("staffProfileId")], responses: { ...staffOnly, 200: { description: "Member", content: json(staffMemberSchema) } } },
+      },
+      "/v1/staff-invitations/preview": {
+        get: { summary: "What a staff invitation offers, from its secret in the x-hp-invitation header (the email is masked)", responses: { 200: { description: "Preview", content: json(staffInvitationPreviewSchema) }, 404: error("NOT_FOUND") } },
+      },
+      "/v1/staff-invitations/accept": {
+        post: { summary: "Accept a staff invitation: signed in with the invited email, verified. Creates or reactivates the staff profile with the invited permissions", responses: { 200: { description: "Accepted: where to sign in to the admin and set up MFA", content: json(acceptedStaffInvitationSchema) }, 401: error("NOT_SIGNED_IN"), 404: error("NOT_FOUND"), 422: error("RULE_FAILED: WRONG_ACCOUNT, VERIFY_EMAIL_FIRST, ALREADY_STAFF or INVITATION_*") } },
+      },
+      "/v1/admin/exports": {
+        get: { summary: "Recent exports of the types this staff member may request, and those types (T13-03b; PRD-06 §19; Pen 120)", responses: { ...staffOnly, 200: { description: "Exports", content: json(exportListSchema) }, 403: error("No export permission (FORBIDDEN)") } },
+        post: {
+          summary: "Request an export; the worker builds it (export.generate). Customers is personal data: EXPORT_PERSONAL_DATA and an authenticator check in the last 15 minutes. Audited",
+          requestBody: { required: true, content: json(exportRequestSchema) },
+          responses: { ...staffOnly, 201: { description: "Generating", content: json(exportItemSchema) }, 400: error("VALIDATION_FAILED"), 403: error("Missing the type's permission (FORBIDDEN) or no recent authenticator check for personal data (RECENT_MFA_REQUIRED)") },
+        },
+      },
+      "/v1/admin/exports/{id}/retry": {
+        post: { summary: "Build a failed export again (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Generating", content: json(exportItemSchema) }, 409: error("CONFLICT: not failed"), 403: error("FORBIDDEN or RECENT_MFA_REQUIRED"), 404: error("NOT_FOUND") } },
+      },
+      "/v1/admin/exports/{id}/download": {
+        post: { summary: "A 5-minute download link for a ready export, within its 24 hours (audited)", parameters: [uuidParam("id")], responses: { ...staffOnly, 200: { description: "Link", content: json(exportDownloadSchema) }, 422: error("RULE_FAILED: not ready or expired"), 403: error("FORBIDDEN"), 404: error("NOT_FOUND") } },
+      },
+      "/v1/admin/pricing/scheduled": {
+        get: { summary: "Price versions not started yet, with how many drafts (repriced on next open, showing Price updated) and cart items they touch (PRICING_MANAGE; OPS-FR-130)", responses: { 200: { description: "Scheduled", content: json(scheduledChangesSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/garment-data": {
+        get: { summary: "Fabrics with colours, sizes, staff-only supplier codes and the products that use them; blocked decoration placements; how each product is made (CATALOGUE_MANAGE; OPS-FR-020–022)", responses: { 200: { description: "Garment data", content: json(garmentDataSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/garment-data/fabrics": {
+        post: { summary: "Add a fabric (version 0); keys are unique", requestBody: { required: true, content: json(fabricInputSchema) }, responses: { 201: { description: "Added", content: json(fabricSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/garment-data/fabrics/{id}": {
+        put: { summary: "Change or archive a fabric", parameters: [uuidParam("id")], requestBody: { required: true, content: json(fabricInputSchema) }, responses: { 200: { description: "Saved", content: json(fabricSchema) }, 400: error("VALIDATION_FAILED"), 409: error("VERSION_CONFLICT"), ...staffOnly } },
+      },
+      "/v1/admin/garment-data/placements": {
+        put: { summary: "Replace the blocked decoration placements; the configurator refuses them and offers the other method", requestBody: { required: true, content: json(savePlacementBlocksSchema) }, responses: { 200: { description: "Saved", content: json(garmentDataSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/pricing/products": {
+        get: { summary: "Every product with whether its rules are set, its price now and whether a new price is scheduled (PRICING_MANAGE; T13-01)", responses: { 200: { description: "Products", content: json(pricingProductListSchema) }, ...staffOnly } },
+      },
       "/v1/admin/pricing/products/{id}/rules": {
-        get: { summary: "Product rules and compatibility (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Rules", content: json(adminProductRulesSchema) }, ...staffOnly } },
+        get: { summary: "Product rules and compatibility, with the product and its options (PRICING_MANAGE)", parameters: [uuidParam("id")], responses: { 200: { description: "Rules", content: json(adminProductRulesSchema) }, ...staffOnly } },
         put: {
           summary: "Create (version 0) or edit product rules (PRICING_MANAGE, audited)",
           parameters: [uuidParam("id")],
@@ -1386,6 +1542,25 @@ export function buildOpenApiDocument() {
           },
         },
       },
+      "/v1/admin/delivery-zones/countries": {
+        post: { summary: "Add a group of destinations abroad: calculated rate (FIXED) or staff will quote (QUOTE); a country is in one group (PRICING_MANAGE; OPS-FR-101)", requestBody: { required: true, content: json(countriesZoneInputSchema) }, responses: { 201: { description: "Added", content: json(deliveryZoneSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/delivery-zones/countries/{id}": {
+        put: { summary: "Change a group of destinations abroad", parameters: [uuidParam("id")], requestBody: { required: true, content: json(countriesZoneInputSchema) }, responses: { 200: { description: "Saved", content: json(deliveryZoneSchema) }, 400: error("VALIDATION_FAILED"), 409: error("CONFLICT"), ...staffOnly } },
+      },
+      "/v1/admin/installation": {
+        get: { summary: "Installation areas with the products each can install and how it's priced, the rules, and the installable products (PRICING_MANAGE; OPS-FR-102)", responses: { 200: { description: "Setup", content: json(installationSetupSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/installation/areas": {
+        post: { summary: "Add an installation area; a state is in one area", requestBody: { required: true, content: json(installationAreaInputSchema) }, responses: { 201: { description: "Added", content: json(installationSetupSchema) }, 400: error("VALIDATION_FAILED"), ...staffOnly } },
+      },
+      "/v1/admin/installation/areas/{id}": {
+        put: { summary: "Change an installation area", parameters: [uuidParam("id")], requestBody: { required: true, content: json(installationAreaInputSchema) }, responses: { 200: { description: "Saved", content: json(installationSetupSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly } },
+        delete: { summary: "Remove an installation area (its states are then quoted)", parameters: [uuidParam("id")], responses: { 200: { description: "Removed", content: json(installationSetupSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/installation/rules": {
+        put: { summary: "The installation rules: survey above a size, notice in working days; null turns one off", requestBody: { required: true, content: json(installationRulesSchema) }, responses: { 200: { description: "Saved", content: json(installationSetupSchema) }, 409: error("VERSION_CONFLICT"), ...staffOnly } },
+      },
       "/v1/admin/delivery-zones": {
         get: { summary: "Delivery zones (PRICING_MANAGE)", responses: { 200: { description: "Zones", content: json(deliveryZoneListSchema) }, 403: error("Missing PRICING_MANAGE") } },
         post: {
@@ -1478,6 +1653,7 @@ export function buildOpenApiDocument() {
       ...assetPaths,
       ...templatePaths,
       ...collectionPaths,
+      ...storePaths,
       "/v1/admin/me": {
         get: {
           summary: "The signed-in staff member, for the admin shell",

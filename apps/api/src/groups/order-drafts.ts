@@ -1,5 +1,5 @@
 import { GARMENT_SIZES, type OrderDraft, type OrderDraftOrigin, type OrderDraftState } from "@holypearls/contracts";
-import { and, type Database, desc, eq, schema, type Transaction } from "@holypearls/db";
+import { and, type Database, desc, eq, schema, sql, type Transaction } from "@holypearls/db";
 import { configurationForGroup, quotable, quoteIn } from "../configuration/drafts.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
@@ -201,3 +201,30 @@ export async function orderDraftForQuote(db: Db, quoteId: string) {
   return row?.id ?? null;
 }
 
+
+/** Collection totals export (T13-03b): each order draft made in the range, with its totals by size and delivery point. No names. */
+export async function collectionTotalsForExport(db: Database, range: { start: Date; end: Date }): Promise<string[][]> {
+  const rows = await db
+    .select({ draft: schema.orderDrafts, title: schema.groupCollections.title })
+    .from(schema.orderDrafts)
+    .innerJoin(schema.groupCollections, eq(schema.groupCollections.id, schema.orderDrafts.collectionId))
+    .where(and(sql`${schema.orderDrafts.createdAt} >= ${range.start}`, sql`${schema.orderDrafts.createdAt} < ${range.end}`))
+    .orderBy(schema.orderDrafts.createdAt);
+  return [
+    ["Collection", "Draft", "Made", "Submitted", "Pieces", "With names", ...GARMENT_SIZES, "Delivery"],
+    ...rows.map(({ draft, title }) => {
+      const snapshot = draft.snapshot as DraftSnapshot;
+      const sizes = new Map(snapshot.sizes.map((entry) => [entry.size, entry.count]));
+      return [
+        title,
+        draft.status,
+        draft.createdAt.toISOString(),
+        draft.submittedAt?.toISOString() ?? "",
+        String(snapshot.pieces),
+        String(snapshot.withNames),
+        ...GARMENT_SIZES.map((size) => String(sizes.get(size) ?? 0)),
+        snapshot.delivery.map((point) => `${point.name}: ${point.count}`).join("; "),
+      ];
+    }),
+  ];
+}

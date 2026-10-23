@@ -35,6 +35,8 @@ export const meSchema = z.object({
   email: z.string(),
   emailVerified: z.boolean(),
   phone: z.string().nullable(),
+  /** A new email waiting for its check link (T09-01b). */
+  pendingEmail: z.string().nullable(),
   isStaff: z.boolean(),
   mfa: z.object({ enabled: z.boolean(), verifiedAt: isoDate.nullable() }),
   session: z.object({ createdAt: isoDate, expiresAt: isoDate }),

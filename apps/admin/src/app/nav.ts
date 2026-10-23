@@ -1,4 +1,4 @@
-import type { StaffPermission } from "@holypearls/contracts";
+import { EXPORT_PERMISSIONS, type StaffPermission } from "@holypearls/contracts";
 
 export interface AdminSection {
   slug: string;
@@ -50,7 +50,8 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
       { slug: "products", label: "Products", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-01" },
       { slug: "categories", label: "Categories", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-01" },
       { slug: "merchandising", label: "Menus & homepage", anyOf: ["CATALOGUE_MANAGE"], ticket: "T02-03" },
-      { slug: "rules", label: "Rules & prices", anyOf: ["PRICING_MANAGE"], ticket: "T03-01" },
+      { slug: "rules", label: "Rules & prices", anyOf: ["PRICING_MANAGE"], ticket: "T13-01" },
+      { slug: "garment-data", label: "Garment data", anyOf: ["CATALOGUE_MANAGE"], ticket: "T13-01b" },
       { slug: "content", label: "Content", anyOf: ["CONTENT_MANAGE"], ticket: "T02-06" },
       { slug: "delivery", label: "Delivery & installation", anyOf: ["PRICING_MANAGE"], ticket: "T04-01" },
       { slug: "delivery-prices", label: "Delivery prices", anyOf: ["PRICING_MANAGE"], ticket: "T04-01" },
@@ -59,10 +60,10 @@ export const ADMIN_GROUPS: readonly { label?: string; sections: readonly AdminSe
   {
     label: "SYSTEM",
     sections: [
-      { slug: "staff", label: "Staff", anyOf: ["STAFF_ADMIN"], ticket: "T13-05" },
+      { slug: "staff", label: "Staff", anyOf: ["STAFF_ADMIN"], ticket: "T13-05b" },
       { slug: "audit", label: "Audit log", anyOf: ["AUDIT_VIEW"], ticket: "T01-01" },
       { slug: "notifications", label: "Notifications", anyOf: ["CUSTOMER_SUPPORT"], ticket: "T01-02" },
-      { slug: "exports", label: "Exports", anyOf: ["EXPORT_PERSONAL_DATA"], ticket: "T13-03" },
+      { slug: "exports", label: "Exports", anyOf: [...new Set(Object.values(EXPORT_PERMISSIONS).flat())], ticket: "T13-03b" },
       { slug: "privacy", label: "Privacy requests", anyOf: ["EXPORT_PERSONAL_DATA"], ticket: "T15-03" },
       { slug: "incidents", label: "Incident switches", anyOf: ["SECURITY_ADMIN"], ticket: "T15-05" },
     ],

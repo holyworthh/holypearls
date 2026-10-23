@@ -41,11 +41,13 @@ const ALLOWED = new Set([
   "/sign-up/email",
   "/verify-email",
   "/send-verification-email",
+  // Changing the account email (T09-01b): the new address is checked first.
+  "/change-email",
 ]);
 export const isAllowedAuthPath = (path: string) => ALLOWED.has(path) || /^\/reset-password\/[^/]+$/.test(path);
 
 /** Sign-in, sign-up and reset routes share the AUTH limit (TECH-02 §14). */
-const AUTH_LIMITED = ["/sign-in/email", "/sign-in/magic-link", "/two-factor/verify-totp", "/sign-up/email", "/request-password-reset", "/reset-password", "/send-verification-email"];
+const AUTH_LIMITED = ["/sign-in/email", "/sign-in/magic-link", "/two-factor/verify-totp", "/sign-up/email", "/request-password-reset", "/reset-password", "/send-verification-email", "/change-email"];
 /** Routes whose security events are audited need the state before the change. */
 const AUDITED = ["/two-factor/verify-totp", "/change-password"];
 const MAX_BODY_BYTES = 64 * 1024;

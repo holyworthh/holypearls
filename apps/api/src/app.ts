@@ -23,9 +23,14 @@ import { MerchandisingAdminController, PublicMediaController, StorefrontControll
 import { ContentAdminController, ContentController } from "./catalogue/content.controller.js";
 import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
+import { GarmentDataAdminController } from "./catalogue/garment-data.controller.js";
+import { OpsHomeController } from "./platform/ops-home.controller.js";
+import { ExportsController } from "./platform/exports.controller.js";
+import { RefundsController } from "./payments/refunds.controller.js";
+import { StaffAdminController, StaffInvitationsController } from "./identity/staff-admin.controller.js";
 import { PricingAdminController, PublicPricingController } from "./configuration/pricing.controller.js";
 import type { Courier } from "./sales/courier.js";
-import { CartController, CheckoutController, CourierSettingsAdminController, DeliveryPricesAdminController, DeliveryZonesAdminController } from "./sales/sales.controller.js";
+import { CartController, CheckoutController, CourierSettingsAdminController, DeliveryPricesAdminController, DeliveryZonesAdminController, InstallationAdminController } from "./sales/sales.controller.js";
 import { PaystackWebhookController } from "./payments/payments.controller.js";
 import { PaymentsAdminController } from "./payments/admin.controller.js";
 import { OrdersController } from "./orders/orders.controller.js";
@@ -36,7 +41,7 @@ import { ProductionAdminController } from "./production/production.controller.js
 import { CustomerAfterDeliveryController, ProblemsAdminController, ShipbubbleWebhookController, ShipmentsAdminController } from "./shipments/shipments.controller.js";
 import { ChangeRequestsAdminController, CustomerChangeRequestsController, CustomerProofsController, FileReviewAdminController, ProofsAdminController } from "./proofs/proofs.controller.js";
 import { FilesController } from "./files/files.controller.js";
-import { CollectionInviteController, CollectionsController, OrderDraftsAdminController, ParticipantsController } from "./groups/groups.controller.js";
+import { CollectionInviteController, CollectionsController, OrderDraftsAdminController, ParticipantsController, StoresController } from "./groups/groups.controller.js";
 import { BrandAssetsAdminController, InvitationsController, TemplatesAdminController, MyOrganizationsController, OrganizationRequestsAdminController, OrganizationsAdminController, OrganizationsController } from "./organizations/organizations.controller.js";
 import { localStorageRefused, localStorageRoute } from "./files/local-storage-route.js";
 import { CustomerAccessController } from "./identity/customer-access.controller.js";
@@ -141,10 +146,17 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       SearchAdminController,
       SeoController,
       PricingAdminController,
+      GarmentDataAdminController,
+      OpsHomeController,
+      ExportsController,
+      RefundsController,
+      StaffAdminController,
+      StaffInvitationsController,
       PublicPricingController,
       CartController,
       CheckoutController,
       DeliveryZonesAdminController,
+      InstallationAdminController,
       DeliveryPricesAdminController,
       CourierSettingsAdminController,
       PaystackWebhookController,
@@ -176,6 +188,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       BrandAssetsAdminController,
       TemplatesAdminController,
       CollectionsController,
+      StoresController,
       CollectionInviteController,
       ParticipantsController,
       OrderDraftsAdminController,

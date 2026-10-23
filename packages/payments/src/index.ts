@@ -44,10 +44,33 @@ export interface VerifyResult {
   providerStatus: string | null;
 }
 
+/** One refund as Paystack reports it (TECH-05 §11). Anything not final yet is `pending`. */
+export interface RefundResult {
+  providerRefundId: string;
+  status: "pending" | "processed" | "failed";
+  /** The provider's raw status word, kept with each check. */
+  providerStatus: string;
+  amountMinor: bigint | null;
+}
+
+export interface RefundInput {
+  /** The original attempt's HPPAY reference. */
+  reference: string;
+  amountMinor: bigint;
+  currency: "NGN" | "USD";
+  /** Staff's reason, kept with the refund at Paystack. */
+  note: string;
+}
+
 export interface PaymentGateway {
   readonly name: string;
   initialize(input: InitializeInput): Promise<InitializeResult>;
   verify(reference: string): Promise<VerifyResult>;
+  /** Asks for a full or partial refund. Throws RefundRefusedError when Paystack says no; any other error means the outcome is unknown. */
+  refund(input: RefundInput): Promise<RefundResult>;
+  refundStatus(providerRefundId: string): Promise<RefundResult>;
+  /** The refunds Paystack holds for a transaction, to find one whose request had no clear answer. */
+  listRefunds(reference: string): Promise<RefundResult[]>;
   /** True when the webhook's signature header matches its raw body. */
   verifyWebhook(rawBody: Buffer, signature: string | undefined): boolean;
 }
@@ -58,6 +81,21 @@ export class PaymentStartError extends Error {
     super(message);
     this.name = "PaymentStartError";
   }
+}
+
+/** Paystack answered and refused the refund (for example, more than is left): it was not created. */
+export class RefundRefusedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RefundRefusedError";
+  }
+}
+
+/** Paystack's refund status words: processed and failed are final; pending, processing and needs-attention aren't. */
+export function refundStatusWord(word: string | null | undefined): RefundResult["status"] {
+  if (word === "processed") return "processed";
+  if (word === "failed") return "failed";
+  return "pending";
 }
 
 /** HMAC SHA-512 of the raw body with the secret key, as Paystack signs webhooks (TECH-02 §9). */
@@ -168,10 +206,48 @@ export class PaystackGateway implements PaymentGateway {
     };
   }
 
+  async refund(input: RefundInput): Promise<RefundResult> {
+    const { httpStatus, envelope } = await this.call<PaystackRefund>("POST", "/refund", {
+      transaction: input.reference,
+      amount: input.amountMinor.toString(),
+      currency: input.currency,
+      merchant_note: input.note.slice(0, 200),
+    });
+    if (envelope.status && envelope.data) return refundResult(envelope.data);
+    // A clear "no" from Paystack: nothing was created. A server error or timeout stays unknown (thrown as is).
+    if (httpStatus >= 400 && httpStatus < 500) throw new RefundRefusedError(envelope.message ?? `Paystack refused the refund (${httpStatus})`);
+    throw new Error(`Paystack refund failed (${httpStatus}): ${envelope.message ?? "no message"}`);
+  }
+
+  async refundStatus(providerRefundId: string): Promise<RefundResult> {
+    const { httpStatus, envelope } = await this.call<PaystackRefund>("GET", `/refund/${encodeURIComponent(providerRefundId)}`);
+    if (!envelope.status || !envelope.data) throw new Error(`Paystack refund check failed (${httpStatus}): ${envelope.message ?? "no message"}`);
+    return refundResult(envelope.data);
+  }
+
+  async listRefunds(reference: string): Promise<RefundResult[]> {
+    const { httpStatus, envelope } = await this.call<PaystackRefund[]>("GET", `/refund?transaction=${encodeURIComponent(reference)}&perPage=100`);
+    if (!envelope.status || !Array.isArray(envelope.data)) throw new Error(`Paystack refund list failed (${httpStatus}): ${envelope.message ?? "no message"}`);
+    return envelope.data.map(refundResult);
+  }
+
   verifyWebhook(rawBody: Buffer, signature: string | undefined): boolean {
     return signatureMatches(this.options.secretKey, rawBody, signature);
   }
 }
+
+interface PaystackRefund {
+  id: number | string;
+  status: string;
+  amount?: number | string | null;
+}
+
+const refundResult = (data: PaystackRefund): RefundResult => ({
+  providerRefundId: String(data.id),
+  status: refundStatusWord(data.status),
+  providerStatus: data.status,
+  amountMinor: data.amount === undefined || data.amount === null ? null : BigInt(data.amount),
+});
 
 /** The gateway for this environment, or null when no key is set (payments then show as not available). */
 export function createPaymentGateway(env: { PAYSTACK_SECRET_KEY?: string }): PaymentGateway | null {

@@ -3,7 +3,8 @@
  * tested on their own.
  *
  * - Large format (COM-FR-045): standard or custom size, and print only,
- *   delivered or installed. Custom sizes and installation need a quote.
+ *   delivered or installed. Custom sizes need a quote; installation follows
+ *   the installation areas and rules (installation.ts, T13-01c).
  * - Packaging (COM-FR-046): standard or custom. Custom needs a quote.
  * - Promotional (COM-FR-047): catalogue item or "source something similar".
  *   Sourcing needs a quote.
@@ -23,6 +24,7 @@ export interface FamilyDetails {
   widthCm?: number;
   heightCm?: number;
   service?: "PRINT_ONLY" | "DELIVERED" | "INSTALLATION";
+  installState?: string;
   installSite?: string;
   installSurface?: string;
   installHeightM?: number;
@@ -53,7 +55,6 @@ export function familyAdjustments(family: string, details: FamilyDetails): Adjus
       const area = areaSqM(details.widthCm, details.heightCm);
       list.push({ state: "QUOTE_REQUIRED", code: "CUSTOM_SIZE", message: `Custom size${area ? ` (${area} m²)` : ""}: we confirm material and finishing in a quote.` });
     }
-    if (details.service === "INSTALLATION") list.push({ state: "QUOTE_REQUIRED", code: "INSTALLATION", message: "Installation is quoted after we check the site details." });
   }
   if (family === "PACKAGING" && details.packagingType === "CUSTOM") {
     list.push({ state: "QUOTE_REQUIRED", code: "CUSTOM_PACKAGING", message: "Custom packaging: we confirm the structure and a sample, then send a quote." });

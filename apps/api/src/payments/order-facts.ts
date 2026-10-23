@@ -11,7 +11,7 @@ export interface OrderPaymentDetails {
 const sourceKey = (source: { checkoutId: string | null; quoteVersionId: string | null }) =>
   source.checkoutId ? `checkout:${source.checkoutId}` : `quote:${source.quoteVersionId}`;
 
-/** One page's payment facts, including reviews and the latest attempt, in four reads. */
+/** One page's payment facts, including reviews, the latest attempt and refunds, in six reads. */
 export async function paymentDetailsForOrders(db: Database | Transaction, orders: readonly Source[]): Promise<Map<string, OrderPaymentDetails>> {
   if (!orders.length) return new Map();
   const checkoutIds = orders.flatMap((row) => (row.checkoutId ? [row.checkoutId] : []));
@@ -40,7 +40,7 @@ export async function paymentDetailsForOrders(db: Database | Transaction, orders
       ),
   ]);
   const intentIds = [...new Set([...rows.flatMap((row) => (row.intent ? [row.intent.id] : [])), ...receipts.map((row) => row.intentId)])];
-  const [attempts, reviews] = intentIds.length
+  const [attempts, reviews, paidRows, refundRows] = intentIds.length
     ? await Promise.all([
         db
           .selectDistinctOn([schema.paymentAttempts.intentId], { intentId: schema.paymentAttempts.intentId, status: schema.paymentAttempts.status })
@@ -51,8 +51,20 @@ export async function paymentDetailsForOrders(db: Database | Transaction, orders
           .select({ intentId: schema.paymentReviews.intentId })
           .from(schema.paymentReviews)
           .where(and(inArray(schema.paymentReviews.intentId, intentIds), eq(schema.paymentReviews.status, "OPEN"))),
+        db
+          .select({ intentId: schema.paymentAttempts.intentId, minor: sql<string>`sum(coalesce(${schema.paymentAttempts.paidAmountMinor}, ${schema.paymentAttempts.amountMinor}))::text` })
+          .from(schema.paymentAttempts)
+          .where(and(inArray(schema.paymentAttempts.intentId, intentIds), eq(schema.paymentAttempts.status, "SUCCEEDED")))
+          .groupBy(schema.paymentAttempts.intentId),
+        db
+          .select({ intentId: schema.refunds.intentId, minor: sql<string>`sum(${schema.refunds.amountMinor})::text` })
+          .from(schema.refunds)
+          .where(and(inArray(schema.refunds.intentId, intentIds), eq(schema.refunds.status, "PROCESSED")))
+          .groupBy(schema.refunds.intentId),
       ])
-    : [[], []];
+    : [[], [], [], []];
+  const paidByIntent = new Map(paidRows.map((row) => [row.intentId, BigInt(row.minor)]));
+  const refundedByIntent = new Map(refundRows.map((row) => [row.intentId, BigInt(row.minor)]));
   const latest = new Map(attempts.map((row) => [row.intentId, row.status]));
   const unresolved = new Set(reviews.map((row) => row.intentId));
   const grouped = new Map<string, typeof rows>();
@@ -67,7 +79,12 @@ export async function paymentDetailsForOrders(db: Database | Transaction, orders
   return new Map(
     orders.map((order) => {
       const group = grouped.get(sourceKey(order)) ?? [];
+      // Paid and refunded totals over the order's schedule intents (TECH-01 §4).
+      const scheduleIntents = [...new Set(group.flatMap((row) => (row.intent ? [row.intent.id] : [])))];
+      const sum = (byIntent: Map<string, bigint>) => scheduleIntents.reduce((total, id) => total + (byIntent.get(id) ?? 0n), 0n);
       const facts: PaymentFacts = {
+        paidMinor: sum(paidByIntent),
+        refundedMinor: sum(refundedByIntent),
         installments: group.map(({ part, intent }) => ({ position: part.position, status: part.status, latestAttempt: intent ? (latest.get(intent.id) ?? null) : null })),
         needsResolution:
           group.some((row) => row.intent && (row.intent.status === "REVIEW_REQUIRED" || unresolved.has(row.intent.id))) ||

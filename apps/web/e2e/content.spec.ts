@@ -137,9 +137,15 @@ test.describe("SEO foundations", () => {
     // The admin lives on its own site and is never crawled (ADR-017).
     const adminRobots = await (await request.get(`${ADMIN}/robots.txt`)).text();
     expect(adminRobots).toMatch(/^Disallow: \/$/m);
-    const sitemap = await (await request.get("/sitemap.xml")).text();
-    expect(sitemap).toContain("/resources/embroidery-or-print</loc>");
-    expect(sitemap).not.toContain("/search");
+    // The sitemap index lists one sitemap per kind (Stage 3 §53).
+    const index = await (await request.get("/sitemap.xml")).text();
+    expect(index).toContain("<sitemapindex");
+    for (const kind of ["pages", "categories", "products"]) expect(index).toContain(`/sitemaps/${kind}.xml</loc>`);
+    const pages = await (await request.get("/sitemaps/pages.xml")).text();
+    expect(pages).toContain("/resources/embroidery-or-print</loc>");
+    expect(pages).not.toContain("/search");
+    expect(await (await request.get("/sitemaps/products.xml")).text()).toContain("/products/business-cards</loc>");
+    expect((await request.get("/sitemaps/other.xml")).status()).toBe(404);
     await page.goto("/");
     const ld = (await page.locator('script[type="application/ld+json"]').allTextContents()).join(" ");
     expect(ld).toContain('"@type":"Organization"');

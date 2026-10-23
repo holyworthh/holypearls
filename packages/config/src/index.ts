@@ -148,6 +148,9 @@ const webSchema = z.object({
   WEB_PROXY_SECRET: z.string().min(32).optional(),
   SITE_URL: z.url().optional(),
   INDEXNOW_KEY: z.string().optional(),
+  /** Search Console and Bing Webmaster verification tokens (Stage 3 §53), from each tool's HTML-tag method. */
+  GOOGLE_SITE_VERIFICATION: z.string().max(100).optional(),
+  BING_SITE_VERIFICATION: z.string().max(100).optional(),
   HP_DEMO_SLICE: z.enum(["on", "off"]).default("off"),
   ...monitoring,
 });

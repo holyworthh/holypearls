@@ -9,5 +9,7 @@ export { runDailyCleanup } from "./platform/cleanup.js";
 export { refreshSearchIndex } from "./catalogue/search.js";
 export { submitIndexNow } from "./catalogue/indexnow.js";
 export { checkPaymentAttempt, processPaystackEvent } from "./payments/payments.js";
+export { checkRefund } from "./payments/refunds.js";
 export { expireQuoteVersion, sendQuoteExpiringReminder } from "./quotes/quotes.js";
 export { sendInstallmentDueReminder } from "./quotes/customer.js";
+export { generateExport, markExportFailed } from "./platform/exports.js";

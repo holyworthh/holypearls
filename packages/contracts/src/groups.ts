@@ -42,6 +42,8 @@ export const unsureSizeRuleSchema = z.enum(UNSURE_SIZE_RULES);
 export const collectionSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
+  /** The approved template it was started from, if any (company stores link items to collections by template, T12-06). */
+  templateId: z.string().nullable(),
   status: collectionStatusSchema,
   productName: z.string(),
   locationName: z.string(),
@@ -291,3 +293,156 @@ export const matchColumnsSchema = z.object({ mapping: z.partialRecord(importFiel
 export const fixImportRowSchema = z.object({ values: z.partialRecord(importFieldSchema, z.string().trim().max(200).nullable()).optional(), decision: duplicateDecisionSchema.nullable().optional(), version: z.number().int() });
 /** Import: with `partial`, valid rows go in now and problem rows wait to be fixed (B2B-FR-071). */
 export const runImportSchema = z.object({ partial: z.boolean(), version: z.number().int() });
+
+/* Company store (T12-06; PRD-05 B2B-FR-080–083; TECH-01 §4; Pen 32, 77, 78). */
+
+/** DRAFT → ACTIVE ⇄ PAUSED → ARCHIVED (TECH-01 §4). */
+export const STORE_STATUSES = ["DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"] as const;
+export const storeStatusSchema = z.enum(STORE_STATUSES);
+export type StoreStatus = z.infer<typeof storeStatusSchema>;
+/** Procurement: buyers order for a location. Self-order: each employee orders for themselves (B2B-FR-081). */
+export const STORE_MODES = ["PROCUREMENT", "SELF_ORDER"] as const;
+export const storeModeSchema = z.enum(STORE_MODES);
+export type StoreMode = z.infer<typeof storeModeSchema>;
+/** Where self-order picks go: individual orders, or into a group collection (B2B-FR-082). Employees never see or choose this. */
+export const STORE_ROUTINGS = ["INDIVIDUAL", "COLLECTION"] as const;
+export const storeRoutingSchema = z.enum(STORE_ROUTINGS);
+export type StoreRouting = z.infer<typeof storeRoutingSchema>;
+
+const option = z.object({ id: z.string(), name: z.string() });
+
+/* Allowances (T12-06b; PRD-05 B2B-FR-084; Pen 32, 78 B–C). */
+
+/** No limit, a limit per order, or an amount per period that renews. Credit and vouchers are later (P2). */
+export const ALLOWANCE_KINDS = ["NONE", "PER_ORDER", "PER_PERIOD"] as const;
+export const allowanceKindSchema = z.enum(ALLOWANCE_KINDS);
+export type AllowanceKind = z.infer<typeof allowanceKindSchema>;
+export const ALLOWANCE_PERIODS = ["MONTH", "QUARTER", "YEAR"] as const;
+export const allowancePeriodSchema = z.enum(ALLOWANCE_PERIODS);
+export type AllowancePeriod = z.infer<typeof allowancePeriodSchema>;
+
+/** The store's allowance as this person sees it (Pen 32 "₦32,500 of ₦75,000 left · renews 1 Jan"). */
+export const allowanceSchema = z.object({
+  kind: allowanceKindSchema,
+  name: z.string(),
+  amountMinor: z.string(),
+  currency: z.string(),
+  period: allowancePeriodSchema.nullable(),
+  /** "MM-DD": when a per-period allowance starts again. */
+  renewsOn: z.string().nullable(),
+  /** This person's current period: committed so far and what's left (per period only). */
+  usedMinor: z.string().nullable(),
+  remainingMinor: z.string().nullable(),
+  renewsAt: isoDate.nullable(),
+});
+export type Allowance = z.infer<typeof allowanceSchema>;
+
+export const updateAllowanceSchema = z
+  .object({
+    kind: allowanceKindSchema,
+    name: z.string().trim().min(1, "Name the allowance, for example Uniform allowance").max(60).default("Uniform allowance"),
+    amountMinor: z.string().regex(/^\d+$/, "Enter an amount").nullable().default(null),
+    period: allowancePeriodSchema.nullable().default(null),
+    renewsOn: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])-(0[1-9]|1\d|2[0-8])$/, "Choose a day from the 1st to the 28th")
+      .nullable()
+      .default(null),
+    version: z.number().int(),
+  })
+  .refine((value) => value.kind === "NONE" || (value.amountMinor !== null && BigInt(value.amountMinor) > 0n), { message: "Enter the allowance amount", path: ["amountMinor"] })
+  .refine((value) => value.kind !== "PER_PERIOD" || (value.period !== null && value.renewsOn !== null), { message: "Choose how often it renews and from which day", path: ["period"] });
+export type UpdateAllowance = z.infer<typeof updateAllowanceSchema>;
+
+/** One approved product in the store, as the person looking at it can use it. */
+export const storeItemSchema = z.object({
+  templateId: z.string(),
+  name: z.string(),
+  productName: z.string(),
+  image: z.object({ url: z.string(), thumbnailUrl: z.string(), alt: z.string() }).nullable(),
+  /** What the company set, in words ("Navy · ACME logo · left-chest embroidery"). */
+  locked: z.string(),
+  /** Today's price for one at the template's usual quantity, when it has a direct price; otherwise HolyPearls prices it. */
+  unitMinor: z.string().nullable(),
+  currency: z.string(),
+  /** Why it can't be ordered now ("Temporarily unavailable"), or null. Shown, never hidden (Pen 78 D). */
+  unavailable: z.string().nullable(),
+  /** Self-order: what the employee fills in (B2B-FR-083), the sizes, and where it can go. */
+  fields: z.array(participantFieldSchema),
+  sizes: z.array(z.string()),
+  sizeUnsureAllowed: z.boolean(),
+  colours: z.array(z.object({ value: z.string(), label: z.string() })),
+  branches: z.array(option),
+  /** The button and the line under it, in outcome words, never routing words ("Add to ACME team order" · "Joins the 2027 team order, not a separate purchase"). */
+  action: z.string(),
+  note: z.string(),
+  /** Its price fits what's left of the person's allowance (Pen 32 "Covered"). */
+  covered: z.boolean(),
+  /** Self-order with an allowance: what one pick costs in total, to compare with what's left (Pen 78 B–C). */
+  pickTotalMinor: z.string().nullable(),
+});
+export type StoreItem = z.infer<typeof storeItemSchema>;
+
+export const storeSummarySchema = z.object({ id: z.string(), name: z.string(), status: storeStatusSchema, mode: storeModeSchema, itemCount: z.number().int(), updatedAt: isoDate });
+export type StoreSummary = z.infer<typeof storeSummarySchema>;
+export const storeListSchema = z.object({ stores: z.array(storeSummarySchema), canManage: z.boolean() });
+export type StoreList = z.infer<typeof storeListSchema>;
+
+export const storeSetupItemSchema = z.object({ templateId: z.uuid(), collectionId: z.uuid().nullable().default(null) });
+
+export const storeSchema = storeSummarySchema.extend({
+  organizationName: z.string(),
+  items: z.array(storeItemSchema),
+  /** In plain words: "Ordering for yourself", or "Your choices are added to your team's order". */
+  modeNote: z.string(),
+  /** Procurement: the locations the buyer can order for. */
+  locations: z.array(option),
+  /** The organization's approval rule as it applies to this person (as for template orders). */
+  approval: z.object({ applies: z.enum(["ALWAYS", "NEVER", "ABOVE_AMOUNT"]), thresholdMinor: z.string().nullable() }),
+  /** Why this person can't order here, or null. */
+  blocked: z.string().nullable(),
+  /** The allowance for self-order picks that become individual orders, or null when there's none. */
+  allowance: allowanceSchema.nullable(),
+  /** Only for people who manage stores: routing and each item's collection. */
+  setup: z
+    .object({
+      routing: storeRoutingSchema,
+      items: z.array(storeSetupItemSchema),
+      allowance: z.object({ kind: allowanceKindSchema, name: z.string(), amountMinor: z.string().nullable(), period: allowancePeriodSchema.nullable(), renewsOn: z.string().nullable() }),
+    })
+    .nullable(),
+  canManage: z.boolean(),
+  version: z.number().int(),
+});
+export type Store = z.infer<typeof storeSchema>;
+
+export const createStoreSchema = z.object({ name: z.string().trim().min(1, "Name the store, for example ACME Team Store").max(80, "Use 80 characters or fewer"), mode: storeModeSchema });
+export type CreateStore = z.infer<typeof createStoreSchema>;
+export const updateStoreSchema = z.object({
+  name: z.string().trim().min(1, "Name the store").max(80, "Use 80 characters or fewer"),
+  mode: storeModeSchema,
+  routing: storeRoutingSchema,
+  items: z.array(storeSetupItemSchema).max(100),
+  version: z.number().int(),
+});
+export type UpdateStore = z.infer<typeof updateStoreSchema>;
+export const storeActionSchema = z.object({ version: z.number().int() });
+
+/** A procurement order: several items for one location (Pen 77). */
+export const storeProcurementSchema = z.object({
+  locationId: z.uuid("Choose the location you're ordering for"),
+  lines: z.array(z.object({ templateId: z.uuid(), quantity: z.number().int().min(1).max(100_000) })).min(1, "Add at least one item").max(50),
+});
+export type StoreProcurement = z.infer<typeof storeProcurementSchema>;
+/** A self-order pick: one item with the employee's own answers (Pen 32, 78). */
+export const storePickSchema = z.object({ templateId: z.uuid(), answers: participantAnswersSchema });
+export type StorePick = z.infer<typeof storePickSchema>;
+export const storeOrderResultSchema = z.object({
+  /** CHECKOUT / QUOTE / APPROVAL as for template orders; COLLECTION when the pick joined a group collection. */
+  route: z.enum(["CHECKOUT", "QUOTE", "APPROVAL", "COLLECTION"]),
+  next: z.string(),
+  reference: z.string().nullable(),
+  /** What happened, in the employee's words. */
+  message: z.string(),
+});
+export type StoreOrderResult = z.infer<typeof storeOrderResultSchema>;

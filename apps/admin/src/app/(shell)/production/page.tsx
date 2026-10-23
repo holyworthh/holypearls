@@ -13,10 +13,13 @@ import { GROUP_LABEL, ITEM_TONE } from "./tones";
  * the item panel; there is no drag-to-change, so illegal moves can't be made
  * by accident. PRODUCTION_MANAGE.
  */
-export default async function ProductionPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function ProductionPage({ searchParams }: { searchParams: Promise<{ view?: string; group?: string }> }) {
   const admin = await requireAdmin();
   if (!admin.permissions.includes("PRODUCTION_MANAGE")) return <PermissionDenied permission="PRODUCTION_MANAGE" />;
-  const asList = (await searchParams).view === "list";
+  const params = await searchParams;
+  // A list filtered to some groups, as the operations home opens it (T13-03): ?view=list&group=WAITING,ON_HOLD.
+  const only = params.group ? new Set(params.group.split(",")) : null;
+  const asList = params.view === "list" || only !== null;
   const board = await serverApi("/v1/admin/production", productionBoardSchema);
   const total = board.ok ? board.data.groups.reduce((sum, group) => sum + group.items.length, 0) : 0;
   return (
@@ -29,6 +32,11 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
         <a className={styles.viewLink} href={asList ? "/production" : "/production?view=list"}>
           {asList ? "Board view" : "List view"}
         </a>
+        {only ? (
+          <p className={list.hint}>
+            Showing {[...only].map((group) => GROUP_LABEL[group as keyof typeof GROUP_LABEL] ?? group).join(" and ")} · <a href="/production?view=list">Show all groups</a>
+          </p>
+        ) : null}
       </header>
       {!board.ok ? (
         <ErrorState title="We couldn't load this list" body="Something went wrong on our side. Try again, or share the request ID with support." requestId={board.error.requestId} />
@@ -48,7 +56,9 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
             </tr>
           </thead>
           <tbody>
-            {board.data.groups.flatMap((group) =>
+            {board.data.groups
+              .filter((group) => !only || only.has(group.group))
+              .flatMap((group) =>
               group.items.map((card) => (
                 <tr key={card.id}>
                   <td>

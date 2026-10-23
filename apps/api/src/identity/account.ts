@@ -1,4 +1,4 @@
-import type { AccountHistory, AccountLinking, Profile, ProfileInput } from "@holypearls/contracts";
+import { ACCOUNT_LISTS, type AccountHistory, type AccountLinking, type AccountList, type Profile, type ProfileInput } from "@holypearls/contracts";
 import { type Database, eq, schema } from "@holypearls/db";
 import { accountDrafts, linkCustomerDrafts } from "../configuration/drafts.js";
 import { AppError } from "../errors.js";
@@ -6,6 +6,7 @@ import { accountOrders, accountReceipts, ordersBefore } from "../orders/orders.j
 import { recordAudit } from "../platform/audit.js";
 import { accountProjects, linkCustomerProjects } from "../projects/projects.js";
 import { accountQuotes, quotesBefore } from "../quotes/customer.js";
+import { VERIFY_EMAIL_SECONDS } from "@holypearls/auth";
 import type { ActorContext } from "./actor.js";
 import { ensureAccountCustomer, linkCustomersToVerifiedEmail } from "./customers.js";
 
@@ -42,6 +43,9 @@ export async function linkVerifiedAccount(db: Database, user: { id: string; emai
 export const accountEvents = (db: Database) => ({
   onEmailVerified: async (user: { id: string; email: string; name: string }) => {
     await linkVerifiedAccount(db, user);
+  },
+  onEmailChanged: async (user: { id: string; email: string; name: string }) => {
+    await recordAudit(db, null, { action: "security.email_changed", summary: "Account email changed after the new address was verified; other sessions ended", recordType: "USER", recordId: user.id, recordLabel: user.name });
   },
   onPasswordReset: async (user: { id: string; name: string }) => {
     await recordAudit(db, null, { action: "security.password_reset", summary: "Password reset by email link; other sessions ended", recordType: "USER", recordId: user.id, recordLabel: user.name });
@@ -87,9 +91,32 @@ export async function accountHistory(db: Database, actor: UserActor): Promise<Ac
   };
 }
 
+/** A new email still waiting for its check link; once the link has expired, there's nothing pending. */
+async function pendingEmail(db: Database, actor: UserActor) {
+  const [user] = await db.select({ email: schema.users.pendingEmail, at: schema.users.pendingEmailAt }).from(schema.users).where(eq(schema.users.id, actor.session.userId));
+  return user?.email && user.at && actor.now.getTime() - user.at.getTime() < VERIFY_EMAIL_SECONDS * 1000 ? user.email : null;
+}
+
+// ponytail: one page of the newest 200; add paging when an account outgrows it.
+const FULL_LIST = 200;
+
+/** One history list in full (T09-01b): the overview shows only the newest few. Unknown lists are 404. */
+export async function accountList(db: Database, actor: UserActor, list: string): Promise<AccountList> {
+  const userId = actor.session.userId;
+  const empty: AccountList = { drafts: [], orders: [], quotes: [], receipts: [] };
+  if (!(ACCOUNT_LISTS as readonly string[]).includes(list)) throw new AppError("NOT_FOUND");
+  if (list === "orders") return { ...empty, orders: await accountOrders(db, userId, FULL_LIST) };
+  if (list === "quotes") return { ...empty, quotes: await accountQuotes(db, userId, FULL_LIST) };
+  if (list === "receipts") return { ...empty, receipts: await accountReceipts(db, userId, FULL_LIST) };
+  const projects = await accountProjects(db, userId, FULL_LIST);
+  if (list === "projects") return { ...empty, drafts: projects.drafts, quotes: projects.sent };
+  const designs = await accountDrafts(db, userId, actor.now, FULL_LIST);
+  return { ...empty, drafts: [...designs, ...projects.drafts].sort((a, b) => b.savedAt.localeCompare(a.savedAt)) };
+}
+
 export async function getProfile(db: Database, actor: UserActor): Promise<Profile> {
   const own = await ownCustomer(db, actor.session.userId);
-  return { name: actor.session.name, email: actor.session.email, phone: own?.phone ?? null };
+  return { name: actor.session.name, email: actor.session.email, phone: own?.phone ?? null, pendingEmail: await pendingEmail(db, actor) };
 }
 
 /**
@@ -110,5 +137,5 @@ export async function updateProfile(db: Database, actor: UserActor, profile: Pro
     if (own) await tx.update(schema.customers).set({ name: input.name, phone: input.phone, updatedAt: actor.now }).where(eq(schema.customers.id, own.id));
     await recordAudit(tx, actor, { action: "account.profile_updated", summary: "Profile updated", recordType: "USER", recordId: userId, recordLabel: input.name });
   });
-  return { name: input.name, email: actor.session.email, phone: own ? input.phone : null };
+  return { name: input.name, email: actor.session.email, phone: own ? input.phone : null, pendingEmail: await pendingEmail(db, actor) };
 }

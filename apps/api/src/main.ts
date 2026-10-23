@@ -37,6 +37,7 @@ const notify = { db: database.db, jobs, sealKey: env.DATA_ENCRYPTION_KEY };
 const AUTH_TEMPLATES = {
   MAGIC_LINK: { template: "sign_in_link", linkLabel: "Signs the person in" },
   VERIFY_EMAIL: { template: "verify_email", linkLabel: "Verifies the account email" },
+  CHANGE_EMAIL: { template: "change_email", linkLabel: "Confirms a new account email" },
   PASSWORD_RESET: { template: "password_reset", linkLabel: "Opens the new password form" },
 } as const;
 const outbox: AuthOutbox = {

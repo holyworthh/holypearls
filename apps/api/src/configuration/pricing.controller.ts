@@ -9,7 +9,8 @@ import {
 import type { Database } from "@holypearls/db";
 import type { Request } from "express";
 import { z } from "zod";
-import { addPriceRule, addTaxSetting, getProductRules, listPriceRules, listTaxSettings, saveCompatibility, saveProductRules } from "../catalogue/rules.js";
+import { addPriceRule, addTaxSetting, getProductRules, listPriceRules, listTaxSettings, pricingProducts, saveCompatibility, saveProductRules, scheduledPriceRules } from "../catalogue/rules.js";
+import { openDesignCounts } from "./drafts.js";
 import { StaffGuard } from "../identity/staff.guard.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { DATABASE } from "../tokens.js";
@@ -24,6 +25,19 @@ const slugPipe = new ZodValidationPipe(z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+
 @UseGuards(StaffGuard("PRICING_MANAGE"))
 export class PricingAdminController {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  @Get("products")
+  async products(@Req() request: Request) {
+    return pricingProducts(this.db, (await request.getActor!()).now);
+  }
+
+  /** Scheduled price versions and the open designs they'll touch (Pen 118 RW4ec; OPS-FR-130). */
+  @Get("scheduled")
+  async scheduled(@Req() request: Request) {
+    const changes = await scheduledPriceRules(this.db, (await request.getActor!()).now);
+    const counts = await openDesignCounts(this.db, [...new Set(changes.map((change) => change.productId))]);
+    return { changes: changes.map((change) => ({ ...change, effectiveFrom: change.effectiveFrom.toISOString(), ...(counts.get(change.productId) ?? { drafts: 0, carts: 0 }) })) };
+  }
 
   @Get("products/:id/rules")
   rules(@Param("id", uuid) id: string) {

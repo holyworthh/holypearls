@@ -1,4 +1,5 @@
-import { boolean, index, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, index, integer, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { STAFF_PERMISSIONS } from "@holypearls/contracts";
 import { createdAt, idColumn, updatedAt } from "../columns.js";
 
@@ -18,6 +19,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  /** A new email waiting for its check link (TECH-03 §4); the account keeps `email` until it's verified. */
+  pendingEmail: text("pending_email"),
+  pendingEmailAt: at("pending_email_at"),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -97,6 +101,7 @@ export const twoFactors = pgTable(
 
 export const staffPermission = pgEnum("staff_permission", STAFF_PERMISSIONS);
 export const staffStatus = pgEnum("staff_status", ["ACTIVE", "DEACTIVATED"]);
+export const staffInvitationStatus = pgEnum("staff_invitation_status", ["PENDING", "ACCEPTED", "EXPIRED", "REVOKED"]);
 
 export const staffProfiles = pgTable("staff_profiles", {
   id: idColumn(),
@@ -123,4 +128,34 @@ export const staffPermissionGrants = pgTable(
     createdAt: createdAt(),
   },
   (table) => [unique("staff_permission_grants_unique").on(table.staffProfileId, table.permission)],
+);
+
+/**
+ * Staff invitations (T13-05b; TECH-03 §11; Pen 122). Like organization
+ * invitations: a one-time secret stored as its SHA-256, 7 days, one use.
+ * Accepting needs a signed-in account with the invited email, verified; it
+ * creates (or reactivates) the staff profile with these permissions, and the
+ * person then sets up MFA at their first admin sign-in.
+ */
+export const staffInvitations = pgTable(
+  "staff_invitations",
+  {
+    id: idColumn(),
+    secretHash: text("secret_hash").notNull(),
+    emailNormalized: text("email_normalized").notNull(),
+    displayName: text("display_name").notNull(),
+    permissions: staffPermission("permissions").array().notNull(),
+    status: staffInvitationStatus("status").notNull().default("PENDING"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    invitedByUserId: uuid("invited_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    acceptedByUserId: uuid("accepted_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("staff_invitations_secret_hash_unique").on(table.secretHash),
+    uniqueIndex("staff_invitations_pending_email_unique").on(table.emailNormalized).where(sql`${table.status} = 'PENDING'`),
+  ],
 );

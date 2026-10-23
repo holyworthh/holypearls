@@ -1,8 +1,9 @@
 "use client";
 
-import { profileInputSchema, profileSchema, toFieldErrors } from "@holypearls/contracts";
+import { okResultSchema, profileInputSchema, profileSchema, toFieldErrors } from "@holypearls/contracts";
 import { Button, FormField, Notice, TextField } from "@holypearls/ui";
-import { api, errorReason } from "@holypearls/web-kit/api";
+import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
+import { z } from "zod";
 import { type FormEvent, useState } from "react";
 import styles from "../account.module.css";
 
@@ -11,12 +12,26 @@ interface Initial {
   email: string;
   phone: string | null;
   emailVerified: boolean;
+  pendingEmail: string | null;
 }
 
-/** Name and phone. The phone needs a verified email, because it lives on the account's own customer record. */
+const CALLBACK = "/account/profile?email=changed";
+
+/**
+ * Name, email and phone (Pen 91). The phone needs a verified email, because it
+ * lives on the account's own customer record. A new email is checked first:
+ * the account keeps the old one until the link is opened, and opening it
+ * signs the account out on other devices (TECH-03 §4).
+ */
 export function ProfileForm({ initial }: { initial: Initial }) {
   const [name, setName] = useState(initial.name);
   const [phone, setPhone] = useState(initial.phone ?? "");
+  const [email, setEmail] = useState(initial.email);
+  const [pending, setPending] = useState(initial.pendingEmail);
+  const [resend, setResend] = useState<"idle" | "busy" | "sent" | "failed">("idle");
+
+  /** Asks for the check link; the library never says whether the address already has an account. */
+  const requestChange = (newEmail: string) => api("/v1/auth/change-email", { method: "POST", body: { newEmail, callbackURL: CALLBACK }, response: okResultSchema });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle");
 
@@ -24,8 +39,11 @@ export function ProfileForm({ initial }: { initial: Initial }) {
     event?.preventDefault();
     setErrors({});
     const parsed = profileInputSchema.safeParse({ name, phone });
-    if (!parsed.success) {
-      setErrors(toFieldErrors(parsed.error));
+    const newEmail = email.trim().toLowerCase();
+    const emailChanged = newEmail !== initial.email.toLowerCase();
+    const emailError = emailChanged && !z.email().safeParse(newEmail).success ? "Enter an email address like name@example.com" : undefined;
+    if (!parsed.success || emailError) {
+      setErrors({ ...(parsed.success ? {} : toFieldErrors(parsed.error)), ...(emailError ? { email: emailError } : {}) });
       setState("idle");
       return;
     }
@@ -34,9 +52,19 @@ export function ProfileForm({ initial }: { initial: Initial }) {
       const saved = await api("/v1/me/profile", { method: "PATCH", body: { name, phone }, response: profileSchema });
       setName(saved.name);
       setPhone(saved.phone ?? "");
+      if (emailChanged && newEmail !== pending) {
+        await requestChange(newEmail).catch((error: unknown) => {
+          throw Object.assign(new Error("email"), { field: errorCode(error) === "RATE_LIMITED" ? "Too many requests. Try again in a few minutes." : "We couldn't send the check to that address. Try again." });
+        });
+        setPending(newEmail);
+      }
+      setEmail(initial.email);
       setState("saved");
     } catch (error) {
-      if (errorReason(error) === "VERIFY_EMAIL_FIRST") {
+      if (error instanceof Error && "field" in error) {
+        setErrors({ email: String(error.field) });
+        setState("idle");
+      } else if (errorReason(error) === "VERIFY_EMAIL_FIRST") {
         setErrors({ phone: "Verify your email first, then add a phone number." });
         setState("idle");
       } else setState("failed");
@@ -48,6 +76,29 @@ export function ProfileForm({ initial }: { initial: Initial }) {
       <h2 id="profile-details" className={styles.cardTitle}>
         Your details
       </h2>
+      {pending ? (
+        <Notice tone="info" title="Verify your new email" live>
+          <p>
+            We sent a link to {pending}. Your email stays {initial.email} until you verify.
+          </p>
+          <Button
+            variant="secondary"
+            loading={resend === "busy"}
+            onClick={() => {
+              setResend("busy");
+              requestChange(pending).then(
+                () => setResend("sent"),
+                () => setResend("failed"),
+              );
+            }}
+          >
+            Resend link
+          </Button>
+          <p role="status" aria-live="polite">
+            {resend === "sent" ? `Sent again to ${pending}.` : resend === "failed" ? "We couldn't send it. Try again." : ""}
+          </p>
+        </Notice>
+      ) : null}
       {state === "failed" ? (
         <Notice tone="error" title="Not saved" live>
           <p>We couldn&apos;t save your changes. Your edits are still here.</p>
@@ -60,8 +111,8 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         <FormField label="Full name" id="profile-name" error={errors.name}>
           <TextField name="name" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
         </FormField>
-        <FormField label="Email" id="profile-email" hint="To change the email on your account, contact us. Email changes need a check of the new address.">
-          <TextField name="email" type="email" value={initial.email} readOnly />
+        <FormField label="Email" id="profile-email" hint="Changing your email needs verification and signs you out on other devices." error={errors.email}>
+          <TextField name="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
         </FormField>
         <FormField label="Phone" optional id="profile-phone" hint={initial.emailVerified ? "Used only for delivery questions." : "Verify your email to add a phone number. Used only for delivery questions."} error={errors.phone}>
           <TextField name="phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />

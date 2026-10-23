@@ -519,3 +519,161 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   await page.goto(page.url().replace(/\/groups\/.*$/, "/groups"));
   await expect(page.getByRole("link", { name })).toBeVisible();
 });
+
+test("company store: the Owner sets up a self-order store; a Lekki manager picks their polo; a procurement store takes several items", async ({ page }) => {
+  // An approved polo template with size and name left to each person (T12-06; B2B-FR-083).
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
+  const organizationId = workspace.split("/").pop()!;
+  const templateName = `E2E Staff Polo ${Date.now()}`;
+  const templateId = await page.evaluate(
+    async ({ org, name }) => {
+      const call = (method: string, path: string, body: unknown) =>
+        fetch(`/api${path}`, { method, headers: { "content-type": "application/json", "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` }, body: JSON.stringify(body) }).then((response) => response.json());
+      const design = await call("POST", "/v1/configurations", { productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" }, quantity: 24 });
+      let template = await call("POST", `/v1/organizations/${org}/templates`, { name, configurationId: design.id, assetVersionIds: [], allLocations: true });
+      const open = ["sizes", "personalization", "quantity"];
+      template = await call("PUT", `/v1/organizations/${org}/templates/${template.id}`, {
+        name,
+        fields: template.fields.map((field: { key: string; control: string; reason: string }) => ({ key: field.key, control: open.includes(field.key) ? "EDITABLE" : field.control, reason: open.includes(field.key) ? "Chosen per person" : field.reason })),
+        assetVersionIds: [],
+        allLocations: true,
+        locationIds: [],
+        version: template.version,
+      });
+      await call("POST", `/v1/organizations/${org}/templates/${template.id}/submit`, { version: template.version });
+      return template.id as string;
+    },
+    { org: organizationId, name: templateName },
+  );
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto(`${ADMIN}/templates/${templateId}`);
+  await page.getByRole("button", { name: "Approve template" }).click();
+  await expect(page.getByText("Approved. The organization's allowed locations can order from it now.")).toBeVisible();
+
+  // The Owner starts the store, adds the polo and opens it.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await page.goto(`${workspace}/stores`);
+  await expect(page.getByRole("heading", { name: "Company Store", level: 1 })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  const storeName = `E2E Team Store ${Date.now()}`;
+  await page.getByLabel("Store name").fill(storeName);
+  await page.getByRole("button", { name: "Create store" }).click();
+  await page.waitForURL(/\/stores\/[^/]+\/setup$/);
+  await expect(page.getByRole("heading", { name: storeName, level: 1 })).toBeVisible();
+  await page.getByLabel(new RegExp(`^${templateName}`)).check();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Save store" }).click();
+  await expect(page.getByText("Saved.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Open the store" }).click();
+  await expect(page.getByText("The store is open.")).toBeVisible();
+  const storePath = page.url().replace(/\/setup$/, "").replace(/^https?:\/\/[^/]+/, "");
+
+  // A Lekki manager picks their polo (Pen 32, 78): what ACME set reads as facts; only size, name and branch are theirs.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(storePath);
+  await expect(page.getByRole("heading", { name: storeName, level: 1 })).toBeVisible();
+  await expect(page.getByText("Set by ACME", { exact: false })).toBeVisible();
+  await expect(page.getByText("Navy", { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Set up this store" })).toHaveCount(0);
+  await page.getByRole("radio", { name: "M", exact: true }).click();
+  await page.getByLabel(/^Name on /).fill("ADAEZE");
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  // The polo needs a person to price it, so the pick becomes the employee's own quote request (Journey 9).
+  await page.getByRole("button", { name: "Request this item" }).click();
+  await expect(page.getByRole("heading", { name: /^Quote request HP-Q-/ })).toBeVisible();
+  await expect(page.getByText("Sent to HolyPearls for a quote.")).toBeVisible();
+
+  // A procurement store (Pen 77): quantities for Lekki, the order summed on the right.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const procurementId = await page.evaluate(
+    async ({ org, template }) => {
+      const call = (method: string, path: string, body: unknown) =>
+        fetch(`/api${path}`, { method, headers: { "content-type": "application/json", "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` }, body: JSON.stringify(body) }).then((response) => response.json());
+      let shop = await call("POST", `/v1/organizations/${org}/stores`, { name: "E2E Procurement Store", mode: "PROCUREMENT" });
+      shop = await call("PUT", `/v1/organizations/${org}/stores/${shop.id}`, { name: shop.name, mode: "PROCUREMENT", routing: "INDIVIDUAL", items: [{ templateId: template }], version: shop.version });
+      await call("POST", `/v1/organizations/${org}/stores/${shop.id}/activate`, { version: shop.version });
+      return shop.id as string;
+    },
+    { org: organizationId, template: templateId },
+  );
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(`${workspace.replace(/^https?:\/\/[^/]+/, "")}/stores/${procurementId}`);
+  await expect(page.getByRole("heading", { name: "Approved products for Lekki" })).toBeVisible();
+  await page.getByLabel(`Quantity of ${templateName}`).fill("24");
+  await expect(page.getByText(`${templateName} × 24`)).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Request a quote" }).click();
+  await expect(page.getByRole("heading", { name: /^Quote request HP-Q-/ })).toBeVisible();
+});
+
+test("allowances: the Owner sets a yearly allowance; a covered pick is paid by ACME; one over it asks a manager", async ({ page }) => {
+  // A banner template with a direct price for one (T12-06b; B2B-FR-084).
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
+  const organizationId = workspace.split("/").pop()!;
+  const call = (method: string, path: string, body: unknown) =>
+    page.evaluate(
+      async ([verb, url, payload]) =>
+        fetch(`/api${url}`, { method: verb, headers: { "content-type": "application/json", "idempotency-key": `web_${crypto.randomUUID().replaceAll("-", "")}` }, body: JSON.stringify(payload) }).then((response) => response.json()),
+      [method, path, body] as const,
+    );
+  const design = await call("POST", "/v1/configurations", { productSlug: "roll-up-banner", choices: { size: "85-200-cm" }, quantity: 1 });
+  const template = await call("POST", `/v1/organizations/${organizationId}/templates`, { name: `E2E Lobby Banner ${Date.now()}`, configurationId: design.id, assetVersionIds: [], allLocations: true });
+  await call("POST", `/v1/organizations/${organizationId}/templates/${template.id}/submit`, { version: template.version });
+  await signInStaff(page, TEST_PEOPLE.adminAda);
+  await page.goto(`${ADMIN}/templates/${template.id}`);
+  await page.getByRole("button", { name: "Approve template" }).click();
+  await expect(page.getByText("Approved. The organization's allowed locations can order from it now.")).toBeVisible();
+
+  // The Owner sets ₦150,000 a year from 1 January in store setup.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  let shop = await call("POST", `/v1/organizations/${organizationId}/stores`, { name: "E2E Allowance Store", mode: "SELF_ORDER" });
+  shop = await call("PUT", `/v1/organizations/${organizationId}/stores/${shop.id}`, { name: shop.name, mode: "SELF_ORDER", routing: "INDIVIDUAL", items: [{ templateId: template.id }], version: shop.version });
+  await page.goto(`${workspace}/stores/${shop.id}/setup`);
+  await page.getByLabel("Limit").selectOption("PER_PERIOD");
+  await page.getByLabel("Amount (₦)").fill("150,000");
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Save allowance" }).click();
+  await expect(page.getByText("Allowance saved.")).toBeVisible();
+  await page.getByRole("button", { name: "Open the store" }).click();
+  await expect(page.getByText("The store is open.")).toBeVisible();
+
+  // The Lekki manager sees what's left and that the banner is covered (Pen 32, 78 B).
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(`${workspace}/stores/${shop.id}`);
+  await expect(page.getByText("₦150,000 of ₦150,000 left")).toBeVisible();
+  await expect(page.getByText("Uniform allowance · renews 1 Jan")).toBeVisible();
+  await expect(page.getByText("Covered", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Paid from your allowance\. ₦[\d,]+ will be left\.$/)).toBeVisible();
+  await expectNoAxeViolations(page);
+  await expectNoHorizontalScroll(page);
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByText(/^Paid from your uniform allowance\./)).toBeVisible();
+
+  // With a ₦1 limit per order, the same pick is over (Pen 78 C) and goes to a manager.
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  const current = await call("GET", `/v1/organizations/${organizationId}/stores/${shop.id}`, undefined);
+  await call("PUT", `/v1/organizations/${organizationId}/stores/${shop.id}/allowance`, { kind: "PER_ORDER", name: "Uniform allowance", amountMinor: "100", version: current.version });
+  await page.context().clearCookies();
+  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await page.goto(`${workspace}/stores/${shop.id}`);
+  await expect(page.getByText(/^This order is ₦[\d,]+ over your allowance$/)).toBeVisible();
+  await expect(page.getByText(/Paying the difference yourself isn't enabled by ACME/)).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole("button", { name: "Ask my manager to approve" }).click();
+  await page.waitForURL(/\/approvals\//);
+  await expect(page.getByText("AWAITING APPROVAL")).toBeVisible();
+});

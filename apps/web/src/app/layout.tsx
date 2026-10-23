@@ -4,6 +4,7 @@ import { IBM_Plex_Mono, Instrument_Sans, Open_Sans, Young_Serif } from "next/fon
 import type { ReactNode } from "react";
 import { Motion, MOTION_BOOT } from "../components/motion/Motion";
 import { Tooltips } from "../components/tooltip/Tooltips";
+import { SITE_URL, verification } from "../lib/seo";
 import { Providers } from "./providers";
 
 /* Ledger type (Pen Stage 4.3 · Foundations): Young Serif headlines, Instrument Sans UI, IBM Plex Mono records; Open Sans 700 is the logo wordmark only. */
@@ -14,6 +15,9 @@ const wordmark = Open_Sans({ subsets: ["latin"], weight: "700", variable: "--fon
 
 export const metadata: Metadata = {
   title: { default: "HolyPearls", template: "%s · HolyPearls" },
+  // Canonical and social URLs are absolute on the public address (Stage 3 §53; found by the T14-01 check).
+  metadataBase: new URL(SITE_URL),
+  verification,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

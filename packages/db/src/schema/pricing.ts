@@ -164,7 +164,8 @@ export const priceResults = pgTable(
   (table) => [index("price_results_created_idx").on(table.createdAt)],
 );
 
-export const deliveryZoneKind = pgEnum("delivery_zone_kind", ["AREA", "REST_OF_NIGERIA", "INTERNATIONAL"]);
+/** COUNTRIES: a group of destinations abroad with its own freight (T13-01c; OPS-FR-101), checked before International. */
+export const deliveryZoneKind = pgEnum("delivery_zone_kind", ["AREA", "REST_OF_NIGERIA", "INTERNATIONAL", "COUNTRIES"]);
 export const deliveryPricing = pgEnum("delivery_pricing", ["FIXED", "QUOTE"]);
 
 /**
@@ -183,6 +184,8 @@ export const deliveryZones = pgTable(
     kind: deliveryZoneKind("kind").notNull().default("AREA"),
     /** For AREA zones: `{ state, lga }` pairs; `lga: null` covers the whole state. */
     covers: jsonb("covers").notNull().default([]),
+    /** For COUNTRIES zones: ISO country codes, e.g. GH, TG, BJ. */
+    countries: text("countries").array().notNull().default(sql`'{}'::text[]`),
     pricing: deliveryPricing("pricing").notNull(),
     /** NGN kobo, before VAT; null when pricing is QUOTE. */
     rateMinor: bigint("rate_minor", { mode: "bigint" }),
@@ -196,7 +199,7 @@ export const deliveryZones = pgTable(
   },
   (table) => [
     uniqueIndex("delivery_zones_name_unique").on(sql`lower(${table.name})`),
-    uniqueIndex("delivery_zones_rest_unique").on(table.kind).where(sql`${table.kind} <> 'AREA'`),
+    uniqueIndex("delivery_zones_rest_unique").on(table.kind).where(sql`${table.kind} in ('REST_OF_NIGERIA', 'INTERNATIONAL')`),
     check("delivery_zones_rate", sql`(${table.pricing} = 'FIXED' and ${table.rateMinor} >= 0) or (${table.pricing} = 'QUOTE' and ${table.rateMinor} is null)`),
   ],
 );
@@ -216,5 +219,49 @@ export const courierSettings = pgTable("courier_settings", {
   pickup: jsonb("pickup"),
   version: versionColumn(),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Where HolyPearls installs and how it's priced (T13-01c; OPS-FR-102; Pen
+ * 119). An installation in a state no area covers, or of a product the area
+ * can't install, is quoted.
+ */
+export const installationAreas = pgTable(
+  "installation_areas",
+  {
+    id: idColumn(),
+    name: text("name").notNull(),
+    states: text("states").array().notNull().default(sql`'{}'::text[]`),
+    /** The products this area can install. */
+    productIds: uuid("product_ids").array().notNull().default(sql`'{}'::uuid[]`),
+    /** FIXED: a fee per product line; FIXED_PLUS_TRAVEL: that plus a travel fee per order; QUOTE: always quoted. */
+    pricing: text("pricing").$type<"FIXED" | "FIXED_PLUS_TRAVEL" | "QUOTE">().notNull(),
+    /** NGN kobo before VAT. */
+    rateMinor: bigint("rate_minor", { mode: "bigint" }),
+    travelMinor: bigint("travel_minor", { mode: "bigint" }),
+    position: integer("position").notNull().default(0),
+    version: versionColumn(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("installation_areas_name_unique").on(sql`lower(${table.name})`),
+    check("installation_areas_pricing", sql`${table.pricing} in ('FIXED', 'FIXED_PLUS_TRAVEL', 'QUOTE')`),
+    check(
+      "installation_areas_rates",
+      sql`(${table.pricing} = 'QUOTE') or (${table.rateMinor} is not null and ${table.rateMinor} >= 0 and (${table.pricing} = 'FIXED' or (${table.travelMinor} is not null and ${table.travelMinor} >= 0)))`,
+    ),
+  ],
+);
+
+/** The installation rules (Pen 119 "Rules"); one row. Null turns a rule off. */
+export const installationRules = pgTable("installation_rules", {
+  id: integer("id").primaryKey().default(1),
+  /** A site survey (so a quote) for a graphic larger than this many square metres. */
+  surveyAboveSqM: integer("survey_above_sq_m"),
+  /** The installation date must be at least this many working days ahead. */
+  noticeWorkingDays: integer("notice_working_days"),
+  version: versionColumn(),
   updatedAt: updatedAt(),
 });
