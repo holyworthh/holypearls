@@ -1,4 +1,4 @@
-import { searchPhraseListSchema, searchResultsSchema, searchSuggestionsSchema, sitemapSchema } from "@holypearls/contracts";
+import { searchPhraseListSchema, type SearchReport, searchResultsSchema, searchSuggestionsSchema, sitemapSchema } from "@holypearls/contracts";
 import { desc, eq, schema, sql } from "@holypearls/db";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -265,7 +265,11 @@ describe("search event retention (PR #30 review)", () => {
     const recent = new Date(now.getTime() - 5 * 86_400_000);
     const [oldRow] = await db.insert(schema.searchEvents).values({ kind: "SEARCH", query: "retention old", results: 1, createdAt: old }).returning();
     const [recentRow] = await db.insert(schema.searchEvents).values({ kind: "SEARCH", query: "retention recent", results: 1, createdAt: recent }).returning();
-    expect(await removeExpiredSearchEvents(db, now)).toBeGreaterThanOrEqual(1);
+    const [oldSite] = await db.insert(schema.siteEvents).values({ kind: "CONTACT", createdAt: old }).returning();
+    const [recentSite] = await db.insert(schema.siteEvents).values({ kind: "CONTACT", createdAt: recent }).returning();
+    expect(await removeExpiredSearchEvents(db, now)).toBeGreaterThanOrEqual(2);
+    expect(await db.select().from(schema.siteEvents).where(eq(schema.siteEvents.id, oldSite!.id))).toHaveLength(0);
+    expect(await db.select().from(schema.siteEvents).where(eq(schema.siteEvents.id, recentSite!.id))).toHaveLength(1);
     expect(await db.select().from(schema.searchEvents).where(eq(schema.searchEvents.id, oldRow!.id))).toHaveLength(0);
     expect(await db.select().from(schema.searchEvents).where(eq(schema.searchEvents.id, recentRow!.id))).toHaveLength(1);
     expect(await removeExpiredSearchEvents(db, now)).toBe(0);
@@ -284,5 +288,72 @@ describe("sitemap dates (PR #30 review)", () => {
     expect(entry("/products")?.updatedAt).not.toBeNull();
     const guides = sitemap.entries.filter((item) => item.path.startsWith("/resources/")).map((item) => item.updatedAt!);
     expect(entry("/resources")?.updatedAt).toBe(guides.sort().at(-1));
+  });
+});
+
+describe("result order (T14-01b)", () => {
+  it("an exact phrase outranks a closer title match", async () => {
+    expect((await search("q=embroidery")).products.entries[0]?.slug).toBe("flat-embroidery");
+  });
+});
+
+describe("where people go (PRD-01 §11, T14-01b)", () => {
+  const report = async () => (await request(harness.url).get("/v1/admin/search/report").set("cookie", staff)).body as SearchReport;
+  const post = (body: object) => request(harness.url).post("/v1/analytics/events").set("origin", TEST_WEB_ORIGIN).send(body);
+
+  it("records where people go, without anything personal", async () => {
+    const before = await harness.database.db.select().from(schema.siteEvents);
+    expect((await post({ kind: "PRODUCT", fromGuide: true })).status).toBe(204);
+    const after = await harness.database.db.select().from(schema.siteEvents);
+    expect(after).toHaveLength(before.length + 1);
+    expect(after.at(-1)).toMatchObject({ kind: "PRODUCT", fromGuide: true });
+    expect((await post({ kind: "PRODUCT", fromGuide: false, path: "/x" })).status).toBe(400);
+    expect((await post({ kind: "CONFIGURE", fromGuide: false })).status).toBe(400);
+    // Like every POST: a foreign Origin is refused, and so is a missing one when a session cookie comes with it.
+    const foreign = await request(harness.url).post("/v1/analytics/events").set("origin", "https://evil.example").send({ kind: "PRODUCT", fromGuide: false });
+    expect(foreign.status).toBe(403);
+    const noOrigin = await request(harness.url).post("/v1/analytics/events").set("cookie", staff).send({ kind: "PRODUCT", fromGuide: false });
+    expect(noOrigin.status).toBe(403);
+    expect(await harness.database.db.select().from(schema.siteEvents)).toHaveLength(after.length);
+  });
+
+  it("counts a Configure entry when a design is first saved", async () => {
+    const configure = async () => (await report()).entries.find((entry) => entry.kind === "CONFIGURE")!.total;
+    const before = await configure();
+    const created = await as(harness, actors.customerChidi!).post("/v1/configurations", { productSlug: "business-cards" });
+    expect(created.status).toBe(201);
+    // The event is written after the response, and the report is slow over a remote test database.
+    await expect.poll(configure, { timeout: 30_000, interval: 500 }).toBe(before + 1);
+  });
+
+  it("entries count every kind, from guides separately", async () => {
+    await post({ kind: "PROJECT", fromGuide: true });
+    await post({ kind: "PROJECT", fromGuide: false });
+    const { entries } = await report();
+    expect(entries.map((entry) => entry.kind).sort()).toEqual(["CATEGORY", "CONFIGURE", "CONTACT", "PRODUCT", "PROJECT", "START_PROJECT"]);
+    expect(entries.find((entry) => entry.kind === "PROJECT")).toMatchObject({ total: 2, fromGuides: 1 });
+  });
+
+  it("the zero-result report lists queries that found nothing, most frequent first, with when they were last searched", async () => {
+    await search("q=zzqv%20alpha");
+    await search("q=zzqv%20alpha");
+    await search("q=zzqv%20beta");
+    await search(`q=${encodeURIComponent("zzqv call 08031234567")}`);
+    const { zeroResults } = await report();
+    const alpha = zeroResults.findIndex((row) => row.query === "zzqv alpha");
+    const beta = zeroResults.findIndex((row) => row.query === "zzqv beta");
+    expect(zeroResults[alpha]).toMatchObject({ count: 2 });
+    expect(alpha).toBeGreaterThanOrEqual(0);
+    expect(alpha).toBeLessThan(beta);
+    expect(new Date(zeroResults[alpha]!.lastSearchedAt).toISOString()).toBe(zeroResults[alpha]!.lastSearchedAt);
+    expect(JSON.stringify(zeroResults)).not.toContain("08031234567");
+  });
+
+  it("the search report is for catalogue or content staff only", async () => {
+    const finance = await signInActors(harness, ["financeFolake"]);
+    expectForbidden(await as(harness, finance.financeFolake!).get("/v1/admin/search/report"));
+    expectForbidden(await as(harness, actors.catalogueNoMfa!).get("/v1/admin/search/report"));
+    expectHidden(await as(harness, actors.customerChidi!).get("/v1/admin/search/report"));
+    expectHidden(await as(harness, "").get("/v1/admin/search/report"));
   });
 });

@@ -1217,7 +1217,7 @@ export function buildOpenApiDocument() {
         },
       },
       "/v1/admin/search/report": {
-        get: { summary: "Last 30 days: searches, searches with no results and the most common of each", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
+        get: { summary: "Last 30 days: searches, the zero-result report, where people went, and phrase coverage (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
       },
       "/v1/seo/sitemap": {
         get: { summary: "Published, indexable public pages for the XML sitemap (PUB-SEO-009)", responses: { 200: { description: "Pages", content: json(sitemapSchema) } } },

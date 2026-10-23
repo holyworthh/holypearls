@@ -3,7 +3,7 @@ import { launchCatalogueSeedStep, runSeed } from "@holypearls/testkit";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createHarness, type Harness } from "../testing/harness.js";
-import { refreshSearchIndex } from "./search.js";
+import { phraseCoverage, refreshSearchIndex } from "./search.js";
 
 /*
  * T14-01b: search tuned on the full Stage 1.4 launch catalogue (304 products).
@@ -90,4 +90,12 @@ describe("search quality on the launch catalogue (T14-01b)", () => {
     }
     expect(failures).toEqual([]);
   }, 300_000);
+
+  it("phrase coverage shows the polo's phrases leading and flags a phrase two products share", async () => {
+    const coverage = await phraseCoverage(harness.database.db);
+    expect(coverage.total).toBeGreaterThan(300);
+    const missed = coverage.misses.map((miss) => miss.phrase);
+    expect(missed).not.toContain("staff shirts");
+    expect(missed).toContain("tote bag");
+  }, 120_000);
 });

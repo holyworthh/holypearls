@@ -117,13 +117,22 @@ export const searchTargetOptionsSchema = z.object({ entries: z.array(searchTarge
 export const searchTargetQuerySchema = z.object({ q: z.string().trim().min(1).max(60) }).strict();
 
 /** Search analytics for staff (PRD-01 §11): top searches and the ones that found nothing. */
+const pageLink = z.object({ label: z.string(), href: z.string() });
 export const searchReportSchema = z.object({
   since: z.string(),
   searches: z.number().int(),
   noResults: z.number().int(),
+  /** Clicks on search results (CLICK events). */
+  resultClicks: z.number().int(),
   top: z.array(z.object({ query: z.string(), count: z.number().int() })),
-  topNoResults: z.array(z.object({ query: z.string(), count: z.number().int() })),
+  /** The zero-result report: up to 50 queries that found nothing, most frequent first. */
+  zeroResults: z.array(z.object({ query: z.string(), count: z.number().int(), lastSearchedAt: z.string() })),
+  /** Where people went: every kind, zeros included. fromGuides = from a guide page. */
+  entries: z.array(z.object({ kind: siteEventKindSchema, total: z.number().int(), fromGuides: z.number().int() })),
+  /** Phrase coverage: indexed phrases and the ones whose page isn't shown first. */
+  phrases: z.object({ total: z.number().int(), leading: z.number().int(), misses: z.array(z.object({ phrase: z.string(), expected: pageLink, shown: pageLink.nullable() })) }),
 });
+export type SearchReport = z.infer<typeof searchReportSchema>;
 
 /** Public pages for the XML sitemap (PUB-SEO-009): published and indexable only. */
 export const sitemapSchema = z.object({

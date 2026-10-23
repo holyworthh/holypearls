@@ -2,12 +2,15 @@ import {
   type ContentCard,
   type ContentFields,
   contentHref,
+  type ContentType,
   type PublicProductCard,
   type SearchPhrase,
+  type SearchReport,
   type SearchResults,
   type SearchScope,
   type SearchSuggestions,
   type SiteEvent,
+  siteEventKindSchema,
 } from "@holypearls/contracts";
 import { and, asc, type Database, desc, eq, gte, inArray, lt, type SQL, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
@@ -586,29 +589,78 @@ export async function removeExpiredSearchEvents(db: Database, now = new Date()):
   return removed.length + entries.length;
 }
 
-/** Last 30 days: how many searches, how many found nothing, and the most common of each. */
-export async function searchReport(db: Database, now = new Date()) {
+const docHref = (type: string, slug: string) => (type === "PRODUCT" ? `/products/${slug}` : type === "CATEGORY" ? `/categories/${slug}` : contentHref(type as ContentType, slug));
+
+/** Each indexed phrase and whether searching it shows its own page first (T14-01b). ponytail: one lateral lookup per phrase; fine for hundreds, page it if phrases reach many thousands. */
+export async function phraseCoverage(db: Database): Promise<SearchReport["phrases"]> {
+  const rows = rowsOf<{ phrase: string; doc_type: string; slug: string; title: string; top_type: string | null; top_slug: string | null; top_title: string | null; miss: boolean }>(
+    await db.execute(sql`
+      with ph as (
+        select distinct lower(p) as phrase, ref_id, doc_type, slug, title
+        from search_documents, regexp_split_to_table(phrases_text, E'\n') p
+        where p <> ''
+      )
+      select ph.phrase, ph.doc_type, ph.slug, ph.title, top.doc_type as top_type, top.slug as top_slug, top.title as top_title, top.ref_id is distinct from ph.ref_id as miss
+      from ph
+      left join lateral (
+        select ref_id, doc_type, slug, title from search_documents
+        where doc_type = any(case when ph.doc_type in ('PROJECT', 'CASE_STUDY') then array['PROJECT', 'CASE_STUDY']::search_doc_type[] else array[ph.doc_type]::search_doc_type[] end)
+          and tsv @@ websearch_to_tsquery('english', ph.phrase)
+        order by ${sql.join(rankOrder(sql`ph.phrase`), sql`, `)}
+        limit 1
+      ) top on true
+      order by ph.phrase, ph.slug`),
+  );
+  const misses = rows.filter((row) => row.miss);
+  return {
+    total: rows.length,
+    leading: rows.length - misses.length,
+    misses: misses.slice(0, 100).map((row) => ({
+      phrase: row.phrase,
+      expected: { label: row.title, href: docHref(row.doc_type, row.slug) },
+      shown: row.top_slug ? { label: row.top_title!, href: docHref(row.top_type!, row.top_slug) } : null,
+    })),
+  };
+}
+
+/** Last 30 days: searches, the ones that found nothing, where people went, and whether phrases lead to their pages. */
+export async function searchReport(db: Database, now = new Date()): Promise<SearchReport> {
   const since = new Date(now.getTime() - 30 * 86_400_000);
-  const top = async (kinds: ("SEARCH" | "NO_RESULTS")[]) =>
-    db
-      .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int` })
-      .from(schema.searchEvents)
-      .where(and(inArray(schema.searchEvents.kind, kinds), gte(schema.searchEvents.createdAt, since)))
-      .groupBy(schema.searchEvents.query)
-      .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
-      .limit(10);
+  const recent = (table: typeof schema.searchEvents | typeof schema.siteEvents) => gte(table.createdAt, since);
+  const top = await db
+    .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int` })
+    .from(schema.searchEvents)
+    .where(and(inArray(schema.searchEvents.kind, ["SEARCH", "NO_RESULTS"]), recent(schema.searchEvents)))
+    .groupBy(schema.searchEvents.query)
+    .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
+    .limit(10);
+  const zeroResults = await db
+    .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int`, lastSearchedAt: sql<Date>`max(${schema.searchEvents.createdAt})` })
+    .from(schema.searchEvents)
+    .where(and(eq(schema.searchEvents.kind, "NO_RESULTS"), recent(schema.searchEvents)))
+    .groupBy(schema.searchEvents.query)
+    .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
+    .limit(50);
   const totals = await db
     .select({ kind: schema.searchEvents.kind, count: sql<number>`count(*)::int` })
     .from(schema.searchEvents)
-    .where(gte(schema.searchEvents.createdAt, since))
+    .where(recent(schema.searchEvents))
     .groupBy(schema.searchEvents.kind);
   const count = (kind: string) => totals.find((row) => row.kind === kind)?.count ?? 0;
+  const entryRows = await db
+    .select({ kind: schema.siteEvents.kind, total: sql<number>`count(*)::int`, fromGuides: sql<number>`(count(*) filter (where ${schema.siteEvents.fromGuide}))::int` })
+    .from(schema.siteEvents)
+    .where(recent(schema.siteEvents))
+    .groupBy(schema.siteEvents.kind);
   return {
     since: since.toISOString(),
     searches: count("SEARCH") + count("NO_RESULTS"),
     noResults: count("NO_RESULTS"),
-    top: await top(["SEARCH", "NO_RESULTS"]),
-    topNoResults: await top(["NO_RESULTS"]),
+    resultClicks: count("CLICK"),
+    top,
+    zeroResults: zeroResults.map((row) => ({ ...row, lastSearchedAt: new Date(row.lastSearchedAt).toISOString() })),
+    entries: siteEventKindSchema.options.map((kind) => ({ kind, total: entryRows.find((row) => row.kind === kind)?.total ?? 0, fromGuides: entryRows.find((row) => row.kind === kind)?.fromGuides ?? 0 })),
+    phrases: await phraseCoverage(db),
   };
 }
 
