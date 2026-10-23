@@ -1,6 +1,7 @@
 import "@holypearls/ui/styles.css";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Instrument_Sans, Open_Sans, Young_Serif } from "next/font/google";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 import { LinkTracker } from "../components/analytics/LinkTracker";
 import { Motion, MOTION_BOOT } from "../components/motion/Motion";
@@ -21,11 +22,13 @@ export const metadata: Metadata = {
   verification,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // Reading the request's nonce (set in proxy.ts) also makes every page render per request, which nonces need (TECH-06 §9).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${display.variable} ${ui.variable} ${mono.variable} ${wordmark.variable}`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: MOTION_BOOT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: MOTION_BOOT }} />
       </head>
       <body>
         <Providers>{children}</Providers>

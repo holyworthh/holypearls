@@ -16,7 +16,7 @@ import { FakeGateway } from "@holypearls/testkit";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { checkPaymentAttempt } from "../payments/payments.js";
-import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
+import { as, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
 import { type Browser, orderFlows } from "../testing/flows.js";
 import { createHarness, type Harness } from "../testing/harness.js";
 
@@ -172,7 +172,7 @@ describe("problem reports (FUL-FR-070)", () => {
     const [stranger] = await db().insert(schema.files).values({ purpose: "PROBLEM_PHOTO", status: "READY", originalName: "x.jpg", safeName: "x.jpg", declaredType: "image/jpeg", declaredSize: 10, storageKey: `p/${randomUUID()}`, bucket: "private" }).returning();
     expectHidden(await b.post(`/v1/orders/${orderId}/problems`, { ...report, photoFileIds: [stranger!.id] }));
     // Guests and other customers can't report on an order that isn't theirs.
-    expectHidden(await flows.browser().post(`/v1/orders/${orderId}/problems`, report));
+    expectNoIdentity(await flows.browser().post(`/v1/orders/${orderId}/problems`, report));
     expectHidden(await as(harness, actors.customerChidi!).post(`/v1/orders/${orderId}/problems`, report));
 
     const sent = await b.post(`/v1/orders/${orderId}/problems`, report);

@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { createSearchPhraseSchema, searchClickSchema, searchQuerySchema, searchTargetQuerySchema, type SiteEvent, siteEventBodySchema } from "@holypearls/contracts";
 import { and, eq, schema, sql } from "@holypearls/db";
@@ -28,6 +29,7 @@ export class SearchController {
 
   /** Search analytics: which result was chosen (PRD-01 §11). */
   @Post("clicks")
+  @Public()
   @HttpCode(204)
   @RateLimit("SEARCH")
   async click(@Body(new ZodValidationPipe(searchClickSchema)) body: z.infer<typeof searchClickSchema>) {

@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Get, HttpCode, Inject, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
 import { bookCourierSchema, createShipmentSchema, newProblemSchema, problemReplySchema, reorderSchema, triageProblemSchema, updateShipmentSchema } from "@holypearls/contracts";
 import type { Request, Response } from "express";
@@ -75,6 +76,7 @@ export class ShipbubbleWebhookController {
   constructor(@Inject(PAYMENT_DEPS) private readonly deps: PaymentDeps) {}
 
   @Post()
+  @Public()
   @HttpCode(200)
   async receive(@Req() request: Request) {
     const raw = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);

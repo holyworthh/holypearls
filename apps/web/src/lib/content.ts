@@ -22,7 +22,8 @@ const env = loadWebEnv();
  */
 async function published<T extends z.ZodType>(path: string, schema: T, tags: string[]): Promise<z.output<T> | null> {
   const response = await fetch(`${env.API_URL}${path}`, {
-    headers: { accept: "application/json" },
+    // The secret marks this as the site's own cached read, which the API doesn't count against one visitor's address.
+    headers: { accept: "application/json", ...visitorHeaders(new Headers()) },
     next: { tags: ["content", "catalogue", ...tags], revalidate: 300 },
   });
   if (response.status === 404) return null;

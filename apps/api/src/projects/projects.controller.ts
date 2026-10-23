@@ -1,3 +1,4 @@
+import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   addProjectItemSchema,
@@ -57,6 +58,7 @@ export class ProjectsController {
   }
 
   @Post()
+  @Public()
   @RateLimit("COMMERCIAL_WRITE")
   async create(@Req() request: Request, @Res({ passthrough: true }) response: Response, @Body(new ZodValidationPipe(createProjectSchema)) body: z.infer<typeof createProjectSchema>) {
     const { project, newDeviceKey } = await createProject(this.deps.db, await this.access(request), body);
@@ -187,6 +189,7 @@ export class RecommendationRulesAdminController {
 
   /** "Preview with 250 attendees" (Pen 110). */
   @Post(":type/preview")
+  @RateLimit("ADMIN_WRITE")
   @HttpCode(200)
   @UseGuards(StaffGuard("QUOTE_MANAGE"))
   async preview(@Param("type", typePipe) type: ProjectTypeParam, @Body(new ZodValidationPipe(previewRecommendationsSchema)) body: z.infer<typeof previewRecommendationsSchema>) {

@@ -2078,8 +2078,8 @@
                     },
                     "redirectTo": {
                       "type": "string",
-                      "format": "starts_with",
-                      "pattern": "^\\/.*"
+                      "maxLength": 2048,
+                      "pattern": "^\\/(?![/\\\\])[^\\\\\\p{Cc}]*$"
                     }
                   },
                   "required": [
