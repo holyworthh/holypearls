@@ -67,7 +67,7 @@ export function NewContentButton({ type, label }: { type: Exclude<ContentType, "
       >
         <form id="new-content" noValidate onSubmit={create} className={c.editorCol}>
           {failure ? (
-            <Notice tone="error" title="Not created">
+            <Notice tone="error" title="Not created" live>
               <p>{failure}</p>
             </Notice>
           ) : null}

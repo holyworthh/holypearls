@@ -88,7 +88,7 @@ export function OrderDraftPanel({ organizationId, collectionId, status, version,
             </div>
           </div>
           {draft.status === "SUBMITTED" ? (
-            <Notice tone="success" title="Sent">
+            <Notice tone="success" title="Sent" live>
               <p>
                 {draft.route === "APPROVAL" ? (
                   <>

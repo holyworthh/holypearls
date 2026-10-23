@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import s from "../components/home/home.module.css";
 import { HeroSearch } from "../components/home/HeroSearch";
+import { PauseMotion } from "../components/motion/Motion";
 import { PoloPicker } from "../components/home/PoloPicker";
 import { Icon, type IconName } from "../components/pen/Icon";
 import { JsonLd } from "../components/seo/JsonLd";
@@ -184,6 +185,7 @@ export default function HomePage() {
             </li>
           ))}
         </ul>
+        <PauseMotion className={s.motionToggle} />
       </div>
 
       <section className={s.section} aria-labelledby="shop-title">

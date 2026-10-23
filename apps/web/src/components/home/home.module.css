@@ -682,12 +682,32 @@
 /* ── Marquee: what we make ── */
 
 .marquee {
+  position: relative;
   display: flex;
   align-items: center;
   height: var(--hp-marquee-height-m);
   overflow: hidden;
   border-bottom: var(--hp-border-width) solid var(--hp-line);
   white-space: nowrap;
+}
+
+/* Pause control for the ambient motion (WCAG 2.2.2); not in the Pen, see the T14-03 report. */
+.motionToggle {
+  position: absolute;
+  top: 50%;
+  right: var(--hp-space-20);
+  z-index: 1;
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-16);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-r-pill);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-medium);
+  cursor: pointer;
+  transform: translateY(-50%);
 }
 
 .marqueeTrack {

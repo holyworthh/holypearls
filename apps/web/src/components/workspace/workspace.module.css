@@ -452,7 +452,7 @@
   min-height: var(--hp-workspace-control-height);
   max-width: 100%;
   padding: 0 var(--hp-space-10);
-  border: var(--hp-border-width) solid var(--hp-line);
+  border: var(--hp-border-width) solid var(--hp-line-strong);
   border-radius: var(--hp-r-tag);
   background: var(--hp-paper);
   color: var(--hp-ink);
@@ -462,7 +462,7 @@
 }
 
 .roleSelect:hover {
-  border-color: var(--hp-line-strong);
+  border-color: var(--hp-ink);
 }
 
 /* Member cards (frame 70 mobile) */

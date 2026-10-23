@@ -28,7 +28,7 @@ export function CartView({ initial }: { initial: Cart | null }) {
     return (
       <div className={styles.body}>
         <h1 className={styles.title}>Your cart</h1>
-        {notice ? <Notice tone="error" title="Something went wrong">{notice.text}</Notice> : null}
+        {notice ? <Notice tone="error" title="Something went wrong" live>{notice.text}</Notice> : null}
       </div>
     );
   }
