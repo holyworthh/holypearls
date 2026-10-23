@@ -43,7 +43,7 @@ jobs:
           for attempt in $(seq 1 30); do docker exec "$PG" pg_isready -q -U holypearls_ci -h localhost && break; sleep 2; done
           docker exec "$PG" pg_isready -U holypearls_ci -h localhost
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
       # pnpm from corepack, at the version package.json's packageManager pins. The standalone
