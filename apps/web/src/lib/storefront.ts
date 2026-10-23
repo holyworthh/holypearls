@@ -7,9 +7,8 @@ import {
   storefrontNavigationSchema,
   type StorefrontNavigation,
 } from "@holypearls/contracts";
-import { PROXY_SECRET_HEADER } from "@holypearls/web-kit/visitor";
 import type { z } from "zod";
-import { WEB_IDENTITY } from "./visitor";
+import { visitorHeaders } from "./visitor";
 
 const env = loadWebEnv();
 
@@ -23,7 +22,7 @@ async function storefront<T extends z.ZodType>(path: string, schema: T, tags: st
   try {
     const response = await fetch(`${env.API_URL}${path}`, {
       // The secret marks this as the site's own cached read, which the API doesn't count against one visitor's address.
-      headers: { accept: "application/json", ...(WEB_IDENTITY.secret ? { [PROXY_SECRET_HEADER]: WEB_IDENTITY.secret } : {}) },
+      headers: { accept: "application/json", ...visitorHeaders(new Headers()) },
       next: { tags: ["catalogue", ...tags], revalidate: 300 },
     });
     if (response.status === 404) return null;

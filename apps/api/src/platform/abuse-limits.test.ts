@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
+import { testIdempotencyKey } from "../testing/actors.js";
+import { createHarness, type Harness, TEST_WEB_ORIGIN, TEST_WEB_PROXY_SECRET as SECRET } from "../testing/harness.js";
 
 /*
  * T15-01, TECH-06 §13: the abuse limits of TECH-02 §14 for guest links, email
@@ -11,8 +11,8 @@ import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness
 
 vi.setConfig({ testTimeout: 600_000, hookTimeout: 600_000 });
 
-const SECRET = "web-proxy-secret-for-tests-0123456789ab";
 
+const DEVICE = `hp.device=${"d".repeat(48)}`;
 let harness: Harness;
 let limited: Harness;
 
@@ -22,7 +22,7 @@ const asVisitor = (test: request.Test, ip?: string) => {
   return ip ? test.set("x-hp-client-ip", ip) : test;
 };
 
-const post = (path: string, ip: string, body: object = {}) => asVisitor(request(limited.url).post(path), ip).set("idempotency-key", `test_${randomUUID().replaceAll("-", "")}`).send(body);
+const post = (path: string, ip: string, body: object = {}) => asVisitor(request(limited.url).post(path), ip).set("idempotency-key", testIdempotencyKey()).send(body);
 
 /** Sends `count` requests and returns each status; one frozen clock keeps them in one window. */
 async function burst(count: number, send: () => request.Test) {
@@ -56,9 +56,10 @@ describe("guest links and email codes (TECH-06 §13)", () => {
   });
 
   it("stops asking for codes: the 11th request in a minute is 429", async () => {
-    const statuses = await burst(10, () => post("/v1/email-codes", "198.51.100.3", { purpose: "ACCEPT_QUOTE" }));
+    // A visitor with a device (the identity the guard needs before it reads a code request).
+    const statuses = await burst(10, () => post("/v1/email-codes", "198.51.100.3", { purpose: "ACCEPT_QUOTE" }).set("cookie", DEVICE));
     expect(statuses.every((status) => status !== 429)).toBe(true);
-    expect((await post("/v1/email-codes", "198.51.100.3", { purpose: "ACCEPT_QUOTE" })).status).toBe(429);
+    expect((await post("/v1/email-codes", "198.51.100.3", { purpose: "ACCEPT_QUOTE" }).set("cookie", DEVICE)).status).toBe(429);
   });
 });
 
@@ -70,7 +71,7 @@ describe("uploads and contact forms (TECH-06 §13)", () => {
         .post("/v1/files/uploads")
         .set("origin", TEST_WEB_ORIGIN)
         .set("cookie", chidi)
-        .set("idempotency-key", `test_${randomUUID().replaceAll("-", "")}`)
+        .set("idempotency-key", testIdempotencyKey())
         .send({ purpose: "ARTWORK", fileName: "logo.png", size: 1000, contentType: "image/png" });
     const statuses = await burst(30, intent);
     expect(statuses.every((status) => status === 201)).toBe(true);

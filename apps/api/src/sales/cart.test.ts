@@ -329,12 +329,12 @@ describe("carts and checkouts are private (TECH-03 §17)", () => {
     const stranger = browser();
     expectHidden(await stranger.get(`/v1/checkouts/${checkout.id}`));
     expectNoIdentity(await stranger.put(`/v1/checkouts/${checkout.id}/contact`, { ...contact, version: checkout.version }));
-    expectHidden(await stranger.delete(`/v1/cart/items/${cart.items[0]!.id}`));
+    expectNoIdentity(await stranger.delete(`/v1/cart/items/${cart.items[0]!.id}`));
     expectHidden(await as(harness, actors.customerChidi!).get(`/v1/checkouts/${checkout.id}`));
     expectHidden(await as(harness, actors.customerChidi!).delete(`/v1/cart/items/${cart.items[0]!.id}`));
     // Someone else's design can't be put into your cart.
     const draft = await cardsDraft(browser());
-    expectHidden(await stranger.post("/v1/cart/items", { configurationId: draft.id }));
+    expectNoIdentity(await stranger.post("/v1/cart/items", { configurationId: draft.id }));
     expect(cartSchema.parse((await stranger.get("/v1/cart")).body).items).toEqual([]);
   });
 });

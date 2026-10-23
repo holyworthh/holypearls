@@ -7,8 +7,10 @@
 
 export const newNonce = () => btoa(crypto.randomUUID());
 
-export function contentSecurityPolicy(options: { nonce: string; surface: "web" | "admin"; development: boolean; production: boolean }): string {
-  const { nonce, surface, development, production } = options;
+export function contentSecurityPolicy(options: { nonce: string; surface: "web" | "admin" }): string {
+  const { nonce, surface } = options;
+  const development = process.env.NODE_ENV === "development";
+  const production = process.env.HP_ENV === "production";
   const web = surface === "web";
   // 'strict-dynamic' lets the nonced bundle load its own chunks; 'self' and the hosts are for browsers that ignore it.
   const scriptSrc = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(web ? ["https://js.paystack.co"] : []), ...(development ? ["'unsafe-eval'"] : [])];

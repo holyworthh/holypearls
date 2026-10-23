@@ -10,8 +10,7 @@ import {
 } from "@holypearls/contracts";
 import { headers } from "next/headers";
 import type { z } from "zod";
-import { PROXY_SECRET_HEADER } from "@holypearls/web-kit/visitor";
-import { visitorHeaders, WEB_IDENTITY } from "./visitor";
+import { visitorHeaders } from "./visitor";
 
 const env = loadWebEnv();
 
@@ -24,7 +23,7 @@ const env = loadWebEnv();
 async function published<T extends z.ZodType>(path: string, schema: T, tags: string[]): Promise<z.output<T> | null> {
   const response = await fetch(`${env.API_URL}${path}`, {
     // The secret marks this as the site's own cached read, which the API doesn't count against one visitor's address.
-    headers: { accept: "application/json", ...(WEB_IDENTITY.secret ? { [PROXY_SECRET_HEADER]: WEB_IDENTITY.secret } : {}) },
+    headers: { accept: "application/json", ...visitorHeaders(new Headers()) },
     next: { tags: ["content", "catalogue", ...tags], revalidate: 300 },
   });
   if (response.status === 404) return null;

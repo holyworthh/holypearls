@@ -5,8 +5,9 @@ import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { testIdempotencyKey } from "./testing/actors.js";
 import { orderFlows } from "./testing/flows.js";
-import { createHarness, type Harness, TEST_WEB_ORIGIN } from "./testing/harness.js";
+import { createHarness, type Harness, TEST_ADMIN_PROXY_SECRET as ADMIN_SECRET, TEST_WEB_ORIGIN, TEST_WEB_PROXY_SECRET as WEB_SECRET } from "./testing/harness.js";
 import { listRoutes, type RouteInfo } from "./testing/routes.js";
 
 /*
@@ -19,8 +20,6 @@ import { listRoutes, type RouteInfo } from "./testing/routes.js";
 vi.setConfig({ testTimeout: 900_000, hookTimeout: 900_000 });
 
 const ADMIN_ORIGIN = "http://localhost:3002";
-const ADMIN_SECRET = "admin-proxy-secret-for-tests-0123456789";
-const WEB_SECRET = "web-proxy-secret-for-tests-0123456789ab";
 
 /** Routes that need no identity, or answer only for the visitor's own device or secret link. Each has its reason. */
 const OPEN_ROUTES: Record<string, string> = {
@@ -42,19 +41,11 @@ const OPEN_ROUTES: Record<string, string> = {
   "POST /v1/search/clicks": "anonymous search analytics",
   "GET /v1/seo/sitemap": "public sitemap",
   "GET /v1/cart": "the visitor's own device cart",
-  "POST /v1/cart/items": "the visitor's own device cart",
-  "POST /v1/cart/items/:id/save-for-later": "the visitor's own device cart",
-  "DELETE /v1/cart/items/:id": "the visitor's own device cart",
-  "DELETE /v1/cart/saved/:configurationId": "the visitor's own device cart",
-  "POST /v1/cart/quote-request": "the visitor's own device cart",
   "POST /v1/configurations": "starts a draft on the visitor's device",
-  "POST /v1/checkouts": "starts a checkout on the visitor's device",
   "POST /v1/projects": "starts a project on the visitor's device",
   "GET /v1/projects/current": "the visitor's own device project",
   "POST /v1/help-requests": "contact form",
   "POST /v1/orders/find": "order lookup by emailed link, never by order number alone",
-  "POST /v1/email-codes": "needs a guest session; limited",
-  "POST /v1/email-codes/verify": "needs a guest session; limited",
   "POST /v1/guest-links/redeem": "the link's secret is the credential",
   "DELETE /v1/guest-session": "ends the caller's own guest session",
   "GET /v1/invitations/preview": "invitation link: the token is the secret",
@@ -121,7 +112,7 @@ function send(route: RouteInfo, url: string, as: { cookie?: string; admin?: bool
   test.set("origin", as.admin ? ADMIN_ORIGIN : TEST_WEB_ORIGIN);
   if (as.admin) test.set("x-hp-surface", "admin").set("x-hp-proxy-secret", ADMIN_SECRET);
   if (as.cookie) test.set("cookie", as.cookie);
-  if (route.method !== "GET") test.set("idempotency-key", `test_${randomUUID().replaceAll("-", "")}`).send({});
+  if (route.method !== "GET") test.set("idempotency-key", testIdempotencyKey()).send({});
   return test.then((response) => {
     const parsed = apiErrorSchema.safeParse(response.body);
     return { status: response.status, code: parsed.success ? parsed.data.code : undefined, reason: parsed.success ? String(parsed.data.context?.reason ?? "") : undefined };

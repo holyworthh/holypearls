@@ -20,7 +20,7 @@ export function proxy(request: NextRequest) {
   headers.set("x-hp-pathname", request.nextUrl.pathname);
   // A new nonce per page request (TECH-06 §9). Next reads it from the request's CSP header and puts it on its own scripts.
   const nonce = newNonce();
-  const csp = contentSecurityPolicy({ nonce, surface: "admin", development: process.env.NODE_ENV === "development", production: process.env.HP_ENV === "production" });
+  const csp = contentSecurityPolicy({ nonce, surface: "admin" });
   headers.set("x-nonce", nonce);
   headers.set("content-security-policy", csp);
   const response = NextResponse.next({ request: { headers } });

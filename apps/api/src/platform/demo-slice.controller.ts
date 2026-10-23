@@ -30,7 +30,6 @@ export class DemoSliceController {
 
   /** Stands in for an important action (accept a quote, approve a proof) so the email-code dialog can be tried. */
   @Post("important-action")
-  @Public()
   @HttpCode(200)
   async importantAction(@Req() request: Request) {
     await requireRecentEmailCode(this.db, await request.getActor!());

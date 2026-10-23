@@ -56,7 +56,6 @@ export class CustomerAccessController {
   }
 
   @Post("email-codes")
-  @Public()
   @RateLimit("GUEST_LINK_VERIFY")
   async requestCode(
     @Req() request: Request,
@@ -68,7 +67,6 @@ export class CustomerAccessController {
   }
 
   @Post("email-codes/verify")
-  @Public()
   @HttpCode(200)
   @RateLimit("GUEST_LINK_VERIFY")
   async verifyCode(

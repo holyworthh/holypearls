@@ -1,4 +1,4 @@
-import { expect, test, type APIResponse, type Page } from "@playwright/test";
+import { expect, test, type APIResponse } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { ADMIN } from "./helpers";
 
@@ -89,19 +89,13 @@ test("the Paystack webhook, refused for its signature, still answers with the AP
   expect(response.headers()["permissions-policy"]).toContain("camera=()");
 });
 
-/** A page that runs under the policy without anything blocked. */
-function watchViolations(page: Page) {
+test("pages run under the policy: nothing is blocked", async ({ page }) => {
+  test.setTimeout(240_000);
   const violations: string[] = [];
   page.on("console", (message) => {
     if (/Content Security Policy|Refused to/i.test(message.text())) violations.push(message.text());
   });
   page.on("pageerror", (error) => violations.push(error.message));
-  return violations;
-}
-
-test("pages run under the policy: nothing is blocked", async ({ page }) => {
-  test.setTimeout(240_000);
-  const violations = watchViolations(page);
   for (const path of ["/", "/products/business-cards", "/cart"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");

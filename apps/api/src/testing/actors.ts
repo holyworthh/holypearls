@@ -11,6 +11,9 @@ import { type Harness, TEST_WEB_ORIGIN } from "./harness.js";
  * is 403, and a signed-out request is 401 or 404.
  */
 
+/** A fresh idempotency key for a test write. */
+export const testIdempotencyKey = () => `test_${randomUUID().replaceAll("-", "")}`;
+
 export type Actors = Record<TestPersonKey | "signedOut", string>;
 
 /** Signs in every test person once; `signedOut` is an empty cookie. */
@@ -27,7 +30,7 @@ export function as(harness: Harness, cookie: string) {
   return {
     get: (path: string) => withHeaders(agent.get(path)),
     post: (path: string, body: object = {}, key?: string) =>
-      withHeaders(agent.post(path)).set("idempotency-key", key ?? `test_${randomUUID().replaceAll("-", "")}`).send(body),
+      withHeaders(agent.post(path)).set("idempotency-key", key ?? testIdempotencyKey()).send(body),
     delete: (path: string) => withHeaders(agent.delete(path)),
     patch: (path: string) => withHeaders(agent.patch(path)),
     put: (path: string, body: object = {}) => withHeaders(agent.put(path)).send(body),
