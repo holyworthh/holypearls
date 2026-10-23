@@ -149,6 +149,8 @@ export const checkoutContactSchema = z.object({
   name: z.string().trim().min(1, "Enter your full name").max(120),
   email: z.email("Enter an email address like name@example.com").max(254),
   phone: z.string().trim().min(1, "Enter your phone number").max(40),
+  /** Ticking records consent on the customer; it is never kept in the checkout's contact. */
+  marketingConsent: z.boolean().optional(),
 });
 
 export const checkoutAddressSchema = z

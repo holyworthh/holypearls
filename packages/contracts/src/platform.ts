@@ -199,3 +199,21 @@ export const staffInvitationPreviewSchema = z.object({
 });
 export type StaffInvitationPreview = z.infer<typeof staffInvitationPreviewSchema>;
 export const acceptedStaffInvitationSchema = z.object({ adminSignInUrl: z.string() });
+
+/** Privacy requests (T15-03; TECH-06 §12; Pen 136, 129). The email goes in the body so it stays out of URLs and logs. */
+export const privacyLookupSchema = z.object({ email: z.email("Enter an email address like name@example.com").max(254) }).strict();
+export type PrivacyLookup = z.infer<typeof privacyLookupSchema>;
+export const privacyEraseSchema = z.object({ email: z.email().max(254), confirm: z.literal(true) }).strict();
+export type PrivacyErase = z.infer<typeof privacyEraseSchema>;
+
+export const PRIVACY_BLOCKERS = ["STAFF_ACCOUNT", "ORGANIZATION_MEMBER", "OPEN_ORDERS", "PAYMENT_IN_PROGRESS"] as const;
+export const privacyPersonSchema = z.object({
+  found: z.boolean(),
+  /** Set once the person's data has been erased. */
+  erasedAt: isoDate.nullable(),
+  hasAccount: z.boolean(),
+  marketingConsentAt: isoDate.nullable(),
+  counts: z.object({ customers: z.number().int(), orders: z.number().int(), receipts: z.number().int(), quotes: z.number().int(), checkouts: z.number().int() }),
+  blockers: z.array(z.object({ code: z.enum(PRIVACY_BLOCKERS), message: z.string() })),
+});
+export type PrivacyPerson = z.infer<typeof privacyPersonSchema>;
