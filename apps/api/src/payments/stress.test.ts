@@ -51,9 +51,7 @@ const setPayments = (on: boolean) => db().update(schema.paymentSettings).set({ o
 
 /** A ready checkout whose payment was started once; the attempt's row. */
 async function started(b: Browser, checkoutId: string) {
-  const response = await b.post(payPath(checkoutId));
-  expect(response.status).toBe(200);
-  return attemptOf(paymentStartSchema.parse(response.body).reference);
+  return attemptOf(paymentStartSchema.parse((await b.post(payPath(checkoutId))).body).reference);
 }
 
 /** Every response but one winner is a refusal the customer can understand. */
@@ -97,6 +95,24 @@ async function queueBehind(lock: (tx: Parameters<Parameters<ReturnType<typeof db
   }
   return Promise.allSettled(running);
 }
+
+/** No check, event or result threw: a deadlock or timeout would show here. */
+const noRejections = (settled: PromiseSettledResult<unknown>[]) =>
+  expect(settled.filter((result): result is PromiseRejectedResult => result.status === "rejected").map((result) => String(result.reason))).toEqual([]);
+
+/** The intent and its one attempt are for exactly what the checkout now totals. */
+async function expectPaymentMatchesCheckout(checkoutId: string) {
+  const row = await checkoutRow(checkoutId);
+  const [intent] = await intentsOfCheckout(checkoutId);
+  const attempts = await attemptsOf(intent!.id);
+  expect(attempts).toHaveLength(1);
+  expect(intent!.amountMinor).toBe(row.totalMinor);
+  expect(attempts[0]!.amountMinor).toBe(row.totalMinor);
+}
+
+/** A Lagos address for the checkout step; other addresses spread over it. */
+const lagos = (version: number) => ({ country: "NG", name: "Order Tester (TEST DATA)", phone: "0800 000 0000", street: "12 Admiralty Way", area: "Eti-Osa", state: "Lagos", landmark: "", version });
+const kano = (version: number) => ({ ...lagos(version), street: "4 Bompai Road", area: "Nassarawa", state: "Kano" });
 
 beforeAll(async () => {
   gateway = new FakeGateway();
@@ -173,7 +189,7 @@ describe("results arriving 100 at once", () => {
     expect(jobs!.n).toBe(N / 2 + 1);
 
     const settled = await Promise.allSettled([...events.map((event) => processPaystackEvent(deps(), event.id)), ...Array.from({ length: N }, () => checkPaymentAttempt(deps(), attempt.id, 1))]);
-    expect(settled.filter((result) => result.status === "rejected").map((result) => String((result as PromiseRejectedResult).reason))).toEqual([]);
+    noRejections(settled);
 
     const intent = await intentById(attempt.intentId);
     expect(intent.status).toBe("SUCCEEDED");
@@ -200,7 +216,7 @@ describe("results arriving 100 at once", () => {
     gateway.settle(first.reference, { status: "success" });
     gateway.settle(second.reference, { status: "success" });
     const settled = await Promise.allSettled(Array.from({ length: N }, (_, index) => checkPaymentAttempt(deps(), (index % 2 ? first : second).id, 1)));
-    expect(settled.filter((result) => result.status === "rejected").map((result) => String((result as PromiseRejectedResult).reason))).toEqual([]);
+    noRejections(settled);
 
     expect(await ordersOf(checkout.id)).toHaveLength(1);
     const intent = await intentById(first.intentId);
@@ -223,13 +239,12 @@ describe("results arriving 100 at once", () => {
       ]);
       no5xx(presses);
       expect(presses.filter((response) => response.status === 200).length).toBeLessThanOrEqual(1);
-      expect(checks.filter((result) => result.status === "rejected").map((result) => String((result as PromiseRejectedResult).reason))).toEqual([]);
+      noRejections(checks);
     } finally {
       harness.now.value = null;
     }
     expect(await ordersOf(checkout.id)).toHaveLength(1);
-    const attempts = await attemptsOf(first.intentId);
-    for (const attempt of attempts) expect((await db().select().from(schema.receipts).where(eq(schema.receipts.attemptId, attempt.id))).length).toBeLessThanOrEqual(1);
+    expect(await receiptsOf(first.intentId)).toHaveLength(1);
   });
 
   it("S6: Paystack timing out on checks never double-credits; a final check nobody answers waits for the dead-letter handler", async () => {
@@ -275,31 +290,22 @@ describe("edits colliding, 100 at once", () => {
     expect((await db().select().from(schema.projects).where(eq(schema.projects.id, project.id)))[0]!.version).toBe(project.version + 1);
 
     const { b: shopper, checkout } = await flows.readyCheckout();
-    const address = (landmark: string) => ({ country: "NG", name: "Order Tester (TEST DATA)", phone: "0800 000 0000", street: "12 Admiralty Way", area: "Eti-Osa", state: "Lagos", landmark, version: checkout.version });
-    const puts = await times((index) => shopper.put(`/v1/checkouts/${checkout.id}/address`, address(`Gate ${index}`)));
+    const puts = await times((index) => shopper.put(`/v1/checkouts/${checkout.id}/address`, { ...lagos(checkout.version), landmark: `Gate ${index}` }));
     oneWinner(puts, ["STALE_VERSION"]);
     expect((await checkoutRow(checkout.id)).version).toBe(checkout.version + 1);
   });
 
   it("S8: the amount being paid never changes under the payment", async () => {
     const { b, checkout } = await flows.readyCheckout();
-    const lagos = { country: "NG", name: "Order Tester (TEST DATA)", phone: "0800 000 0000", street: "12 Admiralty Way", area: "Eti-Osa", state: "Lagos", landmark: "", version: checkout.version };
-    const kano = { ...lagos, street: "4 Bompai Road", area: "Nassarawa", state: "Kano" };
     const responses = await Promise.all([
       b.post(payPath(checkout.id)),
-      ...Array.from({ length: N - 1 }, (_, index) => b.put(`/v1/checkouts/${checkout.id}/address`, index % 2 ? lagos : kano)),
+      ...Array.from({ length: N - 1 }, (_, index) => b.put(`/v1/checkouts/${checkout.id}/address`, index % 2 ? lagos(checkout.version) : kano(checkout.version))),
     ]);
     no5xx(responses);
-    const row = await checkoutRow(checkout.id);
     const [intent] = await intentsOfCheckout(checkout.id);
-    if (intent?.status === "PROCESSING") {
-      const attempts = await attemptsOf(intent.id);
-      expect(attempts).toHaveLength(1);
-      expect(intent.amountMinor).toBe(row.totalMinor);
-      expect(attempts[0]!.amountMinor).toBe(row.totalMinor);
-    }
+    if (intent?.status === "PROCESSING") await expectPaymentMatchesCheckout(checkout.id);
     // Whatever won, the checkout view the customer sees is one the payment matches.
-    expect(checkoutSchema.parse((await b.get(`/v1/checkouts/${checkout.id}`)).body).totals.totalMinor).toBe(row.totalMinor.toString());
+    expect(checkoutSchema.parse((await b.get(`/v1/checkouts/${checkout.id}`)).body).totals.totalMinor).toBe((await checkoutRow(checkout.id)).totalMinor.toString());
   });
 });
 
@@ -326,17 +332,13 @@ describe("lock order probes", () => {
 
   it("S8b: an edit waiting on the checkout row behind Pay is refused, not applied under the payment", async () => {
     const { b, checkout } = await flows.readyCheckout();
-    const kano = { country: "NG", name: "Order Tester (TEST DATA)", phone: "0800 000 0000", street: "4 Bompai Road", area: "Nassarawa", state: "Kano", landmark: "", version: checkout.version };
     const [pay, edit] = await queueBehind((tx) => tx.select().from(schema.checkouts).where(eq(schema.checkouts.id, checkout.id)).for("update"), [
       () => b.post(payPath(checkout.id)),
-      () => b.put(`/v1/checkouts/${checkout.id}/address`, kano),
+      () => b.put(`/v1/checkouts/${checkout.id}/address`, kano(checkout.version)),
     ]);
     expect(pay).toMatchObject({ status: "fulfilled", value: expect.objectContaining({ status: 200 }) });
     expect(edit).toMatchObject({ status: "fulfilled", value: expect.objectContaining({ status: 409 }) });
-    const row = await checkoutRow(checkout.id);
-    const [intent] = await intentsOfCheckout(checkout.id);
-    expect(intent!.status).toBe("PROCESSING");
-    expect(intent!.amountMinor).toBe(row.totalMinor);
-    expect((await attemptsOf(intent!.id))[0]!.amountMinor).toBe(row.totalMinor);
+    expect((await intentsOfCheckout(checkout.id))[0]!.status).toBe("PROCESSING");
+    await expectPaymentMatchesCheckout(checkout.id);
   });
 });

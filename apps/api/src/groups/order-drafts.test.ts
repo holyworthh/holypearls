@@ -157,7 +157,6 @@ describe("the Order Draft (B2B-FR-054–055)", () => {
     no5xx(presses);
     expect(presses.filter((response) => response.status === 200).length).toBeGreaterThanOrEqual(1);
     const drafts = await db().select().from(schema.orderDrafts).where(eq(schema.orderDrafts.id, state.current!.id));
-    expect(drafts).toHaveLength(1);
     expect(drafts[0]).toMatchObject({ status: "SUBMITTED", quoteId: expect.any(String) });
     expect((await db().select().from(schema.quotes).where(eq(schema.quotes.organizationId, acme))).length - quotesBefore.length).toBe(1);
   });

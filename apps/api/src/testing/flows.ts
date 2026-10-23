@@ -93,11 +93,7 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     let project = projectSchema.parse((await b.post("/v1/projects", { type: "EVENT", title: "Order test (TEST DATA)" })).body);
     project = projectSchema.parse((await b.patch(`/v1/projects/${project.id}`, { version: project.version, answers: { attendees: 200, crew: 20 } })).body);
     project = projectSchema.parse((await b.post(`/v1/projects/${project.id}/submit`, { version: project.version, email })).body);
-    return sendAndAccept(ada, project.quote!.id, email);
-  }
-
-  /** Prices a submitted quote (two lines, 60/40 schedule), sends it, and accepts it as the guest who got the link. */
-  async function sendAndAccept(ada: ReturnType<typeof staff>, quoteId: string, email: string) {
+    const quoteId = project.quote!.id;
     const quote = adminQuoteSchema.parse((await ada.post(`/v1/admin/quotes/${quoteId}/versions`)).body);
     const draft = quote.versions.find((version) => version.status === "DRAFT")!;
     const lines = quote.candidates.slice(0, 2).map((candidate, index) => ({ source: candidate.source, sourceKey: candidate.sourceKey, title: candidate.title, summary: candidate.summary, quantity: candidate.quantity ?? 1, unitMinor: String((index + 1) * 200_000) }));
@@ -136,5 +132,5 @@ export function orderFlows(harness: () => Harness, gateway: () => FakeGateway) {
     return orderSchema.parse((await guest.get(`/v1/orders/${orderId}`)).body);
   }
 
-  return { browser, staff, readyCheckout, paidOrder, acceptedQuote, sendAndAccept, payNext, notify };
+  return { browser, staff, readyCheckout, paidOrder, acceptedQuote, payNext, notify };
 }
