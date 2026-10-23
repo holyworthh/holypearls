@@ -1,9 +1,9 @@
 import { adminShipmentSchema, apiErrorSchema, courierSettingsSchema, orderSchema, productionItemSchema } from "@holypearls/contracts";
-import { and, eq, schema } from "@holypearls/db";
+import { and, eq, schema, sql } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { FakeCourier, shipbubbleSignature } from "../sales/courier.js";
+import { CourierError, FakeCourier, shipbubbleSignature } from "../sales/courier.js";
 import { as, expectHidden, signInActors, type Actors } from "../testing/actors.js";
 import { orderFlows } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
@@ -51,16 +51,25 @@ async function courierShipment(input: { courierPriced?: boolean; quantity?: numb
   const made = await flows.paidOrder();
   const [order] = await db().select().from(schema.orders).where(eq(schema.orders.id, made.orderId));
   if (input.courierPriced !== false) {
-    const delivery = { ...(order!.delivery as object), source: "COURIER", rateMinor: "450000", courier: { name: "Cheap Collect", serviceCode: "cheap", eta: null, requestToken: "stale_token", pricedAt: "2026-10-01T09:00:00.000Z" } };
+    const delivery = {
+      ...(order!.delivery as object),
+      source: "COURIER",
+      rateMinor: "450000",
+      courier: { name: "Cheap Collect", serviceCode: "cheap", eta: null, requestToken: "stale_token", pricedAt: "2026-10-01T09:00:00.000Z" },
+    };
     await db().update(schema.orders).set({ delivery, address: kano }).where(eq(schema.orders.id, made.orderId));
   }
   const [item] = await db().select().from(schema.orderItems).where(eq(schema.orderItems.orderId, made.orderId));
   await makeReady(item!.id);
-  const created = await ada().post(`/v1/admin/shipments/orders/${made.orderId}`, { items: [{ orderItemId: item!.id, quantity: input.quantity ?? item!.quantity }], destination: "4 Bompai Road, Nassarawa, Kano" });
+  const created = await ada().post(`/v1/admin/shipments/orders/${made.orderId}`, {
+    items: [{ orderItemId: item!.id, quantity: input.quantity ?? item!.quantity }],
+    destination: "4 Bompai Road, Nassarawa, Kano",
+  });
   return { ...made, item: item!, shipment: adminShipmentSchema.parse(created.body) };
 }
 
-const book = (shipment: { id: string; version: number }, cookie = actors.adminAda!) => flows.staff(cookie).post(`/v1/admin/shipments/${shipment.id}/courier`, { version: shipment.version });
+const book = (shipment: { id: string; version: number }, cookie = actors.adminAda!) =>
+  flows.staff(cookie).post(`/v1/admin/shipments/${shipment.id}/courier`, { version: shipment.version });
 
 async function shipmentRow(id: string) {
   const [row] = await db().select().from(schema.shipments).where(eq(schema.shipments.id, id));
@@ -76,7 +85,13 @@ function webhook(body: object, signature?: string) {
     .send(raw);
 }
 
-const statusEvent = (orderId: string, status: string, extra: object = {}) => ({ event: "shipment.status.changed", order_id: orderId, status, date: "2026-10-08T10:00:00Z", ...extra });
+const statusEvent = (orderId: string, status: string, extra: object = {}) => ({
+  event: "shipment.status.changed",
+  order_id: orderId,
+  status,
+  date: "2026-10-08T10:00:00Z",
+  ...extra,
+});
 
 beforeAll(async () => {
   gateway = new FakeGateway();
@@ -88,7 +103,13 @@ beforeAll(async () => {
     .put("/v1/admin/courier-settings")
     .set("origin", TEST_WEB_ORIGIN)
     .set("cookie", actors.adminAda!)
-    .send({ enabled: true, rule: "CHEAPEST", categoryId: 98246239, pickup: { name: "HolyPearls Workshop (TEST DATA)", email: "dispatch@holypearls.test", phone: "08000000000", address: "1 Workshop Close, Ikeja, Lagos, Nigeria" }, version: current.version });
+    .send({
+      enabled: true,
+      rule: "CHEAPEST",
+      categoryId: 98246239,
+      pickup: { name: "HolyPearls Workshop (TEST DATA)", email: "dispatch@holypearls.test", phone: "08000000000", address: "1 Workshop Close, Ikeja, Lagos, Nigeria" },
+      version: current.version,
+    });
   expect(saved.status).toBe(200);
 });
 
@@ -146,9 +167,32 @@ describe("booking a courier from Shipments (T08-06)", () => {
   it("can't book twice, even when asked twice", async () => {
     courier.reset();
     const { shipment } = await courierShipment();
-    const [first, second] = await Promise.all([book(shipment), book(shipment)]);
-    expect([first.status, second.status].sort()).toEqual([200, 409]);
-    const again = await book(adminShipmentSchema.parse((first.status === 200 ? first : second).body));
+    let release!: () => void;
+    let started!: () => void;
+    const waiting = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const sending = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const original = courier.book.bind(courier);
+    const call = vi.spyOn(courier, "book").mockImplementationOnce(async (input) => {
+      started();
+      await waiting;
+      return original(input);
+    });
+    const firstRequest = book(shipment).then((response) => response);
+    let second;
+    try {
+      await sending;
+      second = await book(shipment);
+    } finally {
+      release();
+      call.mockRestore();
+    }
+    const first = await firstRequest;
+    expect([first.status, second!.status].sort()).toEqual([200, 409]);
+    const again = await book(adminShipmentSchema.parse((first.status === 200 ? first : second!).body));
     expect(apiErrorSchema.parse(again.body).context).toMatchObject({ reason: "ALREADY_BOOKED" });
     expect(courier.bookings).toHaveLength(1);
   });
@@ -277,7 +321,13 @@ describe("Shipbubble's webhooks (T08-06, TECH-01 §4, OPS-FR-073)", () => {
 
   it("takes the tracking code when Shipbubble sends it later", async () => {
     const { shipment, courierOrderId } = await booked();
-    await webhook({ event: "shipment.waybill.updated", order_id: courierOrderId, status: "confirmed", courier: { tracking_code: "GIGL-77120" }, tracking_url: "https://track.example.test/GIGL-77120" });
+    await webhook({
+      event: "shipment.waybill.updated",
+      order_id: courierOrderId,
+      status: "confirmed",
+      courier: { tracking_code: "GIGL-77120" },
+      tracking_url: "https://track.example.test/GIGL-77120",
+    });
     const row = await shipmentRow(shipment.id);
     expect(row).toMatchObject({ status: "LABEL_CREATED", trackingNumber: "GIGL-77120", courierTrackingUrl: "https://track.example.test/GIGL-77120" });
   });
@@ -289,4 +339,126 @@ describe("Shipbubble's webhooks (T08-06, TECH-01 §4, OPS-FR-073)", () => {
     expect(event!.outcome).toBe("No shipment has this Shipbubble order.");
     expect((await webhook({ event: "wallet.threshold.alert", amount: 5000, currency: "NGN" })).status).toBe(200);
   });
+});
+
+it("doesn't book again when the provider accepted but its response was lost", async () => {
+  courier.reset();
+  const { shipment } = await courierShipment();
+  const original = courier.book.bind(courier);
+  const call = vi.spyOn(courier, "book").mockImplementationOnce(async (input) => {
+    await original(input);
+    throw new CourierError("Response lost after booking");
+  });
+  try {
+    expect((await book(shipment)).status).toBe(409);
+    const current = adminShipmentSchema.parse(
+      (await ada().get(`/v1/admin/shipments/orders/${(await shipmentRow(shipment.id)).orderId}`)).body.shipments.find((row: { id: string }) => row.id === shipment.id),
+    );
+    expect(current.bookable).toBe(false);
+    expect(current.bookingWarning).toMatch(/check.*Shipbubble/i);
+    expect((await book(shipment)).status).toBe(409);
+    expect(courier.bookings).toHaveLength(1);
+  } finally {
+    call.mockRestore();
+  }
+});
+
+it("retries local finalization from the recorded provider result without booking twice", async () => {
+  courier.reset();
+  const { shipment } = await courierShipment();
+  await db().execute(sql`create function fail_courier_finalize() returns trigger language plpgsql as $$ begin raise exception 'test: finalization unavailable'; end $$`);
+  await db().execute(
+    sql`create trigger fail_courier_finalize before update on shipments for each row when (NEW.status = 'LABEL_CREATED') execute function fail_courier_finalize()`,
+  );
+  try {
+    expect((await book(shipment)).status).toBe(500);
+    expect(courier.bookings).toHaveLength(1);
+  } finally {
+    await db().execute(sql`drop trigger fail_courier_finalize on shipments`);
+    await db().execute(sql`drop function fail_courier_finalize()`);
+  }
+  const retried = await book(shipment);
+  expect(retried.status).toBe(200);
+  expect(adminShipmentSchema.parse(retried.body).status).toBe("LABEL_CREATED");
+  expect(courier.bookings).toHaveLength(1);
+});
+
+it("lets authorized staff reconcile an unclear booking and records the decision", async () => {
+  courier.reset();
+  const { shipment } = await courierShipment();
+  const original = courier.book.bind(courier);
+  let accepted: Awaited<ReturnType<typeof original>> | undefined;
+  const call = vi.spyOn(courier, "book").mockImplementationOnce(async (input) => {
+    accepted = await original(input);
+    throw new CourierError("Response lost");
+  });
+  try {
+    await book(shipment);
+  } finally {
+    call.mockRestore();
+  }
+  const input = {
+    version: shipment.version,
+    reconciliation: {
+      outcome: "BOOKED",
+      orderId: accepted!.orderId,
+      trackingUrl: accepted!.trackingUrl,
+      trackingCode: null,
+      note: "Checked the shipment in Shipbubble using the saved request token.",
+    },
+  };
+  expect((await flows.staff(actors.adminTunde!).post(`/v1/admin/shipments/${shipment.id}/courier`, input)).status).toBe(403);
+  const reconciled = await ada().post(`/v1/admin/shipments/${shipment.id}/courier`, input);
+  expect(reconciled.status).toBe(200);
+  expect(adminShipmentSchema.parse(reconciled.body).courier?.orderId).toBe(accepted!.orderId);
+  expect(courier.bookings).toHaveLength(1);
+  const audit = await db()
+    .select()
+    .from(schema.auditLog)
+    .where(and(eq(schema.auditLog.recordId, shipment.id), eq(schema.auditLog.action, "shipment.courier_reconciled")));
+  expect(audit).toHaveLength(1);
+});
+
+it("allows a new booking only after staff confirm the unclear request was not booked", async () => {
+  courier.reset();
+  const { shipment } = await courierShipment();
+  const call = vi.spyOn(courier, "book").mockRejectedValueOnce(new CourierError("No response"));
+  try {
+    expect((await book(shipment)).status).toBe(409);
+  } finally {
+    call.mockRestore();
+  }
+  expect((await ada().post(`/v1/admin/shipments/${shipment.id}/status`, { status: "LABEL_CREATED", version: shipment.version })).status).toBe(409);
+  const reconciled = await ada().post(`/v1/admin/shipments/${shipment.id}/courier`, {
+    version: shipment.version,
+    reconciliation: { outcome: "NOT_BOOKED", note: "Shipbubble support confirmed no booking exists for the recorded request token." },
+  });
+  expect(reconciled.status).toBe(200);
+  expect(adminShipmentSchema.parse(reconciled.body)).toMatchObject({ status: "PREPARING", bookable: true, bookingWarning: null });
+  expect((await book(shipment)).status).toBe(200);
+  expect(courier.bookings).toHaveLength(1);
+  const operations = await db().select().from(schema.courierBookings).where(eq(schema.courierBookings.shipmentId, shipment.id));
+  expect(operations.map((operation) => operation.status).sort()).toEqual(["FINALIZED", "NOT_BOOKED"]);
+});
+
+it("finalizes a saved booking when a signed webhook arrives after a local failure", async () => {
+  courier.reset();
+  const { shipment } = await courierShipment();
+  await db().execute(sql`create function fail_webhook_finalize() returns trigger language plpgsql as $$ begin raise exception 'test: finalization unavailable'; end $$`);
+  await db().execute(sql`create trigger fail_webhook_finalize before update on shipments for each row when (NEW.status = 'LABEL_CREATED') execute function fail_webhook_finalize()`);
+  try {
+    expect((await book(shipment)).status).toBe(500);
+  } finally {
+    await db().execute(sql`drop trigger fail_webhook_finalize on shipments`);
+    await db().execute(sql`drop function fail_webhook_finalize()`);
+  }
+  const [operation] = await db().select().from(schema.courierBookings).where(eq(schema.courierBookings.shipmentId, shipment.id));
+  expect(operation!.status).toBe("ACCEPTED");
+  const orderId = (operation!.result as { orderId: string }).orderId;
+  expect((await webhook(statusEvent(orderId, "picked_up"))).status).toBe(200);
+  expect((await webhook(statusEvent(orderId, "picked_up"))).status).toBe(200);
+  expect((await shipmentRow(shipment.id)).status).toBe("IN_TRANSIT");
+  expect(courier.bookings).toHaveLength(1);
+  const saved = await db().select().from(schema.courierBookings).where(eq(schema.courierBookings.id, operation!.id));
+  expect(saved[0]!.status).toBe("FINALIZED");
 });

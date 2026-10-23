@@ -19,7 +19,12 @@ function groupOf(status: string, quoteStatus: string | null): WorkspaceProjectGr
 }
 
 /** An organization's projects in a scope, most recently active first. Text matches the title or reference. */
-export async function organizationProjects(db: Database, scope: RecordScope, viewerUserId: string, options: { query?: string; limit?: number } = {}): Promise<WorkspaceProject[]> {
+export async function organizationProjects(
+  db: Database,
+  scope: RecordScope,
+  viewerUserId: string,
+  options: { query?: string; limit?: number; active?: boolean; quoteReady?: boolean } = {},
+): Promise<WorkspaceProject[]> {
   const term = options.query?.trim().replace(/[%_\\]/g, "\\$&");
   const rows = await db
     .select({ project: schema.projects, quoteId: schema.quotes.id, quoteStatus: schema.quotes.status, quoteUpdatedAt: schema.quotes.updatedAt })
@@ -28,6 +33,8 @@ export async function organizationProjects(db: Database, scope: RecordScope, vie
     .where(
       and(
         scopeWhere({ organizationId: schema.projects.organizationId, locationId: schema.projects.locationId, ownerUserId: schema.projects.ownerUserId }, scope),
+        options.active ? sql`${schema.projects.status} not in ('COMPLETED', 'CANCELLED', 'EXPIRED')` : undefined,
+        options.quoteReady ? and(eq(schema.projects.status, "QUOTED"), eq(schema.quotes.status, "READY")) : undefined,
         // Another member's unsent draft is theirs until they send it.
         or(ne(schema.projects.status, "DRAFT"), eq(schema.projects.ownerUserId, viewerUserId)),
         term ? or(ilike(schema.projects.title, `%${term}%`), ilike(schema.projects.reference, `%${term}%`)) : undefined,
@@ -35,12 +42,20 @@ export async function organizationProjects(db: Database, scope: RecordScope, vie
     )
     .orderBy(desc(schema.projects.lastActivityAt))
     .limit(options.limit ?? 100);
-  const names = await placementNames(db, rows.map(({ project }) => (project.organizationId && project.locationId ? { organizationId: project.organizationId, locationId: project.locationId } : null)));
+  const names = await placementNames(
+    db,
+    rows.map(({ project }) => (project.organizationId && project.locationId ? { organizationId: project.organizationId, locationId: project.locationId } : null)),
+  );
   const counts = rows.length
     ? await db
         .select({ projectId: schema.projectItems.projectId, n: sql<number>`count(*)::int` })
         .from(schema.projectItems)
-        .where(inArray(schema.projectItems.projectId, rows.map(({ project }) => project.id)))
+        .where(
+          inArray(
+            schema.projectItems.projectId,
+            rows.map(({ project }) => project.id),
+          ),
+        )
         .groupBy(schema.projectItems.projectId)
     : [];
   const items = new Map(counts.map((count) => [count.projectId, count.n]));

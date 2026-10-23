@@ -1,3 +1,5 @@
+import { quoteGuestIncludesSource } from "../quotes/customer.js";
+import type { SQL } from "@holypearls/db";
 import {
   type AccountDraft,
   type AccountQuote,
@@ -14,7 +16,7 @@ import {
   type RuleCondition,
   type RuleQuantity,
 } from "@holypearls/contracts";
-import { checkPlacement, placementView } from "../organizations/scope.js";
+import { canSeeOrganizationRecord, checkPlacement, organizationAccessWhere, placementView } from "../organizations/scope.js";
 import { and, asc, type Database, desc, eq, inArray, isNull, schema, sql, type Transaction } from "@holypearls/db";
 import { cardsBySlugs } from "../catalogue/storefront.js";
 import { AppError } from "../errors.js";
@@ -56,7 +58,7 @@ export async function linkCustomerProjects(db: Database, customerIds: string[], 
 
 /** The account's projects for its overview: drafts to resume, and the ones sent to HolyPearls (Pen frame 92). */
 export async function accountProjects(db: Database, userId: string, limit = 10): Promise<{ drafts: AccountDraft[]; sent: AccountQuote[] }> {
-  const rows = await db.select().from(schema.projects).where(eq(schema.projects.ownerUserId, userId)).orderBy(desc(schema.projects.lastActivityAt)).limit(limit);
+  const rows = await db.select().from(schema.projects).where(and(eq(schema.projects.ownerUserId, userId), organizationAccessWhere(schema.projects, userId))).orderBy(desc(schema.projects.lastActivityAt)).limit(limit);
   const counts = rows.length
     ? await db
         .select({ projectId: schema.projectItems.projectId, n: sql<number>`count(*)::int` })
@@ -82,6 +84,7 @@ export async function accountProjects(db: Database, userId: string, limit = 10):
 export async function loadProject(db: Database | Tx, access: ProjectAccess, id: string): Promise<Row> {
   const [row] = await db.select().from(schema.projects).where(eq(schema.projects.id, id));
   if (!row || !canOpenProject(access, row)) throw new AppError("NOT_FOUND");
+  if (row.organizationId && access.actor.type !== "guest" && !(await canSeeOrganizationRecord(db as Database, access.actor, row))) throw new AppError("NOT_FOUND");
   return row;
 }
 
@@ -484,8 +487,7 @@ export async function removeProjectFile(db: Database, access: ProjectAccess, id:
   await db.transaction(async (tx) => {
     const removed = await tx.delete(schema.projectFiles).where(and(eq(schema.projectFiles.projectId, id), eq(schema.projectFiles.fileId, fileId))).returning();
     if (!removed.length) throw new AppError("NOT_FOUND");
-    // Unattached files are removed by the file clean-up after 7 days.
-    await tx.update(schema.files).set({ ownerType: null, ownerId: null, attachedAt: null }).where(and(eq(schema.files.id, fileId), eq(schema.files.ownerType, "PROJECT")));
+    await detachProjectFile(tx, fileId, id);
     await tx.update(schema.projects).set({ version: sql`${schema.projects.version} + 1`, lastActivityAt: access.actor.now }).where(eq(schema.projects.id, id));
   });
   return getProject(db, access, id);
@@ -634,5 +636,28 @@ export async function eraseProjects(tx: Transaction, subject: PersonSubject) {
         contact: row.contact ? { name: ERASED_NAME, email: subject.placeholder } : null,
       })
       .where(eq(schema.projects.id, row.id));
+  }
+}
+
+/** Retained attachments and snapshots must survive upload cleanup. */
+export function projectRetainsFile(fileId: string | SQL) {
+  return sql`exists (select 1 from project_files where file_id = ${fileId}::uuid)
+    or exists (select 1 from projects where submitted_snapshot::text like '%' || ${fileId}::text || '%')`;
+}
+
+export async function detachProjectFile(tx: Tx, fileId: string, projectId: string) {
+  await tx.select({ id: schema.files.id }).from(schema.files).where(eq(schema.files.id, fileId)).for("update");
+  const [remaining] = await tx.select({ id: schema.projectFiles.projectId }).from(schema.projectFiles).where(eq(schema.projectFiles.fileId, fileId)).limit(1);
+  await tx.update(schema.files).set({ ownerType: remaining ? "PROJECT" : null, ownerId: remaining?.id ?? null, attachedAt: remaining ? new Date() : null })
+    .where(and(eq(schema.files.id, fileId), eq(schema.files.ownerType, "PROJECT"), eq(schema.files.ownerId, projectId)));
+}
+
+export async function canSeeProjectFile(db: Database, actor: ActorContext, id: string) {
+  if (await quoteGuestIncludesSource(db, actor, { projectId: id })) return true;
+  if (actor.type === "user" && actor.staff?.permissions.has("QUOTE_MANAGE")) return true;
+  try { await loadProject(db, { actor, deviceKey: null }, id); return true; }
+  catch (error) {
+    if (error instanceof AppError && error.code === "NOT_FOUND") return false;
+    throw error;
   }
 }

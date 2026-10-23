@@ -1,5 +1,5 @@
 import { GARMENT_SIZES, type ParticipantAnswers, type ParticipantField, type Participation } from "@holypearls/contracts";
-import { and, type Database, eq, inArray, ne, or, schema, sql, type Transaction } from "@holypearls/db";
+import { and, type Database, eq, ne, or, schema, sql, type Transaction } from "@holypearls/db";
 import { productOptions } from "../configuration/pricing.js";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
