@@ -6,7 +6,7 @@
     "node": ">=22.15.0 <23"
   },
   "scripts": {
-    "dev": "dotenv -e .env -- turbo dev --filter=@holypearls/web --filter=@holypearls/api --filter=@holypearls/worker",
+    "dev": "dotenv -e .env -- turbo dev --filter=@holypearls/web --filter=@holypearls/api --filter=@holypearls/worker --filter=@holypearls/admin",
     "lint": "eslint apps packages --ext .ts,.tsx",
     "typecheck": "dotenv -e .env -- turbo typecheck",
     "test": "dotenv -e .env -- turbo test",

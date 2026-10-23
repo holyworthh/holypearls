@@ -49,7 +49,7 @@ async function shippedByItem(db: Db, itemIds: string[]) {
 async function views(db: Db, rows: Row[]): Promise<AdminShipment[]> {
   if (!rows.length) return [];
   const ids = rows.map((row) => row.id);
-  const [lines, events, orders, staff] = await Promise.all([
+  const [lines, events, orders, staff, bookings] = await Promise.all([
     db
       .select({ shipmentId: schema.shipmentItems.shipmentId, quantity: schema.shipmentItems.quantity, name: schema.orderItems.productName, position: schema.orderItems.position })
       .from(schema.shipmentItems)
@@ -62,6 +62,7 @@ async function views(db: Db, rows: Row[]): Promise<AdminShipment[]> {
       .from(schema.orders)
       .where(inArray(schema.orders.id, [...new Set(rows.map((row) => row.orderId))])),
     db.select({ id: schema.staffProfiles.id, name: schema.staffProfiles.displayName }).from(schema.staffProfiles),
+    db.select().from(schema.courierBookings).where(and(inArray(schema.courierBookings.shipmentId, ids), inArray(schema.courierBookings.status, ["SENDING", "UNKNOWN", "ACCEPTED"]))),
   ]);
   const courierPriced = (orderId: string) => (orders.find((order) => order.id === orderId)?.delivery as { source?: string } | null)?.source === "COURIER";
   return rows.map((row) => ({
@@ -82,7 +83,9 @@ async function views(db: Db, rows: Row[]): Promise<AdminShipment[]> {
       ? { orderId: row.courierOrderId, service: row.courierService, trackingUrl: row.courierTrackingUrl, costMinor: row.courierCostMinor?.toString() ?? null, bookedAt: row.courierBookedAt?.toISOString() ?? null }
       : null,
     // T08-06: a courier-priced order's shipment can be booked with Shipbubble until it has a label.
-    bookable: !row.courierOrderId && row.status === "PREPARING" && courierPriced(row.orderId),
+    bookable: !row.courierOrderId && row.status === "PREPARING" && courierPriced(row.orderId) && !bookings.some(booking => booking.shipmentId === row.id && booking.status !== "ACCEPTED"),
+    bookingWarning: bookings.find(booking => booking.shipmentId === row.id)?.status === "ACCEPTED" ? "The courier accepted this booking. Finish saving it here; the courier won't be booked again." : bookings.some(booking => booking.shipmentId === row.id) ? `Check this booking in Shipbubble before booking again. Saved request token: ${bookings.find(booking => booking.shipmentId === row.id)!.requestToken}.` : null,
+    bookingNeedsReconciliation: bookings.some(booking => booking.shipmentId === row.id && booking.status !== "ACCEPTED"),
     history: events
       .filter((event) => event.shipmentId === row.id)
       .map((event) => ({ from: event.fromStatus, status: event.toStatus, note: event.note, by: event.staffProfileId ? (staff.find((person) => person.id === event.staffProfileId)?.name ?? "Staff") : "System", at: event.createdAt.toISOString() })),
@@ -268,6 +271,8 @@ export async function updateShipment(deps: OrderEmailDeps, actor: ActorContext, 
     if (!SHIPMENT_NEXT[row.status].includes(input.status)) {
       throw new AppError("RULE_FAILED", { message: `${row.number} can't move from ${row.status} to ${input.status}.`, context: { reason: "ILLEGAL_MOVE", allowed: SHIPMENT_NEXT[row.status] } });
     }
+    const [booking] = await tx.select({ id: schema.courierBookings.id }).from(schema.courierBookings).where(and(eq(schema.courierBookings.shipmentId, id), inArray(schema.courierBookings.status, ["SENDING", "UNKNOWN", "ACCEPTED"])));
+    if (booking) throw new AppError("CONFLICT", { message: "Finish or reconcile the courier booking before changing this shipment." });
     await moveShipment(tx, deps, actor, row, input.status, { note: input.note, carrier: input.carrier, trackingNumber: input.trackingNumber });
   });
   return shipmentView(deps.db, id);

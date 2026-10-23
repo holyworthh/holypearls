@@ -1,3 +1,4 @@
+import { parseCursor } from "../platform/cursor.js";
 import { Body, Controller, Get, Headers, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from "@nestjs/common";
 import {
   acceptInvitationSchema,
@@ -119,9 +120,9 @@ export class OrganizationsController {
   }
 
   @Get("orders")
-  async orders(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("view") view?: string, @Query("location") location?: string) {
+  async orders(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("view") view?: string, @Query("location") location?: string, @Query("cursor") cursor?: string) {
     const chosen = workspaceOrderViewSchema.safeParse(view ?? "all");
-    return workspaceOrders(this.deps.db, await actorOf(request), organizationId, chosen.success ? chosen.data : "all", locationParam(location));
+    return workspaceOrders(this.deps.db, await actorOf(request), organizationId, chosen.success ? chosen.data : "all", locationParam(location), parseCursor(cursor));
   }
 
   @Get("projects")
@@ -131,8 +132,8 @@ export class OrganizationsController {
 
   /** Owner and Admin only (VIEW_BILLING; B2B-FR-012). */
   @Get("billing")
-  async billing(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("location") location?: string) {
-    return workspaceBilling(this.deps.db, await actorOf(request), organizationId, locationParam(location));
+  async billing(@Req() request: Request, @Param("organizationId", uuid) organizationId: string, @Query("location") location?: string, @Query("cursor") cursor?: string) {
+    return workspaceBilling(this.deps.db, await actorOf(request), organizationId, locationParam(location), parseCursor(cursor));
   }
 
   @Get("search")

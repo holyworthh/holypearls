@@ -1,5 +1,5 @@
 import type { AdminProof, CustomerProof, ProofDetails, ProofVersion } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, schema, sql, type SQL } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { createGuestLink, customerForActor, requireRecentEmailCode } from "../identity/customers.js";
@@ -442,4 +442,14 @@ export async function decideFile(db: Database, actor: ActorContext, fileId: stri
     await recordAudit(tx, actor, { action: input.decision === "READY" ? "file.marked_ready" : "file.rejected", summary: `${file.safeName}: ${input.decision}${input.note ? ` (${input.note})` : ""}`, recordType: "FILE", recordId: fileId, recordLabel: file.safeName, permission: "PROOF_MANAGE" });
   });
   return { ok: true as const };
+}
+
+export const orderAwaitsProof = (orderId: SQL) => sql`exists (select 1 from proofs p join order_items oi on oi.id = p.order_item_id where oi.order_id = ${orderId} and p.status = 'AWAITING_APPROVAL')`;
+
+export async function proofsWaitingForOrders(db: Database, orderIds: string[]) {
+  if (!orderIds.length) return new Map<string, number>();
+  const rows = await db.select({ orderId: schema.orderItems.orderId, count: sql<number>`count(*)::int` }).from(schema.proofs)
+    .innerJoin(schema.orderItems, eq(schema.orderItems.id, schema.proofs.orderItemId))
+    .where(and(inArray(schema.orderItems.orderId, orderIds), eq(schema.proofs.status, "AWAITING_APPROVAL"))).groupBy(schema.orderItems.orderId);
+  return new Map(rows.map(row => [row.orderId, row.count]));
 }
