@@ -308,10 +308,10 @@ export function HubEditor({ initial }: { initial: AdminHub }) {
                   </label>
                 </div>
                 <div className={css.rowActions}>
-                  <Button variant="tertiary" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move ${NAMES[section.type]} up`}>
+                  <Button variant="tertiary" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move up: ${NAMES[section.type]}`}>
                     Move up
                   </Button>
-                  <Button variant="tertiary" disabled={index === sections.length - 1} onClick={() => move(index, 1)} aria-label={`Move ${NAMES[section.type]} down`}>
+                  <Button variant="tertiary" disabled={index === sections.length - 1} onClick={() => move(index, 1)} aria-label={`Move down: ${NAMES[section.type]}`}>
                     Move down
                   </Button>
                 </div>

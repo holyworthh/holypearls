@@ -359,7 +359,7 @@ export function TeamView({ organization, initial }: { organization: MyOrganizati
       <ul className={styles.cards} aria-label="Members and invitations">
         {team.members.map((member) => (
           <li key={member.membershipId}>
-            <button type="button" className={styles.card} onClick={() => setManaging(member)} disabled={!canManage(member)} aria-label={`${member.name}, ${ROLE_LABELS[member.role]}, ${reach(member)}, ${MEMBER_STATUS[member.status].label}`}>
+            <button type="button" className={styles.card} onClick={() => setManaging(member)} disabled={!canManage(member)}>
               <span className={styles.avatar} aria-hidden="true">
                 {member.name.trim()[0]!.toUpperCase()}
               </span>
@@ -376,7 +376,7 @@ export function TeamView({ organization, initial }: { organization: MyOrganizati
         ))}
         {team.invitations.map((entry) => (
           <li key={entry.id}>
-            <button type="button" className={styles.card} onClick={() => setInvitation(entry)} aria-label={`${entry.email}, ${ROLE_LABELS[entry.role]}, ${reach(entry)}, ${INVITE_STATUS[entry.status].label}`}>
+            <button type="button" className={styles.card} onClick={() => setInvitation(entry)}>
               <span className={styles.avatar} aria-hidden="true">
                 {entry.email[0]!.toUpperCase()}
               </span>

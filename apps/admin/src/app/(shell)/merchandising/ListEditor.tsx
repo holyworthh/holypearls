@@ -80,10 +80,10 @@ export function ListEditor({ initial }: { initial: List }) {
               {item.name} <StatusChip tone={STATUS_TONE[item.status as keyof typeof STATUS_TONE] ?? "neutral"}>{item.status}</StatusChip>
             </span>
             <span className={css.rowActions}>
-              <Button variant="tertiary" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move ${item.name} up`}>
+              <Button variant="tertiary" disabled={index === 0} onClick={() => move(index, -1)} aria-label={`Move up: ${item.name}`}>
                 Move up
               </Button>
-              <Button variant="tertiary" disabled={index === items.length - 1} onClick={() => move(index, 1)} aria-label={`Move ${item.name} down`}>
+              <Button variant="tertiary" disabled={index === items.length - 1} onClick={() => move(index, 1)} aria-label={`Move down: ${item.name}`}>
                 Move down
               </Button>
               <Button variant="tertiary" onClick={() => setItems(items.filter((other) => other.id !== item.id))} aria-label={`Remove ${item.name}`}>
