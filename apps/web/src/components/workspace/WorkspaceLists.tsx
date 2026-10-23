@@ -1,4 +1,7 @@
-import type { WorkspaceOrder, WorkspaceProject } from "@holypearls/contracts";
+import type { BrandAssetSummary, CollectionSummary, TemplateSummary, WorkspaceOrder, WorkspaceProject } from "@holypearls/contracts";
+import { Stamp } from "lucide-react";
+import { AssetThumb } from "./AssetViews";
+import { COLLECTION_STATUS, reach, TEMPLATE_STATUS, VERSION_STATUS } from "./labels";
 import { StatusChip } from "@holypearls/ui";
 import { ORDER_SUMMARY, PAYMENT_STATUS } from "../orders/status";
 import styles from "./workspace.module.css";
@@ -75,3 +78,73 @@ export function ProjectRows({ projects, empty }: { projects: readonly WorkspaceP
 
 export const PROJECT_GROUPS = ["QUOTE_READY", "DRAFT", "QUOTE_PENDING", "ACTIVE_ORDER", "COMPLETE"] as const;
 export { GROUP_LABEL };
+
+/** The same product cards on the template index, overview and search. */
+export function TemplateCards({ templates, organizationId, compact = false }: { templates: readonly TemplateSummary[]; organizationId: string; compact?: boolean }) {
+  if (!templates.length) return <p className={styles.emptyRow}>No templates for your locations yet.</p>;
+  return (
+    <ul className={styles.assetGrid} aria-label="Templates">
+      {templates.map((template) => (
+        <li key={template.id}>
+          <a className={styles.assetCard} href={`/workspace/${organizationId}/templates/${template.id}`}>
+            <span className={styles.assetThumb}>
+              {template.image ? <img src={template.image.thumbnailUrl} alt={template.image.alt} loading="lazy" /> : <Stamp aria-hidden className={styles.navIcon} />}
+            </span>
+            <span className={styles.assetCardBody}>
+              {!compact ? <StatusChip tone={TEMPLATE_STATUS[template.status].tone}>{TEMPLATE_STATUS[template.status].label}</StatusChip> : null}
+              <span className={styles.rowTitle}>{template.name}</span>
+              <span className={styles.rowMeta}>
+                {template.productName} · {reach(template)}
+              </span>
+              {compact ? <span className={styles.rowMeta}>{TEMPLATE_STATUS[template.status].label}</span> : null}
+              {template.assetLabel ? <span className={styles.rowMeta}>{template.assetLabel}</span> : null}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function CollectionRows({ groups, organizationId }: { groups: readonly CollectionSummary[]; organizationId: string }) {
+  if (!groups.length) return <p className={styles.emptyRow}>No group collections here yet.</p>;
+  return (
+    <ul className={styles.rows}>
+      {groups.map((group) => (
+        <li key={group.id} className={styles.row}>
+          <div className={styles.rowText}>
+            <a className={styles.rowLink} href={`/workspace/${organizationId}/groups/${group.id}`}>
+              {group.title}
+            </a>
+            <span className={styles.rowMeta}>
+              {group.productName} · {group.locationName} · {group.submittedCount} submitted{group.deadline ? ` · closes ${shortDay(group.deadline)}` : ""}
+            </span>
+          </div>
+          <StatusChip tone={COLLECTION_STATUS[group.status].tone}>{COLLECTION_STATUS[group.status].label}</StatusChip>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function AssetRows({ assets, organizationId }: { assets: readonly BrandAssetSummary[]; organizationId: string }) {
+  if (!assets.length) return <p className={styles.emptyRow}>No matching brand assets.</p>;
+  return (
+    <ul className={styles.rows}>
+      {assets.map((asset) => (
+        <li key={asset.id} className={styles.row}>
+          <AssetThumb version={asset.current ?? asset.latest} name={asset.name} />
+          <div className={styles.rowText}>
+            <a className={styles.rowLink} href={`/workspace/${organizationId}/assets/${asset.id}`}>
+              {asset.name}
+            </a>
+            <span className={styles.rowMeta}>
+              V{asset.latest.number} · {asset.versionCount} versions
+            </span>
+          </div>
+          <StatusChip tone={VERSION_STATUS[asset.latest.status].tone}>{VERSION_STATUS[asset.latest.status].label}</StatusChip>
+        </li>
+      ))}
+    </ul>
+  );
+}

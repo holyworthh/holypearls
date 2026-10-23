@@ -149,3 +149,44 @@ describe("who can set up and see collections (TECH-03 §7, §17)", () => {
     expect(audit.map((row) => row.action)).toEqual(expect.arrayContaining(["collection.created", "collection.updated", "collection.opened"]));
   });
 });
+
+
+it("a collection's creator loses it when its location leaves their scope", async () => {
+  const polo = configurationSchema.parse((await api("acmeLekkiManager").post("/v1/configurations", { productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } })).body);
+  const created = collectionSchema.parse((await api("acmeLekkiManager").post(base(), { title: "Retained scope", locationId: lekki, configurationId: polo.id })).body);
+  const [row] = await db().select().from(schema.groupCollections).where(eq(schema.groupCollections.id, created.id));
+  const [member] = await db().select().from(schema.memberships).where(eq(schema.memberships.userId, row!.createdByUserId!));
+  const assigned = await db().select().from(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+  await db().update(schema.membershipLocations).set({ locationId: victoriaIsland }).where(eq(schema.membershipLocations.membershipId, member!.id));
+  try { expectHidden(await api("acmeLekkiManager").get(`${base()}/${created.id}`)); }
+  finally {
+    await db().delete(schema.membershipLocations).where(eq(schema.membershipLocations.membershipId, member!.id));
+    await db().insert(schema.membershipLocations).values(assigned);
+  }
+});
+
+it("connects available templates and active collections to overview and scoped search", async () => {
+  const templateId = await approvedTemplate();
+  const template = templateSchema.parse((await api("acmeOwner").get(`/v1/organizations/${acme}/templates/${templateId}`)).body);
+  let collection = collectionSchema.parse((await api("acmeOwner").post(base(), { title: "Audit Cards Lekki", locationId: lekki, templateId })).body);
+  collection = collectionSchema.parse((await setup("acmeOwner", collection, { title: "Audit Cards Lekki" })).body);
+  collection = collectionSchema.parse((await api("acmeOwner").post(`${base()}/${collection.id}/open`, { version: collection.version })).body);
+  const workspace = `/v1/organizations/${acme}`;
+  const overview = (await api("acmeOwner").get(`${workspace}/overview?location=${lekki}`)).body;
+  expect(overview.templates.map((row: { id: string }) => row.id)).toContain(templateId);
+  expect(overview.groups.map((row: { id: string }) => row.id)).toContain(collection.id);
+  expect(overview.canManageCollections).toBe(true);
+  const viewer = (await api("acmeViewer").get(`${workspace}/overview`)).body;
+  expect(viewer.canManageCollections).toBe(false);
+  const search = (await api("acmeOwner").get(`${workspace}/search?q=Cards&location=${lekki}`)).body;
+  expect(search.templates.map((row: { id: string }) => row.id)).toContain(templateId);
+  expect(search.groups.map((row: { id: string }) => row.id)).toContain(collection.id);
+  const hidden = (await api("acmeOwner").get(`${workspace}/search?q=Cards&location=${victoriaIsland}`)).body;
+  expect(hidden.groups.map((row: { id: string }) => row.id)).not.toContain(collection.id);
+  // Restrict the template after creating the collection: owner scope and a location filter must both apply.
+  await db().update(schema.templates).set({ allLocations: false }).where(eq(schema.templates.id, templateId));
+  await db().insert(schema.templateLocations).values({ templateId, organizationId: acme, locationId: lekki });
+  const vi = (await api("acmeOwner").get(`${workspace}/search?q=${encodeURIComponent(template.name)}&location=${victoriaIsland}`)).body;
+  expect(vi.templates.map((row: { id: string }) => row.id)).not.toContain(templateId);
+  expectHidden(await api("customerChidi").get(`${workspace}/search?q=Cards`));
+});

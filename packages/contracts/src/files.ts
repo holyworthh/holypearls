@@ -32,6 +32,7 @@ export const uploadCreatedSchema = z.object({
   file: fileViewSchema,
   /** PUT the file here; valid 15 minutes, one object only. */
   uploadUrl: z.url(),
+  uploadHeaders: z.record(z.string(), z.string()),
   expiresInSeconds: z.number().int(),
 });
 
