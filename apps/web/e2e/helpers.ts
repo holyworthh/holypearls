@@ -81,7 +81,7 @@ export async function focusProblems(page: Page, stops = 60): Promise<string[]> {
 }
 
 /** Customer sign-in on the site, landing on `next`. */
-export async function signInCustomer(page: Page, person: { email: string; password: string }, next: string) {
+export async function signInCustomer(page: Page, person: { email: string; password: string }, next = "/account/security") {
   await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
   await page.locator("#sign-in-email").fill(person.email);
   await page.locator("#sign-in-password").fill(person.password);

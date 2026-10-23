@@ -710,6 +710,12 @@
   transform: translateY(-50%);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .motionToggle {
+    display: none;
+  }
+}
+
 .marqueeTrack {
   display: inline-flex;
   margin: 0;

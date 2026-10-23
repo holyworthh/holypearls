@@ -32,18 +32,15 @@ const SKIP = "[role='dialog'], dialog, form, header, nav, [data-no-reveal]";
  */
 export function PauseMotion({ className }: { className?: string }) {
   const [paused, setPaused] = useState(false);
-  const [available, setAvailable] = useState(false);
-  useEffect(() => setAvailable(!matchMedia("(prefers-reduced-motion: reduce)").matches), []);
-  if (!available) return null;
   return (
     <button
       type="button"
       className={className}
       aria-pressed={paused}
       onClick={() => {
-        const root = document.documentElement;
-        if (!paused) delete root.dataset.motion;
-        else if (!matchMedia("(prefers-reduced-motion: reduce)").matches) root.dataset.motion = "on";
+        // Hidden by CSS when the visitor asked for reduced motion, so turning it back on is always allowed.
+        if (paused) document.documentElement.dataset.motion = "on";
+        else delete document.documentElement.dataset.motion;
         setPaused(!paused);
       }}
     >

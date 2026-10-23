@@ -35,6 +35,41 @@ const PROOF_ASSET = new URL("../../assets/products/event-badges.webp", import.me
 const PROOF_KEY = "files/source/seed-proof-name-badge";
 const PROOF_SIZE = { width: 928, height: 1152 };
 
+interface Settled {
+  intentId: string;
+  installmentId: string;
+  attemptId: string;
+  amount: bigint;
+  paidAt: Date;
+  receipt: { id: string; number: string; orderId: string; customerId: string; payer: { name: string; email: string }; lines: { label: string; quantity: number; totalMinor: string }[] };
+}
+
+/**
+ * One paid installment: its intent, the SUCCEEDED attempt and the receipt. An intent can only be SUCCEEDED
+ * with its attempt, and the attempt needs the intent: open it, add the attempt, then settle it.
+ */
+async function settle(tx: Transaction, paid: Settled) {
+  const { intentId, attemptId, amount, paidAt, receipt } = paid;
+  await tx.insert(schema.paymentIntents).values({ id: intentId, installmentId: paid.installmentId, amountMinor: amount, currency: "NGN" });
+  const reference = `HPPAY-${attemptId}`;
+  await tx.insert(schema.paymentAttempts).values({
+    id: attemptId,
+    intentId,
+    reference,
+    status: "SUCCEEDED",
+    amountMinor: amount,
+    currency: "NGN",
+    paidAmountMinor: amount,
+    paidCurrency: "NGN",
+    channel: "card",
+    gatewayResponse: "Successful",
+    paidAt,
+    finishedAt: paidAt,
+  });
+  await tx.update(schema.paymentIntents).set({ status: "SUCCEEDED", succeededAttemptId: attemptId }).where(eq(schema.paymentIntents.id, intentId));
+  await tx.insert(schema.receipts).values({ ...receipt, attemptId, intentId, amountMinor: amount, currency: "NGN", paystackReference: reference, channel: "card", paidAt });
+}
+
 async function chidi(tx: Transaction) {
   const person = TEST_PEOPLE.customerChidi;
   const [user] = await tx.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, person.email));
@@ -190,41 +225,22 @@ export async function seedOrders(tx: Transaction, files?: SeedMediaStore) {
       { id: id("a1", 12), scheduleId: schedule!.id, position: 2, label: "Balance", amountMinor: total - half, currency: "NGN", trigger: "BEFORE_DISPATCH", status: "DUE" as const },
     ])
     .returning({ id: schema.installments.id });
-  // An intent can only be SUCCEEDED with its attempt, and the attempt needs the intent: open it, add the attempt, then settle it.
-  await tx.insert(schema.paymentIntents).values([
-    { id: SEED_ORDERS.depositIntent, installmentId: deposit!.id, amountMinor: half, currency: "NGN" },
-    { id: SEED_ORDERS.balanceIntent, installmentId: balance!.id, amountMinor: total - half, currency: "NGN" },
-  ]);
-  await tx.insert(schema.paymentAttempts).values({
-    id: id("a1", 15),
+  await settle(tx, {
     intentId: SEED_ORDERS.depositIntent,
-    reference: `HPPAY-${id("a1", 15)}`,
-    status: "SUCCEEDED",
-    amountMinor: half,
-    currency: "NGN",
-    paidAmountMinor: half,
-    paidCurrency: "NGN",
-    channel: "card",
-    gatewayResponse: "Successful",
-    paidAt,
-    finishedAt: paidAt,
-  });
-  await tx.update(schema.paymentIntents).set({ status: "SUCCEEDED", succeededAttemptId: id("a1", 15) }).where(eq(schema.paymentIntents.id, SEED_ORDERS.depositIntent));
-  await tx.insert(schema.receipts).values({
-    id: SEED_ORDERS.receipt,
-    number: "HP-R-TEST-0001",
+    installmentId: deposit!.id,
     attemptId: id("a1", 15),
-    intentId: SEED_ORDERS.depositIntent,
-    orderId: SEED_ORDERS.order,
-    customerId: customer.id,
-    amountMinor: half,
-    currency: "NGN",
-    paystackReference: `HPPAY-${id("a1", 15)}`,
-    channel: "card",
-    payer: { name: contact.name, email: contact.email },
-    lines: lines.map((line) => ({ label: `${line.title} · ${line.summary}`, quantity: line.quantity, totalMinor: (line.unit * BigInt(line.quantity)).toString() })),
+    amount: half,
     paidAt,
+    receipt: {
+      id: SEED_ORDERS.receipt,
+      number: "HP-R-TEST-0001",
+      orderId: SEED_ORDERS.order,
+      customerId: customer.id,
+      payer: { name: contact.name, email: contact.email },
+      lines: lines.map((line) => ({ label: `${line.title} · ${line.summary}`, quantity: line.quantity, totalMinor: (line.unit * BigInt(line.quantity)).toString() })),
+    },
   });
+  await tx.insert(schema.paymentIntents).values({ id: SEED_ORDERS.balanceIntent, installmentId: balance!.id, amountMinor: total - half, currency: "NGN" });
 
   // The Name Badge proof: V1 changes requested, V2 waiting for the customer.
   await tx.insert(schema.proofs).values([
@@ -331,22 +347,6 @@ export async function seedOrders(tx: Transaction, files?: SeedMediaStore) {
   });
   await tx.insert(schema.paymentSchedules).values({ id: id("b1", 9), checkoutId: SEED_ORDERS.checkout, currency: "NGN", totalMinor: cardTotal });
   await tx.insert(schema.installments).values({ id: id("b1", 10), scheduleId: id("b1", 9), position: 1, label: "Pay in full", amountMinor: cardTotal, currency: "NGN", trigger: "ON_ACCEPTANCE", status: "PAID", paidAt });
-  await tx.insert(schema.paymentIntents).values({ id: id("b1", 11), installmentId: id("b1", 10), amountMinor: cardTotal, currency: "NGN" });
-  await tx.insert(schema.paymentAttempts).values({
-    id: id("b1", 12),
-    intentId: id("b1", 11),
-    reference: `HPPAY-${id("b1", 12)}`,
-    status: "SUCCEEDED",
-    amountMinor: cardTotal,
-    currency: "NGN",
-    paidAmountMinor: cardTotal,
-    paidCurrency: "NGN",
-    channel: "card",
-    gatewayResponse: "Successful",
-    paidAt,
-    finishedAt: paidAt,
-  });
-  await tx.update(schema.paymentIntents).set({ status: "SUCCEEDED", succeededAttemptId: id("b1", 12) }).where(eq(schema.paymentIntents.id, id("b1", 11)));
   await tx.insert(schema.orders).values({
     id: SEED_ORDERS.checkoutOrder,
     number: ORDER_B_NUMBER,
@@ -380,19 +380,19 @@ export async function seedOrders(tx: Transaction, files?: SeedMediaStore) {
     status: "QUEUED",
   });
   await tx.insert(schema.proofs).values({ id: id("b1", 13), orderItemId: id("b1", 7), status: "NOT_REQUIRED", requirement: "NOT_REQUIRED" });
-  await tx.insert(schema.receipts).values({
-    id: SEED_ORDERS.checkoutReceipt,
-    number: "HP-R-TEST-0002",
-    attemptId: id("b1", 12),
+  await settle(tx, {
     intentId: id("b1", 11),
-    orderId: SEED_ORDERS.checkoutOrder,
-    customerId: customer.id,
-    amountMinor: cardTotal,
-    currency: "NGN",
-    paystackReference: `HPPAY-${id("b1", 12)}`,
-    channel: "card",
-    payer: { name: contact.name, email: contact.email },
-    lines: [{ label: `${cardTitle} · ${cardSummary}`, quantity: 500, totalMinor: (cardGoods + cardVat).toString() }],
+    installmentId: id("b1", 10),
+    attemptId: id("b1", 12),
+    amount: cardTotal,
     paidAt,
+    receipt: {
+      id: SEED_ORDERS.checkoutReceipt,
+      number: "HP-R-TEST-0002",
+      orderId: SEED_ORDERS.checkoutOrder,
+      customerId: customer.id,
+      payer: { name: contact.name, email: contact.email },
+      lines: [{ label: `${cardTitle} · ${cardSummary}`, quantity: 500, totalMinor: (cardGoods + cardVat).toString() }],
+    },
   });
 }

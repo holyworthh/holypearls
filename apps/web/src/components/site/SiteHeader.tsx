@@ -111,10 +111,8 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
-    if (mobile) {
-      setMobile(false);
-      menuButton.current?.focus();
-    } else close(true);
+    if (mobile) setMobile(false);
+    else close(true);
   };
 
   const current = (href: string) => (href !== "/products" && pathname.startsWith(href.split("?")[0]!) ? "page" : undefined);
@@ -248,11 +246,8 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
           id={`${panelId}-mobile`}
           className={styles.mobile}
           aria-label="Menu"
-          onCancel={(event) => {
-            event.preventDefault();
-            setMobile(false);
-            menuButton.current?.focus();
-          }}
+          // Escape is handled in onKeyDown, which closes it; the native close would otherwise leave the state open.
+          onCancel={(event) => event.preventDefault()}
         >
           <div className={styles.mobileTop}>
             {drill === null ? (
@@ -269,7 +264,6 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
               aria-label="Close menu"
               onClick={() => {
                 setMobile(false);
-                menuButton.current?.focus();
               }}
             >
               <CloseIcon className={styles.icon} />

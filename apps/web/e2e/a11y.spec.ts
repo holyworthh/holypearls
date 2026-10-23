@@ -1,5 +1,5 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { ADMIN, axeViolations, expectNoAxeViolations, focusProblems, signInCustomer, signInStaff } from "./helpers";
 
 /*
@@ -21,15 +21,20 @@ const BALANCE_INTENT = "0190c5b3-0000-7000-8000-00000000a10e";
 const ORDER_B = "0190c5b3-0000-7000-8000-00000000b102";
 const CHECKOUT_B = "0190c5b3-0000-7000-8000-00000000b101";
 
-async function walk(page: Page, base: string, paths: string[], failures: string[], testInfo: { project: { name: string } }) {
+test.beforeEach(() => {
+  test.setTimeout(900_000);
+});
+
+/** Opens each path (a site path, or a full admin address) and returns every accessibility problem found. */
+async function walk(page: Page, paths: string[], testInfo: TestInfo): Promise<string[]> {
   const mobile = testInfo.project.name === "mobile-375";
+  const failures: string[] = [];
   for (const path of paths) {
-    const url = path.startsWith("http") ? path : `${base}${path}`;
-    const label = path.startsWith("http") ? path.replace(base, "admin") : path;
+    const label = path.replace(ADMIN, "admin");
     try {
-      const response = await page.goto(url);
+      const response = await page.goto(path);
       // Unknown routes are meant to be 404 pages; everything else must open.
-      if (!response?.ok() && !label.includes("does-not-exist")) failures.push(`${label}: opened with ${response?.status()}`);
+      if (!response?.ok() && !path.includes("does-not-exist")) failures.push(`${label}: opened with ${response?.status()}`);
       for (const violation of await axeViolations(page)) failures.push(`${label}: ${violation}`);
       if (mobile) {
         await page.setViewportSize({ width: 320, height: 812 });
@@ -43,15 +48,13 @@ async function walk(page: Page, base: string, paths: string[], failures: string[
       failures.push(`${label}: ${(error as Error).message.split("\n")[0]}`);
     }
   }
+  return failures;
 }
 
 test("public pages", async ({ page }, testInfo) => {
-  test.setTimeout(600_000);
-  const failures: string[] = [];
-  await walk(
-    page,
-    "",
-    [
+  expect(await walk(
+      page,
+      [
       "/",
       "/products",
       "/products/business-cards",
@@ -81,19 +84,14 @@ test("public pages", async ({ page }, testInfo) => {
       "/g",
       "/this-page-does-not-exist",
     ],
-    failures,
     testInfo,
-  );
-  expect(failures).toEqual([]);
+  )).toEqual([]);
 });
 
 test("customer pages", async ({ page }, testInfo) => {
-  test.setTimeout(600_000);
-  const failures: string[] = [];
   await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account");
-  await walk(
+  expect(await walk(
     page,
-    "",
     [
       "/account",
       "/account/profile",
@@ -115,31 +113,22 @@ test("customer pages", async ({ page }, testInfo) => {
       `/orders/${ORDER_B}`,
       `/checkout/${CHECKOUT_B}/processing`,
     ],
-    failures,
     testInfo,
-  );
-  expect(failures).toEqual([]);
+  )).toEqual([]);
 });
 
 test("workspace pages", async ({ page }, testInfo) => {
-  test.setTimeout(600_000);
-  const failures: string[] = [];
   await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const ws = new URL(page.url()).pathname.split("/")[2]!;
   const base = `/workspace/${ws}`;
-  await walk(
-    page,
-    "",
+  expect(await walk(
+page,
     [base, ...["orders", "projects", "more", "team", "locations", "approval-rule", "billing", "approvals", "assets", "templates", "groups", "groups/new", "stores", "search?q=acme"].map((path) => `${base}/${path}`)],
-    failures,
     testInfo,
-  );
-  expect(failures).toEqual([]);
+  )).toEqual([]);
 });
 
 test("staff pages", async ({ page }, testInfo) => {
-  test.setTimeout(900_000);
-  const failures: string[] = [];
   await signInStaff(page, TEST_PEOPLE.adminAda);
   const paths = [
     "/",
@@ -180,7 +169,7 @@ test("staff pages", async ({ page }, testInfo) => {
     `/shipments/orders/${ORDER_A}`,
     `/payments/intents/${BALANCE_INTENT}`,
   ].map((path) => `${ADMIN}${path}`);
-  await walk(page, ADMIN, paths, failures, testInfo);
+  const failures = await walk(page, paths, testInfo);
   // The first organization and the first staff member in the lists.
   for (const [list, prefix] of [
     ["/organizations?q=ACME", "/organizations/"],
@@ -188,14 +177,13 @@ test("staff pages", async ({ page }, testInfo) => {
   ] as const) {
     await page.goto(`${ADMIN}${list}`);
     const href = await page.locator(`main a[href^="${prefix}"]`).first().getAttribute("href");
-    if (href) await walk(page, ADMIN, [`${ADMIN}${href}`], failures, testInfo);
+    if (href) failures.push(...(await walk(page, [`${ADMIN}${href}`], testInfo)));
     else failures.push(`${list}: no link to open`);
   }
   expect(failures).toEqual([]);
 });
 
 test("the proof viewer works by keyboard", async ({ page }, testInfo) => {
-  test.setTimeout(120_000);
   test.skip(testInfo.project.name !== "desktop-1440", "Keyboard walkthrough runs at desktop width");
   await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account");
   await page.goto(`/orders/${ORDER_A}/proofs/${PROOF_A}`);
