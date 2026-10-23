@@ -188,5 +188,7 @@ test("the admin menu opens at 375 px", async ({ page }, testInfo) => {
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Operations home" })).toBeVisible();
+  // The page behind the open menu can't take focus (2.4.3, 2.4.11).
+  await expect(page.locator("main#main-content").locator("..")).toHaveAttribute("inert", "");
   await expectNoAxeViolations(page);
 });
