@@ -325,9 +325,11 @@ const slugOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").
 
 /** Loads the sheet's products that aren't in the seed yet, without options or prices. */
 export async function seedLaunchCatalogue(tx: Transaction): Promise<void> {
-  const skus = new Set((await tx.select({ sku: schema.products.sku }).from(schema.products)).map((row) => row.sku));
-  const slugs = new Set((await tx.select({ slug: schema.products.slug }).from(schema.products)).map((row) => row.slug));
-  const categories = await tx.select({ id: schema.categories.id, slug: schema.categories.slug, name: schema.categories.name, parentId: schema.categories.parentId }).from(schema.categories);
+  const present = await tx.select({ sku: schema.products.sku, slug: schema.products.slug }).from(schema.products);
+  const skus = new Set(present.map((row) => row.sku));
+  const slugs = new Set(present.map((row) => row.slug));
+  const columns = { id: schema.categories.id, slug: schema.categories.slug, name: schema.categories.name, parentId: schema.categories.parentId };
+  const categories = await tx.select(columns).from(schema.categories);
   const bySlug = new Map(categories.map((row) => [row.slug, row]));
   const tops = categories.filter((row) => row.parentId === null);
   const rows: (typeof schema.products.$inferInsert)[] = [];
@@ -344,7 +346,7 @@ export async function seedLaunchCatalogue(tx: Transaction): Promise<void> {
       const [row] = await tx
         .insert(schema.categories)
         .values({ slug: taken ? `${subSlug}-${top.slug}` : subSlug, name: subcategory, parentId: top.id, status: "PUBLISHED" })
-        .returning({ id: schema.categories.id, slug: schema.categories.slug, name: schema.categories.name, parentId: schema.categories.parentId });
+        .returning(columns);
       sub = row!;
       bySlug.set(sub.slug, sub);
     }
@@ -365,5 +367,5 @@ export async function seedLaunchCatalogue(tx: Transaction): Promise<void> {
     skus.add(sku);
     slugs.add(slug);
   }
-  for (let start = 0; start < rows.length; start += 100) await tx.insert(schema.products).values(rows.slice(start, start + 100));
+  if (rows.length) await tx.insert(schema.products).values(rows);
 }

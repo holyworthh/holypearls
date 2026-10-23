@@ -2,6 +2,7 @@
 
 import { siteEventFor } from "@holypearls/contracts";
 import { useEffect } from "react";
+import { sendBeacon } from "../../lib/beacon";
 
 /**
  * Analytics (PRD-01 §11): counts clicks on links to products, categories,
@@ -15,11 +16,7 @@ export function LinkTracker() {
       if (!link || link.origin !== location.origin) return;
       const entry = siteEventFor(location.pathname, link.pathname);
       if (!entry) return;
-      const body = JSON.stringify(entry);
-      const blob = new Blob([body], { type: "application/json" });
-      if (!navigator.sendBeacon?.("/api/v1/analytics/events", blob)) {
-        void fetch("/api/v1/analytics/events", { method: "POST", body, headers: { "content-type": "application/json" }, keepalive: true }).catch(() => undefined);
-      }
+      sendBeacon("/api/v1/analytics/events", entry);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

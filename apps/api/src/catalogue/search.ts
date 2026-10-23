@@ -229,13 +229,11 @@ const GROUP: Record<Exclude<SearchScope, "all">, DocType[]> = {
 const ALL_LIMIT = { products: 3, projects: 2, guides: 3 };
 const PAGE_SIZE = 12;
 
-/** ts_rank_cd weights for D, C, B, A (title + phrases = A). Postgres defaults; tuned on the launch catalogue in T14-01b. */
-export const RANK_WEIGHTS = "{0.1, 0.2, 0.4, 1.0}";
 const d = schema.searchDocuments;
 /** Result order: an exact title or phrase first, then relevance, popularity, name (T14-01b). */
 const rankOrder = (q: SQL) => [
   desc(sql`(lower(${d.title}) = lower(${q}) or position(E'\n' || lower(${q}) || E'\n' in E'\n' || lower(${d.phrasesText}) || E'\n') > 0)`),
-  desc(sql`ts_rank_cd(${RANK_WEIGHTS}::float4[], ${d.tsv}, websearch_to_tsquery('english', ${q}), 32)`),
+  desc(sql`ts_rank_cd(${d.tsv},websearch_to_tsquery('english', ${q}), 32)`),
   desc(d.boost),
   asc(d.title),
 ];
@@ -626,40 +624,36 @@ export async function phraseCoverage(db: Database): Promise<SearchReport["phrase
 /** Last 30 days: searches, the ones that found nothing, where people went, and whether phrases lead to their pages. */
 export async function searchReport(db: Database, now = new Date()): Promise<SearchReport> {
   const since = new Date(now.getTime() - 30 * 86_400_000);
-  const recent = (table: typeof schema.searchEvents | typeof schema.siteEvents) => gte(table.createdAt, since);
-  const top = await db
-    .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int` })
-    .from(schema.searchEvents)
-    .where(and(inArray(schema.searchEvents.kind, ["SEARCH", "NO_RESULTS"]), recent(schema.searchEvents)))
-    .groupBy(schema.searchEvents.query)
-    .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
-    .limit(10);
-  const zeroResults = await db
-    .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int`, lastSearchedAt: sql<Date>`max(${schema.searchEvents.createdAt})` })
-    .from(schema.searchEvents)
-    .where(and(eq(schema.searchEvents.kind, "NO_RESULTS"), recent(schema.searchEvents)))
-    .groupBy(schema.searchEvents.query)
-    .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
-    .limit(50);
+  const top = (kinds: ("SEARCH" | "NO_RESULTS")[], limit: number) =>
+    db
+      .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int`, lastSearchedAt: sql<Date>`max(${schema.searchEvents.createdAt})` })
+      .from(schema.searchEvents)
+      .where(and(inArray(schema.searchEvents.kind, kinds), gte(schema.searchEvents.createdAt, since)))
+      .groupBy(schema.searchEvents.query)
+      .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
+      .limit(limit);
   const totals = await db
     .select({ kind: schema.searchEvents.kind, count: sql<number>`count(*)::int` })
     .from(schema.searchEvents)
-    .where(recent(schema.searchEvents))
+    .where(gte(schema.searchEvents.createdAt, since))
     .groupBy(schema.searchEvents.kind);
   const count = (kind: string) => totals.find((row) => row.kind === kind)?.count ?? 0;
   const entryRows = await db
     .select({ kind: schema.siteEvents.kind, total: sql<number>`count(*)::int`, fromGuides: sql<number>`(count(*) filter (where ${schema.siteEvents.fromGuide}))::int` })
     .from(schema.siteEvents)
-    .where(recent(schema.siteEvents))
+    .where(gte(schema.siteEvents.createdAt, since))
     .groupBy(schema.siteEvents.kind);
   return {
     since: since.toISOString(),
     searches: count("SEARCH") + count("NO_RESULTS"),
     noResults: count("NO_RESULTS"),
     resultClicks: count("CLICK"),
-    top,
-    zeroResults: zeroResults.map((row) => ({ ...row, lastSearchedAt: new Date(row.lastSearchedAt).toISOString() })),
-    entries: siteEventKindSchema.options.map((kind) => ({ kind, total: entryRows.find((row) => row.kind === kind)?.total ?? 0, fromGuides: entryRows.find((row) => row.kind === kind)?.fromGuides ?? 0 })),
+    top: (await top(["SEARCH", "NO_RESULTS"], 10)).map(({ query, count }) => ({ query, count })),
+    zeroResults: (await top(["NO_RESULTS"], 50)).map((row) => ({ ...row, lastSearchedAt: new Date(row.lastSearchedAt).toISOString() })),
+    entries: siteEventKindSchema.options.map((kind) => {
+      const row = entryRows.find((entry) => entry.kind === kind);
+      return { kind, total: row?.total ?? 0, fromGuides: row?.fromGuides ?? 0 };
+    }),
     phrases: await phraseCoverage(db),
   };
 }
