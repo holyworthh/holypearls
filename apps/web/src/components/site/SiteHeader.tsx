@@ -95,7 +95,10 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   }, [open, close]);
   // A modal dialog: focus moves in and stays in, and the page behind is inert (2.4.3, 2.4.11).
   useEffect(() => {
-    if (mobile) menu.current?.showModal();
+    if (!mobile) return;
+    menu.current?.showModal();
+    // Once the dialog is gone (the page is no longer inert) focus goes back to the button that opened it.
+    return () => menuButton.current?.focus();
   }, [mobile]);
   useEffect(() => {
     if (!mobile) return;
