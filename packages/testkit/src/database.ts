@@ -30,7 +30,7 @@ async function runOnServer(serverUrl: string, sql: string): Promise<void> {
  * `migrations`, it stops after that many, like a database an earlier release left behind
  * (TECH-08 §12). `serverUrl` needs permission to create databases.
  */
-export async function createTestDatabase(serverUrl: string, options: { migrations?: number } = {}): Promise<TestDatabase> {
+export async function createTestDatabase(serverUrl: string, options: { migrations?: number; max?: number } = {}): Promise<TestDatabase> {
   const name = `hp_test_${newId().replaceAll("-", "")}`;
   await runOnServer(serverUrl, `CREATE DATABASE "${name}"`);
   const url = withDatabaseName(serverUrl, name);
@@ -41,7 +41,7 @@ export async function createTestDatabase(serverUrl: string, options: { migration
     await runOnServer(serverUrl, `DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
     throw error;
   }
-  const client = createDatabaseClient(url, { max: 4 });
+  const client = createDatabaseClient(url, { max: options.max ?? 4 });
   return {
     url,
     db: client.db,

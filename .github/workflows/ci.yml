@@ -5,16 +5,15 @@ on:
   push:
     branches: [main, dev]
 
-# One self-hosted runner takes one job at a time, so a newer push replaces the older run.
+# A newer push to the same ref replaces the older run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   checks:
-    # The repo variable CI_RUNS_ON picks the runner as a JSON label list, for example
-    # ["self-hosted","holypearls"] for the owner's Mac. Unset, the job runs on GitHub's ubuntu-latest.
-    runs-on: ${{ vars.CI_RUNS_ON && fromJSON(vars.CI_RUNS_ON) || 'ubuntu-latest' }}
+    # GitHub-hosted only: the repo is public, so a self-hosted runner would run fork PR code.
+    runs-on: ubuntu-latest
     env:
       API_URL: http://localhost:3001
       API_PORT: 3001
@@ -30,11 +29,6 @@ jobs:
     steps:
       - name: Start Postgres
         run: |
-          # A cancelled run on a self-hosted runner can leave its containers behind.
-          old=$(docker ps -aq --filter label=holypearls-ci)
-          [ -z "$old" ] || docker rm -f $old
-          old=$(docker network ls -q --filter label=holypearls-ci)
-          [ -z "$old" ] || docker network rm $old
           docker network create --label holypearls-ci "$CI_NET"
           docker run -d --name "$PG" --label holypearls-ci --network "$CI_NET" -p 55432:5432 \
             -e POSTGRES_DB=holypearls_ci -e POSTGRES_USER=holypearls_ci -e POSTGRES_PASSWORD="$PG_PASSWORD" \
@@ -81,7 +75,6 @@ jobs:
         env:
           UPGRADE_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:55432/holypearls_upgrade
           FRESH_URL: postgresql://holypearls_ci:${{ github.run_id }}@localhost:55432/holypearls_fresh
-          # The runner's temp folder is emptied after every job; a self-hosted workspace is not.
           RELEASE_DIR: ${{ runner.temp }}/release
         run: |
           docker exec "$PG" createdb -U holypearls_ci holypearls_upgrade
