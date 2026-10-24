@@ -21,7 +21,7 @@ import { requestContext } from "./request-context.js";
 import { CatalogueAdminController, CategoryAdminController } from "./catalogue/catalogue.controller.js";
 import { MerchandisingAdminController, PublicMediaController, StorefrontController } from "./catalogue/storefront.controller.js";
 import { ContentAdminController, ContentController } from "./catalogue/content.controller.js";
-import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
+import { AnalyticsController, SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { GarmentDataAdminController } from "./catalogue/garment-data.controller.js";
 import { OpsHomeController } from "./platform/ops-home.controller.js";
@@ -51,6 +51,8 @@ import { AdminHelpController, HelpController } from "./platform/help.controller.
 import { NotificationsController } from "./platform/notifications.controller.js";
 import { AuditController } from "./platform/audit.controller.js";
 import { DemoSliceController } from "./platform/demo-slice.controller.js";
+import { IncidentsAdminController } from "./platform/incidents.controller.js";
+import { readOnlyGuard } from "./platform/incidents.js";
 import { IdentifiedGuard } from "./identity/identified.guard.js";
 import { IdempotencyInterceptor } from "./platform/idempotency.js";
 import { clientIpFrom, RateLimiter, RateLimitGuard } from "./platform/rate-limit.js";
@@ -145,6 +147,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       ContentController,
       ContentAdminController,
       SearchController,
+      AnalyticsController,
       SearchAdminController,
       SeoController,
       PricingAdminController,
@@ -154,6 +157,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       PrivacyController,
       RefundsController,
       StaffAdminController,
+      IncidentsAdminController,
       StaffInvitationsController,
       PublicPricingController,
       CartController,
@@ -261,6 +265,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
   });
   app.use(frontEndBoundary(fronts));
   app.use(originCheck(fronts));
+  app.use(readOnlyGuard(options.db));
   app.use((request: Request, _response: Response, next: NextFunction) => {
     request.getActor = () => getActor(request);
     next();

@@ -324,7 +324,7 @@ export async function verifyEmailCode(db: Database, key: string, actor: ActorCon
  * RECENT_EMAIL_CODE_REQUIRED for the web app's code dialog.
  */
 export async function requireRecentEmailCode(db: Database, actor: ActorContext): Promise<void> {
-  let verifiedAt: Date | null = null;
+  let verifiedAt: Date | null;
   if (actor.type === "guest") verifiedAt = actor.guest.emailVerifiedAt;
   else if (actor.type === "user") {
     const [row] = await db

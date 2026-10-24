@@ -120,6 +120,7 @@ export async function listAudit(db: Database, query: AuditQuery, now = new Date(
         ilike(schema.auditLog.actorLabel, term),
         ilike(schema.auditLog.recordLabel, term),
         ilike(schema.auditLog.recordId, term),
+        ilike(schema.auditLog.requestId, term),
       ),
     );
   }

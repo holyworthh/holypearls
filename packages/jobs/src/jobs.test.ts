@@ -1,8 +1,8 @@
 import { loadTestDatabaseEnv } from "@holypearls/config";
-import { newId, withTransaction } from "@holypearls/db";
+import { newId, sql, withTransaction } from "@holypearls/db";
 import { createTestDatabase, type TestDatabase } from "@holypearls/testkit";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Jobs } from "./jobs.js";
+import { Jobs, stuckQueues } from "./jobs.js";
 import { deadLetterName, JOB_DEFAULTS, queueSettings } from "./queues.js";
 
 let database: TestDatabase;
@@ -107,5 +107,13 @@ describe("workers", () => {
     await worker.work("demo.slice", async (data) => void done.push(data.demoId), { pollingIntervalSeconds: 0.5 });
     await until(async () => done.includes(queued.demoId));
     await worker.stop(1000);
+  });
+
+  it("lists queues with a job that has waited too long", async () => {
+    const sender = await newJobs("sender");
+    const id = await sender.send("search.refresh", { v: 1, requestId: "req_test" });
+    expect(await stuckQueues(database.db, 15)).not.toContain("search.refresh");
+    await database.db.execute(sql`update pgboss.job set start_after = now() - interval '20 minutes' where id = ${id}`);
+    expect(await stuckQueues(database.db, 15)).toContain("search.refresh");
   });
 });

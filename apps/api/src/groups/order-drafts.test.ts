@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type Actors, as, expectForbidden, expectHidden, signInActors } from "../testing/actors.js";
-import { orderFlows } from "../testing/flows.js";
+import { no5xx, orderFlows, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
 import { purgeParticipantContacts } from "./collections.js";
 
@@ -189,6 +189,20 @@ describe("the Order Draft (B2B-FR-054–055)", () => {
     expect((await db().select().from(schema.importRows).where(eq(schema.importRows.batchId, batch!.id)))[0]).toMatchObject({ raw: [], values: {} });
     // Safe to repeat.
     expect(await purgeParticipantContacts(db(), new Date())).toBe(0);
+  });
+
+  it("sends one quote and marks the draft SUBMITTED once however many times it is pressed", async () => {
+    const { id, secret } = await openCollection("Double press polos");
+    for (let index = 0; index < 3; index++) await person(secret, index);
+    await api("acmeOwner").post(`${base()}/${id}/close`, { version: (await collection(id)).version });
+    const state = orderDraftStateSchema.parse((await api("acmeOwner").post(`${base()}/${id}/order-draft`, { version: (await collection(id)).version })).body);
+    const quotesBefore = await db().select().from(schema.quotes).where(eq(schema.quotes.organizationId, acme));
+    const presses = await Promise.all(Array.from({ length: STRESS_RUNS }, () => api("acmeOwner").post(`${base()}/${id}/order-draft/submit`, { version: state.current!.version })));
+    no5xx(presses);
+    expect(presses.filter((response) => response.status === 200).length).toBeGreaterThanOrEqual(1);
+    const drafts = await db().select().from(schema.orderDrafts).where(eq(schema.orderDrafts.id, state.current!.id));
+    expect(drafts[0]).toMatchObject({ status: "SUBMITTED", quoteId: expect.any(String) });
+    expect((await db().select().from(schema.quotes).where(eq(schema.quotes.organizationId, acme))).length - quotesBefore.length).toBe(1);
   });
 
   it("with the organization's approval rule on, submitting makes an order request instead", async () => {

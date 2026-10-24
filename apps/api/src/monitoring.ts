@@ -33,4 +33,26 @@ export function reportError(error: unknown, context: { requestId?: string; route
   });
 }
 
+const lastSent = new Map<string, number>();
+
+/**
+ * One alert (TECH-07 §12): a Sentry issue per signal and key, at most once an hour per process.
+ * Returns false when throttled. // ponytail: in-memory throttle; resets on restart.
+ */
+export function reportAlert(signal: string, key: string, details: Record<string, unknown>, now = Date.now()): boolean {
+  const id = `${signal}:${key}`;
+  if (now - (lastSent.get(id) ?? -Infinity) < 3_600_000) return false;
+  lastSent.set(id, now);
+  if (enabled) {
+    Sentry.withScope((scope) => {
+      scope.setTag("alert", signal);
+      scope.setFingerprint(["alert", signal, key]);
+      scope.setLevel("error");
+      scope.setExtras(redact(details) as Record<string, unknown>);
+      Sentry.captureMessage(`${signal}: ${key}`);
+    });
+  }
+  return true;
+}
+
 export const flushMonitoring = (timeoutMs = 2000) => (enabled ? Sentry.flush(timeoutMs) : Promise.resolve(true));

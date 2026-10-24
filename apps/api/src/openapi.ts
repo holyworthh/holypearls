@@ -39,6 +39,11 @@ import {
   acceptedStaffInvitationSchema,
   staffInvitationSchema,
   staffListSchema,
+  incidentStateSchema,
+  incidentSwitchSchema,
+  revokeGuestLinksSchema,
+  revokeSessionsSchema,
+  revokedCountSchema,
   staffMemberSchema,
   adminRefundListSchema,
   adminRefundSchema,
@@ -134,6 +139,7 @@ import {
   searchPhraseSchema,
   searchTargetOptionsSchema,
   searchReportSchema,
+  siteEventSchema,
   sitemapSchema,
   contentIndexSchema,
   publicContentPageSchema,
@@ -972,6 +978,30 @@ export function buildOpenApiDocument() {
           responses: { 200: { description: "Revoked" }, ...staffOnly },
         },
       },
+      "/v1/admin/incidents": {
+        get: { summary: "Incident switches: read-only mode, uploads, payments (SECURITY_ADMIN; T15-05; Pen 123)", responses: { 200: { description: "State", content: json(incidentStateSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/incidents/switch": {
+        post: {
+          summary: "Turn a switch on or off (SECURITY_ADMIN, recent authenticator check, audited)",
+          requestBody: { required: true, content: json(incidentSwitchSchema) },
+          responses: { 200: { description: "State", content: json(incidentStateSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/incidents/revoke-sessions": {
+        post: {
+          summary: "Sign everyone out, or one person (SECURITY_ADMIN, recent authenticator check, audited); no such email is NOT_FOUND",
+          requestBody: { required: true, content: json(revokeSessionsSchema) },
+          responses: { 200: { description: "How many sessions ended", content: json(revokedCountSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/incidents/revoke-guest-links": {
+        post: {
+          summary: "Turn off guest links for one customer or one record (SECURITY_ADMIN, recent authenticator check, audited)",
+          requestBody: { required: true, content: json(revokeGuestLinksSchema) },
+          responses: { 200: { description: "How many links were turned off", content: json(revokedCountSchema) }, ...staffOnly },
+        },
+      },
       "/v1/files/uploads": {
         post: {
           summary: "Start an upload: checks purpose limits and ownership, returns a 15-minute URL for one object (TECH-04 §3)",
@@ -1190,6 +1220,13 @@ export function buildOpenApiDocument() {
           responses: { 204: { description: "Recorded" }, 400: error("Bad input"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
       },
+      "/v1/analytics/events": {
+        post: {
+          summary: "Count where a visitor went (PRD-01 §11): the kind of entry and whether it came from a guide; nothing personal; CONFIGURE is counted by the server",
+          requestBody: { required: true, content: json(siteEventSchema) },
+          responses: { 204: { description: "Counted" }, 400: error("Bad input"), 429: error("PUBLIC_READ limit (RATE_LIMITED)") },
+        },
+      },
       "/v1/admin/search/phrases": {
         get: { summary: "Everyday search phrases and where they lead (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Phrases", content: json(searchPhraseListSchema) }, ...staffOnly } },
         post: {
@@ -1209,7 +1246,7 @@ export function buildOpenApiDocument() {
         },
       },
       "/v1/admin/search/report": {
-        get: { summary: "Last 30 days: searches, searches with no results and the most common of each", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
+        get: { summary: "Last 30 days: searches, the zero-result report, where people went, and phrase coverage (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
       },
       "/v1/seo/sitemap": {
         get: { summary: "Published, indexable public pages for the XML sitemap (PUB-SEO-009)", responses: { 200: { description: "Pages", content: json(sitemapSchema) } } },

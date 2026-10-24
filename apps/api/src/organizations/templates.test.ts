@@ -137,11 +137,12 @@ describe("the V4/V5 journeys (B2B-FR-024)", () => {
     expect((await api("acmeOwner").post(`${base()}/templates/${template.id}/submit`, { version: template.version })).body.context?.reason).toBe("ASSET_NOT_READY");
     // "Update to V2": the change sends it back to draft, then through HolyPearls again.
     const owner = templateSchema.parse((await api("acmeOwner").get(`${base()}/templates/${template.id}`)).body);
-    let moved = templateSchema.parse(
+    const moved = templateSchema.parse(
       (await api("acmeOwner").put(`${base()}/templates/${template.id}`, { name: owner.name, fields: owner.fields.map(({ key, control, reason }) => ({ key, control, reason })), assetVersionIds: [v2], allLocations: true, version: owner.version })).body,
     );
     expect(moved).toMatchObject({ status: "DRAFT", assets: [{ number: 2 }] });
-    moved = templateSchema.parse((await api("acmeOwner").post(`${base()}/templates/${template.id}/submit`, { version: moved.version })).body);
+    const resubmitted = templateSchema.parse((await api("acmeOwner").post(`${base()}/templates/${template.id}/submit`, { version: moved.version })).body);
+    expect(resubmitted.status).toBe("AWAITING_APPROVAL");
     expect((await approve(template.id)).status).toBe(200);
     const final = templateSchema.parse((await api("acmeViewer").get(`${base()}/templates/${template.id}`)).body);
     expect(final).toMatchObject({ status: "APPROVED", assetLabel: null, assets: [{ number: 2, status: "PRODUCTION_READY" }] });

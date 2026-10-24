@@ -238,3 +238,9 @@ export async function eraseNotifications(tx: Transaction, subject: PersonSubject
     .set({ recipient: subject.placeholder, sealedData: null, resendable: false })
     .where(or(ofPerson(subject, schema.notifications.customerId), eq(schema.notifications.recipient, subject.email))!);
 }
+
+/** How many emails failed for good since `since` (TECH-07 §12 alert A8). */
+export async function failedEmailsSince(db: Database, since: Date): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.notifications).where(and(eq(schema.notifications.status, "FAILED"), sql`${schema.notifications.updatedAt} >= ${since}`));
+  return row!.n;
+}

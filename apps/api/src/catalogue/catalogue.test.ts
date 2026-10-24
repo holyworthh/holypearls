@@ -150,8 +150,9 @@ describe("product images, text and related products (Pen frames 98 and 104)", ()
     const base = `/v1/admin/catalogue/products/${product.id}`;
     const first = await mediaFile("mug-front.png");
     const second = await mediaFile("mug-side.png");
-    let saved = adminProductSchema.parse((await as(harness, staff).post(`${base}/media`, { fileId: first.id, alt: "White mug, front" })).body);
-    saved = adminProductSchema.parse((await as(harness, staff).post(`${base}/media`, { fileId: second.id, alt: "White mug, side" })).body);
+    const added = adminProductSchema.parse((await as(harness, staff).post(`${base}/media`, { fileId: first.id, alt: "White mug, front" })).body);
+    expect(added.media.map((item) => item.alt)).toEqual(["White mug, front"]);
+    const saved = adminProductSchema.parse((await as(harness, staff).post(`${base}/media`, { fileId: second.id, alt: "White mug, side" })).body);
     expect(saved.media.map((item) => item.alt)).toEqual(["White mug, front", "White mug, side"]);
 
     const order = await request(harness.url)

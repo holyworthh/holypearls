@@ -1,5 +1,5 @@
 {
-  "id": "db61d2b4-2bdb-44ce-bc9f-9f7f83ec85d2",
+  "id": "f6c14afb-a4e8-44b0-8156-51675456514d",
   "prevId": "225c4694-a560-441c-85f2-94e23e003cf6",
   "version": "7",
   "dialect": "postgresql",
@@ -1350,18 +1350,6 @@
         },
         "email_verified_at": {
           "name": "email_verified_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "marketing_consent_at": {
-          "name": "marketing_consent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "erased_at": {
-          "name": "erased_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -6995,6 +6983,62 @@
           "isUnique": false,
           "concurrently": false,
           "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.site_events": {
+      "name": "site_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "site_event_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_guide": {
+          "name": "from_guide",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "site_events_created_idx": {
+          "name": "site_events_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
           "with": {}
         }
       },
@@ -17093,6 +17137,18 @@
         "PRODUCT",
         "CATEGORY",
         "PAGE"
+      ]
+    },
+    "public.site_event_kind": {
+      "name": "site_event_kind",
+      "schema": "public",
+      "values": [
+        "PRODUCT",
+        "CATEGORY",
+        "PROJECT",
+        "START_PROJECT",
+        "CONFIGURE",
+        "CONTACT"
       ]
     },
     "public.installment_status": {
