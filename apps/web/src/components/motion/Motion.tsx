@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * Runs before first paint (in <head>): turns motion on unless the visitor
@@ -24,6 +24,30 @@ const CANDIDATES = [
   "footer > div > *",
 ].join(", ");
 const SKIP = "[role='dialog'], dialog, form, header, nav, [data-no-reveal]";
+
+/**
+ * Moving content that runs for more than five seconds needs a way to stop it (WCAG 2.2.2). Every ambient
+ * animation, the rotating search hint and smooth scrolling follow `data-motion` on the page, so one button
+ * turns them all off, and back on unless the visitor asked for reduced motion. It lasts until the page is left.
+ */
+export function PauseMotion({ className }: { className?: string }) {
+  const [paused, setPaused] = useState(false);
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-pressed={paused}
+      onClick={() => {
+        // Hidden by CSS when the visitor asked for reduced motion, so turning it back on is always allowed.
+        if (paused) document.documentElement.dataset.motion = "on";
+        else delete document.documentElement.dataset.motion;
+        setPaused(!paused);
+      }}
+    >
+      Pause motion
+    </button>
+  );
+}
 
 export function Motion() {
   const pathname = usePathname();

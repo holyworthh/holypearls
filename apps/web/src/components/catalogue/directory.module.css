@@ -1116,7 +1116,9 @@
     z-index: 5;
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     justify-content: space-between;
+    gap: var(--hp-space-8);
     min-height: var(--hp-size-63);
     padding: var(--hp-space-10) var(--hp-space-20);
     border-top: var(--hp-size-1) solid var(--hp-line);
@@ -1156,6 +1158,8 @@
 
   .barActions {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: var(--hp-space-8);
   }
 

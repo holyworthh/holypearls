@@ -34,9 +34,10 @@ a {
   color: inherit;
 }
 
-:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-  outline-offset: var(--hp-focus-ring-width);
+/* Holy Blue ring (Ledger: "links, focus"). :root raises the specificity so a component that draws its border with `outline` can't hide it. */
+:root :focus-visible {
+  outline: var(--hp-focus-ring-width) solid var(--hp-brand);
+  outline-offset: var(--hp-size-3);
 }
 
 .hp-surface-dark :focus-visible,
@@ -67,6 +68,7 @@ a {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

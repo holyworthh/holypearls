@@ -658,11 +658,11 @@
 }
 
 .tileSpec {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
   color: var(--hp-text-3);
   font-family: var(--hp-font-mono);
   font-size: var(--hp-text-mono);
-  white-space: nowrap;
 }
 
 .hint {

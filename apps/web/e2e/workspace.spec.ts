@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
-import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInCustomer, signInStaff } from "./helpers";
 
 /*
  * T10-01 in a real browser, at 375 and 1440 px: the Team page (Pen 70),
@@ -9,18 +9,10 @@ import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } f
  * the accept flow; these check the screens and leave the seed as they found it.
  */
 
-async function signIn(page: Page, person: { email: string; password: string }, next: string) {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
-  await page.locator("#sign-in-email").fill(person.email);
-  await page.locator("#sign-in-password").fill(person.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL((url) => url.pathname.startsWith(next));
-}
-
 const desktop = (page: Page) => (page.viewportSize()?.width ?? 0) >= 1024;
 
 async function openTeam(page: Page) {
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   await page.goto(page.url().replace(/\/workspace\/([^/?]+).*$/, "/workspace/$1/team"));
   await expect(page.getByRole("heading", { name: /^Team/ })).toBeVisible();
 }
@@ -85,7 +77,7 @@ test("locations: the Owner sees both; a Lekki manager sees only Lekki and no tea
   await expectNoHorizontalScroll(page);
 
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`${page.url().split("?")[0]}/locations`);
   await expect(page.getByRole("list", { name: "Locations" }).getByRole("link")).toHaveCount(1);
   await expect(page.getByRole("heading", { name: "Lekki", level: 2 })).toBeVisible();
@@ -105,7 +97,7 @@ test("an invitation link without its secret explains itself", async ({ page }) =
 });
 
 test("a customer asks for a workspace and staff decline it with a reason", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.customerChidi, "/account/workspace");
+  await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account/workspace");
   await expect(page.getByRole("heading", { name: "Workspace for your team" })).toBeVisible();
   const send = page.getByRole("button", { name: "Send request" });
   await send.click();
@@ -134,7 +126,7 @@ test("a customer asks for a workspace and staff decline it with a reason", async
 
   // Cookies aren't separated by port, so the staff sign-in on localhost replaced Chidi's session.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.customerChidi, "/account/workspace");
+  await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account/workspace");
   await expect(page.getByText(`We couldn't set up ${company}`)).toBeVisible();
   await expect(page.getByRole("button", { name: "Send request" })).toBeVisible();
 });
@@ -151,7 +143,7 @@ test("staff see organizations read only", async ({ page }) => {
 });
 
 test("the overview: Needs Attention first; a switcher only for people with more than one location", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   await expect(page.getByRole("heading", { name: /^Good (morning|afternoon|evening), Ngozi\.$/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
   if (desktop(page)) {
@@ -183,7 +175,7 @@ test("the overview: Needs Attention first; a switcher only for people with more 
 
   // One location: no switcher, and billing is for Owners and Admins.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
   await expect(page.getByLabel("Location")).toHaveCount(0);
   await page.goto(`${page.url().split("?")[0]}/billing`);
@@ -193,7 +185,7 @@ test("the overview: Needs Attention first; a switcher only for people with more 
 const PNG_1X1 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 
 test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; staff see it", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.acmeAdmin, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeAdmin, "/workspace");
   await page.goto(`${page.url().split("?")[0]}/assets`);
   await expect(page.getByRole("heading", { name: "Brand assets", exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
@@ -218,7 +210,7 @@ test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; sta
 
   // A Viewer sees the library but can't upload.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeViewer, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeViewer, "/workspace");
   await page.goto(`${page.url().split("?")[0]}/assets`);
   await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
   await expect(page.getByRole("button", { name: "Upload asset" })).toHaveCount(0);
@@ -233,7 +225,7 @@ test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; sta
 });
 
 test("templates: the Owner makes a template; HolyPearls approves it; a Lekki manager orders from it; a Viewer only sees it", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   // A saved business-cards design to start from (the configurator is covered elsewhere).
   const saved = await page.evaluate(async () => {
@@ -281,7 +273,7 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
 
   // A Lekki manager orders from it (T11-01c, Pen 131): today's price, then checkout placed for Lekki.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(detail);
   await page.getByRole("link", { name: "Order from template" }).click();
   await expect(page.getByRole("heading", { name: `Order ${name}` })).toBeVisible();
@@ -296,7 +288,7 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
 
   // A Viewer sees the approved template but can't change it.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeViewer, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeViewer, "/workspace");
   await page.goto(`${page.url().split("?")[0]!.replace(/\/$/, "")}/templates`);
   await expect(page.getByRole("link", { name: new RegExp(name) })).toBeVisible();
   await expect(page.getByRole("button", { name: "New template" })).toHaveCount(0);
@@ -315,7 +307,7 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
 
 test("approvals: the Owner turns on approval; a Lekki manager's template order waits; the Approver approves it", async ({ page }) => {
   // The Owner sets the rule (T11-04, B2B-FR-040).
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   const organizationId = workspace.split("/").pop()!;
   await page.goto(`${workspace}/approval-rule`);
@@ -346,7 +338,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 
   // The Lekki manager orders: it becomes an order request.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`${workspace}/templates/${templateId}/order`);
   await page.getByLabel("Quantity").fill("500");
   await expect(page.getByText("Approval needed")).toBeVisible();
@@ -358,7 +350,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 
   // The Approver reviews and approves (Pen 72): it goes to HolyPearls for a quote.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeApprover, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeApprover, "/workspace");
   await page.goto(`${workspace}/approvals`);
   await expect(page.getByRole("heading", { name: "Awaiting your approval" })).toBeVisible();
   await page.goto(requestUrl);
@@ -400,7 +392,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 
   // The requester sees the block and sends it for re-approval.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`/quotes/${quoteId}`);
   await expect(page.getByRole("heading", { name: "New approval needed before you can accept" })).toBeVisible();
   await expectNoAxeViolations(page);
@@ -410,7 +402,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 
   // The Approver approves the new total.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeApprover, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeApprover, "/workspace");
   await page.goto(requestUrl);
   await expect(page.getByText("REAPPROVAL REQUIRED")).toBeVisible();
   await expect(page.getByRole("heading", { name: "HolyPearls' quote came back higher" })).toBeVisible();
@@ -420,7 +412,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 
   // Leave the rule as the seed has it.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   await page.goto(`${workspace}/approval-rule`);
   await page.getByText("No approval", { exact: true }).click();
   await page.getByRole("button", { name: "Save rule" }).click();
@@ -428,7 +420,7 @@ test("approvals: the Owner turns on approval; a Lekki manager's template order w
 });
 
 test("groups: a Lekki manager starts a collection from a saved polo, opens it, a participant answers by link, then it's paused, closed, drafted and sent for a quote", async ({ page, browser }) => {
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   const design = await page.evaluate(async () => {
     const response = await fetch("/api/v1/configurations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ productSlug: "polo-shirt", choices: { colour: "navy", fabric: "pique-cotton" } }) });
     return ((await response.json()) as { id: string }).id;
@@ -522,7 +514,7 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
 
 test("company store: the Owner sets up a self-order store; a Lekki manager picks their polo; a procurement store takes several items", async ({ page }) => {
   // An approved polo template with size and name left to each person (T12-06; B2B-FR-083).
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   const organizationId = workspace.split("/").pop()!;
   const templateName = `E2E Staff Polo ${Date.now()}`;
@@ -553,7 +545,7 @@ test("company store: the Owner sets up a self-order store; a Lekki manager picks
 
   // The Owner starts the store, adds the polo and opens it.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   await page.goto(`${workspace}/stores`);
   await expect(page.getByRole("heading", { name: "Company Store", level: 1 })).toBeVisible();
   await expectNoAxeViolations(page);
@@ -574,7 +566,7 @@ test("company store: the Owner sets up a self-order store; a Lekki manager picks
 
   // A Lekki manager picks their polo (Pen 32, 78): what ACME set reads as facts; only size, name and branch are theirs.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(storePath);
   await expect(page.getByRole("heading", { name: storeName, level: 1 })).toBeVisible();
   await expect(page.getByText("Set by ACME", { exact: false })).toBeVisible();
@@ -591,7 +583,7 @@ test("company store: the Owner sets up a self-order store; a Lekki manager picks
 
   // A procurement store (Pen 77): quantities for Lekki, the order summed on the right.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const procurementId = await page.evaluate(
     async ({ org, template }) => {
       const call = (method: string, path: string, body: unknown) =>
@@ -604,7 +596,7 @@ test("company store: the Owner sets up a self-order store; a Lekki manager picks
     { org: organizationId, template: templateId },
   );
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`${workspace.replace(/^https?:\/\/[^/]+/, "")}/stores/${procurementId}`);
   await expect(page.getByRole("heading", { name: "Approved products for Lekki" })).toBeVisible();
   await page.getByLabel(`Quantity of ${templateName}`).fill("24");
@@ -617,7 +609,7 @@ test("company store: the Owner sets up a self-order store; a Lekki manager picks
 
 test("allowances: the Owner sets a yearly allowance; a covered pick is paid by ACME; one over it asks a manager", async ({ page }) => {
   // A banner template with a direct price for one (T12-06b; B2B-FR-084).
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   const organizationId = workspace.split("/").pop()!;
   const call = (method: string, path: string, body: unknown) =>
@@ -636,7 +628,7 @@ test("allowances: the Owner sets a yearly allowance; a covered pick is paid by A
 
   // The Owner sets ₦150,000 a year from 1 January in store setup.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   let shop = await call("POST", `/v1/organizations/${organizationId}/stores`, { name: "E2E Allowance Store", mode: "SELF_ORDER" });
   shop = await call("PUT", `/v1/organizations/${organizationId}/stores/${shop.id}`, { name: shop.name, mode: "SELF_ORDER", routing: "INDIVIDUAL", items: [{ templateId: template.id }], version: shop.version });
   await page.goto(`${workspace}/stores/${shop.id}/setup`);
@@ -651,7 +643,7 @@ test("allowances: the Owner sets a yearly allowance; a covered pick is paid by A
 
   // The Lekki manager sees what's left and that the banner is covered (Pen 32, 78 B).
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`${workspace}/stores/${shop.id}`);
   await expect(page.getByText("₦150,000 of ₦150,000 left")).toBeVisible();
   await expect(page.getByText("Uniform allowance · renews 1 Jan")).toBeVisible();
@@ -664,11 +656,11 @@ test("allowances: the Owner sets a yearly allowance; a covered pick is paid by A
 
   // With a ₦1 limit per order, the same pick is over (Pen 78 C) and goes to a manager.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeOwner, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const current = await call("GET", `/v1/organizations/${organizationId}/stores/${shop.id}`, undefined);
   await call("PUT", `/v1/organizations/${organizationId}/stores/${shop.id}/allowance`, { kind: "PER_ORDER", name: "Uniform allowance", amountMinor: "100", version: current.version });
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
+  await signInCustomer(page, TEST_PEOPLE.acmeLekkiManager, "/workspace");
   await page.goto(`${workspace}/stores/${shop.id}`);
   await expect(page.getByText(/^This order is ₦[\d,]+ over your allowance$/)).toBeVisible();
   await expect(page.getByText(/Paying the difference yourself isn't enabled by ACME/)).toBeVisible();
