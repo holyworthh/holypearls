@@ -113,7 +113,7 @@
   justify-content: center;
   gap: var(--hp-space-8);
   max-width: 100%;
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: var(--hp-space-8) var(--hp-space-20);
   border: 0;
   border-radius: var(--hp-r-button);
@@ -878,7 +878,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--hp-space-8);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-size-22);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -933,7 +933,7 @@ select.filterSelect.filterSelect {
 }
 
 .filterApply {
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
 }
 
 /* Featured case: ink band, 880px photo beside the text (560 tall). */
@@ -1270,7 +1270,7 @@ select.filterSelect.filterSelect {
   flex: 0 1 var(--hp-size-440);
   align-items: center;
   gap: var(--hp-space-10);
-  height: var(--hp-size-56);
+  height: var(--hp-space-48);
   padding: 0 var(--hp-space-16);
   border-radius: var(--hp-space-8);
   outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -1303,7 +1303,7 @@ select.filterSelect.filterSelect {
 .guideSearch button {
   display: grid;
   width: var(--hp-size-44);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   place-items: center;
   margin-right: calc(var(--hp-space-10) * -1);
   padding: 0;

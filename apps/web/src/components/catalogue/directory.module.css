@@ -117,7 +117,7 @@
 }
 
 .redButton {
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-22);
   border: 0;
   border-radius: var(--hp-r-button);
@@ -542,7 +542,7 @@ select.sortSelect.sortSelect {
 
 /* Needed by (Pen: 48px field, "Any date"). */
 .date.date {
-  height: var(--hp-space-48);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-14);
   font-size: var(--hp-size-15);
 }
@@ -753,7 +753,7 @@ select.sortSelect.sortSelect {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-28);
   border-radius: var(--hp-r-button);
   outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -887,7 +887,7 @@ select.sortSelect.sortSelect {
   display: grid;
   place-items: center;
   width: var(--hp-size-44);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   margin-right: calc(var(--hp-space-12) * -1);
   padding: 0;
   border: 0;
@@ -937,7 +937,7 @@ select.sortSelect.sortSelect {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--hp-space-48);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-18);
   border: 0;
   border-radius: var(--hp-space-6);
@@ -1008,7 +1008,7 @@ select.sortSelect.sortSelect {
   }
 
   .search {
-    height: var(--hp-size-52);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-14);
     border-radius: var(--hp-r-control);
     outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -1091,7 +1091,7 @@ select.sortSelect.sortSelect {
     display: inline-flex;
     align-items: center;
     gap: var(--hp-space-6);
-    height: var(--hp-size-44);
+    height: var(--hp-touch-target);
     padding: 0 var(--hp-space-14);
     border: 0;
     border-radius: var(--hp-r-button);
@@ -1116,7 +1116,7 @@ select.sortSelect.sortSelect {
   }
 
   .barActions .sortSelect {
-    height: var(--hp-size-44);
+    height: var(--hp-touch-target);
   }
 
   /* Sort lives in the sticky bar on phones; applied filters stay removable here. */
@@ -1191,7 +1191,7 @@ select.sortSelect.sortSelect {
     display: inline-flex;
     align-items: center;
     gap: var(--hp-space-8);
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-16);
     border-radius: var(--hp-r-button);
     outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -1209,7 +1209,7 @@ select.sortSelect.sortSelect {
 
   .pagination .outlineButton {
     width: 100%;
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
   }
 
   .pages {

@@ -401,7 +401,7 @@
 }
 
 .accept {
-  min-height: var(--hp-size-56);
+  min-height: var(--hp-space-48);
   padding: 0 var(--hp-space-24);
   border: 0;
   border-radius: var(--hp-space-6);
@@ -434,7 +434,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--hp-space-48);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-16);
   border: var(--hp-border-width) solid var(--hp-ink);
   border-radius: var(--hp-space-6);

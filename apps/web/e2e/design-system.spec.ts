@@ -112,7 +112,7 @@ test("the dialog traps focus, closes on Escape and returns focus", async ({ page
   await expect(opener).toBeFocused();
 });
 
-test("interactive controls meet the 44 px touch target", async ({ page }) => {
+test("interactive controls meet the touch target: 44 px on touch, 40 px with a mouse", async ({ page }, info) => {
   await page.goto("/design-system");
   // The hidden native select behind a custom Select only carries the form value; it isn't a target.
   const controls = page.locator("main button, main input:not([type=checkbox]):not([type=radio]), main select:not([aria-hidden=true]), main a[class]");
@@ -122,7 +122,7 @@ test("interactive controls meet the 44 px touch target", async ({ page }) => {
       .map((node) => ({ text: node.textContent?.trim() || node.getAttribute("name"), height: node.getBoundingClientRect().height })),
   );
   expect(sizes.length).toBeGreaterThan(10);
-  expect(sizes.filter((size) => size.height < 44)).toEqual([]);
+  expect(sizes.filter((size) => size.height < (info.project.name.includes("375") ? 44 : 40))).toEqual([]);
 });
 
 test("body text uses Instrument Sans (Ledger UI face) at 16 px or more", async ({ page }) => {

@@ -1052,7 +1052,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--hp-space-8);
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   border: 0;
   border-radius: var(--hp-r-pill);
   background: var(--hp-ink);
@@ -1328,7 +1328,7 @@
   justify-content: center;
   gap: var(--hp-space-10);
   width: 100%;
-  min-height: var(--hp-size-56);
+  min-height: var(--hp-space-48);
   border: 0;
   border-radius: var(--hp-r-pill);
   font: inherit;
@@ -1356,7 +1356,7 @@
 }
 
 .secondary {
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   border: var(--hp-size-1_5) solid var(--hp-ink);
   background: transparent;
   color: var(--hp-ink);
@@ -1687,7 +1687,7 @@
 .stickyCta {
   flex: none;
   width: auto;
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-size-18);
   font-size: var(--hp-text-label);
 }

@@ -255,3 +255,11 @@
 :root {
   --hp-z-popover: 90;
 }
+
+/* Moderate controls with a mouse or trackpad (owner, 24 Oct 2026). Touch screens keep the
+ * 44 px touch target that PRD-00 and PUB-FR-005 require. */
+@media (pointer: fine) {
+  :root {
+    --hp-touch-target: 40px;
+  }
+}

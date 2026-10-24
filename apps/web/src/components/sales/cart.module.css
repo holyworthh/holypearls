@@ -227,7 +227,7 @@
 .qtySelect {
   width: auto;
   min-width: var(--hp-size-120);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
 }
 
 .amount {
@@ -370,7 +370,7 @@
 }
 
 .checkout {
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
 }
 
 .quoteBlock {
@@ -631,6 +631,6 @@
   }
 
   .payBar button {
-    min-height: var(--hp-size-52);
+    min-height: var(--hp-size-44);
   }
 }

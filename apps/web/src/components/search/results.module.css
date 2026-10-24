@@ -70,7 +70,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--hp-space-8);
-  height: var(--hp-space-48);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-18);
   border: 0;
   border-radius: var(--hp-r-button);
@@ -468,7 +468,7 @@
 .pageLink {
   display: inline-flex;
   align-items: center;
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-16);
   border-radius: var(--hp-r-button);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -773,7 +773,7 @@
 
   .field {
     gap: var(--hp-space-10);
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-4) 0 var(--hp-space-12);
     border-radius: var(--hp-r-control);
   }

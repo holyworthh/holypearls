@@ -99,7 +99,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-24);
   border: var(--hp-border-width) solid var(--hp-ink);
   border-radius: var(--hp-space-10);

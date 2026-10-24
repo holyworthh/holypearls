@@ -8,7 +8,7 @@
   border: var(--hp-border-width) solid transparent;
   border-radius: var(--hp-r-control);
   font-family: var(--hp-font-ui);
-  font-size: var(--hp-text-body);
+  font-size: var(--hp-text-label);
   font-weight: var(--hp-weight-medium);
   line-height: var(--hp-leading-tight);
   text-decoration: none;

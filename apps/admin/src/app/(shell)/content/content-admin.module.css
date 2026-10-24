@@ -149,7 +149,7 @@
   display: flex;
   align-items: center;
   gap: var(--hp-space-12);
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   color: var(--hp-ink);
   font-size: var(--hp-space-16);
   line-height: var(--hp-size-23);
@@ -284,7 +284,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--hp-space-6);
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: 0 var(--hp-space-8);
   border: 0;
   border-radius: var(--hp-space-6);
@@ -333,7 +333,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--hp-space-6);
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-space-6);
   color: var(--hp-ink);
@@ -368,7 +368,7 @@
   align-items: center;
   gap: var(--hp-space-6);
   align-self: flex-start;
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   color: var(--hp-ink);
   font-size: var(--hp-text-label);
   font-weight: 600;
@@ -410,7 +410,7 @@
   align-items: flex-start;
   gap: var(--hp-space-2);
   width: 100%;
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: var(--hp-space-10) var(--hp-space-14);
   border: 0;
   background: var(--hp-paper);

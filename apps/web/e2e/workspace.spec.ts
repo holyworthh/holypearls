@@ -224,7 +224,7 @@ test("brand assets: an Admin uploads a logo; it waits for HolyPearls' check; sta
   await expectNoAxeViolations(page);
 });
 
-test("templates: the Owner makes a template; HolyPearls approves it; a Lekki manager orders from it; a Viewer only sees it", async ({ page }) => {
+test("templates: the Owner makes a template; HolyPearls approves it; a Lekki manager orders from it; a Viewer only sees it", async ({ page }, info) => {
   await signInCustomer(page, TEST_PEOPLE.acmeOwner, "/workspace");
   const workspace = page.url().split("?")[0]!.replace(/\/$/, "");
   // A saved business-cards design to start from (the configurator is covered elsewhere).
@@ -301,7 +301,7 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
   const cards = page.getByRole("list", { name: "Templates" }).getByRole("link");
   expect(await cards.count()).toBeGreaterThan(0);
   expect(await cards.evaluateAll((entries) => entries.flatMap((card) => [...card.querySelectorAll("span")].filter((span) => span.getBoundingClientRect().right > card.getBoundingClientRect().right + 1).map((span) => span.textContent)))).toEqual([]);
-  expect(await page.getByRole("main").getByRole("link", { name: "View all", exact: true }).evaluateAll((links) => links.filter((link) => link.getBoundingClientRect().height < 44).map((link) => link.textContent))).toEqual([]);
+  expect(await page.getByRole("main").getByRole("link", { name: "View all", exact: true }).evaluateAll((links, min) => links.filter((link) => link.getBoundingClientRect().height < min).map((link) => link.textContent), info.project.name.includes("375") ? 44 : 40)).toEqual([]);
   await expectNoHorizontalScroll(page);
 });
 
