@@ -14,6 +14,7 @@ import type { StorageAdapter } from "@holypearls/storage";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { customerForActor } from "../identity/customers.js";
+import { incidentSwitches } from "../platform/incidents.js";
 import { canViewHelpRequest } from "../platform/help-requests.js";
 import { canSeeBrandAssetVersion } from "../organizations/assets.js";
 import {
@@ -145,6 +146,7 @@ export async function createUpload(
   actor: ActorContext,
   input: { purpose: FilePurpose; fileName: string; size: number; contentType: string; owner?: { type: string; id: string } },
 ) {
+  if ((await incidentSwitches(deps.db)).uploadsPausedSince) throw new AppError("RULE_FAILED", { message: "Uploads are paused for a short while. Your saved files still work. Try again later.", context: { reason: "UPLOADS_PAUSED" } });
   const rule = PURPOSES[input.purpose];
   if (rule.staffPermission) {
     if (actor.type !== "user" || !actor.staff) throw new AppError("NOT_FOUND");
@@ -315,4 +317,33 @@ export async function removeUnattachedFiles(deps: Pick<FileDeps, "db" | "storage
     });
   }
   return removed;
+}
+
+/** How many files were rejected or need review since `since` (TECH-07 §12 alert A9). */
+export async function failedFilesSince(db: Database, since: Date): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(schema.files)
+    .where(and(inArray(schema.files.status, ["REJECTED", "NEEDS_REVIEW"]), sql`${schema.files.updatedAt} >= ${since}`));
+  return row!.n;
+}
+
+/**
+ * Daily copy of private files to the backup bucket (TECH-07 §5): READY and NEEDS_REVIEW files changed
+ * since `since`, skipping any already copied at the same size. Returns how many were copied.
+ * ponytail: buffered copy (max 100 MB), 7-day window; server-side CopyObject or a watermark when volume grows.
+ */
+export async function backupFiles(deps: { db: Database; storage: StorageAdapter; backupStorage: StorageAdapter }, since: Date): Promise<number> {
+  const rows = await deps.db
+    .select()
+    .from(schema.files)
+    .where(and(eq(schema.files.bucket, "private"), inArray(schema.files.status, ["READY", "NEEDS_REVIEW"]), sql`${schema.files.updatedAt} >= ${since}`));
+  let copied = 0;
+  for (const row of rows) {
+    const size = (await deps.storage.head(row.storageKey))?.size;
+    if (size === undefined || (await deps.backupStorage.head(row.storageKey))?.size === size) continue;
+    await deps.backupStorage.write(row.storageKey, await deps.storage.read(row.storageKey), row.detectedType ?? row.declaredType);
+    copied += 1;
+  }
+  return copied;
 }

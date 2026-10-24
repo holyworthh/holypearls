@@ -2,6 +2,7 @@ import { REQUEST_ID_HEADER } from "@holypearls/contracts";
 import { newId } from "@holypearls/db";
 import type { NextFunction, Request, Response } from "express";
 import type { Logger } from "pino";
+import { recordRequest } from "./platform/alerts.js";
 
 // Accept an ID from the web server so one ID follows the request end to end (TECH-07 §10).
 const INCOMING_ID = /^[A-Za-z0-9_-]{8,64}$/;
@@ -18,13 +19,15 @@ export function requestContext(logger: Logger) {
 
     const started = process.hrtime.bigint();
     response.on("finish", () => {
+      const durationMs = Number((process.hrtime.bigint() - started) / 1_000_000n);
+      if (!request.path.startsWith("/health")) recordRequest(response.statusCode, durationMs);
       logger.info(
         {
           requestId,
           method: request.method,
           route: request.route?.path ?? request.path,
           status: response.statusCode,
-          durationMs: Number((process.hrtime.bigint() - started) / 1_000_000n),
+          durationMs,
         },
         "request",
       );
