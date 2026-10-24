@@ -50,6 +50,6 @@ export class NotificationsController {
       data: { requestedBy: actor.staff?.displayName ?? actor.session.name },
       requestId: actor.requestId,
     });
-    return (await findNotification(this.deps.db, id))!;
+    return (await findNotification(this.deps.db, id!))!;
   }
 }

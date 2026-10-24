@@ -1,9 +1,9 @@
 import type { AdminHelpRequest, HelpContext, HelpInbox, HelpRequest, HelpTopic } from "@holypearls/contracts";
-import { and, type Database, eq, schema, sql } from "@holypearls/db";
+import { and, type Database, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { attachFile, findFileForActor } from "../files/files.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, ensureAccountCustomer, ensureGuestCustomer, redeemGuestLink } from "../identity/customers.js";
+import { createGuestLink, ensureAccountCustomer, ensureGuestCustomer, ofPerson, type PersonSubject, redeemGuestLink } from "../identity/customers.js";
 import { recordAudit } from "./audit.js";
 import { type NotificationDeps, queueEmail } from "./notifications.js";
 import { allow, type Decision, hide } from "./policy.js";
@@ -287,4 +287,22 @@ export async function closeHelpRequest(db: Database, actor: ActorContext, id: st
     });
   }
   return getHelpRequestForStaff(db, id);
+}
+
+/** Privacy export (T15-03): the person's help requests with staff replies. */
+export async function helpRequestsForPerson(db: Database, subject: PersonSubject) {
+  const requests = await db
+    .select({ id: schema.helpRequests.id, reference: schema.helpRequests.reference, name: schema.helpRequests.name, company: schema.helpRequests.company, phone: schema.helpRequests.phone, message: schema.helpRequests.message, createdAt: schema.helpRequests.createdAt })
+    .from(schema.helpRequests)
+    .where(ofPerson(subject, schema.helpRequests.customerId, schema.helpRequests.userId))
+    .orderBy(schema.helpRequests.createdAt);
+  const list = requests.length
+    ? await db.select({ helpRequestId: schema.helpReplies.helpRequestId, body: schema.helpReplies.body, createdAt: schema.helpReplies.createdAt }).from(schema.helpReplies).where(inArray(schema.helpReplies.helpRequestId, requests.map((request) => request.id)))
+    : [];
+  return requests.map((request) => ({ ...request, replies: list.filter((reply) => reply.helpRequestId === request.id) }));
+}
+
+/** Privacy erasure (T15-03): help requests are deleted with their replies; they hold only contact details and a message. */
+export async function eraseHelpRequests(tx: Transaction, subject: PersonSubject) {
+  await tx.delete(schema.helpRequests).where(ofPerson(subject, schema.helpRequests.customerId, schema.helpRequests.userId));
 }

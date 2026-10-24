@@ -1,17 +1,17 @@
 import type { SQL } from "@holypearls/db";
 import { paymentDetailsForOrders } from "../payments/order-facts.js";
 import { type AccountQuote, type CustomerQuote, displayMoney, type PaymentSummary, type QuoteVersion, type ScheduleEntry } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, inArray, isNotNull, lt, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, isNotNull, lt, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink, requireRecentEmailCode } from "../identity/customers.js";
+import { createGuestLink, ERASED_NAME, ofPerson, type PersonSubject, requireRecentEmailCode } from "../identity/customers.js";
 import { nextNumber, type OrderEmailDeps } from "../orders/orders.js";
 import { organizationQuoteCheck } from "../organizations/approvals.js";
 import { canSeeOrganizationRecord, organizationAccessWhere } from "../organizations/scope.js";
 import { beginAttempt, type PaymentDeps, paymentSettings, paymentsBlocker } from "../payments/payments.js";
 import { releaseReadyItems } from "../production/production.js";
 import { createProofsForOrder } from "../proofs/proofs.js";
-import { recordAudit } from "../platform/audit.js";
+import { recordAudit, withoutPersonalData } from "../platform/audit.js";
 import { queueEmail } from "../platform/notifications.js";
 import { deviceHash } from "../sales/cart.js";
 import { quoteTotals, schedulePayments } from "./quote-math.js";
@@ -541,6 +541,37 @@ export async function sendInstallmentDueReminder(deps: OrderEmailDeps, installme
     });
     return "sent";
   });
+}
+
+/** Privacy export (T15-03): the person's quote requests and the change requests they sent. */
+export async function quotesForPerson(db: Database, subject: PersonSubject) {
+  const quotes = await db
+    .select({ id: schema.quotes.id, reference: schema.quotes.reference, status: schema.quotes.status, contact: schema.quotes.contact, requestSnapshot: schema.quotes.requestSnapshot, createdAt: schema.quotes.createdAt })
+    .from(schema.quotes)
+    .where(ofPerson(subject, schema.quotes.customerId))
+    .orderBy(schema.quotes.createdAt);
+  const changeRequests = await db
+    .select({ id: schema.quoteChangeRequests.id, quoteId: schema.quoteChangeRequests.quoteId, kind: schema.quoteChangeRequests.kind, note: schema.quoteChangeRequests.note, createdAt: schema.quoteChangeRequests.createdAt })
+    .from(schema.quoteChangeRequests)
+    .where(ofPerson(subject, schema.quoteChangeRequests.customerId));
+  return { quotes, changeRequests };
+}
+
+/**
+ * Privacy erasure (T15-03): the quote keeps its reference, status and frozen
+ * versions; the contact block, the request copy and the notes lose personal details.
+ */
+export async function eraseQuotes(tx: Transaction, subject: PersonSubject) {
+  const mine = ofPerson(subject, schema.quotes.customerId);
+  const rows = await tx.select({ id: schema.quotes.id, requestSnapshot: schema.quotes.requestSnapshot }).from(schema.quotes).where(mine);
+  for (const row of rows) {
+    await tx
+      .update(schema.quotes)
+      .set({ contact: { name: ERASED_NAME, email: subject.placeholder, phone: null, note: null }, requestSnapshot: withoutPersonalData(row.requestSnapshot) })
+      .where(eq(schema.quotes.id, row.id));
+  }
+  const notes = await tx.select({ id: schema.quoteChangeRequests.id, note: schema.quoteChangeRequests.note }).from(schema.quoteChangeRequests).where(ofPerson(subject, schema.quoteChangeRequests.customerId));
+  for (const row of notes) await tx.update(schema.quoteChangeRequests).set({ note: String(withoutPersonalData(row.note)) }).where(eq(schema.quoteChangeRequests.id, row.id));
 }
 
 /** Retained attachments and snapshots must survive upload cleanup. */

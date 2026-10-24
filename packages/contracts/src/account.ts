@@ -14,12 +14,14 @@ export const profileInputSchema = z.object({
     .regex(/^$|^\+?[0-9 ()-]{7,}$/, "Enter a phone number like +234 803 000 0000")
     .nullable()
     .default(null),
+  /** Product news, off unless the person turns it on (TECH-06 §12). */
+  marketingConsent: z.boolean().optional(),
 });
-/** An empty phone removes it. */
+/** An empty phone removes it. Leaving `marketingConsent` out changes nothing. */
 export type ProfileInput = z.infer<typeof profileInputSchema>;
 
 /** `pendingEmail`: a new email waiting for its check link (Pen 91 "Email change pending"); the account keeps `email` until then. */
-export const profileSchema = z.object({ name: z.string(), email: z.string(), phone: z.string().nullable(), pendingEmail: z.string().nullable() });
+export const profileSchema = z.object({ name: z.string(), email: z.string(), phone: z.string().nullable(), pendingEmail: z.string().nullable(), marketingConsent: z.boolean() });
 export type Profile = z.infer<typeof profileSchema>;
 
 /**

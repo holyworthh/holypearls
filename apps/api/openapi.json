@@ -163,6 +163,9 @@
                         "null"
                       ]
                     },
+                    "marketingConsent": {
+                      "type": "boolean"
+                    },
                     "pendingEmail": {
                       "type": [
                         "string",
@@ -224,6 +227,7 @@
                     "email",
                     "emailVerified",
                     "phone",
+                    "marketingConsent",
                     "pendingEmail",
                     "isStaff",
                     "mfa",
@@ -893,6 +897,9 @@
                         "type": "null"
                       }
                     ]
+                  },
+                  "marketingConsent": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -929,13 +936,17 @@
                         "string",
                         "null"
                       ]
+                    },
+                    "marketingConsent": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
                     "name",
                     "email",
                     "phone",
-                    "pendingEmail"
+                    "pendingEmail",
+                    "marketingConsent"
                   ],
                   "additionalProperties": false
                 }
@@ -30917,6 +30928,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -31515,6 +31529,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -32039,6 +32056,9 @@
                     "minLength": 1,
                     "maxLength": 40
                   },
+                  "marketingConsent": {
+                    "type": "boolean"
+                  },
                   "version": {
                     "type": "integer",
                     "minimum": -9007199254740991,
@@ -32153,6 +32173,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -32836,6 +32859,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -33490,6 +33516,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -34145,6 +34174,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [
@@ -50998,6 +51030,9 @@
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 40
+                            },
+                            "marketingConsent": {
+                              "type": "boolean"
                             }
                           },
                           "required": [

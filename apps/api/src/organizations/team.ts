@@ -15,7 +15,7 @@ import {
 import { and, type Database, desc, eq, inArray, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import { type ActorContext, requireUser } from "../identity/actor.js";
-import { maskEmail, requireRecentEmailCode } from "../identity/customers.js";
+import { erasedEmail, maskEmail, type PersonSubject, requireRecentEmailCode } from "../identity/customers.js";
 import { claimInvitation, effectiveStatus, findInvitationByToken, invitationLocationIds, issueInvitation, normalizeEmail, revokeInvitation } from "../identity/invitations.js";
 import { recordAudit } from "../platform/audit.js";
 import type { HelpDeps } from "../platform/help-requests.js";
@@ -427,4 +427,22 @@ export async function transferOwnership(deps: OrganizationDeps, actor: ActorCont
   });
   // After stepping down the person is an Admin, who can still see the team (read with a fresh actor).
   return listTeam(deps.db, { ...actor }, organizationId);
+}
+
+/** Privacy (T15-03): an active member of an organization can't be erased here; they leave the organization first. */
+export async function memberBlocker(db: Database | Transaction, subject: PersonSubject) {
+  if (!subject.userId) return null;
+  const [member] = await db.select({ id: schema.memberships.id }).from(schema.memberships).where(and(eq(schema.memberships.userId, subject.userId), eq(schema.memberships.status, "ACTIVE"))).limit(1);
+  return member ? { code: "ORGANIZATION_MEMBER" as const, message: "This person is an active member of an organization. Remove them from it first." } : null;
+}
+
+/** Privacy erasure (T15-03): invitations sent to the email lose it; pending ones are revoked. */
+export async function eraseInvitations(tx: Transaction, subject: PersonSubject, now: Date) {
+  const rows = await tx.select({ id: schema.invitations.id, status: schema.invitations.status }).from(schema.invitations).where(eq(schema.invitations.emailNormalized, subject.email));
+  for (const row of rows) {
+    await tx
+      .update(schema.invitations)
+      .set({ emailNormalized: erasedEmail(row.id), ...(row.status === "PENDING" ? { status: "REVOKED" as const, revokedAt: now } : {}) })
+      .where(eq(schema.invitations.id, row.id));
+  }
 }

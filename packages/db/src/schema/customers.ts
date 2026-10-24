@@ -21,6 +21,10 @@ export const customers = pgTable(
     phone: text("phone"),
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     emailVerifiedAt: at("email_verified_at"),
+    /** When they agreed to product news; null means no (the default). TECH-06 §12. */
+    marketingConsentAt: at("marketing_consent_at"),
+    /** When their personal data was erased on request (T15-03). */
+    erasedAt: at("erased_at"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

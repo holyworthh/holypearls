@@ -1,7 +1,7 @@
 "use client";
 
 import { okResultSchema, profileInputSchema, profileSchema, toFieldErrors } from "@holypearls/contracts";
-import { Button, FormField, Notice, TextField } from "@holypearls/ui";
+import { Button, Checkbox, FormField, Notice, TextField } from "@holypearls/ui";
 import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 import { z } from "zod";
 import { type FormEvent, useState } from "react";
@@ -13,6 +13,7 @@ interface Initial {
   phone: string | null;
   emailVerified: boolean;
   pendingEmail: string | null;
+  marketingConsent: boolean;
 }
 
 const CALLBACK = "/account/profile?email=changed";
@@ -27,6 +28,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
   const [name, setName] = useState(initial.name);
   const [phone, setPhone] = useState(initial.phone ?? "");
   const [email, setEmail] = useState(initial.email);
+  const [news, setNews] = useState(initial.marketingConsent);
   const [pending, setPending] = useState(initial.pendingEmail);
   const [resend, setResend] = useState<"idle" | "busy" | "sent" | "failed">("idle");
 
@@ -49,9 +51,10 @@ export function ProfileForm({ initial }: { initial: Initial }) {
     }
     setState("saving");
     try {
-      const saved = await api("/v1/me/profile", { method: "PATCH", body: { name, phone }, response: profileSchema });
+      const saved = await api("/v1/me/profile", { method: "PATCH", body: { name, phone, marketingConsent: news }, response: profileSchema });
       setName(saved.name);
       setPhone(saved.phone ?? "");
+      setNews(saved.marketingConsent);
       if (emailChanged && newEmail !== pending) {
         await requestChange(newEmail).catch((error: unknown) => {
           throw Object.assign(new Error("email"), { field: errorCode(error) === "RATE_LIMITED" ? "Too many requests. Try again in a few minutes." : "We couldn't send the check to that address. Try again." });
@@ -65,7 +68,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         setErrors({ email: String(error.field) });
         setState("idle");
       } else if (errorReason(error) === "VERIFY_EMAIL_FIRST") {
-        setErrors({ phone: "Verify your email first, then add a phone number." });
+        setErrors({ phone: "Verify your email first, then add a phone number or turn on product news." });
         setState("idle");
       } else setState("failed");
     }
@@ -117,6 +120,12 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         <FormField label="Phone" optional id="profile-phone" hint={initial.emailVerified ? "Used only for delivery questions." : "Verify your email to add a phone number. Used only for delivery questions."} error={errors.phone}>
           <TextField name="phone" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
         </FormField>
+        <Checkbox id="profile-news" checked={news} onChange={(event) => setNews(event.target.checked)} label="Send me product news and offers (optional)" hint={initial.emailVerified ? undefined : "Verify your address to turn this on."} />
+        {state === "saved" && news ? (
+          <Notice tone="success" live>
+            <p>You&apos;ll get product news. Turn this off any time in Profile.</p>
+          </Notice>
+        ) : null}
         <div className={styles.formActions}>
           <Button type="submit" loading={state === "saving"}>
             {state === "saving" ? "Saving…" : "Save changes"}

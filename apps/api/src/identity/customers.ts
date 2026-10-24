@@ -1,5 +1,5 @@
 import type { GuestLinkPurpose } from "@holypearls/contracts";
-import { and, type Database, desc, eq, gt, isNull, schema, sql, type Transaction } from "@holypearls/db";
+import { type AnyColumn, and, type Database, desc, eq, gt, inArray, isNull, or, schema, sql, type Transaction } from "@holypearls/db";
 import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import { AppError } from "../errors.js";
 import { recordAudit } from "../platform/audit.js";
@@ -349,4 +349,109 @@ export async function customersForExport(db: Database, range: { start: Date; end
     ["Name", "Email", "Phone", "Email verified", "Has an account", "First seen"],
     ...rows.map((row) => [row.name ?? "", row.email, row.phone ?? "", row.emailVerifiedAt ? "Yes" : "No", row.userId ? "Yes" : "No", row.createdAt.toISOString()]),
   ];
+}
+
+/*
+ * Privacy requests (T15-03; TECH-06 §12). Each module exports what it holds
+ * about one person and how it erases it; platform/privacy.ts calls them.
+ */
+
+/** Everything that identifies one person: their customer rows (guest or account), account, and typed email. */
+export interface PersonSubject {
+  email: string;
+  customerIds: string[];
+  userId: string | null;
+  /** What replaces their name and email inside records that must stay (JSON copies, not unique columns). */
+  placeholder: string;
+}
+
+export const ERASED_NAME = "Erased customer";
+export const ERASED_DOMAIN = "erased.invalid";
+/** A unique stand-in email: customers.email_normalized and users.email are unique. */
+export const erasedEmail = (id: string) => `erased+${id}@${ERASED_DOMAIN}`;
+
+/** Rows of a table that belong to the person: by customer id, or (when the table has one) by owner account. */
+export const ofPerson = (subject: PersonSubject, customerColumn: AnyColumn, userColumn?: AnyColumn) =>
+  or(inArray(customerColumn, subject.customerIds), userColumn && subject.userId ? eq(userColumn, subject.userId) : undefined)!;
+
+/** Finds the customer rows and account behind an email, or null when HolyPearls holds nothing under it. */
+export async function findPerson(db: Db, email: string): Promise<PersonSubject | null> {
+  const normalized = normalizeEmail(email);
+  const [user] = await db.select({ id: schema.users.id }).from(schema.users).where(sql`lower(${schema.users.email}) = ${normalized}`).limit(1);
+  const rows = await db
+    .select({ id: schema.customers.id })
+    .from(schema.customers)
+    .where(or(eq(schema.customers.emailNormalized, normalized), user ? eq(schema.customers.userId, user.id) : undefined));
+  if (!user && !rows.length) return null;
+  const customerIds = rows.map((row) => row.id);
+  return { email: normalized, customerIds, userId: user?.id ?? null, placeholder: erasedEmail(customerIds[0] ?? user!.id) };
+}
+
+/** Staff accounts can't be erased here: they hold permissions and audit history. */
+export async function staffBlocker(db: Db, subject: PersonSubject) {
+  if (!subject.userId) return null;
+  const [staff] = await db.select({ id: schema.staffProfiles.id }).from(schema.staffProfiles).where(eq(schema.staffProfiles.userId, subject.userId)).limit(1);
+  return staff ? { code: "STAFF_ACCOUNT" as const, message: "This person is a staff member. Remove their staff access first." } : null;
+}
+
+export async function identityForPerson(db: Db, subject: PersonSubject) {
+  const [user] = subject.userId
+    ? await db
+        .select({ id: schema.users.id, name: schema.users.name, email: schema.users.email, emailVerified: schema.users.emailVerified, pendingEmail: schema.users.pendingEmail, createdAt: schema.users.createdAt })
+        .from(schema.users)
+        .where(eq(schema.users.id, subject.userId))
+    : [];
+  const customers = await db
+    .select({
+      id: schema.customers.id,
+      email: schema.customers.email,
+      name: schema.customers.name,
+      phone: schema.customers.phone,
+      emailVerifiedAt: schema.customers.emailVerifiedAt,
+      marketingConsentAt: schema.customers.marketingConsentAt,
+      erasedAt: schema.customers.erasedAt,
+      createdAt: schema.customers.createdAt,
+    })
+    .from(schema.customers)
+    .where(ofPerson(subject, schema.customers.id, schema.customers.userId));
+  // Tokens, password hashes and authenticator secrets are never exported.
+  const sessions = subject.userId
+    ? await db
+        .select({ createdAt: schema.sessions.createdAt, expiresAt: schema.sessions.expiresAt, ipAddress: schema.sessions.ipAddress, userAgent: schema.sessions.userAgent })
+        .from(schema.sessions)
+        .where(eq(schema.sessions.userId, subject.userId))
+    : [];
+  return { user: user ?? null, customers, sessions };
+}
+
+/** Records agreement to product news; the first date is kept. */
+export async function recordMarketingConsent(db: Db, customerId: string, now: Date) {
+  await db.update(schema.customers).set({ marketingConsentAt: sql`coalesce(${schema.customers.marketingConsentAt}, ${now})` }).where(eq(schema.customers.id, customerId));
+}
+
+/** Last step of an erasure: the customer rows, the account and everything that signs it in. */
+export async function eraseIdentity(tx: Transaction, subject: PersonSubject, now: Date) {
+  await tx.delete(schema.guestLinks).where(inArray(schema.guestLinks.customerId, subject.customerIds));
+  await tx.delete(schema.emailCodes).where(inArray(schema.emailCodes.customerId, subject.customerIds));
+  for (const id of subject.customerIds) {
+    await tx
+      .update(schema.customers)
+      .set({ email: erasedEmail(id), emailNormalized: erasedEmail(id), name: null, phone: null, marketingConsentAt: null, emailVerifiedAt: null, userId: null, erasedAt: now, updatedAt: now })
+      .where(eq(schema.customers.id, id));
+  }
+  if (subject.userId) {
+    const [user] = await tx.select({ email: schema.users.email, pendingEmail: schema.users.pendingEmail }).from(schema.users).where(eq(schema.users.id, subject.userId));
+    await tx.delete(schema.sessions).where(eq(schema.sessions.userId, subject.userId));
+    await tx.delete(schema.accounts).where(eq(schema.accounts.userId, subject.userId));
+    await tx.delete(schema.twoFactors).where(eq(schema.twoFactors.userId, subject.userId));
+    // Better Auth keeps the email inside the identifier of its check links and codes.
+    for (const address of new Set([subject.email, user?.email, user?.pendingEmail].filter((value): value is string => !!value).map((value) => value.toLowerCase()))) {
+      await tx.delete(schema.verifications).where(sql`position(${address} in lower(${schema.verifications.identifier})) > 0`);
+    }
+    await tx
+      .update(schema.users)
+      .set({ name: ERASED_NAME, email: erasedEmail(subject.userId), emailVerified: false, image: null, pendingEmail: null, pendingEmailAt: null, updatedAt: now })
+      .where(eq(schema.users.id, subject.userId));
+  }
+  return subject.customerIds.length;
 }

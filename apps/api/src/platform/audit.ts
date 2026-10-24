@@ -39,8 +39,17 @@ export function auditActor(actor: ActorContext | null) {
  * email or phone number in the record label is masked. Audit rows can't be
  * changed later, so they mustn't need erasing.
  */
-const PERSONAL_KEY = /^(e-?mail|phone|mobile|street|address|landmark|postcode|contact|billing|delivery_?address|first_?name|last_?name|full_?name|customer_?name|recipient)$/i;
+const PERSONAL_KEY = /^(e-?mail|phone|mobile|street|address|landmark|postcode|contact|billing|delivery_?address|first_?name|last_?name|full_?name|customer_?name|recipient|account_?name|ip_?address)$/i;
 export const REMOVED = "[personal data removed]";
+
+/** For stored raw bodies (Paystack, courier): the JSON without personal keys, or REMOVED when it isn't JSON. */
+export function scrubJsonText(raw: string): string {
+  try {
+    return JSON.stringify(withoutPersonalData(JSON.parse(raw)));
+  } catch {
+    return REMOVED;
+  }
+}
 
 export function withoutPersonalData(value: unknown, depth = 0): unknown {
   if (depth > 8 || value === null || typeof value !== "object") return typeof value === "string" ? maskContact(value) : value;

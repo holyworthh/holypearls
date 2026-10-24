@@ -322,3 +322,33 @@ async function submittedCounts(db: Db, collectionIds: readonly string[]) {
     .groupBy(schema.participants.collectionId);
   return new Map(rows.map((row) => [row.collectionId, row.count]));
 }
+
+/**
+ * Retention (TECH-06 §12): participants' names and emails go 12 months after
+ * the collection's order was delivered, and their imported rows are emptied.
+ * Their size answers stay. Returns how many participants were cleared.
+ * ponytail: one SQL across orders and shipments; move behind an orders export if the delivered rule grows.
+ */
+export async function purgeParticipantContacts(db: Database, now: Date) {
+  const cutoff = new Date(now.getTime() - 365 * 86_400_000).toISOString();
+  const result = await db.execute<{ id: string }>(sql`
+    with done as (
+      select d.collection_id from order_drafts d
+      left join order_requests r on r.id = d.order_request_id
+      join quote_versions qv on qv.quote_id = coalesce(d.quote_id, r.quote_id)
+      join orders o on o.quote_version_id = qv.id
+      where d.status = 'SUBMITTED'
+        and not exists (select 1 from order_items i where i.order_id = o.id and i.status not in ('DELIVERED', 'CANCELLED'))
+        and (select max(s.delivered_at) from shipments s where s.order_id = o.id) < ${cutoff}::timestamptz)
+    update participants set name = 'Removed participant', email = '', updated_at = ${now.toISOString()}::timestamptz
+    where email <> '' and collection_id in (select collection_id from done)
+    returning id`);
+  const ids = result.rows.map((row) => row.id);
+  await clearImportRows(db, ids);
+  return ids.length;
+}
+
+/** Imported cells and values hold the person's name and email: emptied with the participant's contact. */
+export async function clearImportRows(db: Database | Transaction, participantIds: string[]) {
+  if (participantIds.length) await db.update(schema.importRows).set({ raw: [], values: {} }).where(inArray(schema.importRows.participantId, participantIds));
+}
