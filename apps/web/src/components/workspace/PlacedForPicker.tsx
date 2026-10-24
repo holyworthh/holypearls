@@ -42,8 +42,8 @@ export function PlacedForPicker({
             value={value}
             disabled={saving}
             options={options}
-            onChange={async (event) => {
-              const [organizationId, locationId] = event.target.value.split(":");
+            onValueChange={async (next) => {
+              const [organizationId, locationId] = next.split(":");
               setSaving(true);
               setProblem(null);
               try {

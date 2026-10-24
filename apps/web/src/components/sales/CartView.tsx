@@ -291,7 +291,7 @@ function Item({ item, busy, onRemove, onSave, onQuantity }: { item: CartItem; bu
                 options={item.quantityOptions.map((value) => ({ value: String(value), label: value.toLocaleString("en-NG") }))}
                 value={String(item.quantity)}
                 disabled={busy}
-                onChange={(event) => onQuantity(Number(event.target.value))}
+                onValueChange={(next) => onQuantity(Number(next))}
               />
             ) : item.quantity ? (
               <p className={styles.qty}>{item.quantity.toLocaleString("en-NG")}</p>

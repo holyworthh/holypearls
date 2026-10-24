@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError, type Configuration, type ConfigurationDetails, NIGERIA_STATES, quoteRequestResultSchema } from "@holypearls/contracts";
-import { Button, Dialog, FormField, Notice, Select, TextField } from "@holypearls/ui";
+import { Button, DatePicker, Dialog, FormField, Notice, Select, TextField } from "@holypearls/ui";
 import { type ReactNode, useState } from "react";
 import { api } from "@holypearls/web-kit/api";
 import styles from "./configurator.module.css";
@@ -33,15 +33,25 @@ function Text({ label, id, value, onChange, type = "text", hint }: { label: stri
   const [text, setText] = useState(value === undefined ? "" : String(value));
   return (
     <FormField label={label} id={id} hint={hint}>
-      <TextField
-        type={type}
-        inputMode={type === "number" ? "decimal" : undefined}
-        value={text}
-        onChange={(event) => {
-          setText(event.target.value);
-          onChange(event.target.value);
-        }}
-      />
+      {type === "date" ? (
+        <DatePicker
+          value={text}
+          onValueChange={(next) => {
+            setText(next);
+            onChange(next);
+          }}
+        />
+      ) : (
+        <TextField
+          type={type}
+          inputMode={type === "number" ? "decimal" : undefined}
+          value={text}
+          onChange={(event) => {
+            setText(event.target.value);
+            onChange(event.target.value);
+          }}
+        />
+      )}
     </FormField>
   );
 }
@@ -65,11 +75,15 @@ function CustomSize({ details, onChange }: { details: Details; onChange: Change 
   return (
     <div className={styles.fieldRow}>
       <FormField label="Unit" id="size-unit">
-        <select className={styles.select} value={unit} onChange={(event) => set(width, height, event.target.value as keyof typeof TO_CM)}>
-          <option value="CM">Centimetres</option>
-          <option value="M">Metres</option>
-          <option value="IN">Inches</option>
-        </select>
+        <Select
+          value={unit}
+          options={[
+            { value: "CM", label: "Centimetres" },
+            { value: "M", label: "Metres" },
+            { value: "IN", label: "Inches" },
+          ]}
+          onValueChange={(value) => set(width, height, value as keyof typeof TO_CM)}
+        />
       </FormField>
       <Text key={`w-${unit}`} label={`Width (${label})`} id="size-width" type="number" value={width} onChange={(value) => set(Number(value) || undefined, height)} />
       <Text key={`h-${unit}`} label={`Height (${label})`} id="size-height" type="number" value={height} onChange={(value) => set(width, Number(value) || undefined)} />
@@ -114,7 +128,7 @@ export function FamilyFields({ family, details, onChange }: { family: string; de
                 <FormField label="State" id="install-state" hint="Where we install sets the price, or tells you it needs a quote.">
                   <Select
                     value={details.installState ?? ""}
-                    onChange={(event) => onChange(event.target.value ? { installState: event.target.value as (typeof NIGERIA_STATES)[number] } : {})}
+                    onValueChange={(next) => onChange(next ? { installState: next as (typeof NIGERIA_STATES)[number] } : {})}
                     options={[{ value: "", label: "Choose the state" }, ...NIGERIA_STATES.map((state) => ({ value: state, label: state }))]}
                   />
                 </FormField>

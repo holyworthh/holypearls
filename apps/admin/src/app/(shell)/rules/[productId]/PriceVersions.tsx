@@ -1,7 +1,7 @@
 "use client";
 
 import { type AdminPriceRule, adminPriceRuleListSchema, adminPriceRuleSchema, type AdminProductRules, ApiError } from "@holypearls/contracts";
-import { Button, Checkbox, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
+import { Button, Checkbox, DatePicker, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorCode } from "@holypearls/web-kit/api";
 import { StepUpDialog } from "@/components/StepUpDialog";
 import { useState } from "react";
@@ -138,13 +138,13 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
           }}
         >
           <FormField id="price-from" label="Effective from (Lagos time)" hint="Now, or a later date. Past prices can't be changed.">
-            <TextField type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <DatePicker withTime value={from} onValueChange={setFrom} />
           </FormField>
           <div className={css.row}>
             <FormField id="price-basis" label="Priced">
               <Select
                 value={basis}
-                onChange={(event) => setBasis(event.target.value as AdminPriceRule["basis"])}
+                onValueChange={(next) => setBasis(next as AdminPriceRule["basis"])}
                 options={[
                   { value: "PER_UNIT", label: "Per unit" },
                   { value: "PER_PACK", label: "Per pack" },
@@ -160,7 +160,7 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
             <FormField id="price-currency" label="Currency">
               <Select
                 value={currency}
-                onChange={(event) => setCurrency(event.target.value as AdminPriceRule["currency"])}
+                onValueChange={(next) => setCurrency(next as AdminPriceRule["currency"])}
                 options={[
                   { value: "NGN", label: "Naira (₦)" },
                   { value: "USD", label: "US dollars ($)" },
@@ -199,17 +199,17 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
                 <FormField id={`addon-option-${index}`} label="Option">
                   <Select
                     value={addOn.option}
-                    onChange={(event) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, option: event.target.value, value: valuesOf(event.target.value)[0]?.key ?? "" } : row)))}
+                    onValueChange={(next) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, option: next, value: valuesOf(next)[0]?.key ?? "" } : row)))}
                     options={options.map((option) => ({ value: option.key, label: option.label }))}
                   />
                 </FormField>
                 <FormField id={`addon-value-${index}`} label="Choice">
-                  <Select value={addOn.value} onChange={(event) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, value: event.target.value } : row)))} options={valuesOf(addOn.option).map((value) => ({ value: value.key, label: value.label }))} />
+                  <Select value={addOn.value} onValueChange={(next) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, value: next } : row)))} options={valuesOf(addOn.option).map((value) => ({ value: value.key, label: value.label }))} />
                 </FormField>
                 <FormField id={`addon-per-${index}`} label="Charged">
                   <Select
                     value={addOn.per}
-                    onChange={(event) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, per: event.target.value as AddOn["per"] } : row)))}
+                    onValueChange={(next) => setAddOns(addOns.map((row, at) => (at === index ? { ...row, per: next as AddOn["per"] } : row)))}
                     options={[
                       { value: "UNIT", label: "Per unit" },
                       { value: "ORDER", label: "Per order" },
@@ -233,7 +233,7 @@ export function PriceVersions({ productId, initial, options }: { productId: stri
           <FormField id="price-state" label="This price is">
             <Select
               value={state}
-              onChange={(event) => setState(event.target.value as AdminPriceRule["state"])}
+              onValueChange={(next) => setState(next as AdminPriceRule["state"])}
               options={[
                 { value: "PRICE_READY", label: "Exact (PRICE_READY)" },
                 { value: "ESTIMATE_READY", label: "An estimate (ESTIMATE_READY)" },

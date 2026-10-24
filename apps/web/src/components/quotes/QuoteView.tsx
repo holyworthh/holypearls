@@ -414,11 +414,11 @@ function RequestDialog({ quote, kind, onClose, onSent }: { quote: CustomerQuote;
               <Select
                 value={lineId}
                 options={[{ value: "", label: "The whole quote" }, ...quote.version.lines.map((line) => ({ value: line.id, label: line.title }))]}
-                onChange={(event) => setLineId(event.target.value)}
+                onValueChange={(next) => setLineId(next)}
               />
             </FormField>
             <FormField id="request-type" label="What kind of change?" optional>
-              <Select value={changeType} options={[{ value: "", label: "Choose one" }, ...CHANGE_TYPES.map((type) => ({ value: type, label: type }))]} onChange={(event) => setChangeType(event.target.value)} />
+              <Select value={changeType} options={[{ value: "", label: "Choose one" }, ...CHANGE_TYPES.map((type) => ({ value: type, label: type }))]} onValueChange={(next) => setChangeType(next)} />
             </FormField>
           </>
         ) : null}

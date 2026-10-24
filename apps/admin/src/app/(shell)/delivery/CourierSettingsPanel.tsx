@@ -81,7 +81,7 @@ export function CourierSettingsPanel({ initial }: { initial: CourierSettings }) 
       <FormField id="courier-rule" label="Which courier">
         <Select
           value={rule}
-          onChange={(event) => setRule(event.target.value as CourierSettings["rule"])}
+          onValueChange={(next) => setRule(next as CourierSettings["rule"])}
           options={[
             { value: "CHEAPEST", label: "Cheapest that collects from the workshop" },
             { value: "FASTEST", label: "Fastest that collects from the workshop" },
@@ -91,7 +91,7 @@ export function CourierSettingsPanel({ initial }: { initial: CourierSettings }) 
       <FormField id="courier-category" label="What HolyPearls ships" error={errors.categoryId}>
         <Select
           value={categoryId}
-          onChange={(event) => setCategoryId(event.target.value)}
+          onValueChange={(next) => setCategoryId(next)}
           options={[{ value: "", label: "Choose a package type" }, ...categories.map((category) => ({ value: String(category.id), label: category.name }))]}
         />
       </FormField>

@@ -654,16 +654,6 @@
   gap: var(--hp-space-10);
 }
 
-.select {
-  min-height: var(--hp-touch-target);
-  padding: 0 var(--hp-space-12);
-  border: var(--hp-border-width) solid var(--hp-line-strong);
-  border-radius: var(--hp-r-control);
-  background: var(--hp-paper);
-  color: var(--hp-ink);
-  font: inherit;
-}
-
 .area {
   margin: 0;
   color: var(--hp-ink);

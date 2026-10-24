@@ -153,7 +153,7 @@ export function CategoryEditor({ category, parents }: Props) {
           <FormField label="Parent" id="category-parent" error={errors.parentId} hint="Leave empty for a top-level category.">
             <Select
               value={form.parentId}
-              onChange={(event) => set("parentId", event.target.value)}
+              onValueChange={(next) => set("parentId", next)}
               options={[{ value: "", label: "None (top level)" }, ...parents.filter((parent) => parent.id !== current?.id).map((parent) => ({ value: parent.id, label: parent.name }))]}
             />
           </FormField>

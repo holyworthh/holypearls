@@ -1,5 +1,5 @@
 import { adminProductPageSchema } from "@holypearls/contracts";
-import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied } from "@holypearls/ui";
+import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied, Select } from "@holypearls/ui";
 import { serverApi } from "@/lib/server-api";
 import styles from "../admin-list.module.css";
 import { requireAdmin } from "../admin-session";
@@ -41,24 +41,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         </label>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Status</span>
-          <select name="status" defaultValue={params.status ?? ""}>
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                Status: {status ? status.replaceAll("_", " ") : "All"}
-              </option>
-            ))}
-          </select>
+          <Select name="status" defaultValue={params.status ?? ""} options={STATUSES.map((status) => ({ value: status, label: `Status: ${status ? status.replaceAll("_", " ") : "All"}` }))} />
         </label>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Family</span>
-          <select name="family" defaultValue={params.family ?? ""}>
-            <option value="">Family: All</option>
-            {Object.entries(FAMILY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                Family: {label}
-              </option>
-            ))}
-          </select>
+          <Select
+            name="family"
+            defaultValue={params.family ?? ""}
+            options={[{ value: "", label: "Family: All" }, ...Object.entries(FAMILY_LABELS).map(([value, label]) => ({ value, label: `Family: ${label}` }))]}
+          />
         </label>
         <Button type="submit" variant="secondary">
           Apply

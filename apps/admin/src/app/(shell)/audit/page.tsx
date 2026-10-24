@@ -1,5 +1,5 @@
 import { type AuditEntry, auditEntrySchema, auditPageSchema } from "@holypearls/contracts";
-import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied } from "@holypearls/ui";
+import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied, Select } from "@holypearls/ui";
 import { serverApi } from "@/lib/server-api";
 import { requireAdmin } from "../admin-session";
 import { formatTime } from "../format";
@@ -84,23 +84,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         </label>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Action</span>
-          <select name="action" defaultValue={params.action ?? ""}>
-            {ACTIONS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {value ? `Action: ${label}` : label}
-              </option>
-            ))}
-          </select>
+          <Select name="action" defaultValue={params.action ?? ""} options={ACTIONS.map(([value, label]) => ({ value, label: value ? `Action: ${label}` : label }))} />
         </label>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Date</span>
-          <select name="since" defaultValue={params.since ?? ""}>
-            {PERIODS.map(([value, label]) => (
-              <option key={value} value={value}>
-                Date: {label}
-              </option>
-            ))}
-          </select>
+          <Select name="since" defaultValue={params.since ?? ""} options={PERIODS.map(([value, label]) => ({ value, label: `Date: ${label}` }))} />
         </label>
         <Button type="submit" variant="secondary">
           Apply

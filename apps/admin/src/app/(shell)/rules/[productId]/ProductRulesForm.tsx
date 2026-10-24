@@ -135,7 +135,7 @@ export function ProductRulesForm({ productId, initial }: { productId: string; in
             <FormField id="rules-below" label="Below the minimum">
               <Select
                 value={choice.belowMoq}
-                onChange={(event) => setChoice({ ...choice, belowMoq: event.target.value as ProductRules["belowMoq"] })}
+                onValueChange={(next) => setChoice({ ...choice, belowMoq: next as ProductRules["belowMoq"] })}
                 options={[
                   { value: "BLOCK", label: "Block the order" },
                   { value: "MANUAL_REVIEW", label: "Send for manual review" },
@@ -164,7 +164,7 @@ export function ProductRulesForm({ productId, initial }: { productId: string; in
           </div>
           <div className={css.row}>
             <FormField id="rules-rush" label="Rush">
-              <Select value={choice.rush} onChange={(event) => setChoice({ ...choice, rush: event.target.value as ProductRules["rush"] })} options={AVAILABILITY} />
+              <Select value={choice.rush} onValueChange={(next) => setChoice({ ...choice, rush: next as ProductRules["rush"] })} options={AVAILABILITY} />
             </FormField>
             {choice.rush !== "NONE" ? (
               <FormField id="rules-rush-surcharge" label="Rush surcharge (%)">
@@ -174,7 +174,7 @@ export function ProductRulesForm({ productId, initial }: { productId: string; in
           </div>
           <div className={css.row}>
             <FormField id="rules-priority" label="Priority rush">
-              <Select value={choice.priorityRush} onChange={(event) => setChoice({ ...choice, priorityRush: event.target.value as ProductRules["priorityRush"] })} options={AVAILABILITY} />
+              <Select value={choice.priorityRush} onValueChange={(next) => setChoice({ ...choice, priorityRush: next as ProductRules["priorityRush"] })} options={AVAILABILITY} />
             </FormField>
             {choice.priorityRush !== "NONE" ? (
               <FormField id="rules-priority-surcharge" label="Priority surcharge (%)">
@@ -189,7 +189,7 @@ export function ProductRulesForm({ productId, initial }: { productId: string; in
             <FormField id="rules-sample" label="Samples">
               <Select
                 value={choice.sample}
-                onChange={(event) => setChoice({ ...choice, sample: event.target.value as ProductRules["sample"] })}
+                onValueChange={(next) => setChoice({ ...choice, sample: next as ProductRules["sample"] })}
                 options={[
                   { value: "NOT_OFFERED", label: "Not offered" },
                   { value: "OPTIONAL", label: "Optional" },
@@ -212,7 +212,7 @@ export function ProductRulesForm({ productId, initial }: { productId: string; in
           <FormField id="rules-proof" label="Proof">
             <Select
               value={choice.proof}
-              onChange={(event) => setChoice({ ...choice, proof: event.target.value as ProductRules["proof"] })}
+              onValueChange={(next) => setChoice({ ...choice, proof: next as ProductRules["proof"] })}
               options={[
                 { value: "REQUIRED", label: "Required" },
                 { value: "OPTIONAL", label: "Optional" },
@@ -284,18 +284,18 @@ function CompatibilityEditor({ productId, initial, version, onSaved }: { product
           <legend className={styles.strong}>Rule {index + 1}</legend>
           <div className={css.row}>
             <FormField id={`compat-if-${index}`} label="When">
-              <Select value={row.ifOption} onChange={(event) => update(index, { ifOption: event.target.value, ifValue: valuesOf(event.target.value)[0]?.key ?? "" })} options={optionChoices} />
+              <Select value={row.ifOption} onValueChange={(next) => update(index, { ifOption: next, ifValue: valuesOf(next)[0]?.key ?? "" })} options={optionChoices} />
             </FormField>
             <FormField id={`compat-if-value-${index}`} label="is">
-              <Select value={row.ifValue} onChange={(event) => update(index, { ifValue: event.target.value })} options={valuesOf(row.ifOption).map((value) => ({ value: value.key, label: value.label }))} />
+              <Select value={row.ifValue} onValueChange={(next) => update(index, { ifValue: next })} options={valuesOf(row.ifOption).map((value) => ({ value: value.key, label: value.label }))} />
             </FormField>
             <FormField id={`compat-then-${index}`} label="then">
-              <Select value={row.thenOption} onChange={(event) => update(index, { thenOption: event.target.value, thenValues: [] })} options={optionChoices} />
+              <Select value={row.thenOption} onValueChange={(next) => update(index, { thenOption: next, thenValues: [] })} options={optionChoices} />
             </FormField>
             <FormField id={`compat-effect-${index}`} label="these are">
               <Select
                 value={row.effect}
-                onChange={(event) => update(index, { effect: event.target.value as Compatibility["effect"] })}
+                onValueChange={(next) => update(index, { effect: next as Compatibility["effect"] })}
                 options={[
                   { value: "NOT_ALLOWED", label: "Not allowed" },
                   { value: "NEEDS_REVIEW", label: "Allowed after review" },

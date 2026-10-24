@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, type Page, test } from "@playwright/test";
-import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, pickOption, signInStaff } from "./helpers";
 
 /*
  * T05-03 in a real browser at 375 and 1440: Request Project Quote and the
@@ -73,7 +73,7 @@ test("staff review the request and send a quote", async ({ page, browser }) => {
   await expect(page.getByRole("heading", { name: "No version yet", level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Start quote (V1)" }).click();
   await expect(page.getByRole("heading", { name: "Version 1 (draft)", level: 1 })).toBeVisible();
-  await page.getByRole("combobox", { name: "Add line from project item" }).selectOption({ label: "Name badges and lanyards × 120" });
+  await pickOption(page.getByRole("combobox", { name: "Add line from project item" }), { label: "Name badges and lanyards × 120" });
   await page.getByRole("textbox", { name: "Line 1 unit price" }).fill("2400");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft saved.")).toBeVisible();

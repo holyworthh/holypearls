@@ -676,7 +676,8 @@
     padding: 0 var(--hp-space-8) 0 var(--hp-space-16);
   }
 
-  .logo {
+  /* Doubled class: logo.module.css sets the lockup gap at equal specificity, and bundle order must not decide. */
+  .logo.logo {
     gap: var(--hp-space-8);
     font-size: var(--hp-size-22);
     letter-spacing: var(--hp-size--0_1);

@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
-import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInCustomer, signInStaff } from "./helpers";
+import { ADMIN, chosenLabel, expectNoAxeViolations, expectNoHorizontalScroll, pickDate, pickOption, signInCustomer, signInStaff } from "./helpers";
 
 /*
  * T10-01 in a real browser, at 375 and 1440 px: the Team page (Pen 70),
@@ -36,7 +36,7 @@ test("the Owner sees the team, invites someone and cancels the invitation", asyn
 
   const email = `e2e.${Date.now()}.${Math.random().toString(36).slice(2, 7)}@example.com`;
   await invite.getByLabel("Email").fill(email);
-  await invite.getByLabel("Role").selectOption("VIEWER");
+  await pickOption(invite.getByLabel("Role"), "VIEWER");
   await invite.getByLabel("Lekki").check();
   await invite.getByRole("button", { name: "Send invitation" }).click();
   await expect(page.getByText(`Invitation sent to ${email}.`)).toBeVisible();
@@ -51,10 +51,10 @@ test("the Owner sees the team, invites someone and cancels the invitation", asyn
 test("raising someone's role asks for confirmation first", async ({ page }) => {
   await openTeam(page);
   if (desktop(page)) {
-    await page.getByLabel("Role for Sam Etim (TEST DATA)").selectOption("APPROVER");
+    await pickOption(page.getByLabel("Role for Sam Etim (TEST DATA)"), "APPROVER");
   } else {
     await page.getByRole("button", { name: /^Sam Etim \(TEST DATA\)/ }).click();
-    await page.getByRole("dialog", { name: "Sam Etim (TEST DATA)" }).getByLabel("Role", { exact: true }).selectOption("APPROVER");
+    await pickOption(page.getByRole("dialog", { name: "Sam Etim (TEST DATA)" }).getByLabel("Role", { exact: true }), "APPROVER");
     await page.getByRole("button", { name: "Save changes" }).click();
   }
   const confirm = page.getByRole("dialog", { name: "Make Sam Etim (TEST DATA) an Approver?" });
@@ -109,7 +109,7 @@ test("a customer asks for a workspace and staff decline it with a reason", async
   await page.getByLabel("Company name").fill(company);
   await page.getByLabel("Location 1 name").fill("Yaba");
   await page.getByLabel("City").fill("Lagos");
-  await page.getByLabel("Roughly how many people?").selectOption("11-50");
+  await pickOption(page.getByLabel("Roughly how many people?"), "11-50");
   await send.click();
   await expect(page.getByRole("heading", { name: "Your request is with our team" })).toBeVisible();
 
@@ -284,7 +284,7 @@ test("templates: the Owner makes a template; HolyPearls approves it; a Lekki man
   await expectNoHorizontalScroll(page);
   await page.getByRole("button", { name: "Go to checkout" }).click();
   await page.waitForURL(/\/checkout\//);
-  await expect(page.getByLabel("Who's this order for?").locator("option:checked")).toHaveText(/Lekki/);
+  expect(await chosenLabel(page.getByLabel("Who's this order for?"))).toMatch(/Lekki/);
 
   // A Viewer sees the approved template but can't change it.
   await page.context().clearCookies();
@@ -438,7 +438,7 @@ test("groups: a Lekki manager starts a collection from a saved polo, opens it, a
   await expect(page.getByRole("heading", { name: `Set up “${name}”` })).toBeVisible();
   await expect(page.getByText("Participants can't see it yet")).toBeVisible();
   await page.getByLabel("Name personalisation").check();
-  await page.locator("#collection-deadline").fill("2030-10-31T18:00");
+  await pickDate(page.locator("#collection-deadline"), "2030-10-31T18:00");
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
   await page.getByRole("button", { name: "Open collection" }).click();
@@ -632,7 +632,7 @@ test("allowances: the Owner sets a yearly allowance; a covered pick is paid by A
   let shop = await call("POST", `/v1/organizations/${organizationId}/stores`, { name: "E2E Allowance Store", mode: "SELF_ORDER" });
   shop = await call("PUT", `/v1/organizations/${organizationId}/stores/${shop.id}`, { name: shop.name, mode: "SELF_ORDER", routing: "INDIVIDUAL", items: [{ templateId: template.id }], version: shop.version });
   await page.goto(`${workspace}/stores/${shop.id}/setup`);
-  await page.getByLabel("Limit").selectOption("PER_PERIOD");
+  await pickOption(page.getByLabel("Limit"), "PER_PERIOD");
   await page.getByLabel("Amount (₦)").fill("150,000");
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);

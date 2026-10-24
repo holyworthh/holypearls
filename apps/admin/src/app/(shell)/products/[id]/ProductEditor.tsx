@@ -287,12 +287,12 @@ export function ProductEditor({ initial, categories }: { initial: AdminProduct; 
                 <FormField label="Family" id="product-family" error={errors.family}>
                   <Select
                     value={draft.family}
-                    onChange={(event) => set("family", event.target.value as Draft["family"])}
+                    onValueChange={(next) => set("family", next as Draft["family"])}
                     options={Object.entries(FAMILY_LABELS).map(([value, label]) => ({ value, label }))}
                   />
                 </FormField>
                 <FormField label="Category" id="product-category" error={errors.categoryId}>
-                  <Select value={draft.categoryId} onChange={(event) => set("categoryId", event.target.value)} options={categoryOptions} />
+                  <Select value={draft.categoryId} onValueChange={(next) => set("categoryId", next)} options={categoryOptions} />
                 </FormField>
               </div>
               <fieldset className={css.fieldset}>

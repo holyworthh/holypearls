@@ -237,18 +237,13 @@ export function TeamView({ organization, initial }: { organization: MyOrganizati
   const inviteStatus = (entry: TeamInvitation) => <StatusChip tone={INVITE_STATUS[entry.status].tone}>{INVITE_STATUS[entry.status].label}</StatusChip>;
   const roleControl = (member: TeamMember) =>
     member.status === "ACTIVE" && canManage(member) ? (
-      <select
+      <Select
         className={styles.roleSelect}
         aria-label={`Role for ${member.name}`}
         value={member.role}
-        onChange={(event) => void changeMember(member, { role: event.target.value as OrganizationRole, scope: { allLocations: member.allLocations, locationIds: member.locations.map((location) => location.id) }, permissions: null })}
-      >
-        {ORGANIZATION_ROLES.filter((role) => role !== "OWNER" || member.role === "OWNER").map((role) => (
-          <option key={role} value={role}>
-            {ROLE_LABELS[role]}
-          </option>
-        ))}
-      </select>
+        options={ORGANIZATION_ROLES.filter((role) => role !== "OWNER" || member.role === "OWNER").map((role) => ({ value: role, label: ROLE_LABELS[role] }))}
+        onValueChange={(value) => void changeMember(member, { role: value as OrganizationRole, scope: { allLocations: member.allLocations, locationIds: member.locations.map((location) => location.id) }, permissions: null })}
+      />
     ) : (
       ROLE_LABELS[member.role]
     );
@@ -545,7 +540,7 @@ function InviteDialog({ open, onClose, locations, canGrantAll, onSend }: { open:
           <TextField type="email" autoComplete="off" value={email} onChange={(event) => setEmail(event.target.value)} />
         </FormField>
         <FormField id="invite-role" label="Role" hint={ROLE_PRESETS[role].map((permission) => PERMISSION_LABELS[permission]).join(" · ")} error={errors.role}>
-          <Select value={role} onChange={(event) => setRole(event.target.value as typeof role)} options={INVITABLE.map((value) => ({ value, label: ROLE_LABELS[value] }))} />
+          <Select value={role} onValueChange={(next) => setRole(next as typeof role)} options={INVITABLE.map((value) => ({ value, label: ROLE_LABELS[value] }))} />
         </FormField>
         <ScopePicker idPrefix="invite-location" scope={scope} onChange={setScope} locations={locations} canGrantAll={canGrantAll} error={errors.locationIds} />
       </div>
@@ -631,8 +626,8 @@ function ManageDialog({
               <Select
                 value={role}
                 disabled={soleOwner}
-                onChange={(event) => {
-                  const next = event.target.value as OrganizationRole;
+                onValueChange={(chosen) => {
+                  const next = chosen as OrganizationRole;
                   setRole(next);
                   setPermissions([...(next === "OWNER" ? ORGANIZATION_PERMISSIONS : ROLE_PRESETS[next])]);
                 }}

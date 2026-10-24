@@ -3,6 +3,7 @@ export * from "./components/BrandMark";
 export * from "./components/Button";
 export * from "./components/Card";
 export * from "./components/Checkbox";
+export * from "./components/DatePicker";
 export * from "./components/Dialog";
 export * from "./components/ErrorSummary";
 export * from "./components/FormField";

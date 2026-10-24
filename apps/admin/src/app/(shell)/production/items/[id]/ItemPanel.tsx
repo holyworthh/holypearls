@@ -290,7 +290,7 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
               </h2>
               <p className={list.hint}>A hold pauses the item without changing its production status.</p>
               <FormField id="hold-reason" label="Reason category" hint="Category list to be confirmed by the owner.">
-                <Select value={hold.reason} options={REASONS.map((reason) => ({ ...reason }))} onChange={(event) => setHold({ ...hold, reason: event.target.value })} />
+                <Select value={hold.reason} options={REASONS.map((reason) => ({ ...reason }))} onValueChange={(next) => setHold({ ...hold, reason: next })} />
               </FormField>
               <FormField id="hold-internal" label="Internal note (staff only)" optional>
                 <TextArea rows={2} maxLength={2000} value={hold.internalNote} onChange={(event) => setHold({ ...hold, internalNote: event.target.value })} />
@@ -306,7 +306,7 @@ export function ItemPanel({ initial }: { initial: ProductionItem }) {
                       { value: "CUSTOMER", label: "Customer" },
                       { value: "HOLYPEARLS", label: "HolyPearls" },
                     ]}
-                    onChange={(event) => setHold({ ...hold, whoActs: event.target.value as "CUSTOMER" | "HOLYPEARLS" })}
+                    onValueChange={(next) => setHold({ ...hold, whoActs: next as "CUSTOMER" | "HOLYPEARLS" })}
                   />
                 </FormField>
                 <FormField id="hold-days" label="Timing impact (working days)" optional>

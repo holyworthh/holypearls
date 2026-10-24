@@ -78,7 +78,7 @@ export function ChangeDecision({ request }: { request: ChangeRequest }) {
               { value: "ACCEPTED", label: "Accept" },
               { value: "DECLINED", label: "Decline (approved version stays)" },
             ]}
-            onChange={(event) => setDecision(event.target.value as "ACCEPTED" | "DECLINED")}
+            onValueChange={(next) => setDecision(next as "ACCEPTED" | "DECLINED")}
           />
         </FormField>
         {decision === "ACCEPTED" ? (
@@ -90,7 +90,7 @@ export function ChangeDecision({ request }: { request: ChangeRequest }) {
                 { value: "QUOTE_REVISION", label: "Revise the quote" },
                 { value: "NONE", label: "No new version needed" },
               ]}
-              onChange={(event) => setOutcome(event.target.value as typeof outcome)}
+              onValueChange={(next) => setOutcome(next as typeof outcome)}
             />
           </FormField>
         ) : null}

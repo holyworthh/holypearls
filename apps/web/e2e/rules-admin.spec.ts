@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } from "./helpers";
+import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, pickDate, signInStaff } from "./helpers";
 
 /*
  * T13-01 in a real browser: Rules & prices (Pen 107) at 375 and 1440. Saving
@@ -35,7 +35,7 @@ test("rules & prices: products, product rules, a scheduled price version, price 
   // The page is server-rendered with the form's default date. A value filled before React hydrates is reset to
   // that default, and a slow runner then saves a version starting now. Wait for hydration before typing.
   await expect.poll(() => from.evaluate((element) => Object.keys(element).some((key) => key.startsWith("__reactProps$")))).toBe(true);
-  await from.fill(`2030-11-${day}T00:00`);
+  await pickDate(from, `2030-11-${day}T00:00`);
   await page.getByRole("button", { name: "Save price version" }).click();
   await expect(page.getByText(new RegExp(`^Price version scheduled\\. New prices take effect ${day} NOV 00:00\\.`))).toBeVisible();
   await expect(page.getByText("SCHEDULED", { exact: true }).first()).toBeVisible();

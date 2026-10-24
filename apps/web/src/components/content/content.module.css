@@ -873,9 +873,8 @@
   gap: var(--hp-space-12);
 }
 
-/* Filter pills: 44px, radius 22, "Sector: All" with a chevron; native selects underneath. */
+/* Filter pills: 44px, radius 22, "Sector: All" with a chevron; the shared Select sits inside, unboxed. */
 .filter {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--hp-space-8);
@@ -899,24 +898,30 @@
   outline-width: var(--hp-focus-ring-width);
 }
 
-.filter select {
-  field-sizing: content;
+/* Doubled class: the field styles in packages/ui have equal specificity, and bundle order must not decide. */
+.filterSelect.filterSelect {
+  width: auto;
   max-width: var(--hp-size-220);
-  appearance: none;
-  padding: 0 var(--hp-space-20) 0 0;
+  min-height: 0;
+  gap: var(--hp-space-6);
+  padding: 0;
   border: 0;
-  outline: 0;
-  background: transparent;
+  background-color: transparent;
   color: var(--hp-ink);
   font: inherit;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.filter svg {
-  position: absolute;
-  right: var(--hp-space-14);
-  pointer-events: none;
+/* On touch screens it's the native select: keep room for its chevron (the field's background image). */
+select.filterSelect.filterSelect {
+  field-sizing: content;
+  padding-right: var(--hp-space-24);
+  background-position:
+    calc(100% - var(--hp-space-8)) 50%,
+    calc(100% - var(--hp-space-4)) 50%;
+}
+
+.filterSelect svg {
   color: var(--hp-ink);
 }
 

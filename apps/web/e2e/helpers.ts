@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { totpCode } from "@holypearls/auth";
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Axe checks the settled page: scroll reveals and photo unveils are switched
@@ -117,4 +117,64 @@ export async function signInStaff(page: Page, person: { email: string; password:
     await page.waitForTimeout(30_000 - (Date.now() % 30_000) + 500);
   }
   await expect(page).toHaveURL(`${ADMIN}/`);
+}
+
+/**
+ * Chooses an option in a Select, by value or { label }. Touch screens get the native
+ * select; elsewhere the list opens under the field (and searchable ones filter as you type).
+ */
+export async function pickOption(field: Locator, option: string | { label: string }) {
+  if (await field.evaluate((element) => element.tagName === "SELECT")) {
+    await field.selectOption(option);
+    return;
+  }
+  const page = field.page();
+  await field.click();
+  const search = page.getByPlaceholder("Type to search");
+  if (typeof option !== "string" && (await search.isVisible())) await search.fill(option.label);
+  const item = typeof option === "string" ? page.locator(`[role="option"][data-option-value="${option}"]`) : page.getByRole("option", { name: option.label, exact: true });
+  await item.click();
+  await expect(item).toBeHidden();
+}
+
+/** Picks a day (and time, for `yyyy-mm-ddThh:mm`) in a DatePicker; touch screens get the native input. */
+export async function pickDate(field: Locator, value: string) {
+  if (await field.evaluate((element) => element.tagName === "INPUT")) {
+    await field.fill(value);
+    return;
+  }
+  const page = field.page();
+  const [year, month] = value.split("-").map(Number) as [number, number];
+  await field.click();
+  const calendar = page.getByRole("dialog", { name: /^Choose a date/ });
+  // Step month by month from the one on show to the target.
+  for (;;) {
+    const shown = new Date(`1 ${(await calendar.locator("[role=status], [aria-live]").first().textContent()) ?? ""}`);
+    const gap = (year - shown.getFullYear()) * 12 + (month - 1 - shown.getMonth());
+    if (gap === 0 || Number.isNaN(gap)) break;
+    await calendar.getByRole("button", { name: gap > 0 ? /next month/i : /previous month/i }).click();
+  }
+  await calendar.locator(`td[data-day="${value.slice(0, 10)}"]:not([data-outside]) button`).click();
+  if (value.length > 10) {
+    await calendar.getByLabel("Time").fill(value.slice(11, 16));
+    await page.keyboard.press("Escape");
+  }
+  await expect(calendar).toBeHidden();
+}
+
+/** The labels a Select offers, in order (opens and closes the list on desktop). */
+export async function optionLabels(field: Locator): Promise<string[]> {
+  if (await field.evaluate((element) => element.tagName === "SELECT")) return field.locator("option").allTextContents();
+  await field.click();
+  const options = field.page().getByRole("option");
+  await expect(options.first()).toBeVisible();
+  const labels = (await options.allTextContents()).map((label) => label.trim());
+  await field.page().keyboard.press("Escape");
+  return labels;
+}
+
+/** The label of the option a Select shows as chosen. */
+export async function chosenLabel(field: Locator): Promise<string> {
+  if (await field.evaluate((element) => element.tagName === "SELECT")) return (await field.locator("option:checked").textContent()) ?? "";
+  return ((await field.textContent()) ?? "").trim();
 }

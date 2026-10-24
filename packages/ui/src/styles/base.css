@@ -76,3 +76,97 @@ a {
 [hidden] {
   display: none !important;
 }
+
+/*
+ * Checkboxes, radios and switches (HP/Form/Checkbox, HP/Form/RadioGroup, HP/Form/Toggle).
+ * :where() keeps specificity at zero, so a component that styles its own input still wins.
+ */
+:where(input[type="checkbox"], input[type="radio"]) {
+  appearance: none;
+  display: inline-grid;
+  flex: none;
+  /* One full-size cell, so the tick and knob below can size in percent. */
+  grid-template: 100% / 100%;
+  place-items: center;
+  width: var(--hp-space-20);
+  height: var(--hp-space-20);
+  margin: 0;
+  border: var(--hp-border-width) solid var(--hp-line-strong);
+  border-radius: var(--hp-space-4);
+  background: var(--hp-paper);
+  vertical-align: middle;
+  cursor: pointer;
+  transition:
+    background-color var(--hp-motion-hover) var(--hp-ease-soft),
+    border-color var(--hp-motion-hover) var(--hp-ease-soft),
+    box-shadow var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+:where(input[type="radio"]) {
+  border-radius: 50%;
+}
+
+:where(input[type="checkbox"]:hover:not(:disabled), input[type="radio"]:hover:not(:disabled)) {
+  border-color: var(--hp-ink);
+}
+
+:where(input[type="checkbox"])::before {
+  width: 60%;
+  height: 60%;
+  background: var(--hp-paper);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0, 43% 62%);
+  content: "";
+  transform: scale(0);
+  transition: transform var(--hp-motion-press) var(--hp-ease-enter);
+}
+
+:where(input[type="checkbox"]:checked) {
+  border-color: var(--hp-ink);
+  background: var(--hp-ink);
+}
+
+:where(input[type="checkbox"]:checked)::before {
+  transform: scale(1);
+}
+
+:where(input[type="radio"]:checked) {
+  border-color: var(--hp-ink);
+  background: var(--hp-ink);
+  box-shadow: inset 0 0 0 var(--hp-space-4) var(--hp-paper);
+}
+
+:where(input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="true"]) {
+  border-color: var(--hp-error);
+}
+
+:where(input[type="checkbox"]:disabled, input[type="radio"]:disabled) {
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+/* Switch: off is line-strong, on is success; the label still says On or Off (not colour alone). */
+:where(input[type="checkbox"][role="switch"]) {
+  width: var(--hp-space-40);
+  height: var(--hp-space-24);
+  border-color: var(--hp-line-strong);
+  border-radius: var(--hp-r-pill);
+  background: var(--hp-line-strong);
+}
+
+:where(input[type="checkbox"][role="switch"])::before {
+  width: var(--hp-space-16);
+  height: var(--hp-space-16);
+  border-radius: 50%;
+  clip-path: none;
+  transform: translateX(calc(var(--hp-space-8) * -1));
+  transition: transform var(--hp-motion-hover) var(--hp-ease-soft);
+}
+
+:where(input[type="checkbox"][role="switch"]:checked) {
+  border-color: var(--hp-success);
+  background: var(--hp-success);
+}
+
+:where(input[type="checkbox"][role="switch"]:checked)::before {
+  transform: translateX(var(--hp-space-8));
+}

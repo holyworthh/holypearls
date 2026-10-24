@@ -1,8 +1,9 @@
 import type { CaseStudyData, ContentCard } from "@holypearls/contracts";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import c from "../../components/content/content.module.css";
 import { AutoSubmit } from "../../components/content/AutoSubmit";
+import { FilterSelect } from "../../components/content/FilterSelect";
 import { Crumbs, Photo } from "../../components/content/Parts";
 import { JsonLd } from "../../components/seo/JsonLd";
 import { SiteShell } from "../../components/site/SiteShell";
@@ -72,18 +73,7 @@ export default async function OurWorkPage({ searchParams }: Params) {
         </div>
         <form className={c.filters} action="/our-work" aria-label="Filter our work">
           {FILTERS.map((filter) => (
-            <label key={filter.name} className={c.filter}>
-              {filter.label}:
-              <select name={filter.name} defaultValue={chosen[filter.name]}>
-                <option value="">All</option>
-                {options[filter.name].map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown size={14} aria-hidden="true" />
-            </label>
+            <FilterSelect key={filter.name} label={filter.label} name={filter.name} value={chosen[filter.name]} options={options[filter.name]} className={c.filter} selectClassName={c.filterSelect} />
           ))}
           <AutoSubmit label="Show projects" className={`${c.outline} ${c.filterApply}`} />
           <span className={c.count} role="status">

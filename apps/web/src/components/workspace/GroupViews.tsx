@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError, type Collection, collectionSchema, IDEMPOTENCY_KEY_HEADER, type MyOrganization, PARTICIPANT_FIELD_LABELS, type ParticipantField } from "@holypearls/contracts";
-import { Button, Checkbox, FormField, Notice, RadioCardGroup, Select, StatusChip, TextField } from "@holypearls/ui";
+import { Button, Checkbox, DatePicker, FormField, Notice, RadioCardGroup, Select, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorCode, errorReason, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { useState } from "react";
 import { COLLECTION_STATUS } from "./labels";
@@ -58,7 +58,7 @@ export function NewCollectionForm({ organizationId, me, sources, initialSource }
           <TextField value={title} maxLength={80} onChange={(event) => setTitle(event.target.value)} />
         </FormField>
         <FormField id="collection-location" label="For which location">
-          <Select value={locationId} onChange={(event) => setLocationId(event.target.value)} options={me.locations.map((location) => ({ value: location.id, label: location.name }))} />
+          <Select value={locationId} onValueChange={(next) => setLocationId(next)} options={me.locations.map((location) => ({ value: location.id, label: location.name }))} />
         </FormField>
         {sources.length ? (
           <RadioCardGroup
@@ -236,7 +236,7 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
           </h2>
           <div className={styles.form}>
             <FormField id="collection-deadline" label="Deadline" error={errors.deadline}>
-              <TextField type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} disabled={!editable} />
+              <DatePicker withTime value={deadline} onValueChange={setDeadline} disabled={!editable} />
             </FormField>
             <div className={styles.detailText}>
               <span className={styles.detailLabel}>Who pays</span>
@@ -254,7 +254,7 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
             />
             {deliveryMode === "CENTRAL" ? (
               <FormField id="central-location" label="Deliver to" error={errors.centralLocationId}>
-                <Select value={centralLocationId} onChange={(event) => setCentralLocationId(event.target.value)} options={locations.map((location) => ({ value: location.id, label: location.name }))} disabled={!editable} />
+                <Select value={centralLocationId} onValueChange={(next) => setCentralLocationId(next)} options={locations.map((location) => ({ value: location.id, label: location.name }))} disabled={!editable} />
               </FormField>
             ) : null}
             {deliveryMode === "BRANCHES" ? (
@@ -281,7 +281,7 @@ export function CollectionSetup({ organizationId, initial, locations }: { organi
               <FormField id="unsure-size" label="“Not sure of my size”">
                 <Select
                   value={unsureSizeRule}
-                  onChange={(event) => setUnsureSizeRule(event.target.value as typeof unsureSizeRule)}
+                  onValueChange={(next) => setUnsureSizeRule(next as typeof unsureSizeRule)}
                   disabled={!editable}
                   options={[
                     { value: "ALLOW_UNSURE", label: "Allowed — I'll settle their size" },

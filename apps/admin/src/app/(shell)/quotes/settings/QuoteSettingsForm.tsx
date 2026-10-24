@@ -99,7 +99,7 @@ export function QuoteSettingsForm({ initial }: { initial: QuoteSettings }) {
                 aria-label={`Payment ${index + 1} due`}
                 value={entry.trigger}
                 options={TRIGGERS.map(([trigger, label]) => ({ value: trigger, label }))}
-                onChange={(event) => setEntries((current) => current.map((item, at) => (at === index ? { ...item, trigger: event.target.value as InstallmentTrigger } : item)))}
+                onValueChange={(next) => setEntries((current) => current.map((item, at) => (at === index ? { ...item, trigger: next as InstallmentTrigger } : item)))}
               />
               {entries.length > 1 ? (
                 <button type="button" className={styles.action} onClick={() => setEntries((current) => current.filter((_, at) => at !== index))}>

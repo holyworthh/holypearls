@@ -1,7 +1,7 @@
 "use client";
 
 import { type Collection, type CollectionDashboard, collectionDashboardSchema, type CollectionParticipant, GARMENT_SIZES } from "@holypearls/contracts";
-import { Button, Dialog, FormField, Notice, Select, StatusChip, TextArea, TextField } from "@holypearls/ui";
+import { Button, DatePicker, Dialog, FormField, Notice, Select, StatusChip, TextArea } from "@holypearls/ui";
 import { api, errorCode, errorReason } from "@holypearls/web-kit/api";
 import { useState } from "react";
 import { z } from "zod";
@@ -214,7 +214,7 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
                   <span className={styles.detailValue}>{issue.message}</span>
                 </div>
                 {canManage && issue.kind === "SIZE_TO_CONFIRM" ? (
-                  <Select aria-label={`Confirm ${issue.name}'s size`} value="" onChange={(event) => void act(row, "settle-size", { size: event.target.value }, `${issue.name}'s size is ${event.target.value}.`)} options={[{ value: "", label: "Confirm size" }, ...GARMENT_SIZES.map((size) => ({ value: size, label: size }))]} />
+                  <Select aria-label={`Confirm ${issue.name}'s size`} value="" onValueChange={(next) => void act(row, "settle-size", { size: next }, `${issue.name}'s size is ${next}.`)} options={[{ value: "", label: "Confirm size" }, ...GARMENT_SIZES.map((size) => ({ value: size, label: size }))]} />
                 ) : null}
                 {canManage && reviewing ? (
                   <Button variant="tertiary" loading={busy === `exclude-${row.id}`} onClick={() => void act(row, "exclude", {}, `${issue.name} is left out of the order.`)}>
@@ -339,7 +339,7 @@ export function GroupDashboard({ organizationId, collection, initial }: { organi
               {status === "ORDER_DRAFT_CREATED" ? "Your Order Draft will be marked STALE and must be made again after you close again. " : ""}Participants can send and change answers again until the new deadline.
             </p>
             <FormField id="reopen-deadline" label="New deadline" error={fieldError}>
-              <TextField type="datetime-local" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+              <DatePicker withTime value={deadline} onValueChange={setDeadline} />
             </FormField>
           </div>
         ) : null}

@@ -1,7 +1,7 @@
 "use client";
 
 import { ApiError, EXPORT_LABELS, type ExportItem, type ExportList, type ExportType, PERSONAL_EXPORTS, exportDownloadSchema, exportItemSchema, exportListSchema } from "@holypearls/contracts";
-import { Button, EmptyState, FormField, Notice, Select, StatusChip, TextField } from "@holypearls/ui";
+import { Button, DatePicker, EmptyState, FormField, Notice, Select, StatusChip } from "@holypearls/ui";
 import { api, errorCode } from "@holypearls/web-kit/api";
 import { type FormEvent, useEffect, useState } from "react";
 import { StepUpDialog } from "@/components/StepUpDialog";
@@ -105,17 +105,17 @@ export function Exports({ initial }: { initial: ExportList }) {
         </h2>
         <form className={css.form} onSubmit={submit} noValidate>
           <FormField id="export-type" label="What to export" hint={list.allowed.map((type) => EXPORT_LABELS[type]).join(" · ")}>
-            <Select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as ExportType })} options={list.allowed.map((type) => ({ value: type, label: EXPORT_LABELS[type] }))} />
+            <Select value={form.type} onValueChange={(next) => setForm({ ...form, type: next as ExportType })} options={list.allowed.map((type) => ({ value: type, label: EXPORT_LABELS[type] }))} />
           </FormField>
           {form.type === "CATALOGUE" ? (
             <p className={styles.hint}>The catalogue is exported as it is now.</p>
           ) : (
             <div className={css.row}>
               <FormField id="export-from" label="From" error={errors.from}>
-                <TextField type="date" value={form.from} max={form.to} onChange={(event) => setForm({ ...form, from: event.target.value })} />
+                <DatePicker value={form.from} max={form.to} onValueChange={(from) => setForm({ ...form, from })} />
               </FormField>
               <FormField id="export-to" label="To" error={errors.to}>
-                <TextField type="date" value={form.to} min={form.from} onChange={(event) => setForm({ ...form, to: event.target.value })} />
+                <DatePicker value={form.to} min={form.from} onValueChange={(to) => setForm({ ...form, to })} />
               </FormField>
             </div>
           )}

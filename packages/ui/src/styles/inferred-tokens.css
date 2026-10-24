@@ -249,3 +249,9 @@
   --hp-tracking-workspace-title: -0.8px;
   --hp-text-workspace-title-m: 24px;
 }
+
+/* Popovers (select lists, the date picker) sit above sticky bars and below dialogs and toasts.
+ * Inside a modal <dialog> they render in the dialog itself, so this only orders page-level ones. */
+:root {
+  --hp-z-popover: 90;
+}

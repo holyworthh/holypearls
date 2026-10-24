@@ -91,7 +91,7 @@ export function WorkspaceRequestForm() {
           ) : null}
         </fieldset>
         <FormField id="request-team-size" label="Roughly how many people?" error={errors.teamSize}>
-          <Select value={teamSize} placeholder="Choose" onChange={(event) => setTeamSize(event.target.value)} options={TEAM_SIZES.map((value) => ({ value, label: `${value} people` }))} />
+          <Select value={teamSize} placeholder="Choose" onValueChange={(next) => setTeamSize(next)} options={TEAM_SIZES.map((value) => ({ value, label: `${value} people` }))} />
         </FormField>
         <FormField id="request-note" label="Anything we should know?" optional error={errors.note}>
           <TextArea rows={3} maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />

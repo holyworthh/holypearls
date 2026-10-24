@@ -11,7 +11,7 @@ import {
   type ScheduleEntry,
   TRIGGER_LABEL,
 } from "@holypearls/contracts";
-import { Button, Dialog, EmptyState, FormField, Notice, Select, StatusChip, TextArea, TextField } from "@holypearls/ui";
+import { Button, DatePicker, Dialog, EmptyState, FormField, Notice, Select, StatusChip, TextArea, TextField } from "@holypearls/ui";
 import { api, errorCode, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -390,22 +390,18 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
             <div className={styles.filters}>
               <label className={styles.select}>
                 <span className="hp-visually-hidden">Add line from project item</span>
-                <select
+                <Select
                   value=""
-                  onChange={(event) => {
-                    if (event.target.value === "manual") change((value) => ({ ...value, lines: [...value.lines, { key: crypto.randomUUID(), source: "MANUAL", sourceKey: null, title: "", summary: "", quantity: 1, unit: "" }] }));
-                    else if (event.target.value) addCandidate(Number(event.target.value));
+                  placeholder="Add line from project item…"
+                  onValueChange={(picked) => {
+                    if (picked === "manual") change((value) => ({ ...value, lines: [...value.lines, { key: crypto.randomUUID(), source: "MANUAL", sourceKey: null, title: "", summary: "", quantity: 1, unit: "" }] }));
+                    else if (picked) addCandidate(Number(picked));
                   }}
-                >
-                  <option value="">Add line from project item…</option>
-                  {quote.candidates.map((candidate, index) => (
-                    <option key={`${candidate.source}-${candidate.sourceKey}`} value={index}>
-                      {candidate.title}
-                      {candidate.quantity ? ` × ${candidate.quantity}` : ""}
-                    </option>
-                  ))}
-                  <option value="manual">A new line of your own</option>
-                </select>
+                  options={[
+                    ...quote.candidates.map((candidate, index) => ({ value: String(index), label: `${candidate.title}${candidate.quantity ? ` × ${candidate.quantity}` : ""}` })),
+                    { value: "manual", label: "A new line of your own" },
+                  ]}
+                />
               </label>
             </div>
 
@@ -443,7 +439,7 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
                       { value: "NGN", label: "NGN" },
                       { value: "USD", label: "USD", disabled: !quote.usdEnabled },
                     ]}
-                    onChange={(event) => change((value) => ({ ...value, currency: event.target.value as "NGN" | "USD" }))}
+                    onValueChange={(next) => change((value) => ({ ...value, currency: next as "NGN" | "USD" }))}
                   />
                 </FormField>
                 <FormField id="quote-valid" label="Valid for (days after sending)" error={errors.validDays}>
@@ -480,7 +476,7 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
                         { value: "PERCENT", label: "% of total" },
                         { value: "AMOUNT", label: "Fixed amount" },
                       ]}
-                      onChange={(event) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, kind: event.target.value as "PERCENT" | "AMOUNT" } : item)) }))}
+                      onValueChange={(next) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, kind: next as "PERCENT" | "AMOUNT" } : item)) }))}
                     />
                     <TextField aria-label={`Payment ${index + 1} ${entry.kind === "PERCENT" ? "percentage" : "amount"}`} inputMode="decimal" value={entry.percent} onChange={(event) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, percent: event.target.value } : item)) }))} />
                   </div>
@@ -489,10 +485,10 @@ export function QuoteBuilder({ initial, selected }: { initial: AdminQuote; selec
                       aria-label={`Payment ${index + 1} due`}
                       value={entry.trigger}
                       options={TRIGGERS.map(([trigger, label]) => ({ value: trigger, label }))}
-                      onChange={(event) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, trigger: event.target.value as InstallmentTrigger } : item)) }))}
+                      onValueChange={(next) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, trigger: next as InstallmentTrigger } : item)) }))}
                     />
                     {entry.trigger === "ON_DATE" ? (
-                      <TextField aria-label={`Payment ${index + 1} date`} type="date" value={entry.dueDate ?? ""} onChange={(event) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, dueDate: event.target.value } : item)) }))} />
+                      <DatePicker aria-label={`Payment ${index + 1} date`} value={entry.dueDate ?? ""} onValueChange={(due) => change((value) => ({ ...value, schedule: value.schedule.map((item, at) => (at === index ? { ...item, dueDate: due } : item)) }))} />
                     ) : null}
                     {live.schedule.length > 1 ? (
                       <button type="button" className={styles.action} onClick={() => change((value) => ({ ...value, schedule: value.schedule.filter((_, at) => at !== index) }))}>
