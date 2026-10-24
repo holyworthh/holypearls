@@ -1,5 +1,5 @@
 import { loadTestDatabaseEnv } from "@holypearls/config";
-import { migrationsFolder, migrationTags, runMigrations, withTransaction } from "@holypearls/db";
+import { migrationsFolder, migrationTags, missingSchema, runMigrations, withTransaction } from "@holypearls/db";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
@@ -83,6 +83,31 @@ describe("existing databases catch up in one deploy", () => {
     const database = await createTestDatabase(TEST_DATABASE_URL, { migrations: index });
     try {
       await expect(runMigrations(database.url)).resolves.toBeUndefined();
+    } finally {
+      await database.drop();
+    }
+  }, 180_000);
+});
+
+/*
+ * Every test database is fully migrated, so tests never see code running ahead
+ * of its database. The API and worker check on start instead (local dev, 24 Oct
+ * 2026: incident_switches merged, migration not run, every write returned 500).
+ */
+describe("schema check on start", () => {
+  it("passes on a fully migrated database", async () => {
+    const database = await createTestDatabase(TEST_DATABASE_URL);
+    try {
+      expect(await missingSchema(database.db)).toEqual([]);
+    } finally {
+      await database.drop();
+    }
+  });
+
+  it("names what's missing when the last migration hasn't run", async () => {
+    const database = await createTestDatabase(TEST_DATABASE_URL, { migrations: migrationTags().length - 1 });
+    try {
+      expect(await missingSchema(database.db)).not.toEqual([]);
     } finally {
       await database.drop();
     }

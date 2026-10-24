@@ -309,7 +309,8 @@
     padding: var(--hp-space-16) 0 0 var(--hp-space-64);
     color: var(--hp-brand-tint);
     font-family: var(--hp-font-display);
-    font-size: var(--hp-text-giant);
+    /* Pen size, shrunk so the whole word fits between the 64 px sides on narrower screens. */
+    font-size: min(var(--hp-text-giant), calc((100vw - 2 * var(--hp-space-64)) / var(--hp-giant-word-em)));
     font-weight: var(--hp-weight-display);
     line-height: var(--hp-leading-giant);
     letter-spacing: var(--hp-tracking-giant);
