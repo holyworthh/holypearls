@@ -175,6 +175,22 @@ async function ensureCheckoutIntent(tx: Tx, checkout: Checkout): Promise<Intent>
 const lockIntent = async (tx: Tx, id: string) => (await tx.select().from(schema.paymentIntents).where(eq(schema.paymentIntents.id, id)).for("update"))[0]!;
 
 /**
+ * Takes the lock on what an intent pays for: its checkout, or its installment.
+ * Every path locks in one order, source then intent then attempt, so Pay, a
+ * result and a staff decision on the same payment can't wait on each other.
+ */
+export async function lockPaymentSource(tx: Tx, intentId: string) {
+  const [source] = await tx
+    .select({ checkoutId: schema.paymentSchedules.checkoutId, installmentId: schema.installments.id })
+    .from(schema.paymentIntents)
+    .innerJoin(schema.installments, eq(schema.installments.id, schema.paymentIntents.installmentId))
+    .innerJoin(schema.paymentSchedules, eq(schema.paymentSchedules.id, schema.installments.scheduleId))
+    .where(eq(schema.paymentIntents.id, intentId));
+  if (source?.checkoutId) await tx.select({ id: schema.checkouts.id }).from(schema.checkouts).where(eq(schema.checkouts.id, source.checkoutId)).for("update");
+  else if (source) await tx.select({ id: schema.installments.id }).from(schema.installments).where(eq(schema.installments.id, source.installmentId)).for("update");
+}
+
+/**
  * "Pay" on a checkout (TECH-05 §5). Checks the checkout can be paid, makes or
  * refreshes its intent, records a CREATED attempt with a new reference, asks
  * Paystack to start the transaction, then marks the attempt PENDING and queues
@@ -205,6 +221,8 @@ export async function startCheckoutPayment(
       const expired = row!.expiresAt !== null && row!.expiresAt.getTime() <= now.getTime();
       if (row!.status !== "OPEN" || expired) throw new AppError("CONFLICT", { message: "This checkout is closed. Go back to your cart to start again.", context: { reason: "CHECKOUT_CLOSED" } });
       if (row!.version !== checkout.row.version) throw new AppError("CONFLICT", { message: "This checkout changed in another tab. Reload to continue.", context: { reason: "STALE_VERSION" } });
+      // A payment is starting on this version: an edit that read the checkout before now must fail its version check (TECH-05 §1).
+      await tx.update(schema.checkouts).set({ version: sql`${schema.checkouts.version} + 1` }).where(eq(schema.checkouts.id, row!.id));
       return ensureCheckoutIntent(tx, row!);
     },
   });
@@ -403,9 +421,13 @@ export type ResultSource = "webhook" | "check";
 export async function applyResult(deps: ResultDeps, attemptId: string, result: VerifyResult, options: { source: ResultSource; now: Date; finalCheck?: boolean; requestId?: string }) {
   const { now } = options;
   return deps.db.transaction(async (tx) => {
+    const [found] = await tx.select({ intentId: schema.paymentAttempts.intentId }).from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId));
+    if (!found) return "missing" as const;
+    // The same order as Pay: what is being paid for, then the intent, then the attempt.
+    await lockPaymentSource(tx, found.intentId);
+    const intent = await lockIntent(tx, found.intentId);
     const [attempt] = await tx.select().from(schema.paymentAttempts).where(eq(schema.paymentAttempts.id, attemptId)).for("update");
     if (!attempt) return "missing" as const;
-    const intent = await lockIntent(tx, attempt.intentId);
     const check = { at: now.toISOString(), source: options.source, status: result.providerStatus ?? result.status, amountMinor: result.amountMinor?.toString() ?? null, currency: result.currency };
     const checks = [...(attempt.checks as object[]), check];
     const reported = { paidAmountMinor: result.amountMinor, paidCurrency: result.currency, channel: result.channel, gatewayResponse: result.gatewayResponse?.slice(0, 500) ?? null };
@@ -474,6 +496,20 @@ export async function applyResult(deps: ResultDeps, attemptId: string, result: V
     await reopenIfIdle(tx, intent.id, intent.installmentId);
     return result.status === "failed" ? ("failed" as const) : ("abandoned" as const);
   });
+}
+
+/**
+ * The last scheduled check got no answer from Paystack in any of its tries
+ * (the queue gave up): the attempt is UNKNOWN and staff review it, as for an
+ * unclear 48-hour result (TECH-05 §6).
+ */
+export async function settleUnanswered(deps: ResultDeps, attemptId: string, now = new Date()) {
+  return applyResult(
+    deps,
+    attemptId,
+    { status: "pending", amountMinor: null, currency: null, channel: null, paidAt: null, gatewayResponse: "Paystack did not answer", providerStatus: "timeout" },
+    { source: "check", now, finalCheck: true },
+  );
 }
 
 /** payment.check: asks Paystack about one attempt at its scheduled time. */

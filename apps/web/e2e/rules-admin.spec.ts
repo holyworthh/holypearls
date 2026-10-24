@@ -31,7 +31,11 @@ test("rules & prices: products, product rules, a scheduled price version, price 
   const day = info.project.name.includes("375") ? "01" : "02";
   await page.getByRole("navigation", { name: "Rules" }).getByRole("link", { name: "Price rules" }).click();
   await expect(page.getByText("CURRENT", { exact: true })).toBeVisible();
-  await page.getByLabel("Effective from (Lagos time)").fill(`2030-11-${day}T00:00`);
+  const from = page.getByLabel("Effective from (Lagos time)");
+  // The page is server-rendered with the form's default date. A value filled before React hydrates is reset to
+  // that default, and a slow runner then saves a version starting now. Wait for hydration before typing.
+  await expect.poll(() => from.evaluate((element) => Object.keys(element).some((key) => key.startsWith("__reactProps$")))).toBe(true);
+  await from.fill(`2030-11-${day}T00:00`);
   await page.getByRole("button", { name: "Save price version" }).click();
   await expect(page.getByText(new RegExp(`^Price version scheduled\\. New prices take effect ${day} NOV 00:00\\.`))).toBeVisible();
   await expect(page.getByText("SCHEDULED", { exact: true }).first()).toBeVisible();
