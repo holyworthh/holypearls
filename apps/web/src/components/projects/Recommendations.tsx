@@ -231,7 +231,7 @@ function AddItem({ actions }: { actions: RecommendationActions }) {
       </div>
       {mode === "catalogue" ? (
         <>
-          <form className={s.inline} onSubmit={search} role="search">
+          <form className={`${s.inline} ${s.searchRow}`} onSubmit={search} role="search">
             <FormField id="add-search" label="Search our products">
               <TextField value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. tote bag" />
             </FormField>

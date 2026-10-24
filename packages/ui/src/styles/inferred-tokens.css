@@ -136,6 +136,8 @@
   --hp-text-body-plus: 17px;
   --hp-text-question: 18px;
   --hp-text-giant: 300px;
+  /* "Holypearls" in the display face is 5.05 times its font size wide (measured); the footer word scales by it. */
+  --hp-giant-word-em: 5.05;
   --hp-leading-hero: 1.02;
   --hp-leading-hero-m: 1.04;
   --hp-leading-title-m: 1.08;

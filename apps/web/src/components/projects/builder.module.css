@@ -45,7 +45,8 @@
 
 .progress {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  /* Each step gets its label's width plus an even share of the rest; equal columns split "5 Recommendations". */
+  grid-template-columns: repeat(6, minmax(0, auto));
   gap: var(--hp-space-6);
   margin: 0;
   padding: 0;
@@ -68,6 +69,13 @@
   border-radius: var(--hp-space-2);
   background: var(--hp-ink);
   content: "";
+}
+
+/* One line per step; on narrow desktops the longest labels shorten with an ellipsis. */
+.progressStep span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progressStep[aria-current="step"] {
@@ -285,6 +293,11 @@ a.progressStep:hover {
   flex-wrap: wrap;
   gap: var(--hp-space-16);
   align-items: center;
+}
+
+/* A labelled field and its button: bottom edges meet, so the button lines up with the input, not its label. */
+.searchRow {
+  align-items: flex-end;
 }
 
 .numberInput {
@@ -791,6 +804,13 @@ a.progressStep:hover {
   gap: var(--hp-space-12);
   align-items: center;
   justify-content: space-between;
+}
+
+/* Back and Continue are a pair: same height and type. The 56 px .next is for the summary panel. */
+.nav .next {
+  min-height: var(--hp-touch-target);
+  padding: 0 var(--hp-space-20);
+  font-size: var(--hp-size-15);
 }
 
 .help {
