@@ -110,7 +110,7 @@ function SiteFooter() {
           </a>
         </div>
         <div className={footer.side}>
-          <div className={footer.cta}>
+          <div className={`${footer.cta} hp-surface-dark`}>
             <div className={footer.ctaCopy}>
               <p className={footer.ctaTitle}>Have something in mind?</p>
               <p className={footer.ctaBody}>Describe it. We reply with a plan and a price.</p>
@@ -146,7 +146,7 @@ function SiteFooter() {
       <div className={footer.bottom}>
         <p className={footer.legal}>© {year} Holypearls</p>
         <nav aria-label="Legal" className={footer.legalLinks}>
-          <a className={footer.link} href="/help?topic=privacy">
+          <a className={footer.link} href="/privacy">
             Privacy
           </a>
           <a className={footer.link} href="/help?topic=terms">

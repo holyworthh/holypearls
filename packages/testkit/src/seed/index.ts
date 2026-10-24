@@ -7,6 +7,7 @@ import { seedLaunchCatalogue } from "./launch-catalogue.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
 import { seedOrganizations } from "./organizations.js";
+import { seedOrders } from "./orders.js";
 import { seedRecommendationRules } from "./projects.js";
 import type { StaffPermission } from "@holypearls/contracts";
 import { eq, schema, withTransaction, type Database, type Transaction } from "@holypearls/db";
@@ -24,6 +25,8 @@ export interface SeedOptions {
   authSecret: string;
   /** The public-media store; when given, seeded products get sample images. */
   media?: SeedMediaStore;
+  /** The private store; when given, the seeded proof gets its picture. */
+  files?: SeedMediaStore;
 }
 
 async function addMissingGrants(tx: Transaction, email: string, permissions: readonly StaffPermission[]) {
@@ -89,6 +92,12 @@ export const projectsSeedStep: SeedStep = { name: "projects: starting recommenda
 /** ACME Hospitality Group with Lekki and Victoria Island and one member per role (T10-01, TECH-08 §11). */
 export const organizationsSeedStep: SeedStep = { name: "organizations: ACME, Lekki and Victoria Island, one member per role", run: seedOrganizations };
 
+/** The Event order with its Name Badge proof and a paid Business Cards checkout, both Chidi's (T14-03, TECH-08 §11). */
+export const ordersSeedStep = (options: SeedOptions): SeedStep => ({
+  name: "orders: the Event order with its Name Badge proof, and a paid Business Cards checkout",
+  run: (tx) => seedOrders(tx, options.files),
+});
+
 export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   identitySeedStep(options),
   catalogueSeedStep,
@@ -97,6 +106,7 @@ export const buildSeedSteps = (options: SeedOptions): SeedStep[] => [
   contentSeedStep,
   projectsSeedStep,
   organizationsSeedStep,
+  ordersSeedStep(options),
   ...(options.media ? [catalogueMediaSeedStep(options.media)] : []),
 ];
 

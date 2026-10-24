@@ -3,7 +3,7 @@
 import { ApiError, type CustomerProof, customerProofSchema } from "@holypearls/contracts";
 import { Checkbox, FormField, Notice, StatusChip, TextArea } from "@holypearls/ui";
 import { Lock, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { api, newIdempotencyKey } from "@holypearls/web-kit/api";
 import { day } from "../../lib/format";
@@ -28,6 +28,8 @@ const STATUS: Record<string, { label: string; tone: "warning" | "success" | "inf
   PREPARING: { label: "Being prepared", tone: "neutral" },
   NOT_REQUIRED: { label: "No proof needed", tone: "neutral" },
 };
+
+const TABS = ["comments", "details", "history"] as const;
 
 const VERSION_WORDS: Record<string, string> = { PUBLISHED: "current", APPROVED: "approved", CHANGES_REQUESTED: "changes requested", SUPERSEDED: "replaced" };
 
@@ -73,6 +75,7 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
   const [busy, setBusy] = useState(false);
   const [key] = useState(() => newIdempotencyKey());
   const code = useEmailCode("APPROVE_PROOF");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const shown = proof.history.find((version) => version.number === shownNumber) ?? null;
   const isCurrent = shownNumber === proof.current?.number;
@@ -88,6 +91,7 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
     if (!proof.current) return;
     if (!ticked) {
       setTickError("Tick the box to confirm you've reviewed the proof.");
+      document.getElementById("proof-ack")?.focus();
       return;
     }
     setTickError(null);
@@ -245,6 +249,7 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
             className={s.stage}
             data-zoomed={zoom > 1 ? "true" : "false"}
             tabIndex={0}
+            role="group"
             aria-label={placing ? "Placing a pin. Use the arrow keys to move it, Enter to place it, Escape to cancel." : `${view?.label ?? "Proof"} view. Use the zoom buttons, or + and - keys.`}
             onKeyDown={(event) => {
               if (placing) {
@@ -300,7 +305,21 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
               <label className={s.pinLabel} htmlFor="pin-text">
                 Pin {comments.filter((comment) => comment.pin).length + 1} comment
               </label>
-              <textarea id="pin-text" className={s.pinInput} rows={2} maxLength={4000} value={pinText} onChange={(event) => setPinText(event.target.value)} />
+              <textarea
+                id="pin-text"
+                className={s.pinInput}
+                rows={2}
+                maxLength={4000}
+                value={pinText}
+                aria-invalid={commentError ? true : undefined}
+                aria-describedby={commentError ? "pin-error" : undefined}
+                onChange={(event) => setPinText(event.target.value)}
+              />
+              {commentError ? (
+                <p id="pin-error" className={s.pinHelp} role="alert">
+                  {commentError}
+                </p>
+              ) : null}
               <button
                 type="button"
                 className={s.pinTool}
@@ -319,9 +338,30 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
         </section>
 
         <aside className={s.rail} aria-label="Proof details and decision">
-          <div className={s.tabs} role="tablist">
-            {(["comments", "details", "history"] as const).map((name) => (
-              <button key={name} type="button" role="tab" id={`tab-${name}`} aria-controls={`panel-${name}`} aria-selected={tab === name} className={s.tab} onClick={() => setTab(name)}>
+          <div className={s.tabs} role="tablist" aria-label="Proof information">
+            {TABS.map((name, index) => (
+              <button
+                key={name}
+                ref={(element) => {
+                  tabRefs.current[index] = element;
+                }}
+                type="button"
+                role="tab"
+                id={`tab-${name}`}
+                aria-controls={tab === name ? `panel-${name}` : undefined}
+                aria-selected={tab === name}
+                tabIndex={tab === name ? 0 : -1}
+                className={s.tab}
+                onClick={() => setTab(name)}
+                onKeyDown={(event) => {
+                  const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+                  if (!step) return;
+                  event.preventDefault();
+                  const next = (index + step + TABS.length) % TABS.length;
+                  setTab(TABS[next]!);
+                  tabRefs.current[next]?.focus();
+                }}
+              >
                 {name === "comments" ? `Comments · ${comments.length}` : name === "details" ? "Details" : "History"}
               </button>
             ))}
@@ -368,7 +408,7 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
                 )}
                 {isCurrent ? (
                   <div className={s.ask}>
-                    <FormField id="whole-comment" label="Add a comment on the whole proof" error={commentError ?? undefined}>
+                    <FormField id="whole-comment" label="Add a comment on the whole proof" error={placing ? undefined : (commentError ?? undefined)}>
                       <TextArea rows={2} maxLength={4000} value={commentText} onChange={(event) => setCommentText(event.target.value)} />
                     </FormField>
                     <button type="button" className={s.secondary} disabled={busy} onClick={async () => (await postComment(commentText, null)) && setCommentText("")}>
@@ -441,7 +481,7 @@ export function ProofView({ initial }: { initial: CustomerProof }) {
               </>
             ) : proof.canDecide && isCurrent ? (
               <>
-                <Checkbox id="proof-ack" label="I have reviewed the artwork, spelling, placement and specifications shown." checked={ticked} onChange={(event) => setTicked(event.target.checked)} hint={tickError ?? undefined} />
+                <Checkbox id="proof-ack" label="I have reviewed the artwork, spelling, placement and specifications shown." checked={ticked} onChange={(event) => setTicked(event.target.checked)} error={tickError ?? undefined} />
                 <button type="button" className={s.approve} onClick={() => void approve()} disabled={busy}>
                   {busy && !mode ? "Approving…" : "Approve for production"}
                 </button>

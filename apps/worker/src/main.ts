@@ -12,7 +12,6 @@ import {
   runDailyCleanup,
   submitIndexNow,
   sendNotification,
-  reportError,
   CHECK_SCHEDULE_SECONDS,
   checkPaymentAttempt,
   settleUnanswered,
@@ -23,6 +22,9 @@ import {
   sendInstallmentDueReminder,
   generateExport,
   markExportFailed,
+  backupFiles,
+  checkAlerts,
+  raiseAlert,
 } from "@holypearls/api/modules";
 import { jobsConnectionString, loadWorkerEnv } from "@holypearls/config";
 import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
@@ -33,7 +35,7 @@ import { createPaymentGateway } from "@holypearls/payments";
 
 const env = loadWorkerEnv();
 const logger = createLogger({ service: "worker", environment: env.HP_ENV });
-initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "worker" });
+initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "worker", release: process.env.RENDER_GIT_COMMIT });
 // Worker jobs call the same services as the API (TECH-00 §5) on a bounded pool (TECH-07 §4).
 const database = createDatabaseClient(env.DATABASE_URL, { max: 5, onError: (error) => logger.error({ err: error, source: "database" }, "idle database connection error") });
 // Production runs on a row-only database role; a schema owner here means the wrong URL (review P1-02).
@@ -63,9 +65,13 @@ const track =
     }
   };
 
+// A job that used up its retries is an alert (TECH-07 §12 A3). Payloads hold only IDs (TECH-02 §8).
+const deadLettered = (queue: QueueName, payload: { requestId: string }) =>
+  raiseAlert(logger, { signal: "JOB_DEAD_LETTER", key: queue, details: { queue: deadLetterName(queue), requestId: payload.requestId, payload } });
+
 const sender = createEmailSender(env);
 // The worker only reads and writes objects; it never signs URLs for browsers.
-const { storage, publicStorage } = createStorage(env, { publicBaseUrl: "http://worker.invalid", signingSecret: env.DATA_ENCRYPTION_KEY });
+const { storage, publicStorage, backupStorage } = createStorage(env, { publicBaseUrl: "http://worker.invalid", signingSecret: env.DATA_ENCRYPTION_KEY });
 const files = { db: database.db, jobs, storage, publicStorage };
 
 await jobs.start();
@@ -74,14 +80,14 @@ await jobs.work(
   track("email.send", (payload) => sendNotification(database.db, sender, env.DATA_ENCRYPTION_KEY, payload.notificationId)),
 );
 await jobs.workDeadLetters("email.send", async (payload) => {
-  logger.error({ queue: deadLetterName("email.send"), requestId: payload.requestId }, "email moved to dead-letter queue");
+  deadLettered("email.send", payload);
   await markNotificationFailed(database.db, payload.notificationId);
 });
 await jobs.work("file.inspect", track("file.inspect", (payload) => inspectFile(files, payload.fileId, payload.requestId)));
 await jobs.work("file.preview", track("file.preview", (payload) => previewFile(files, payload.fileId)));
 for (const queue of ["file.inspect", "file.preview"] as const) {
   await jobs.workDeadLetters(queue, async (payload) => {
-    logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "file job moved to dead-letter queue");
+    deadLettered(queue, payload);
     await markFileNeedsReview(database.db, payload.fileId, "We couldn't finish checking this file. Our team will look at it.");
   });
 }
@@ -89,7 +95,7 @@ await jobs.work(
   "cleanup.daily",
   track("cleanup.daily", async () => {
     const result = await runDailyCleanup(files);
-    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents, expiredCheckouts: result.expiredCheckouts, purgedCheckouts: result.purgedCheckouts, closedDrafts: result.closedDrafts, expiredExports: result.exportsExpired }, "daily clean-up finished");
+    logger.info({ queue: "cleanup.daily", removedFiles: result.files, removedSearchEvents: result.searchEvents, expiredCheckouts: result.expiredCheckouts, purgedCheckouts: result.purgedCheckouts, closedDrafts: result.closedDrafts, expiredExports: result.exportsExpired, removedGuestLinks: result.guestLinks, removedVerifications: result.verifications, clearedParticipantContacts: result.participantContacts }, "daily clean-up finished");
   }),
 );
 await jobs.schedule("cleanup.daily", "0 3 * * *", { v: 1, requestId: "schedule" });
@@ -157,10 +163,9 @@ await jobs.work(
 );
 for (const queue of ["payment.verify", "payment.check", "refund.check"] as const) {
   await jobs.workDeadLetters(queue, async (payload) => {
-    // A last check that never got an answer settles the attempt itself (UNKNOWN and a review); staff also see it on the Jobs page.
+    // A last check that never got an answer settles the attempt itself (UNKNOWN and a review); staff see it on the Jobs page and through the dead-letter alert.
     if (queue === "payment.check" && "attemptId" in payload && payload.check >= CHECK_SCHEDULE_SECONDS.length) await settleUnanswered(payments, payload.attemptId);
-    logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "payment job moved to dead-letter queue");
-    reportError(new Error("Payment job moved to the dead-letter queue"), { queue, requestId: payload.requestId });
+    deadLettered(queue, payload);
   });
 }
 // Quotes (T05-03): expiry at valid-until, and the "expires soon" reminder. Both check the quote again when they run.
@@ -190,15 +195,39 @@ await jobs.work(
   }),
 );
 await jobs.workDeadLetters("export.generate", async (payload) => {
-  logger.error({ queue: deadLetterName("export.generate"), requestId: payload.requestId }, "export moved to dead-letter queue");
+  deadLettered("export.generate", payload);
   await markExportFailed(database.db, payload.exportId);
 });
 await jobs.work("demo.slice", track("demo.slice", (payload) => processDemoSlice(database.db, payload.demoId)));
 await jobs.workDeadLetters("demo.slice", async (payload) => {
-  logger.error({ queue: deadLetterName("demo.slice"), requestId: payload.requestId }, "job moved to dead-letter queue");
-  reportError(new Error("Job moved to the dead-letter queue"), { queue: "demo.slice", requestId: payload.requestId });
+  deadLettered("demo.slice", payload);
   await markDemoSliceFailed(database.db, payload.demoId);
 });
+// Queues with nothing to undo when they fail still raise the alert.
+for (const queue of ["cache.revalidate", "search.refresh", "seo.indexnow", "quote.expire", "reminder.send", "cleanup.daily", "ops.monitor", "storage.backup"] as const) {
+  await jobs.workDeadLetters(queue, async (payload) => deadLettered(queue, payload));
+}
+// Alerts that need the database (TECH-07 §12), every 5 minutes.
+await jobs.work(
+  "ops.monitor",
+  track("ops.monitor", async () => {
+    for (const alert of await checkAlerts(database.db, new Date())) raiseAlert(logger, alert);
+  }),
+);
+await jobs.schedule("ops.monitor", "*/5 * * * *", { v: 1, requestId: "schedule" });
+// Daily copy of private files to the backup bucket (TECH-07 §5); not registered without S3_BACKUP_BUCKET.
+if (backupStorage) {
+  await jobs.work(
+    "storage.backup",
+    track("storage.backup", async (payload) => {
+      const copied = await backupFiles({ db: database.db, storage, backupStorage }, new Date(Date.now() - 7 * 86_400_000));
+      logger.info({ queue: "storage.backup", requestId: payload.requestId, copied }, "files backed up");
+    }),
+  );
+  await jobs.schedule("storage.backup", "30 3 * * *", { v: 1, requestId: "schedule" });
+  // Free hosts sleep through 03:30, so also copy on each start; a repeat copies nothing new.
+  await jobs.send("storage.backup", { v: 1, requestId: "startup" });
+}
 logger.info({ queues: Object.keys(QUEUES), emailTransport: sender.name }, "worker started");
 
 // TECH-07 §8: queue sizes and last successful job time per queue.

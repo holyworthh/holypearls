@@ -5,7 +5,7 @@ import {
   SetMetadata,
 } from "@nestjs/common";
 import { IDEMPOTENCY_KEY_HEADER } from "@holypearls/contracts";
-import { and, type Database, eq, lt, schema } from "@holypearls/db";
+import { and, type Database, eq, lt, schema, sql, type Transaction } from "@holypearls/db";
 import { createHash } from "node:crypto";
 import type { Request, Response } from "express";
 import { from, lastValueFrom, type Observable } from "rxjs";
@@ -95,3 +95,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
   }
 }
 
+/** Privacy erasure (T15-03): saved replies (kept 24 hours) that carry the email, such as a submitted project or a checkout. */
+export async function eraseIdempotencyKeys(tx: Transaction, email: string) {
+  await tx.delete(schema.idempotencyKeys).where(sql`${schema.idempotencyKeys.responseBody}::text ilike ${`%${email.replace(/[%_\\]/g, (char) => `\\${char}`)}%`}`);
+}

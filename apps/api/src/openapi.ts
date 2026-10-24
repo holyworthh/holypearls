@@ -39,6 +39,11 @@ import {
   acceptedStaffInvitationSchema,
   staffInvitationSchema,
   staffListSchema,
+  incidentStateSchema,
+  incidentSwitchSchema,
+  revokeGuestLinksSchema,
+  revokeSessionsSchema,
+  revokedCountSchema,
   staffMemberSchema,
   adminRefundListSchema,
   adminRefundSchema,
@@ -971,6 +976,30 @@ export function buildOpenApiDocument() {
           summary: "Turn a guest link off (CUSTOMER_SUPPORT, audited)",
           parameters: [uuidParam("id")],
           responses: { 200: { description: "Revoked" }, ...staffOnly },
+        },
+      },
+      "/v1/admin/incidents": {
+        get: { summary: "Incident switches: read-only mode, uploads, payments (SECURITY_ADMIN; T15-05; Pen 123)", responses: { 200: { description: "State", content: json(incidentStateSchema) }, ...staffOnly } },
+      },
+      "/v1/admin/incidents/switch": {
+        post: {
+          summary: "Turn a switch on or off (SECURITY_ADMIN, recent authenticator check, audited)",
+          requestBody: { required: true, content: json(incidentSwitchSchema) },
+          responses: { 200: { description: "State", content: json(incidentStateSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/incidents/revoke-sessions": {
+        post: {
+          summary: "Sign everyone out, or one person (SECURITY_ADMIN, recent authenticator check, audited); no such email is NOT_FOUND",
+          requestBody: { required: true, content: json(revokeSessionsSchema) },
+          responses: { 200: { description: "How many sessions ended", content: json(revokedCountSchema) }, ...staffOnly },
+        },
+      },
+      "/v1/admin/incidents/revoke-guest-links": {
+        post: {
+          summary: "Turn off guest links for one customer or one record (SECURITY_ADMIN, recent authenticator check, audited)",
+          requestBody: { required: true, content: json(revokeGuestLinksSchema) },
+          responses: { 200: { description: "How many links were turned off", content: json(revokedCountSchema) }, ...staffOnly },
         },
       },
       "/v1/files/uploads": {

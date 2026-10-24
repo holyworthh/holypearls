@@ -12,6 +12,7 @@ import {
 } from "@holypearls/email";
 import type { Jobs } from "@holypearls/jobs";
 import type { ActorContext } from "../identity/actor.js";
+import { ERASED_DOMAIN, ofPerson, type PersonSubject } from "../identity/customers.js";
 import { AppError } from "../errors.js";
 import { recordAudit } from "./audit.js";
 import { afterCursor, newestFirst, pageOf } from "./cursor.js";
@@ -47,7 +48,9 @@ export async function queueEmail<T extends TemplateName>(
   tx: Transaction | Database,
   email: QueueEmail<T>,
   resendOfId?: string,
-): Promise<string> {
+) : Promise<string | null> {
+  // An erased person's placeholder address is never written to (T15-03).
+  if (email.to.trim().toLowerCase().endsWith(`@${ERASED_DOMAIN}`)) return null;
   const definition = TEMPLATES[email.template];
   definition.data.parse(email.data);
   const [row] = await tx
@@ -216,5 +219,28 @@ export async function resendNotification(deps: NotificationDeps, actor: ActorCon
     });
     return created;
   });
-  return (await findNotification(deps.db, newId))!;
+  return (await findNotification(deps.db, newId!))!;
+}
+
+/** Privacy export (T15-03): what was sent to the person, without the sealed content. */
+export async function notificationsForPerson(db: Database, subject: PersonSubject) {
+  return db
+    .select({ template: schema.notifications.template, recipient: schema.notifications.recipient, status: schema.notifications.status, sentAt: schema.notifications.sentAt })
+    .from(schema.notifications)
+    .where(or(ofPerson(subject, schema.notifications.customerId), eq(schema.notifications.recipient, subject.email))!)
+    .orderBy(schema.notifications.createdAt);
+}
+
+/** Privacy erasure (T15-03): the log of what was sent stays, without the address or the sealed data (it may hold links and codes). */
+export async function eraseNotifications(tx: Transaction, subject: PersonSubject) {
+  await tx
+    .update(schema.notifications)
+    .set({ recipient: subject.placeholder, sealedData: null, resendable: false })
+    .where(or(ofPerson(subject, schema.notifications.customerId), eq(schema.notifications.recipient, subject.email))!);
+}
+
+/** How many emails failed for good since `since` (TECH-07 §12 alert A8). */
+export async function failedEmailsSince(db: Database, since: Date): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.notifications).where(and(eq(schema.notifications.status, "FAILED"), sql`${schema.notifications.updatedAt} >= ${since}`));
+  return row!.n;
 }

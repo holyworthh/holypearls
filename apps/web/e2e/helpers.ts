@@ -7,6 +7,11 @@ import { expect, type Page } from "@playwright/test";
  * off first, since mid-animation opacity isn't what people end up reading.
  */
 export async function expectNoAxeViolations(page: Page) {
+  expect(await axeViolations(page)).toEqual([]);
+}
+
+/** The same check, returned as text, so a loop over many routes can report every failure at once. */
+export async function axeViolations(page: Page): Promise<string[]> {
   await page.evaluate(() => {
     delete document.documentElement.dataset.motion;
     // Reveals already running keep going (their end value is unchanged), so finish them.
@@ -27,7 +32,61 @@ export async function expectNoAxeViolations(page: Page) {
   await page.evaluate(() => {
     for (const nav of document.querySelectorAll<HTMLElement>('nav[aria-label="Workspace sections"]')) nav.style.removeProperty("position");
   });
-  expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
+  return results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
+}
+
+/** Tabs through the page; each stop must change how it (or a near ancestor, its label or the next sibling) looks, and not be entirely covered (2.4.7, 2.4.11). */
+export async function focusProblems(page: Page, stops = 60): Promise<string[]> {
+  await page.addStyleTag({ content: "*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}" });
+  const problems: string[] = [];
+  for (let i = 0; i < stops; i += 1) {
+    await page.keyboard.press("Tab");
+    const result = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return "end";
+      const nodes = [el, el.parentElement, el.parentElement?.parentElement, el.parentElement?.parentElement?.parentElement, el.closest("label"), el.nextElementSibling];
+      const snap = () =>
+        nodes
+          .map((n) => {
+            if (!n) return "";
+            const s = getComputedStyle(n);
+            return [s.outlineStyle, s.outlineWidth, s.outlineColor, s.boxShadow, s.backgroundColor, s.borderColor, s.color, s.textDecorationLine, s.fill, s.fillOpacity, s.strokeOpacity].join();
+          })
+          .join("|");
+      const on = snap();
+      el.blur();
+      const off = snap();
+      el.focus();
+      const name = `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40)}"`;
+      if (on === off) return `no visible focus: ${name}`;
+      const r = el.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return null; // a visually hidden input; its label is checked above
+      const points = [
+        [r.left + r.width / 2, r.top + r.height / 2],
+        [r.left + 2, r.top + 2],
+        [r.right - 2, r.top + 2],
+        [r.left + 2, r.bottom - 2],
+        [r.right - 2, r.bottom - 2],
+      ];
+      const seen = points.some(([x, y]) => {
+        const hit = document.elementFromPoint(x!, y!);
+        return !!hit && (hit === el || el.contains(hit) || hit.contains(el) || !!hit.closest("label")?.contains(el));
+      });
+      return seen ? null : `focus hidden: ${name}`;
+    });
+    if (result === "end") break;
+    if (result) problems.push(result);
+  }
+  return problems;
+}
+
+/** Customer sign-in on the site, landing on `next`. */
+export async function signInCustomer(page: Page, person: { email: string; password: string }, next = "/account/security") {
+  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
+  await page.locator("#sign-in-email").fill(person.email);
+  await page.locator("#sign-in-password").fill(person.password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((url) => url.pathname.startsWith(next));
 }
 
 export async function expectNoHorizontalScroll(page: Page) {

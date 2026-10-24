@@ -61,6 +61,7 @@ export class MeController {
       email: session.email,
       emailVerified: session.emailVerified,
       phone: profile.phone,
+      marketingConsent: profile.marketingConsent,
       pendingEmail: profile.pendingEmail,
       isStaff: actor.staff !== null,
       mfa: { enabled: session.mfaEnabled, verifiedAt: session.mfaVerifiedAt?.toISOString() ?? null },

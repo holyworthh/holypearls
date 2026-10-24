@@ -199,3 +199,33 @@ export const staffInvitationPreviewSchema = z.object({
 });
 export type StaffInvitationPreview = z.infer<typeof staffInvitationPreviewSchema>;
 export const acceptedStaffInvitationSchema = z.object({ adminSignInUrl: z.string() });
+
+/** Privacy requests (T15-03; TECH-06 §12; Pen 136, 129). The email goes in the body so it stays out of URLs and logs. */
+export const privacyLookupSchema = z.object({ email: z.email("Enter an email address like name@example.com").max(254) }).strict();
+export type PrivacyLookup = z.infer<typeof privacyLookupSchema>;
+export const privacyEraseSchema = z.object({ email: z.email().max(254), confirm: z.literal(true) }).strict();
+export type PrivacyErase = z.infer<typeof privacyEraseSchema>;
+
+export const PRIVACY_BLOCKERS = ["STAFF_ACCOUNT", "ORGANIZATION_MEMBER", "OPEN_ORDERS", "PAYMENT_IN_PROGRESS"] as const;
+export const privacyPersonSchema = z.object({
+  found: z.boolean(),
+  /** Set once the person's data has been erased. */
+  erasedAt: isoDate.nullable(),
+  hasAccount: z.boolean(),
+  marketingConsentAt: isoDate.nullable(),
+  counts: z.object({ customers: z.number().int(), orders: z.number().int(), receipts: z.number().int(), quotes: z.number().int(), checkouts: z.number().int() }),
+  blockers: z.array(z.object({ code: z.enum(PRIVACY_BLOCKERS), message: z.string() })),
+});
+export type PrivacyPerson = z.infer<typeof privacyPersonSchema>;
+
+/* Incident switches (T15-05; TECH-06 section 14; Pen 123). */
+const switchState = z.object({ on: z.boolean(), since: z.string().nullable() });
+export const incidentStateSchema = z.object({ readOnly: switchState, uploadsPaused: switchState, paymentsPaused: switchState });
+export type IncidentState = z.infer<typeof incidentStateSchema>;
+export const incidentSwitchSchema = z.object({ switch: z.enum(["READ_ONLY", "UPLOADS_PAUSED", "PAYMENTS_PAUSED"]), on: z.boolean() }).strict();
+export type IncidentSwitchInput = z.infer<typeof incidentSwitchSchema>;
+export const revokeSessionsSchema = z.discriminatedUnion("scope", [z.object({ scope: z.literal("EVERYONE") }).strict(), z.object({ scope: z.literal("PERSON"), email: z.email() }).strict()]);
+export type RevokeSessionsInput = z.infer<typeof revokeSessionsSchema>;
+export const revokeGuestLinksSchema = z.union([z.object({ customerEmail: z.email() }).strict(), z.object({ recordId: z.uuid() }).strict()]);
+export type RevokeGuestLinksInput = z.infer<typeof revokeGuestLinksSchema>;
+export const revokedCountSchema = z.object({ revoked: z.number().int().min(0) });

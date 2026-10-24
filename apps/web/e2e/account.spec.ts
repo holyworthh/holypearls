@@ -1,20 +1,12 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
-import { expect, test, type Page } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { expectNoAxeViolations, expectNoHorizontalScroll, signInCustomer } from "./helpers";
 
 /*
  * T09-01 in a real browser (Pen frames 88–92), at 375 and 1440 px: sign-up
  * and "verify your email", the account overview, profile, password reset and
  * change password. The API tests cover verification links and linking.
  */
-
-async function signIn(page: Page, person: { email: string; password: string }, next: string) {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
-  await page.locator("#sign-in-email").fill(person.email);
-  await page.locator("#sign-in-password").fill(person.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL((url) => url.pathname === next);
-}
 
 test("sign-up asks for the email check, and the unverified overview links nothing", async ({ page }) => {
   await page.goto("/sign-up");
@@ -43,7 +35,7 @@ test("sign-up asks for the email check, and the unverified overview links nothin
 });
 
 test("the overview, profile and security pages work for a verified customer", async ({ page }) => {
-  await signIn(page, TEST_PEOPLE.customerChidi, "/account");
+  await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account");
   await expect(page.getByRole("heading", { name: "Hello, Chidi" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
   await expectNoAxeViolations(page);
@@ -116,7 +108,7 @@ test("changing the email shows it pending until verified; each history list has 
 
   // The lists in full, from the account navigation.
   await page.context().clearCookies();
-  await signIn(page, TEST_PEOPLE.customerChidi, "/account");
+  await signInCustomer(page, TEST_PEOPLE.customerChidi, "/account");
   await page.getByRole("navigation", { name: "Account" }).getByRole("link", { name: "Orders" }).click();
   await expect(page).toHaveURL(/\/account\/orders$/);
   await expect(page.getByRole("heading", { name: "Orders", level: 1 })).toBeVisible();

@@ -33,6 +33,11 @@
   background: var(--hp-paper);
 }
 
+/* The field always shows its ink outline (Pen); Holy Blue marks that the cursor is in it. */
+.field:focus-within {
+  outline-color: var(--hp-brand);
+}
+
 .fieldIcon {
   flex: none;
   width: var(--hp-size-22);
@@ -241,9 +246,10 @@
 
 .groupHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--hp-space-16);
+  gap: var(--hp-space-8) var(--hp-space-16);
   padding-bottom: var(--hp-space-12);
   border-bottom: var(--hp-size-1) solid var(--hp-line);
 }
@@ -279,7 +285,6 @@
   font-weight: 600;
   line-height: var(--hp-size-22);
   text-decoration: none;
-  white-space: nowrap;
 }
 
 .groupMore svg,
@@ -718,7 +723,7 @@
 }
 
 .tellUsText:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-accent);
+  outline: var(--hp-focus-ring-width) solid var(--hp-paper);
   outline-offset: var(--hp-space-2);
 }
 
@@ -744,6 +749,7 @@
 
   .body {
     flex-direction: column;
+    align-items: stretch;
     gap: var(--hp-space-40);
   }
 
@@ -819,7 +825,7 @@
   }
 
   .projectRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .projectImage {

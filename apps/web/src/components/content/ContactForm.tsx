@@ -109,7 +109,7 @@ export function ContactForm({
   return (
     <form className={s.form} noValidate onSubmit={onSubmit}>
       <ErrorSummary errors={Object.entries(errors).map(([field, text]) => ({ fieldId: ID[field as keyof typeof ID] ?? ID.message, message: text }))} />
-      {failure ? <Notice tone="error" title="Not sent">{failure}</Notice> : null}
+      {failure ? <Notice tone="error" title="Not sent" live>{failure}</Notice> : null}
       <fieldset className={s.chips}>
         <legend className={s.label}>What&apos;s it about?</legend>
         <div className={s.chipRow} id={ID.topic}>

@@ -428,6 +428,20 @@
       "when": 1792790529402,
       "tag": "0060_site_events",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792807816515,
+      "tag": "0061_incident_switches",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792810818746,
+      "tag": "0062_privacy",
+      "breakpoints": true
     }
   ]
 }

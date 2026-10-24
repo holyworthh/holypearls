@@ -1,5 +1,6 @@
 import { accountHistorySchema, apiErrorSchema, configurationSchema, meSchema, profileSchema } from "@holypearls/contracts";
-import { and, eq, schema } from "@holypearls/db";
+import { TEST_PEOPLE } from "@holypearls/auth";
+import { and, eq, inArray, schema } from "@holypearls/db";
 import { FakeGateway } from "@holypearls/testkit";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
@@ -88,6 +89,10 @@ describe("sign-up and guest linking (TECH-03 §6)", () => {
     const phone = await as(harness, cookie).patch("/v1/me/profile").send({ name: "New Customer", phone: "+234 803 000 0000" });
     expect(phone.status).toBe(422);
     expect(apiErrorSchema.parse(phone.body).context).toMatchObject({ reason: "VERIFY_EMAIL_FIRST" });
+    // Product news can't be turned on for a record the account doesn't own yet either (T15-03).
+    const news = await as(harness, cookie).patch("/v1/me/profile").send({ name: "New Customer", phone: null, marketingConsent: true });
+    expect(news.status).toBe(422);
+    expect(apiErrorSchema.parse(news.body).context).toMatchObject({ reason: "VERIFY_EMAIL_FIRST" });
   });
 
   it("verifying the email links every earlier order, receipt, quote, project and design, and audits it", async () => {
@@ -129,7 +134,11 @@ describe("sign-up and guest linking (TECH-03 §6)", () => {
     expect(view).toMatchObject({ linking: { state: "NOTHING_LINKED" }, orders: [], quotes: [], receipts: [], drafts: [] });
 
     const chidi = await history(actors.customerChidi!);
-    expect(chidi.orders).toEqual([]);
+    // The seed gives Chidi his own orders (T14-03), so check ownership, not emptiness: every order he sees is his.
+    const [chidiRow] = await db().select({ id: schema.customers.id }).from(schema.customers).where(eq(schema.customers.emailNormalized, TEST_PEOPLE.customerChidi.email));
+    const owners = await db().select({ customerId: schema.orders.customerId }).from(schema.orders).where(inArray(schema.orders.id, chidi.orders.map((order) => order.id)));
+    expect(owners).toHaveLength(chidi.orders.length);
+    expect(owners.every((owner) => owner.customerId === chidiRow!.id)).toBe(true);
     expect((await as(harness, "").get("/v1/me/history")).status).toBe(401);
   });
 

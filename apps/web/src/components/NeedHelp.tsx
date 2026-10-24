@@ -66,7 +66,7 @@ export function NeedHelp({ context, signedIn = false, label = "Need help?", vari
       <Dialog open={open} onClose={() => setOpen(false)} title={sent ? "We got your question" : "Ask HolyPearls"}>
         {sent ? (
           <>
-            <Notice tone="success" title={`Request ${sent.reference} sent`}>
+            <Notice tone="success" title={`Request ${sent.reference} sent`} live>
               <p>We attached the page you were on, so you won&apos;t need to explain again. We&apos;ll reply by email.</p>
             </Notice>
             <ButtonLink href={`/help/${sent.id}`} variant="secondary">

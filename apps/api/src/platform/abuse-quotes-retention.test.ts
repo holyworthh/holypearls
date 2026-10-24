@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { cartSchema, checkoutSchema, configurationSchema } from "@holypearls/contracts";
-import { eq, inArray, schema } from "@holypearls/db";
+import { eq, ilike, inArray, schema } from "@holypearls/db";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -156,6 +156,32 @@ describe("checkout and draft retention (review P2-03)", () => {
     const refused = await request(harness.url).put(`/v1/checkouts/${checkout.id}/contact`).set("origin", TEST_WEB_ORIGIN).set("cookie", cookie).send({ name: "Late", email: "late@example.com", phone: "0800 000 0000", version: checkout.version });
     expect(refused.status).toBe(409);
     expect(refused.body.context.reason).toBe("CHECKOUT_CLOSED");
+  });
+});
+
+describe("expired links and codes (T15-03; TECH-06 §12)", () => {
+  it("deletes expired guest links (with their sessions) and Better Auth verifications, keeps the rest, and is safe to repeat", async () => {
+    const db = harness.database.db;
+    const [customer] = await db.insert(schema.customers).values({ email: "retention.links@example.com", emailNormalized: "retention.links@example.com" }).returning();
+    const link = (hash: string, expiresAt: Date) => ({ secretHash: hash, purpose: "QUOTE" as const, targetType: "QUOTE", targetId: randomUUID(), customerId: customer!.id, expiresAt });
+    const [expired, live] = await db
+      .insert(schema.guestLinks)
+      .values([link(`h-${randomUUID()}`, new Date(Date.now() - 1000)), link(`h-${randomUUID()}`, new Date(Date.now() + 3_600_000))])
+      .returning();
+    await db.insert(schema.guestSessions).values({ tokenHash: `t-${randomUUID()}`, guestLinkId: expired!.id, customerId: customer!.id, targetType: "QUOTE", targetId: expired!.targetId, expiresAt: new Date(Date.now() + 3_600_000) });
+    await db.insert(schema.verifications).values([
+      { identifier: `old-${randomUUID()}`, value: "x", expiresAt: new Date(Date.now() - 1000) },
+      { identifier: `new-${randomUUID()}`, value: "x", expiresAt: new Date(Date.now() + 3_600_000) },
+    ]);
+    const deps = { db, storage: harness.storage, publicStorage: harness.publicStorage };
+    const first = await runDailyCleanup(deps);
+    expect(first.guestLinks).toBe(1);
+    expect(first.verifications).toBe(1);
+    expect((await db.select().from(schema.guestLinks).where(eq(schema.guestLinks.customerId, customer!.id))).map((row) => row.id)).toEqual([live!.id]);
+    expect(await db.select().from(schema.guestSessions).where(eq(schema.guestSessions.customerId, customer!.id))).toHaveLength(0);
+    expect(await db.select().from(schema.verifications).where(ilike(schema.verifications.identifier, "new-%"))).toHaveLength(1);
+    expect(await db.select().from(schema.verifications).where(ilike(schema.verifications.identifier, "old-%"))).toHaveLength(0);
+    expect(await runDailyCleanup(deps)).toMatchObject({ guestLinks: 0, verifications: 0, participantContacts: 0 });
   });
 });
 

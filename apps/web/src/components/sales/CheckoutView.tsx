@@ -299,7 +299,7 @@ function Summary({ errors, prefix }: { errors: Errors; prefix: string }) {
 }
 
 function ContactStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next: Checkout) => void }) {
-  const [form, setForm] = useState({ name: checkout.contact?.name ?? "", email: checkout.contact?.email ?? "", phone: checkout.contact?.phone ?? "" });
+  const [form, setForm] = useState({ name: checkout.contact?.name ?? "", email: checkout.contact?.email ?? "", phone: checkout.contact?.phone ?? "", marketingConsent: false });
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
   const submit = async (event: React.FormEvent) => {
@@ -327,6 +327,10 @@ function ContactStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
         </FormField>
       </div>
       <p className={styles.lead}>We send your receipt and order updates to this email.</p>
+      <Checkbox id="contact-marketing" checked={form.marketingConsent} onChange={(event) => setForm({ ...form, marketingConsent: event.target.checked })} label="Send me product news and offers (optional)" />
+      <p className={styles.lead}>
+        We&apos;ll only use your email for this order unless you tick the box. <a href="/privacy">Privacy notice</a>
+      </p>
       <Button type="submit" loading={saving} className={styles.continue}>
         Continue to delivery address
       </Button>

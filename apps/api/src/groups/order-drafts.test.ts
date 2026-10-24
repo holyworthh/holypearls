@@ -1,11 +1,14 @@
 import { adminQuoteSchema, approvalPolicySchema, collectionSchema, configurationSchema, orderDraftOriginSchema, orderDraftStateSchema, participationSchema } from "@holypearls/contracts";
+import { TEST_PEOPLE } from "@holypearls/auth";
 import { eq, schema, sql } from "@holypearls/db";
+import type { FakeGateway } from "@holypearls/testkit";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { type Actors, as, expectForbidden, expectHidden, signInActors } from "../testing/actors.js";
-import { no5xx, STRESS_RUNS } from "../testing/flows.js";
+import { no5xx, orderFlows, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_WEB_ORIGIN } from "../testing/harness.js";
+import { purgeParticipantContacts } from "./collections.js";
 
 /*
  * T12-03b: the Order Draft, reopening and the staff origin view (PRD-05
@@ -145,6 +148,47 @@ describe("the Order Draft (B2B-FR-054–055)", () => {
     expect(origin).toMatchObject({ pieces: 59, fromLink: 59, fromImports: [], excluded: [{ reason: "Left out during review" }, { reason: "Left out during review" }] });
     expectForbidden(await api("financeFolake").get(`/v1/admin/order-drafts/${draft!.id}`), "QUOTE_MANAGE");
     expectHidden(await api("acmeOwner").get(`/v1/admin/order-drafts/${draft!.id}`));
+  });
+
+  it("participants' names and emails go 12 months after the order was delivered, with their imported rows; sooner or undelivered, they stay (T15-03; TECH-06 §12)", async () => {
+    const { id, secret } = await openCollection("Retention polos");
+    const people = [await person(secret, 0, true), await person(secret, 1, true)];
+    await api("acmeOwner").post(`${base()}/${id}/close`, { version: (await collection(id)).version });
+    let state = orderDraftStateSchema.parse((await api("acmeOwner").post(`${base()}/${id}/order-draft`, { version: (await collection(id)).version })).body);
+    state = orderDraftStateSchema.parse((await api("acmeOwner").post(`${base()}/${id}/order-draft/submit`, { version: state.current!.version })).body);
+    // Stand-in for staff quoting and the customer accepting: a real accepted quote and its order, attached to this draft.
+    const flows = orderFlows(
+      () => harness,
+      () => harness.payments as FakeGateway,
+    );
+    const { orderId } = await flows.acceptedQuote(flows.staff(actors.adminAda!));
+    const [version] = await db().select({ quoteId: schema.quoteVersions.quoteId }).from(schema.orders).innerJoin(schema.quoteVersions, eq(schema.quoteVersions.id, schema.orders.quoteVersionId)).where(eq(schema.orders.id, orderId));
+    await db().update(schema.orderDrafts).set({ quoteId: version!.quoteId }).where(eq(schema.orderDrafts.id, state.current!.id));
+    const [user] = await db().select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, TEST_PEOPLE.acmeOwner.email));
+    const [file] = await db().insert(schema.files).values({ purpose: "CSV_IMPORT", status: "READY", bucket: "private", originalName: "a.csv", safeName: "a.csv", declaredType: "text/csv", declaredSize: 1, storageKey: `files/source/${randomUUID()}`, uploadedByUserId: user!.id }).returning();
+    const [batch] = await db().insert(schema.importBatches).values({ collectionId: id, fileId: file!.id, fileName: "a.csv", headers: ["Name", "Email"] }).returning();
+    await db().insert(schema.importRows).values({ batchId: batch!.id, line: 2, raw: ["Imported Person", "imported@example.com"], values: { name: "Imported Person" }, participantId: people[0] });
+    const delivered = (monthsAgo: number) => db().insert(schema.shipments).values({ orderId, number: `SHP-T-${randomUUID().slice(0, 6)}`, status: "DELIVERED", destination: "somewhere", deliveredAt: new Date(Date.now() - monthsAgo * 30.5 * 86_400_000) });
+    const names = async () => (await db().select({ name: schema.participants.name, email: schema.participants.email }).from(schema.participants).where(sql`${schema.participants.id} in (${sql.join(people.map((p) => sql`${p}`), sql`, `)})`));
+
+    // Undelivered: kept, even with an old shipment record.
+    await delivered(13);
+    expect(await purgeParticipantContacts(db(), new Date())).toBe(0);
+    // Delivered 11 months ago: kept.
+    await db().update(schema.orderItems).set({ status: "DELIVERED" }).where(eq(schema.orderItems.orderId, orderId));
+    await db().delete(schema.shipments).where(eq(schema.shipments.orderId, orderId));
+    await delivered(11);
+    expect(await purgeParticipantContacts(db(), new Date())).toBe(0);
+    expect((await names()).every((row) => row.email !== "")).toBe(true);
+    // Delivered 13 months ago: names and emails go, answers stay, imported cells are emptied.
+    await db().delete(schema.shipments).where(eq(schema.shipments.orderId, orderId));
+    await delivered(13);
+    expect(await purgeParticipantContacts(db(), new Date())).toBeGreaterThanOrEqual(2);
+    expect(await names()).toEqual([{ name: "Removed participant", email: "" }, { name: "Removed participant", email: "" }]);
+    expect((await db().select().from(schema.participantSubmissions).where(eq(schema.participantSubmissions.participantId, people[0]!)))[0]!.answers).toMatchObject({ size: expect.any(String) });
+    expect((await db().select().from(schema.importRows).where(eq(schema.importRows.batchId, batch!.id)))[0]).toMatchObject({ raw: [], values: {} });
+    // Safe to repeat.
+    expect(await purgeParticipantContacts(db(), new Date())).toBe(0);
   });
 
   it("sends one quote and marks the draft SUBMITTED once however many times it is pressed", async () => {

@@ -115,7 +115,7 @@ export function StaffAdminShell({ children, groups, breadcrumb, staffName, staff
         ) : null}
       </div>
 
-      <div className={styles.main}>
+      <div className={styles.main} inert={menuOpen || undefined}>
         <header className={styles.topBar}>
           <p className={styles.breadcrumb}>{breadcrumb}</p>
           <span className={styles.mfaBadge}>

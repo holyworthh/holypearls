@@ -30,7 +30,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
 
   return (
     <SiteShell>
-      <main id="main" className={styles.page}>
+      <div className={styles.page}>
         <div className={styles.column}>
           <p className={styles.eyebrow}>{receipt.orderNumber ? `ORDER ${receipt.orderNumber}` : "PAYMENT"}</p>
           <h1 className={styles.title}>Receipt {receipt.number}</h1>
@@ -103,7 +103,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             </ButtonLink>
           </div>
         </div>
-      </main>
+      </div>
     </SiteShell>
   );
 }

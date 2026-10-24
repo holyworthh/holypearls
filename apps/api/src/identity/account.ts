@@ -116,7 +116,7 @@ export async function accountList(db: Database, actor: UserActor, list: string):
 
 export async function getProfile(db: Database, actor: UserActor): Promise<Profile> {
   const own = await ownCustomer(db, actor.session.userId);
-  return { name: actor.session.name, email: actor.session.email, phone: own?.phone ?? null, pendingEmail: await pendingEmail(db, actor) };
+  return { name: actor.session.name, email: actor.session.email, phone: own?.phone ?? null, pendingEmail: await pendingEmail(db, actor), marketingConsent: !!own?.marketingConsentAt };
 }
 
 /**
@@ -132,10 +132,19 @@ export async function updateProfile(db: Database, actor: UserActor, profile: Pro
   if (input.phone && !own) {
     throw new AppError("RULE_FAILED", { message: "Verify your email first, then add a phone number.", context: { reason: "VERIFY_EMAIL_FIRST" } });
   }
+  if (profile.marketingConsent && !own) {
+    throw new AppError("RULE_FAILED", { message: "Verify your email first, then turn on product news.", context: { reason: "VERIFY_EMAIL_FIRST" } });
+  }
+  // Left out, consent stays as it is. Product news is off until the person turns it on (TECH-06 §12).
+  const consent = profile.marketingConsent === undefined || !own ? undefined : profile.marketingConsent ? (own.marketingConsentAt ?? actor.now) : null;
   await db.transaction(async (tx) => {
     await tx.update(schema.users).set({ name: input.name, updatedAt: actor.now }).where(eq(schema.users.id, userId));
-    if (own) await tx.update(schema.customers).set({ name: input.name, phone: input.phone, updatedAt: actor.now }).where(eq(schema.customers.id, own.id));
+    if (own) await tx.update(schema.customers).set({ name: input.name, phone: input.phone, ...(consent === undefined ? {} : { marketingConsentAt: consent }), updatedAt: actor.now }).where(eq(schema.customers.id, own.id));
     await recordAudit(tx, actor, { action: "account.profile_updated", summary: "Profile updated", recordType: "USER", recordId: userId, recordLabel: input.name });
+    if (consent !== undefined && !!consent !== !!own?.marketingConsentAt) {
+      await recordAudit(tx, actor, { action: "account.marketing_consent_changed", summary: consent ? "Product news turned on" : "Product news turned off", recordType: "USER", recordId: userId, after: { marketingConsent: !!consent } });
+    }
   });
-  return { name: input.name, email: actor.session.email, phone: own ? input.phone : null, pendingEmail: await pendingEmail(db, actor) };
+  const marketingConsent = consent === undefined ? !!own?.marketingConsentAt : !!consent;
+  return { name: input.name, email: actor.session.email, phone: own ? input.phone : null, pendingEmail: await pendingEmail(db, actor), marketingConsent };
 }

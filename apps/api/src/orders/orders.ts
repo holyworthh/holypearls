@@ -1,9 +1,9 @@
 import type { SQL } from "@holypearls/db";
 import { type AccountOrder, type AccountReceipt, type CurrencyCode, displayMoney, money, type Order, type Receipt, toMajorString } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, lt, or, schema, sql, type Transaction } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, inArray, lt, notInArray, or, schema, sql, type Transaction } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
-import { createGuestLink } from "../identity/customers.js";
+import { createGuestLink, ERASED_NAME, ofPerson, type PersonSubject } from "../identity/customers.js";
 import { type NotificationDeps, queueEmail } from "../platform/notifications.js";
 import { changeRequestsForOrder } from "../proofs/changes.js";
 import { customerProduction, releaseReadyItems } from "../production/production.js";
@@ -395,4 +395,75 @@ export async function ordersForExport(db: Database, range: { start: Date; end: D
       amount(order.refundDueMinor, order.currency),
     ]),
   ];
+}
+
+/** Privacy (T15-03): the person's orders, by customer or by the account that placed them. */
+export const orderIdsForPerson = async (db: Database | Transaction, subject: PersonSubject) =>
+  (await db.select({ id: schema.orders.id }).from(schema.orders).where(ofPerson(subject, schema.orders.customerId, schema.orders.ownerUserId))).map((row) => row.id);
+
+/** An order with an item still in production or transit can't lose its contact details yet. */
+export async function openOrdersBlocker(db: Database | Transaction, subject: PersonSubject) {
+  const [open] = await db
+    .select({ id: schema.orderItems.id })
+    .from(schema.orderItems)
+    .innerJoin(schema.orders, eq(schema.orders.id, schema.orderItems.orderId))
+    .where(and(ofPerson(subject, schema.orders.customerId, schema.orders.ownerUserId), notInArray(schema.orderItems.status, ["DELIVERED", "CANCELLED"])))
+    .limit(1);
+  return open ? { code: "OPEN_ORDERS" as const, message: "An order is still in progress. Erase after it is delivered or cancelled." } : null;
+}
+
+export async function ordersForPerson(db: Database, subject: PersonSubject) {
+  const orders = await db
+    .select({
+      id: schema.orders.id,
+      number: schema.orders.number,
+      placedAt: schema.orders.placedAt,
+      currency: schema.orders.currency,
+      totalMinor: schema.orders.totalMinor,
+      contact: schema.orders.contact,
+      address: schema.orders.address,
+      billing: schema.orders.billing,
+    })
+    .from(schema.orders)
+    .where(ofPerson(subject, schema.orders.customerId, schema.orders.ownerUserId))
+    .orderBy(schema.orders.placedAt);
+  const items = orders.length
+    ? await db
+        .select({ orderId: schema.orderItems.orderId, productName: schema.orderItems.productName, summary: schema.orderItems.summary, quantity: schema.orderItems.quantity, status: schema.orderItems.status })
+        .from(schema.orderItems)
+        .where(inArray(schema.orderItems.orderId, orders.map((order) => order.id)))
+        .orderBy(schema.orderItems.position)
+    : [];
+  return orders.map((order) => ({ ...order, items: items.filter((item) => item.orderId === order.id) }));
+}
+
+export async function receiptsForPerson(db: Database, subject: PersonSubject) {
+  return db
+    .select({ number: schema.receipts.number, amountMinor: schema.receipts.amountMinor, currency: schema.receipts.currency, paystackReference: schema.receipts.paystackReference, payer: schema.receipts.payer, paidAt: schema.receipts.paidAt })
+    .from(schema.receipts)
+    .where(ofPerson(subject, schema.receipts.customerId))
+    .orderBy(schema.receipts.paidAt);
+}
+
+/**
+ * Privacy erasure (T15-03): numbers, amounts, VAT, items and receipt lines
+ * stay as the tax record. Who and where go: contact, address, receipt payer.
+ * Billing stays only for a company invoice (company name and tax ID).
+ */
+export async function eraseOrders(tx: Transaction, subject: PersonSubject) {
+  const orders = await tx
+    .update(schema.orders)
+    .set({
+      contact: { name: ERASED_NAME, email: subject.placeholder },
+      address: null,
+      billing: sql`case when coalesce(${schema.orders.billing}->>'companyName', '') <> '' then jsonb_build_object('companyName', ${schema.orders.billing}->'companyName', 'taxId', ${schema.orders.billing}->'taxId') else null end`,
+    })
+    .where(ofPerson(subject, schema.orders.customerId, schema.orders.ownerUserId))
+    .returning({ id: schema.orders.id });
+  const receipts = await tx
+    .update(schema.receipts)
+    .set({ payer: { name: ERASED_NAME, email: null } })
+    .where(ofPerson(subject, schema.receipts.customerId))
+    .returning({ id: schema.receipts.id });
+  return { orders: orders.length, receipts: receipts.length };
 }
