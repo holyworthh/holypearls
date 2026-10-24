@@ -37,6 +37,9 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
           <ButtonLink variant="secondary" href="/content/search-phrases">
             Search phrases
           </ButtonLink>
+          <ButtonLink variant="secondary" href="/content/search-report">
+            Search report
+          </ButtonLink>
           {tab.action && tab.type !== "ABOUT" ? <NewContentButton type={tab.type} label={tab.action} /> : null}
         </div>
       </header>

@@ -21,10 +21,10 @@ const STATE_NOTE: Record<string, string> = {
 };
 
 /** Everyday phrases that lead to the right page (PUB-FR-007): add, list and remove. */
-export function PhraseManager({ initial }: { initial: SearchPhrase[] }) {
+export function PhraseManager({ initial, initialPhrase = "" }: { initial: SearchPhrase[]; initialPhrase?: string }) {
   const router = useRouter();
   const [phrases, setPhrases] = useState(initial);
-  const [phrase, setPhrase] = useState("");
+  const [phrase, setPhrase] = useState(initialPhrase);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<Target[]>([]);
   const [target, setTarget] = useState<Target | null>(null);
