@@ -152,7 +152,7 @@ function itemsFor(data: SearchSuggestions, q: string, searchPath: string): Item[
             <span className={styles.hitText}>
               <span className={styles.hitName}>
                 <Highlight text={product.name} q={q} />
-              </span>
+              </span>{" "}
               <span className={styles.hitMeta}>{meta}</span>
             </span>
           </>

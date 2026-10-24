@@ -11,7 +11,7 @@ import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, signInStaff } f
 /** A small Event project, submitted as a guest. Returns its reference. */
 async function submitProject(page: Page) {
   await page.goto("/start");
-  await page.getByRole("button", { name: "Start a project: Event branding" }).click();
+  await page.getByRole("button", { name: /Event branding/ }).click();
   await expect(page).toHaveURL(/\/project$/);
   await page.getByRole("textbox", { name: "Project name" }).fill("Quote e2e summit (TEST DATA)");
   await expect(page.getByRole("status").filter({ hasText: "Saved just now" })).toBeVisible();

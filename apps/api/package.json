@@ -21,16 +21,16 @@
     "@holypearls/jobs": "workspace:*",
     "@holypearls/payments": "workspace:*",
     "@holypearls/storage": "workspace:*",
-    "@nestjs/common": "12.1.2",
-    "@nestjs/core": "12.1.2",
-    "@nestjs/platform-express": "12.1.2",
-    "@sentry/node": "11.3.0",
+    "@nestjs/common": "12.2.0",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "@sentry/node": "11.8.0",
     "htmlparser2": "12.0.0",
     "mupdf": "1.28.1",
-    "pino": "10.3.1",
+    "pino": "10.4.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "sanitize-html": "2.18.0",
+    "sanitize-html": "2.18.1",
     "sharp": "0.35.5",
     "zod": "4.6.7"
   },
@@ -42,7 +42,7 @@
     "@types/supertest": "7.2.1",
     "supertest": "7.3.1",
     "tsx": "4.23.15",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   },
   "exports": {
     "./modules": {
