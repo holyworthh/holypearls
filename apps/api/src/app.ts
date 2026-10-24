@@ -21,7 +21,7 @@ import { requestContext } from "./request-context.js";
 import { CatalogueAdminController, CategoryAdminController } from "./catalogue/catalogue.controller.js";
 import { MerchandisingAdminController, PublicMediaController, StorefrontController } from "./catalogue/storefront.controller.js";
 import { ContentAdminController, ContentController } from "./catalogue/content.controller.js";
-import { SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
+import { AnalyticsController, SearchAdminController, SearchController, SeoController } from "./catalogue/search.controller.js";
 import { ConfigurationsController } from "./configuration/drafts.controller.js";
 import { GarmentDataAdminController } from "./catalogue/garment-data.controller.js";
 import { OpsHomeController } from "./platform/ops-home.controller.js";
@@ -146,6 +146,7 @@ export async function createApp(options: CreateAppOptions): Promise<NestExpressA
       ContentController,
       ContentAdminController,
       SearchController,
+      AnalyticsController,
       SearchAdminController,
       SeoController,
       PricingAdminController,

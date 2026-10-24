@@ -37,3 +37,5 @@ overrides:
   source-map-js: ^1.2.2
   # GHSA-587h-7wmj-h5pm (high): reached through better-auth and vitest.
   vite: ^8.3.3
+  # GHSA-q7qp-rjg7-q26m (high): @nestjs/platform-express pins multer 2.4.0.
+  multer: ^2.5.0

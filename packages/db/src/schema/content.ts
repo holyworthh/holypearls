@@ -199,3 +199,12 @@ export const searchEvents = pgTable(
   },
   (table) => [index("search_events_kind_idx").on(table.kind, table.createdAt.desc())],
 );
+
+export const siteEventKind = pgEnum("site_event_kind", ["PRODUCT", "CATEGORY", "PROJECT", "START_PROJECT", "CONFIGURE", "CONTACT"]);
+
+/** Where people went (PRD-01 §11): only the kind of entry and whether it came from a guide. No path, query, person, session or IP. */
+export const siteEvents = pgTable(
+  "site_events",
+  { id: idColumn(), kind: siteEventKind("kind").notNull(), fromGuide: boolean("from_guide").notNull().default(false), createdAt: createdAt() },
+  (t) => [index("site_events_created_idx").on(t.createdAt.desc())],
+);

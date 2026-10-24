@@ -1,5 +1,5 @@
 {
-  "id": "6290d5ba-34a4-466d-90f1-c413f3dc38fa",
+  "id": "f6c14afb-a4e8-44b0-8156-51675456514d",
   "prevId": "225c4694-a560-441c-85f2-94e23e003cf6",
   "version": "7",
   "dialect": "postgresql",
@@ -1244,70 +1244,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.incident_switches": {
-      "name": "incident_switches",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "smallint",
-          "primaryKey": true,
-          "notNull": true,
-          "default": 1
-        },
-        "read_only_since": {
-          "name": "read_only_since",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "uploads_paused_since": {
-          "name": "uploads_paused_since",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by_user_id": {
-          "name": "updated_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "incident_switches_updated_by_user_id_users_id_fk": {
-          "name": "incident_switches_updated_by_user_id_users_id_fk",
-          "tableFrom": "incident_switches",
-          "tableTo": "users",
-          "columnsFrom": [
-            "updated_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "incident_switches_single_row": {
-          "name": "incident_switches_single_row",
-          "value": "\"incident_switches\".\"id\" = 1"
-        }
-      },
       "isRLSEnabled": false
     },
     "public.rate_limit_buckets": {
@@ -7047,6 +6983,62 @@
           "isUnique": false,
           "concurrently": false,
           "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.site_events": {
+      "name": "site_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "site_event_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_guide": {
+          "name": "from_guide",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "site_events_created_idx": {
+          "name": "site_events_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
           "with": {}
         }
       },
@@ -17145,6 +17137,18 @@
         "PRODUCT",
         "CATEGORY",
         "PAGE"
+      ]
+    },
+    "public.site_event_kind": {
+      "name": "site_event_kind",
+      "schema": "public",
+      "values": [
+        "PRODUCT",
+        "CATEGORY",
+        "PROJECT",
+        "START_PROJECT",
+        "CONFIGURE",
+        "CONTACT"
       ]
     },
     "public.installment_status": {

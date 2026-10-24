@@ -2,13 +2,17 @@ import {
   type ContentCard,
   type ContentFields,
   contentHref,
+  type ContentType,
   type PublicProductCard,
   type SearchPhrase,
+  type SearchReport,
   type SearchResults,
   type SearchScope,
   type SearchSuggestions,
+  type SiteEvent,
+  siteEventKindSchema,
 } from "@holypearls/contracts";
-import { and, asc, type Database, desc, eq, gte, inArray, lt, schema, sql } from "@holypearls/db";
+import { and, asc, type Database, desc, eq, gte, inArray, lt, type SQL, schema, sql } from "@holypearls/db";
 import { AppError } from "../errors.js";
 import type { ActorContext } from "../identity/actor.js";
 import { recordAudit } from "../platform/audit.js";
@@ -70,7 +74,8 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
       title: product.name,
       summary: product.summary ?? "",
       bodyText: [product.description ?? "", product.categoryName].join(" "),
-      phrasesText: [...product.phrases, ...phrasesFor("PRODUCT", product.id)].join(" "),
+      // One phrase per line, so an exact phrase can be told from a word inside one.
+      phrasesText: [...product.phrases, ...phrasesFor("PRODUCT", product.id)].map((phrase) => phrase.toLowerCase()).join("\n"),
       categorySlug: product.categorySlug,
       boost: popular.includes(product.id) ? popular.length - popular.indexOf(product.id) : 0,
     })),
@@ -81,7 +86,7 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
       title: category.name,
       summary: category.description ?? "",
       bodyText: "",
-      phrasesText: phrasesFor("CATEGORY", category.id).join(" "),
+      phrasesText: phrasesFor("CATEGORY", category.id).join("\n"),
       categorySlug: category.slug,
       boost: 0,
     })),
@@ -99,7 +104,7 @@ async function currentDocuments(db: Database): Promise<Doc[]> {
         title: live.title,
         summary: live.summary,
         bodyText: `${plainText(live.body)} ${extra}`.slice(0, 20_000),
-        phrasesText: phrasesFor("PAGE", page.id).join(" "),
+        phrasesText: phrasesFor("PAGE", page.id).join("\n"),
         categorySlug: null,
         boost: live.featured ? 1 : 0,
       };
@@ -224,12 +229,21 @@ const GROUP: Record<Exclude<SearchScope, "all">, DocType[]> = {
 const ALL_LIMIT = { products: 3, projects: 2, guides: 3 };
 const PAGE_SIZE = 12;
 
+const d = schema.searchDocuments;
+/** Result order: an exact title or phrase first, then relevance, popularity, name (T14-01b). */
+const rankOrder = (q: SQL) => [
+  desc(sql`(lower(${d.title}) = lower(${q}) or position(E'\n' || lower(${q}) || E'\n' in E'\n' || lower(${d.phrasesText}) || E'\n') > 0)`),
+  desc(sql`ts_rank_cd(${d.tsv},websearch_to_tsquery('english', ${q}), 32)`),
+  desc(d.boost),
+  asc(d.title),
+];
+
 async function ranked(db: Database, q: string, types: DocType[], limit: number, offset = 0) {
   return db
     .select({ refId: schema.searchDocuments.refId, docType: schema.searchDocuments.docType })
     .from(schema.searchDocuments)
     .where(and(inArray(schema.searchDocuments.docType, types), matches(q)))
-    .orderBy(desc(sql`ts_rank_cd(${schema.searchDocuments.tsv}, ${tsQuery(q)}, 32)`), desc(schema.searchDocuments.boost), asc(schema.searchDocuments.title))
+    .orderBy(...rankOrder(sql`${q}`))
     .limit(limit)
     .offset(offset);
 }
@@ -554,42 +568,93 @@ export async function searchTargets(db: Database, q: string) {
   ];
 }
 
+/** Counts one entry (PRD-01 §11). Callers never wait on it: analytics must not block anyone (TECH-00 §9). */
+export async function recordSiteEvent(db: Database, event: SiteEvent): Promise<void> {
+  await db.insert(schema.siteEvents).values(event);
+}
+
 /**
- * Raw search events are kept for 90 days, then deleted by cleanup.daily.
- * Queries are redacted when stored, but people still type names and order
- * references, so nothing keeps them longer. The report reads the last 30 days.
+ * Raw search events and site events are kept for 90 days, then deleted by
+ * cleanup.daily. Queries are redacted when stored, but people still type names
+ * and order references, so nothing keeps them longer. The report reads the last 30 days.
  */
 export const SEARCH_EVENT_RETENTION_DAYS = 90;
 
 export async function removeExpiredSearchEvents(db: Database, now = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - SEARCH_EVENT_RETENTION_DAYS * 86_400_000);
   const removed = await db.delete(schema.searchEvents).where(lt(schema.searchEvents.createdAt, cutoff)).returning({ id: schema.searchEvents.id });
-  return removed.length;
+  const entries = await db.delete(schema.siteEvents).where(lt(schema.siteEvents.createdAt, cutoff)).returning({ id: schema.siteEvents.id });
+  return removed.length + entries.length;
 }
 
-/** Last 30 days: how many searches, how many found nothing, and the most common of each. */
-export async function searchReport(db: Database, now = new Date()) {
+const docHref = (type: string, slug: string) => (type === "PRODUCT" ? `/products/${slug}` : type === "CATEGORY" ? `/categories/${slug}` : contentHref(type as ContentType, slug));
+
+/** Each indexed phrase and whether searching it shows its own page first (T14-01b). ponytail: one lateral lookup per phrase; fine for hundreds, page it if phrases reach many thousands. */
+export async function phraseCoverage(db: Database): Promise<SearchReport["phrases"]> {
+  const rows = rowsOf<{ phrase: string; doc_type: string; slug: string; title: string; top_type: string | null; top_slug: string | null; top_title: string | null; miss: boolean }>(
+    await db.execute(sql`
+      with ph as (
+        select distinct lower(p) as phrase, ref_id, doc_type, slug, title
+        from search_documents, regexp_split_to_table(phrases_text, E'\n') p
+        where p <> ''
+      )
+      select ph.phrase, ph.doc_type, ph.slug, ph.title, top.doc_type as top_type, top.slug as top_slug, top.title as top_title, top.ref_id is distinct from ph.ref_id as miss
+      from ph
+      left join lateral (
+        select ref_id, doc_type, slug, title from search_documents
+        where doc_type = any(case when ph.doc_type in ('PROJECT', 'CASE_STUDY') then array['PROJECT', 'CASE_STUDY']::search_doc_type[] else array[ph.doc_type]::search_doc_type[] end)
+          and tsv @@ websearch_to_tsquery('english', ph.phrase)
+        order by ${sql.join(rankOrder(sql`ph.phrase`), sql`, `)}
+        limit 1
+      ) top on true
+      order by ph.phrase, ph.slug`),
+  );
+  const misses = rows.filter((row) => row.miss);
+  return {
+    total: rows.length,
+    leading: rows.length - misses.length,
+    misses: misses.slice(0, 100).map((row) => ({
+      phrase: row.phrase,
+      expected: { label: row.title, href: docHref(row.doc_type, row.slug) },
+      shown: row.top_slug ? { label: row.top_title!, href: docHref(row.top_type!, row.top_slug) } : null,
+    })),
+  };
+}
+
+/** Last 30 days: searches, the ones that found nothing, where people went, and whether phrases lead to their pages. */
+export async function searchReport(db: Database, now = new Date()): Promise<SearchReport> {
   const since = new Date(now.getTime() - 30 * 86_400_000);
-  const top = async (kinds: ("SEARCH" | "NO_RESULTS")[]) =>
+  const top = (kinds: ("SEARCH" | "NO_RESULTS")[], limit: number) =>
     db
-      .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int` })
+      .select({ query: schema.searchEvents.query, count: sql<number>`count(*)::int`, lastSearchedAt: sql<Date>`max(${schema.searchEvents.createdAt})` })
       .from(schema.searchEvents)
       .where(and(inArray(schema.searchEvents.kind, kinds), gte(schema.searchEvents.createdAt, since)))
       .groupBy(schema.searchEvents.query)
       .orderBy(desc(sql`count(*)`), asc(schema.searchEvents.query))
-      .limit(10);
+      .limit(limit);
   const totals = await db
     .select({ kind: schema.searchEvents.kind, count: sql<number>`count(*)::int` })
     .from(schema.searchEvents)
     .where(gte(schema.searchEvents.createdAt, since))
     .groupBy(schema.searchEvents.kind);
   const count = (kind: string) => totals.find((row) => row.kind === kind)?.count ?? 0;
+  const entryRows = await db
+    .select({ kind: schema.siteEvents.kind, total: sql<number>`count(*)::int`, fromGuides: sql<number>`(count(*) filter (where ${schema.siteEvents.fromGuide}))::int` })
+    .from(schema.siteEvents)
+    .where(gte(schema.siteEvents.createdAt, since))
+    .groupBy(schema.siteEvents.kind);
   return {
     since: since.toISOString(),
     searches: count("SEARCH") + count("NO_RESULTS"),
     noResults: count("NO_RESULTS"),
-    top: await top(["SEARCH", "NO_RESULTS"]),
-    topNoResults: await top(["NO_RESULTS"]),
+    resultClicks: count("CLICK"),
+    top: (await top(["SEARCH", "NO_RESULTS"], 10)).map(({ query, count }) => ({ query, count })),
+    zeroResults: (await top(["NO_RESULTS"], 50)).map((row) => ({ ...row, lastSearchedAt: new Date(row.lastSearchedAt).toISOString() })),
+    entries: siteEventKindSchema.options.map((kind) => {
+      const row = entryRows.find((entry) => entry.kind === kind);
+      return { kind, total: row?.total ?? 0, fromGuides: row?.fromGuides ?? 0 };
+    }),
+    phrases: await phraseCoverage(db),
   };
 }
 

@@ -6,7 +6,7 @@ import { requireRecentMfa } from "../identity/actor.js";
 import type { OrderEmailDeps } from "../orders/orders.js";
 import { recordAudit } from "../platform/audit.js";
 import { afterCursor, newestFirst, pageOf } from "../platform/cursor.js";
-import { onIntentSucceeded, paymentSettings } from "./payments.js";
+import { lockPaymentSource, onIntentSucceeded, paymentSettings } from "./payments.js";
 import { customerPaymentStatus } from "./status.js";
 
 /*
@@ -233,6 +233,7 @@ export async function resolveReview(deps: { db: Database; notify: OrderEmailDeps
     const [review] = await tx.select().from(schema.paymentReviews).where(eq(schema.paymentReviews.id, id)).for("update");
     if (!review) throw new AppError("NOT_FOUND");
     if (review.status !== "OPEN") throw new AppError("CONFLICT", { message: "This review was already resolved.", context: { reason: "REVIEW_RESOLVED" } });
+    await lockPaymentSource(tx, review.intentId);
     const [intent] = await tx.select().from(schema.paymentIntents).where(eq(schema.paymentIntents.id, review.intentId)).for("update");
     const before = { intent: intent!.status, succeededAttemptId: intent!.succeededAttemptId };
 

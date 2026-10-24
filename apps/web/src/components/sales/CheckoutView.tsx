@@ -142,7 +142,7 @@ export function CheckoutView({ initial, signedIn, workspaces = [] }: { initial: 
                   {step.key === "address" ? <AddressStep checkout={checkout} onSaved={saved} /> : null}
                   {step.key === "delivery" ? <DeliveryStep checkout={checkout} onSaved={saved} /> : null}
                   {step.key === "billing" ? <BillingStep checkout={checkout} onSaved={saved} /> : null}
-                  {step.key === "review" ? <ReviewStep checkout={checkout} /> : null}
+                  {step.key === "review" ? <ReviewStep checkout={checkout} onRefetch={async () => setCheckout(await api(`/v1/checkouts/${checkout.id}`, { response: checkoutSchema }))} /> : null}
                 </section>
               );
             }
@@ -531,7 +531,7 @@ function BillingStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
   );
 }
 
-function ReviewStep({ checkout }: { checkout: Checkout }) {
+function ReviewStep({ checkout, onRefetch }: { checkout: Checkout; onRefetch: () => Promise<void> }) {
   const blockers = checkout.blockers.filter((blocker) => blocker.code !== "STEPS_INCOMPLETE");
   const quote = blockers.find((blocker) => blocker.code === "DELIVERY_QUOTE_REQUIRED");
   const paymentsOff = blockers.find((blocker) => blocker.code === "PAYMENTS_NOT_AVAILABLE");
@@ -556,6 +556,8 @@ function ReviewStep({ checkout }: { checkout: Checkout }) {
       return;
     }
     setBusy(false);
+    // Starting a payment moves the checkout's version on the server; take the new one before any edit.
+    await onRefetch().catch(() => undefined);
     if (result.reason === "PAYMENT_IN_PROGRESS") {
       setInProgressUntil(result.newAttemptFrom);
       return;

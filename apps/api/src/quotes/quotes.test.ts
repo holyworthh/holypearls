@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { as, expectHidden, expectNoIdentity, signInActors, type Actors } from "../testing/actors.js";
+import { no5xx, STRESS_RUNS } from "../testing/flows.js";
 import { createHarness, type Harness, TEST_SEAL_KEY, TEST_WEB_ORIGIN } from "../testing/harness.js";
 import { expireQuoteVersion, sendQuoteExpiringReminder } from "./quotes.js";
 
@@ -104,7 +105,8 @@ describe("submitting a project (PROJ-FR-010–011)", () => {
 
   it("creates one project, one reference and one quote however many times it is pressed", async () => {
     const { b, project } = await readyProject();
-    const presses = await Promise.all(Array.from({ length: 4 }, () => b.post(`/v1/projects/${project.id}/submit`, { version: project.version, email: "double.press@example.com" })));
+    const presses = await Promise.all(Array.from({ length: STRESS_RUNS }, () => b.post(`/v1/projects/${project.id}/submit`, { version: project.version, email: "double.press@example.com" })));
+    no5xx(presses);
     const references = new Set(presses.filter((response) => response.status === 200).map((response) => projectSchema.parse(response.body).reference));
     expect(references.size).toBe(1);
     expect(await db().select().from(schema.quotes).where(eq(schema.quotes.projectId, project.id))).toHaveLength(1);

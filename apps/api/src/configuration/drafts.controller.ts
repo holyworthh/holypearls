@@ -12,6 +12,7 @@ import {
 import { setGuestCookie } from "../identity/customer-access.controller.js";
 import type { Request, Response } from "express";
 import type { z } from "zod";
+import { recordSiteEvent } from "../catalogue/search.js";
 import { RateLimit } from "../platform/rate-limit.js";
 import { FILE_DEPS, HELP_DEPS, type HelpDepsToken } from "../tokens.js";
 import type { FileDeps } from "../files/files.js";
@@ -57,6 +58,8 @@ export class ConfigurationsController {
     @Body(new ZodValidationPipe(createConfigurationSchema)) body: z.infer<typeof createConfigurationSchema>,
   ) {
     const { draft, newDeviceKey } = await createDraft(this.deps.db, await this.access(request), body);
+    // A first saved design is a Configure entry (PRD-01 §11); the customer never waits on it (TECH-00 §9).
+    void recordSiteEvent(this.deps.db, { kind: "CONFIGURE", fromGuide: false }).catch(() => undefined);
     if (newDeviceKey) {
       response.cookie(DEVICE_COOKIE, newDeviceKey, {
         httpOnly: true,
