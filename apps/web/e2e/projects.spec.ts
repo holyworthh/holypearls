@@ -27,7 +27,7 @@ test("start from a goal, edit the suggestions, and come back to the same step", 
   await expectNoAxeViolations(page);
   await expectNoHorizontalScroll(page);
 
-  await page.getByRole("button", { name: "Start a project: Event branding" }).click();
+  await page.getByRole("button", { name: /Event branding/ }).click();
   await expect(page).toHaveURL(/\/start\/[0-9a-f-]{36}\/project$/);
   await expect(page.getByText("STEP 1 OF 6 · PROJECT")).toBeVisible();
   await page.getByRole("group", { name: "What kind of event?" }).getByText("Conference", { exact: true }).click();
@@ -77,7 +77,7 @@ test("project drafts are private and never indexed", async ({ page }) => {
   const response = await page.goto("/start/0190c5b3-0000-7000-8000-000000000001/project");
   expect(response?.status()).toBe(404);
   await page.goto("/start");
-  await page.getByRole("button", { name: "Start a project: Staff uniforms" }).click();
+  await page.getByRole("button", { name: /Staff uniforms/ }).click();
   await expect(page).toHaveURL(/\/project$/);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
