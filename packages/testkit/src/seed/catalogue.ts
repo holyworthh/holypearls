@@ -49,7 +49,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     slug: "polo-shirt",
     routes: ["SOURCE_CUSTOMIZE", "MAKE_FROM_SCRATCH", "CUSTOMER_SUPPLIED"],
     decorations: ["EMBROIDERY", "SCREEN_PRINT", "HEAT_TRANSFER"],
-    phrases: ["staff shirts", "company polos", "embroidered polos", "corporate uniform"],
+    phrases: ["staff shirts", "company polos", "embroidered polos", "corporate uniform", "company shirts", "staff uniform"],
     name: "Polo Shirt",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -93,7 +93,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     slug: "flat-embroidery",
     routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
     decorations: ["EMBROIDERY"],
-    phrases: ["embroidered logo", "embroidery on caps", "embroidered patches", "embroidered name badges"],
+    phrases: ["embroidered logo", "embroidery on caps", "embroidered patches", "embroidered name badges", "embroidery"],
     name: "Flat Embroidery",
     family: "EMBROIDERY",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -136,6 +136,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PKG-001",
     slug: "small-paper-bag",
+    phrases: ["paper bag"],
     decorations: ["PAPER_PRINT"],
     name: "Small Paper Bag",
     family: "PACKAGING",
@@ -148,6 +149,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-LBL-001",
     slug: "label-sticker",
+    phrases: ["stickers"],
     decorations: ["PAPER_PRINT"],
     name: "Label Sticker",
     family: "STICKER_LABEL",
@@ -160,7 +162,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRO-001",
     slug: "standard-mug",
-    phrases: ["souvenir mugs", "branded mugs"],
+    phrases: ["souvenir mugs", "branded mugs", "mug", "souvenir"],
     name: "Standard Mug",
     family: "PROMOTIONAL_ITEM",
     buyingMode: "SIMPLE_CONFIGURABLE",
@@ -172,6 +174,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-WAL-001",
     slug: "landscape-canvas",
+    phrases: ["canvas"],
     decorations: ["LARGE_FORMAT_PRINT"],
     name: "Landscape Canvas",
     family: "WALL_ART",
@@ -213,7 +216,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
     slug: "baseball-cap",
     routes: ["SOURCE_CUSTOMIZE", "CUSTOMER_SUPPLIED"],
     decorations: ["EMBROIDERY", "HEAT_TRANSFER"],
-    phrases: ["branded caps", "embroidered caps"],
+    phrases: ["branded caps", "embroidered caps", "cap"],
     name: "Baseball Cap",
     family: "GARMENT",
     buyingMode: "CONFIGURABLE_QUOTE",
@@ -226,6 +229,7 @@ export const SEED_PRODUCTS: SeedProduct[] = [
   {
     sku: "HP-PRN-027",
     slug: "event-badges",
+    phrases: ["lanyard", "name tag"],
     decorations: ["PAPER_PRINT"],
     name: "Event Badges",
     family: "PAPER_PRINT",

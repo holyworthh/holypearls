@@ -39,6 +39,7 @@ const OPEN_ROUTES: Record<string, string> = {
   "GET /v1/media/:fileId/:kind": "public media",
   "GET /v1/search": "public search",
   "POST /v1/search/clicks": "anonymous search analytics",
+  "POST /v1/analytics/events": "anonymous analytics beacon",
   "GET /v1/seo/sitemap": "public sitemap",
   "GET /v1/cart": "the visitor's own device cart",
   "POST /v1/configurations": "starts a draft on the visitor's device",

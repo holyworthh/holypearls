@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { sendBeacon } from "../../lib/beacon";
 
 /**
  * Search analytics (PRD-01 §11): which result was chosen. Listens for clicks
@@ -13,16 +14,7 @@ export function ClickTracker({ q }: { q: string }) {
       const link = (event.target as HTMLElement).closest("a");
       const result = link?.closest<HTMLElement>("[data-result-type]");
       if (!link || !result) return;
-      const body = JSON.stringify({
-        q,
-        type: result.dataset.resultType,
-        slug: result.dataset.resultSlug ?? "",
-        position: Number(result.dataset.resultPosition ?? 0),
-      });
-      const blob = new Blob([body], { type: "application/json" });
-      if (!navigator.sendBeacon?.("/api/v1/search/clicks", blob)) {
-        void fetch("/api/v1/search/clicks", { method: "POST", body, headers: { "content-type": "application/json" }, keepalive: true }).catch(() => undefined);
-      }
+      sendBeacon("/api/v1/search/clicks", { q, type: result.dataset.resultType, slug: result.dataset.resultSlug ?? "", position: Number(result.dataset.resultPosition ?? 0) });
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

@@ -13,7 +13,9 @@ import {
   submitIndexNow,
   sendNotification,
   reportError,
+  CHECK_SCHEDULE_SECONDS,
   checkPaymentAttempt,
+  settleUnanswered,
   checkRefund,
   processPaystackEvent,
   expireQuoteVersion,
@@ -155,7 +157,8 @@ await jobs.work(
 );
 for (const queue of ["payment.verify", "payment.check", "refund.check"] as const) {
   await jobs.workDeadLetters(queue, async (payload) => {
-    // The 48-hour check still settles the attempt; staff see it on the Jobs page.
+    // A last check that never got an answer settles the attempt itself (UNKNOWN and a review); staff also see it on the Jobs page.
+    if (queue === "payment.check" && "attemptId" in payload && payload.check >= CHECK_SCHEDULE_SECONDS.length) await settleUnanswered(payments, payload.attemptId);
     logger.error({ queue: deadLetterName(queue), requestId: payload.requestId }, "payment job moved to dead-letter queue");
     reportError(new Error("Payment job moved to the dead-letter queue"), { queue, requestId: payload.requestId });
   });
