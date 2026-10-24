@@ -49,7 +49,7 @@
 .outlineButton {
   display: inline-flex;
   align-items: center;
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-22);
   border-radius: var(--hp-r-button);
   font-size: var(--hp-space-16);

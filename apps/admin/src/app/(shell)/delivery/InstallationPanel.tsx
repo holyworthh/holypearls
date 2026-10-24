@@ -182,7 +182,7 @@ export function InstallationPanel({ initial }: { initial: InstallationSetup }) {
             ))}
           </fieldset>
           <FormField id="area-pricing" label="Pricing">
-            <Select value={form.pricing} onChange={(event) => setForm({ ...form, pricing: event.target.value as Pricing })} options={(Object.keys(PRICING_LABEL) as Pricing[]).map((value) => ({ value, label: PRICING_LABEL[value] }))} />
+            <Select value={form.pricing} onValueChange={(next) => setForm({ ...form, pricing: next as Pricing })} options={(Object.keys(PRICING_LABEL) as Pricing[]).map((value) => ({ value, label: PRICING_LABEL[value] }))} />
           </FormField>
           {form.pricing !== "QUOTE" ? (
             <div className={css.row}>

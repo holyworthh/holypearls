@@ -256,7 +256,7 @@
 
 .continue {
   align-self: flex-start;
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding-inline: var(--hp-space-24);
 }
 

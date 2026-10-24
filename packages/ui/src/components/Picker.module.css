@@ -1,0 +1,303 @@
+/* Select, combobox and date picker: a field-styled trigger and a popover under it. */
+
+.trigger {
+  display: flex;
+  gap: var(--hp-space-12);
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  color: var(--hp-graphite);
+}
+
+.icon {
+  flex: none;
+  width: var(--hp-icon-sm);
+  height: var(--hp-icon-sm);
+  color: var(--hp-graphite);
+}
+
+.trigger[data-state="open"] {
+  border-color: var(--hp-ink);
+}
+
+.trigger[data-state="open"] .chevron {
+  transform: rotate(180deg);
+}
+
+.chevron {
+  transition: transform var(--hp-motion-dropdown) var(--hp-ease-ui);
+}
+
+.content {
+  z-index: var(--hp-z-popover);
+  overflow: hidden;
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-control);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  box-shadow: var(--hp-shadow-menu);
+  font-family: var(--hp-font-ui);
+  /* Popups are compact: 15 px text, 34-36 px rows (the fields keep the 44 px touch target). */
+  font-size: var(--hp-size-15);
+  transform-origin: var(--radix-popper-transform-origin);
+}
+
+.content[data-state="open"] {
+  animation: hp-picker-in var(--hp-motion-dropdown) var(--hp-ease-enter);
+}
+
+@keyframes hp-picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--hp-space-4) * -1)) scale(0.98);
+  }
+}
+
+/* Lists: as wide as the field, as tall as there's room for. */
+.list {
+  min-width: var(--radix-select-trigger-width, var(--radix-popover-trigger-width));
+  max-height: min(var(--hp-size-320), var(--radix-select-content-available-height, var(--radix-popover-content-available-height)));
+}
+
+.viewport {
+  padding: var(--hp-space-4);
+}
+
+.item {
+  position: relative;
+  display: flex;
+  gap: var(--hp-space-8);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--hp-size-36);
+  padding: var(--hp-space-6) var(--hp-space-10);
+  border-radius: var(--hp-r-tag);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.item[data-highlighted],
+.item[data-selected="true"] {
+  background: var(--hp-bone);
+}
+
+.item[data-state="checked"],
+.item[aria-selected="true"][data-checked="true"] {
+  font-weight: var(--hp-weight-medium);
+}
+
+.item[data-disabled],
+.item[data-disabled="true"] {
+  color: var(--hp-graphite);
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+.check {
+  flex: none;
+  width: var(--hp-icon-sm);
+  height: var(--hp-icon-sm);
+}
+
+.scroll {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--hp-space-4);
+  color: var(--hp-graphite);
+  cursor: default;
+}
+
+/* Combobox: search box, then the list. */
+.search {
+  width: 100%;
+  min-height: var(--hp-space-40);
+  padding: var(--hp-space-8) var(--hp-space-12);
+  border: 0;
+  border-bottom: var(--hp-border-width) solid var(--hp-line);
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  outline: none;
+}
+
+.search::placeholder {
+  color: var(--hp-graphite);
+}
+
+.commandList {
+  max-height: min(var(--hp-size-320), var(--radix-popover-content-available-height));
+  overflow-y: auto;
+  padding: var(--hp-space-4);
+}
+
+.empty {
+  padding: var(--hp-space-12);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-support);
+  text-align: center;
+}
+
+/* Calendar */
+.calendar {
+  padding: var(--hp-space-10);
+}
+
+.months {
+  position: relative;
+}
+
+.monthCaption {
+  display: flex;
+  align-items: center;
+  height: var(--hp-space-28);
+  padding-inline: var(--hp-space-6);
+}
+
+.captionLabel {
+  font-weight: var(--hp-weight-semibold);
+}
+
+.nav {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  display: flex;
+  gap: var(--hp-space-4);
+}
+
+.navButton {
+  display: inline-grid;
+  place-items: center;
+  width: var(--hp-space-28);
+  height: var(--hp-space-28);
+  padding: 0;
+  border: var(--hp-border-width) solid var(--hp-line);
+  border-radius: var(--hp-r-tag);
+  background: var(--hp-paper);
+  color: var(--hp-ink);
+  cursor: pointer;
+}
+
+.navButton:hover:not(:disabled) {
+  border-color: var(--hp-ink);
+}
+
+.navButton:disabled {
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+.navButton svg {
+  width: var(--hp-icon-sm);
+  height: var(--hp-icon-sm);
+  fill: currentColor;
+}
+
+.grid {
+  margin-top: var(--hp-space-6);
+  border-collapse: collapse;
+}
+
+.weekday {
+  width: var(--hp-size-34);
+  height: var(--hp-space-28);
+  color: var(--hp-graphite);
+  font-size: var(--hp-text-caption);
+  font-weight: var(--hp-weight-regular);
+}
+
+.day {
+  width: var(--hp-size-34);
+  height: var(--hp-size-34);
+  padding: var(--hp-size-1);
+  text-align: center;
+}
+
+.dayButton {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--hp-r-tag);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.dayButton:hover:not(:disabled) {
+  background: var(--hp-bone);
+}
+
+.today .dayButton {
+  font-weight: var(--hp-weight-semibold);
+  box-shadow: inset 0 0 0 var(--hp-border-width) var(--hp-line-strong);
+}
+
+.selected .dayButton,
+.selected .dayButton:hover {
+  background: var(--hp-ink);
+  color: var(--hp-paper);
+}
+
+.outside {
+  color: var(--hp-graphite);
+}
+
+.disabled .dayButton {
+  color: var(--hp-graphite);
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}
+
+.footer {
+  display: flex;
+  gap: var(--hp-space-8);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--hp-space-6) var(--hp-space-10) var(--hp-space-10);
+  border-top: var(--hp-border-width) solid var(--hp-line);
+}
+
+.time {
+  width: auto;
+  min-height: var(--hp-size-32);
+  padding-block: var(--hp-space-4);
+}
+
+.textButton {
+  min-height: var(--hp-size-32);
+  padding: 0 var(--hp-space-8);
+  border: 0;
+  border-radius: var(--hp-r-tag);
+  background: transparent;
+  color: var(--hp-ink);
+  font: inherit;
+  font-size: var(--hp-text-support);
+  font-weight: var(--hp-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: var(--hp-size-3);
+  cursor: pointer;
+}
+
+.textButton:hover:not(:disabled) {
+  background: var(--hp-bone);
+}
+
+.textButton:disabled {
+  cursor: not-allowed;
+  opacity: var(--hp-opacity-disabled);
+}

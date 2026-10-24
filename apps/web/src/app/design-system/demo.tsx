@@ -5,6 +5,7 @@ import {
   ButtonLink,
   Card,
   Checkbox,
+  DatePicker,
   Dialog,
   ErrorSummary,
   FormField,
@@ -15,6 +16,7 @@ import {
   useToast,
   type ErrorSummaryItem,
 } from "@holypearls/ui";
+import { NIGERIA_STATES } from "@holypearls/contracts";
 import { useState, type FormEvent } from "react";
 import styles from "./demo.module.css";
 
@@ -62,6 +64,8 @@ export function Demo({ shellLinks }: { shellLinks: { href: string; label: string
   const [errors, setErrors] = useState<FormErrors>({});
   const [delivery, setDelivery] = useState<string>();
   const [saving, setSaving] = useState(false);
+  const [pickerDialogOpen, setPickerDialogOpen] = useState(false);
+  const [listed, setListed] = useState(true);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -188,6 +192,68 @@ export function Demo({ shellLinks }: { shellLinks: { href: string; label: string
             </Button>
           </div>
         </form>
+      </section>
+
+      <section className={styles.section} aria-labelledby="pickers">
+        <h2 id="pickers" className={styles.sectionTitle}>
+          Pickers and choices
+        </h2>
+        <p className={styles.support}>Touch screens get the phone&apos;s own date and list pickers; the rest open under the field.</p>
+        <div className={styles.form}>
+          <FormField id="demo-needed-by" label="Needed by" hint="The date it must arrive.">
+            <DatePicker name="neededBy" min="2026-01-01" defaultValue="2026-10-24" />
+          </FormField>
+          <FormField id="demo-from" label="Effective from (Lagos time)">
+            <DatePicker withTime defaultValue="2026-10-24T09:00" />
+          </FormField>
+          <FormField id="demo-state" label="State" hint="Type to search.">
+            <Select searchable name="state" placeholder="Choose the state" options={NIGERIA_STATES.map((state) => ({ value: state, label: state }))} />
+          </FormField>
+          <FormField id="demo-area" label="Area">
+            <Select
+              defaultValue=""
+              options={[
+                { value: "", label: "Whole state" },
+                { value: "ikeja", label: "Ikeja" },
+                { value: "lekki", label: "Lekki" },
+                { value: "yaba", label: "Yaba", disabled: true },
+              ]}
+            />
+          </FormField>
+          <label className={styles.row}>
+            <input type="checkbox" role="switch" checked={listed} onChange={(event) => setListed(event.target.checked)} />
+            Show on the homepage: {listed ? "On" : "Off"}
+          </label>
+          <div className={styles.row}>
+            <label className={styles.row}>
+              <input type="radio" name="demo-size" defaultChecked /> A5
+            </label>
+            <label className={styles.row}>
+              <input type="radio" name="demo-size" /> A4
+            </label>
+            <label className={styles.row}>
+              <input type="checkbox" defaultChecked /> Rounded corners
+            </label>
+            <label className={styles.row}>
+              <input type="checkbox" disabled /> Foil (unavailable)
+            </label>
+          </div>
+          <div className={styles.row}>
+            <Button variant="secondary" onClick={() => setPickerDialogOpen(true)}>
+              Show pickers in a dialog
+            </Button>
+          </div>
+        </div>
+        <Dialog open={pickerDialogOpen} onClose={() => setPickerDialogOpen(false)} title="Reopen the collection" footer={<Button onClick={() => setPickerDialogOpen(false)}>Done</Button>}>
+          <div className={styles.form}>
+            <FormField id="demo-dialog-deadline" label="New deadline">
+              <DatePicker withTime />
+            </FormField>
+            <FormField id="demo-dialog-state" label="State">
+              <Select placeholder="Choose the state" options={NIGERIA_STATES.slice(0, 6).map((state) => ({ value: state, label: state }))} />
+            </FormField>
+          </div>
+        </Dialog>
       </section>
 
       <section className={styles.section} aria-labelledby="status">

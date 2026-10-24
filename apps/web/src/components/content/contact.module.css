@@ -108,7 +108,7 @@
 .chip span {
   display: inline-flex;
   align-items: center;
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-size-22);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -154,7 +154,7 @@
 
 /* Inputs: paper, 52 tall, radius 6, 1px #8A8A93 outline. */
 .input {
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-14);
   border: 0;
   border-radius: var(--hp-r-control);
@@ -222,7 +222,7 @@
 
 .textButton {
   align-self: flex-start;
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: 0;
   border: 0;
   background: none;
@@ -247,7 +247,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--hp-space-8);
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-20);
   border: 0;
   border-radius: var(--hp-r-button);

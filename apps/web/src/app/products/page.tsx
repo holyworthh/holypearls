@@ -6,6 +6,7 @@ import { FilterSheet } from "../../components/catalogue/FilterSheet";
 import { LoadMore } from "../../components/catalogue/LoadMore";
 import { priceLine, ProductCard } from "../../components/catalogue/ProductCard";
 import { SortSelect } from "../../components/catalogue/SortSelect";
+import { DatePicker } from "@holypearls/ui";
 import { Icon } from "../../components/pen/Icon";
 import { SuggestInput } from "../../components/search/SearchSuggest";
 import { SiteShell } from "../../components/site/SiteShell";
@@ -294,10 +295,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 ))}
               </RailGroup>
               <RailGroup title="Needed by" collapsible={false}>
-                <label className={s.date}>
-                  <Icon name="calendar" size={18} />
-                  <input type="date" name="neededBy" min={today} defaultValue={params.get("neededBy") ?? ""} aria-label="Needed by" />
-                </label>
+                <DatePicker name="neededBy" className={s.date} min={today} defaultValue={params.get("neededBy") ?? ""} aria-label="Needed by" placeholder="Any date" />
               </RailGroup>
               <button type="submit" className={`${s.outlineButton} ${s.apply}`}>
                 Show results

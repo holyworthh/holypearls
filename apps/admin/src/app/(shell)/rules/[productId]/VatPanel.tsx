@@ -1,7 +1,7 @@
 "use client";
 
 import { type AdminTaxSetting, adminTaxSettingListSchema, adminTaxSettingSchema, ApiError } from "@holypearls/contracts";
-import { Button, Checkbox, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
+import { Button, Checkbox, DatePicker, FormField, Notice, StatusChip, TextField } from "@holypearls/ui";
 import { api, errorCode } from "@holypearls/web-kit/api";
 import { StepUpDialog } from "@/components/StepUpDialog";
 import { useState } from "react";
@@ -91,7 +91,7 @@ export function VatPanel({ initial }: { initial: AdminTaxSetting[] }) {
           }}
         >
           <FormField id="vat-from" label="Effective from (Lagos time)">
-            <TextField type="datetime-local" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <DatePicker withTime value={from} onValueChange={setFrom} />
           </FormField>
           <FormField id="vat-rate" label="Rate (%)">
             <TextField inputMode="decimal" value={rate} onChange={(event) => setRate(event.target.value)} />

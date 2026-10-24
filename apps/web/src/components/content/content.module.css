@@ -113,7 +113,7 @@
   justify-content: center;
   gap: var(--hp-space-8);
   max-width: 100%;
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: var(--hp-space-8) var(--hp-space-20);
   border: 0;
   border-radius: var(--hp-r-button);
@@ -873,13 +873,12 @@
   gap: var(--hp-space-12);
 }
 
-/* Filter pills: 44px, radius 22, "Sector: All" with a chevron; native selects underneath. */
+/* Filter pills: 44px, radius 22, "Sector: All" with a chevron; the shared Select sits inside, unboxed. */
 .filter {
-  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--hp-space-8);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-size-22);
   outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -899,24 +898,30 @@
   outline-width: var(--hp-focus-ring-width);
 }
 
-.filter select {
-  field-sizing: content;
+/* Doubled class: the field styles in packages/ui have equal specificity, and bundle order must not decide. */
+.filterSelect.filterSelect {
+  width: auto;
   max-width: var(--hp-size-220);
-  appearance: none;
-  padding: 0 var(--hp-space-20) 0 0;
+  min-height: 0;
+  gap: var(--hp-space-6);
+  padding: 0;
   border: 0;
-  outline: 0;
-  background: transparent;
+  background-color: transparent;
   color: var(--hp-ink);
   font: inherit;
   font-weight: 600;
-  cursor: pointer;
 }
 
-.filter svg {
-  position: absolute;
-  right: var(--hp-space-14);
-  pointer-events: none;
+/* On touch screens it's the native select: keep room for its chevron (the field's background image). */
+select.filterSelect.filterSelect {
+  field-sizing: content;
+  padding-right: var(--hp-space-24);
+  background-position:
+    calc(100% - var(--hp-space-8)) 50%,
+    calc(100% - var(--hp-space-4)) 50%;
+}
+
+.filterSelect svg {
   color: var(--hp-ink);
 }
 
@@ -928,7 +933,7 @@
 }
 
 .filterApply {
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
 }
 
 /* Featured case: ink band, 880px photo beside the text (560 tall). */
@@ -1265,7 +1270,7 @@
   flex: 0 1 var(--hp-size-440);
   align-items: center;
   gap: var(--hp-space-10);
-  height: var(--hp-size-56);
+  height: var(--hp-space-48);
   padding: 0 var(--hp-space-16);
   border-radius: var(--hp-space-8);
   outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -1298,7 +1303,7 @@
 .guideSearch button {
   display: grid;
   width: var(--hp-size-44);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   place-items: center;
   margin-right: calc(var(--hp-space-10) * -1);
   padding: 0;

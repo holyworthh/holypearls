@@ -1,6 +1,6 @@
 import { TEST_PEOPLE } from "@holypearls/auth";
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll, signInStaff, ADMIN } from "./helpers";
+import { ADMIN, expectNoAxeViolations, expectNoHorizontalScroll, pickOption, signInStaff } from "./helpers";
 
 /* T04-01: cart (Pen 41/42), checkout (Pen 43/44/45 A) and delivery zones (Pen 108); COM-FR-080–084, OPS-FR-100–101. */
 
@@ -37,8 +37,8 @@ test("Business Cards go in the bag, check out as a guest, and the server's total
   await expect(page.getByLabel("Street address")).toBeVisible({ timeout: 30_000 });
   await page.getByLabel("Phone").fill("+234 800 000");
   await page.getByLabel("Street address").fill("12 Admiralty Way");
-  await page.getByLabel("State").selectOption("Lagos");
-  await page.getByLabel("Area / LGA").selectOption("Eti-Osa");
+  await pickOption(page.getByLabel("State"), "Lagos");
+  await pickOption(page.getByLabel("Area / LGA"), "Eti-Osa");
   await page.getByRole("button", { name: "Continue to shipping" }).click();
   await expect(page.getByText("Enter all 11 digits, e.g. 0800 000 0000")).toBeVisible();
   await expect(page.getByLabel("Street address")).toHaveValue("12 Admiralty Way");
@@ -100,8 +100,9 @@ test("staff see the delivery zones and can't save an overlapping zone (Pen 108)"
 
   await page.getByRole("button", { name: "New zone" }).click();
   await page.getByLabel("Zone name").fill("Lekki Corridor");
-  await page.getByLabel("State").selectOption("Lagos");
-  await page.getByLabel("LGA").selectOption("Eti-Osa");
+  // By id: the LGA list is labelled "LGA: Whole state", which also contains "State".
+  await pickOption(page.locator("#zone-covers"), "Lagos");
+  await pickOption(page.getByLabel("LGA"), "Eti-Osa");
   await page.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByLabel("Rate (NGN, before VAT)").fill("7000");
   await page.getByRole("button", { name: "Save zone" }).click();

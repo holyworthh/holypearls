@@ -396,7 +396,7 @@
 }
 
 .approve {
-  min-height: var(--hp-size-56);
+  min-height: var(--hp-space-48);
   border: 0;
   border-radius: var(--hp-space-6);
   background: var(--hp-accent);
@@ -415,7 +415,7 @@
 }
 
 .secondary {
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   border: var(--hp-border-width) solid var(--hp-ink);
   border-radius: var(--hp-space-6);
   background: var(--hp-paper);

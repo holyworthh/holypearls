@@ -135,7 +135,7 @@
 .action {
   display: inline-flex;
   align-items: center;
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: 0 var(--hp-size-18);
   border-radius: var(--hp-r-tag);
   background: var(--hp-accent);
@@ -311,7 +311,7 @@
   display: flex;
   align-items: center;
   gap: var(--hp-space-12);
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   padding: var(--hp-space-14) 0;
   border: 0;
   border-bottom: var(--hp-border-width) solid var(--hp-line);

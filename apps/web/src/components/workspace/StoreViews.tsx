@@ -155,7 +155,7 @@ function ProcurementStore({ organizationId, store }: { organizationId: string; s
           </h2>
           {store.locations.length > 1 ? (
             <FormField id="store-location" label="Ordering for">
-              <Select value={locationId} onChange={(event) => setLocationId(event.target.value)} options={store.locations.map((entry) => ({ value: entry.id, label: entry.name }))} />
+              <Select value={locationId} onValueChange={(next) => setLocationId(next)} options={store.locations.map((entry) => ({ value: entry.id, label: entry.name }))} />
             </FormField>
           ) : null}
         </div>
@@ -384,7 +384,7 @@ function SelfOrderStore({ organizationId, store }: { organizationId: string; sto
               ) : null}
               {item.fields.includes("COLOUR") && item.colours.length ? (
                 <FormField id="store-colour" label="Colour">
-                  <Select value={answers.colour ?? ""} onChange={(event) => setAnswers({ ...answers, colour: event.target.value || null })} options={[{ value: "", label: "Choose a colour" }, ...item.colours]} />
+                  <Select value={answers.colour ?? ""} onValueChange={(next) => setAnswers({ ...answers, colour: next || null })} options={[{ value: "", label: "Choose a colour" }, ...item.colours]} />
                 </FormField>
               ) : null}
               {item.fields.includes("QUANTITY") ? (
@@ -396,7 +396,7 @@ function SelfOrderStore({ organizationId, store }: { organizationId: string; sto
                 <FormField id="store-branch" label="Your branch">
                   <Select
                     value={answers.branchLocationId ?? ""}
-                    onChange={(event) => setAnswers({ ...answers, branchLocationId: event.target.value || null })}
+                    onValueChange={(next) => setAnswers({ ...answers, branchLocationId: next || null })}
                     options={[...(item.branches.length > 1 ? [{ value: "", label: "Choose your branch" }] : []), ...item.branches.map((branch) => ({ value: branch.id, label: branch.name }))]}
                   />
                 </FormField>
@@ -479,7 +479,7 @@ export function NewStoreForm({ organizationId }: { organizationId: string }) {
         <FormField id="store-new-mode" label="Who orders">
           <Select
             value={mode}
-            onChange={(event) => setMode(event.target.value as Store["mode"])}
+            onValueChange={(next) => setMode(next as Store["mode"])}
             options={[
               { value: "SELF_ORDER", label: "Each employee orders for themselves" },
               { value: "PROCUREMENT", label: "Buyers order for their locations" },
@@ -589,7 +589,7 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
           <FormField id="store-mode" label="Who orders">
             <Select
               value={mode}
-              onChange={(event) => setMode(event.target.value as Store["mode"])}
+              onValueChange={(next) => setMode(next as Store["mode"])}
               options={[
                 { value: "SELF_ORDER", label: "Each employee orders for themselves" },
                 { value: "PROCUREMENT", label: "Buyers order for their locations" },
@@ -600,7 +600,7 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
             <FormField id="store-routing" label="Where picks go" hint="Employees never see or choose this. Each pick becomes their own order, or joins the item's group collection.">
               <Select
                 value={routing}
-                onChange={(event) => setRouting(event.target.value as typeof routing)}
+                onValueChange={(next) => setRouting(next as typeof routing)}
                 options={[
                   { value: "INDIVIDUAL", label: "Individual orders" },
                   { value: "COLLECTION", label: "Into a group collection" },
@@ -618,7 +618,7 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
                     <Select
                       aria-label={`Group collection for ${template.name}`}
                       value={items.get(template.id) ?? ""}
-                      onChange={(event) => setItems(new Map(items).set(template.id, event.target.value || null))}
+                      onValueChange={(next) => setItems(new Map(items).set(template.id, next || null))}
                       options={[
                         { value: "", label: "Choose its group collection" },
                         ...collections.filter((collection) => collection.templateId === template.id && collection.status !== "CANCELLED").map((collection) => ({ value: collection.id, label: collection.title })),
@@ -644,7 +644,7 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
             <FormField id="allowance-kind" label="Limit">
               <Select
                 value={kind}
-                onChange={(event) => setKind(event.target.value as typeof kind)}
+                onValueChange={(next) => setKind(next as typeof kind)}
                 options={[
                   { value: "NONE", label: "No limit" },
                   { value: "PER_ORDER", label: "A limit per order" },
@@ -667,7 +667,7 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
                 <FormField id="allowance-period" label="Renews">
                   <Select
                     value={period}
-                    onChange={(event) => setPeriod(event.target.value as typeof period)}
+                    onValueChange={(next) => setPeriod(next as typeof period)}
                     options={[
                       { value: "YEAR", label: "Every year" },
                       { value: "QUARTER", label: "Every quarter" },
@@ -677,10 +677,10 @@ export function StoreSetup({ organizationId, initial, templates, collections }: 
                 </FormField>
                 <div className={styles.renewsOn}>
                   <FormField id="allowance-month" label="From month">
-                    <Select value={renewsMonth} onChange={(event) => setRenewsMonth(event.target.value)} options={MONTHS.map((label, index) => ({ value: String(index + 1).padStart(2, "0"), label }))} />
+                    <Select value={renewsMonth} onValueChange={(next) => setRenewsMonth(next)} options={MONTHS.map((label, index) => ({ value: String(index + 1).padStart(2, "0"), label }))} />
                   </FormField>
                   <FormField id="allowance-day" label="Day">
-                    <Select value={renewsDay} onChange={(event) => setRenewsDay(event.target.value)} options={Array.from({ length: 28 }, (_, index) => ({ value: String(index + 1).padStart(2, "0"), label: String(index + 1) }))} />
+                    <Select value={renewsDay} onValueChange={(next) => setRenewsDay(next)} options={Array.from({ length: 28 }, (_, index) => ({ value: String(index + 1).padStart(2, "0"), label: String(index + 1) }))} />
                   </FormField>
                 </div>
               </>

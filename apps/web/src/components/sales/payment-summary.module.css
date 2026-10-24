@@ -81,7 +81,7 @@
 }
 
 .pay {
-  min-height: var(--hp-size-56);
+  min-height: var(--hp-space-48);
   padding: 0 var(--hp-space-24);
   border: 0;
   border-radius: var(--hp-space-6);

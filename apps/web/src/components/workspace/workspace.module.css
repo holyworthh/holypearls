@@ -449,21 +449,21 @@
   overflow-wrap: anywhere;
 }
 
-.roleSelect {
-  min-height: var(--hp-workspace-control-height);
+/* Compact table control (doubled class: the packages/ui field styles have equal specificity). */
+.roleSelect.roleSelect {
+  width: auto;
   max-width: 100%;
+  min-height: var(--hp-workspace-control-height);
   padding: 0 var(--hp-space-10);
-  border: var(--hp-border-width) solid var(--hp-line-strong);
   border-radius: var(--hp-r-tag);
-  background: var(--hp-paper);
-  color: var(--hp-ink);
-  font: inherit;
   font-size: var(--hp-text-support);
-  cursor: pointer;
 }
 
-.roleSelect:hover {
-  border-color: var(--hp-ink);
+select.roleSelect.roleSelect {
+  padding-right: var(--hp-space-32);
+  background-position:
+    calc(100% - var(--hp-space-16)) 50%,
+    calc(100% - var(--hp-space-12)) 50%;
 }
 
 /* Member cards (frame 70 mobile) */
@@ -829,15 +829,26 @@
   border-color: var(--hp-line-strong);
 }
 
-.scope select {
+/* The location select sits inside the .scope box, unboxed (doubled class: see .roleSelect). */
+.scopeSelect.scopeSelect {
+  width: auto;
+  min-height: 0;
+  padding: 0;
   border: 0;
-  background: transparent;
+  background-color: transparent;
   color: var(--hp-ink);
-  font: inherit;
   font-size: var(--hp-text-support);
   font-weight: var(--hp-weight-semibold);
-  cursor: pointer;
 }
+
+/* On touch screens it's the native select: keep room for its chevron (the field's background image). */
+select.scopeSelect.scopeSelect {
+  padding-right: var(--hp-space-24);
+  background-position:
+    calc(100% - var(--hp-space-8)) 50%,
+    calc(100% - var(--hp-space-4)) 50%;
+}
+
 
 /* 390 px bottom tabs (Pen 62 · Rtyrl). */
 

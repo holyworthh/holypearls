@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   gap: var(--hp-space-12);
-  height: var(--hp-size-56);
+  height: var(--hp-space-48);
   padding: 0 var(--hp-space-16);
   border-bottom: var(--hp-border-width) solid var(--hp-line);
 }
@@ -456,7 +456,7 @@
 }
 
 .clearRecent {
-  min-height: var(--hp-size-44);
+  min-height: var(--hp-touch-target);
   margin: calc((var(--hp-size-44) - var(--hp-size-19)) / -2) 0;
   padding: 0 var(--hp-space-4);
   border: 0;
@@ -480,7 +480,7 @@
   display: flex;
   align-items: center;
   gap: var(--hp-space-12);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   color: var(--hp-ink);
   font-size: var(--hp-space-16);
   line-height: var(--hp-size-23);
@@ -563,7 +563,7 @@
   }
 
   .fieldRow > .fieldInput {
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-12) 0 calc(var(--hp-space-12) + var(--hp-space-20) + var(--hp-space-10));
     border-radius: var(--hp-r-control);
     outline: var(--hp-space-2) solid var(--hp-ink);
@@ -580,7 +580,7 @@
   .escHint {
     display: inline-flex;
     align-items: center;
-    min-height: var(--hp-size-44);
+    min-height: var(--hp-touch-target);
     color: var(--hp-ink);
     font-size: var(--hp-size-15);
     font-weight: 600;

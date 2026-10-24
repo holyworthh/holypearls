@@ -1,5 +1,5 @@
 import { notificationEntrySchema, notificationPageSchema } from "@holypearls/contracts";
-import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied, StatusChip } from "@holypearls/ui";
+import { Button, ButtonLink, EmptyState, ErrorState, PermissionDenied, Select, StatusChip } from "@holypearls/ui";
 import { serverApi } from "@/lib/server-api";
 import styles from "../admin-list.module.css";
 import { requireAdmin } from "../admin-session";
@@ -58,13 +58,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         </label>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Status</span>
-          <select name="status" defaultValue={params.status ?? ""}>
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                Status: {status || "All"}
-              </option>
-            ))}
-          </select>
+          <Select name="status" defaultValue={params.status ?? ""} options={STATUSES.map((status) => ({ value: status, label: `Status: ${status || "All"}` }))} />
         </label>
         <Button type="submit" variant="secondary">
           Apply

@@ -332,7 +332,7 @@ export function ContentEditor({ page: initial, updatedByName }: { page: AdminCon
       <div className={c.columns}>
         <fieldset className={`${c.editorCol} ${c.parts}`} disabled={archived}>
           <FormField label="Page type" id="content-type" hint="Set when the page was created.">
-            <Select value={page.type} disabled options={[{ value: page.type, label: CONTENT_TYPE_LABEL[page.type] }]} onChange={() => undefined} />
+            <Select value={page.type} disabled options={[{ value: page.type, label: CONTENT_TYPE_LABEL[page.type] }]} />
           </FormField>
           <FormField label="Title" id={FIELD_IDS.title} error={errors.title}>
             <TextField value={fields.title} maxLength={140} onChange={(event) => set("title", event.target.value)} />

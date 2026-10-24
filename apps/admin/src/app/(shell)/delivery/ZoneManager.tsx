@@ -216,14 +216,15 @@ export function ZoneManager({ initial }: { initial: DeliveryZone[] }) {
                 ) : null}
                 <div className={styles.pick}>
                   <Select
+                    searchable
                     id="zone-covers"
                     aria-label="State"
                     placeholder="State"
                     options={NIGERIA_STATES.map((state) => ({ value: state, label: state }))}
                     value={pickState}
                     aria-invalid={errors.covers ? true : undefined}
-                    onChange={(event) => {
-                      setPickState(event.target.value);
+                    onValueChange={(next) => {
+                      setPickState(next);
                       setPickLga("");
                     }}
                   />
@@ -232,7 +233,7 @@ export function ZoneManager({ initial }: { initial: DeliveryZone[] }) {
                     options={[{ value: "", label: "Whole state" }, ...(lgas ?? []).map((lga) => ({ value: lga, label: lga }))]}
                     value={pickLga}
                     disabled={!lgas}
-                    onChange={(event) => setPickLga(event.target.value)}
+                    onValueChange={(next) => setPickLga(next)}
                   />
                   <Button type="button" variant="secondary" disabled={!pickState} onClick={addCover}>
                     Add

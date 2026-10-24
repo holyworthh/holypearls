@@ -118,7 +118,7 @@ export function NewTemplateButton({ organizationId, me, sources, assets }: { org
           ) : null}
           {sources.length ? (
             <FormField id="template-source" label="Start from" hint="A past order for this workspace, or one of your saved designs." error={errors.configurationId}>
-              <Select value={configurationId} onChange={(event) => setConfigurationId(event.target.value)} options={sources.map((source) => ({ value: source.configurationId, label: source.label }))} />
+              <Select value={configurationId} onValueChange={(next) => setConfigurationId(next)} options={sources.map((source) => ({ value: source.configurationId, label: source.label }))} />
             </FormField>
           ) : (
             <p className={styles.dialogText}>Design a product first, or order one for this workspace. A template starts from a saved design or a past order.</p>
@@ -266,7 +266,7 @@ export function TemplateActions({ organizationId, initial, me, assets }: { organ
               <Select
                 aria-label={`${field.label}: who sets it`}
                 value={field.control}
-                onChange={(event) => setFields(fields.map((item, at) => (at === index ? { ...item, control: event.target.value as FieldControl } : item)))}
+                onValueChange={(next) => setFields(fields.map((item, at) => (at === index ? { ...item, control: next as FieldControl } : item)))}
                 options={[
                   { value: "LOCKED", label: "Company controlled (locked)" },
                   { value: "EDITABLE", label: "Buyer editable" },
@@ -421,14 +421,14 @@ export function TemplateOrderForm({ organizationId, form }: { organizationId: st
           <div className={styles.form}>
             {form.choices.map((choice) => (
               <FormField key={choice.key} id={`order-${choice.key}`} label={choice.label} hint={choice.reason}>
-                <Select value={choices[choice.key] ?? ""} onChange={(event) => setChoices({ ...choices, [choice.key]: event.target.value })} options={choice.options} disabled={Boolean(form.blocked)} />
+                <Select value={choices[choice.key] ?? ""} onValueChange={(next) => setChoices({ ...choices, [choice.key]: next })} options={choice.options} disabled={Boolean(form.blocked)} />
               </FormField>
             ))}
             <FormField id="order-quantity" label="Quantity" hint={form.quantity.editable ? form.quantity.reason : `${form.quantity.reason} · set by your company`} error={quantity && !validQuantity ? "Enter a whole number" : undefined}>
               <TextField inputMode="numeric" pattern="[0-9]*" autoComplete="off" value={quantity} onChange={(event) => setQuantity(event.target.value)} disabled={!form.quantity.editable || Boolean(form.blocked)} />
             </FormField>
             <FormField id="order-location" label="Deliver to" hint="Only your allowed locations are listed.">
-              <Select value={locationId} onChange={(event) => setLocationId(event.target.value)} options={form.locations.map((location) => ({ value: location.id, label: location.name }))} disabled={Boolean(form.blocked) || !form.locations.length} />
+              <Select value={locationId} onValueChange={(next) => setLocationId(next)} options={form.locations.map((location) => ({ value: location.id, label: location.name }))} disabled={Boolean(form.blocked) || !form.locations.length} />
             </FormField>
           </div>
         </section>

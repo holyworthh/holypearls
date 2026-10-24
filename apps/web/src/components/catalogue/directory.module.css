@@ -117,7 +117,7 @@
 }
 
 .redButton {
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-22);
   border: 0;
   border-radius: var(--hp-r-button);
@@ -464,43 +464,6 @@
   outline-offset: var(--hp-space-2);
 }
 
-/* Needed by (Pen: 48px field, calendar icon, "Any date"). */
-.date {
-  display: flex;
-  align-items: center;
-  gap: var(--hp-space-10);
-  height: var(--hp-space-48);
-  padding: 0 var(--hp-space-14);
-  border-radius: var(--hp-r-control);
-  outline: var(--hp-size-1) solid var(--hp-line-strong);
-  outline-offset: var(--hp-size--0_5);
-  background: var(--hp-paper);
-  color: var(--hp-ink);
-  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft);
-}
-
-.date:hover {
-  outline-color: var(--hp-ink);
-}
-
-.date:focus-within {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-}
-
-.date input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--hp-ink);
-  font: inherit;
-  font-size: var(--hp-size-15);
-}
-
-.date input:focus {
-  outline: none;
-}
-
 .results {
   display: flex;
   flex: 1 1 0;
@@ -556,43 +519,32 @@
   gap: var(--hp-space-8);
 }
 
-/* Pen: 40px, 12px sides, the label then a 16px chevron with 8px between. */
-.sortBox {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
-.sortSelect {
+/* Pen: 40px, 12px sides, the label then a 16px chevron with 8px between. Doubled class: the
+   packages/ui field styles have equal specificity, and bundle order must not decide. */
+.sortSelect.sortSelect {
+  width: auto;
   height: var(--hp-space-40);
-  padding: 0 calc(var(--hp-space-12) + var(--hp-space-16) + var(--hp-space-8)) 0 var(--hp-space-12);
-  border: 0;
-  border-radius: var(--hp-r-control);
-  outline: var(--hp-size-1) solid var(--hp-line-strong);
-  outline-offset: var(--hp-size--0_5);
-  background: var(--hp-paper);
-  color: var(--hp-ink);
-  font: inherit;
+  min-height: 0;
+  gap: var(--hp-space-8);
+  padding: 0 var(--hp-space-12);
   font-size: var(--hp-space-14);
   font-weight: 600;
-  appearance: none;
-  cursor: pointer;
-  transition: outline-color var(--hp-motion-hover) var(--hp-ease-soft), background-color var(--hp-motion-hover) var(--hp-ease-soft);
 }
 
-.sortSelect:hover {
-  outline-color: var(--hp-ink);
-}
-
-.sortSelect:focus-visible {
-  outline: var(--hp-focus-ring-width) solid var(--hp-ink);
-}
-
-.sortCaret {
-  position: absolute;
-  right: var(--hp-space-12);
-  pointer-events: none;
+.sortSelect svg {
   color: var(--hp-ink);
+}
+
+/* On touch screens it's the native select: room for the chevron (Pen: 12 + 16 + 8). */
+select.sortSelect.sortSelect {
+  padding-right: calc(var(--hp-space-12) + var(--hp-space-16) + var(--hp-space-8));
+}
+
+/* Needed by (Pen: 48px field, "Any date"). */
+.date.date {
+  height: var(--hp-size-44);
+  padding: 0 var(--hp-space-14);
+  font-size: var(--hp-size-15);
 }
 
 .list {
@@ -801,7 +753,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-28);
   border-radius: var(--hp-r-button);
   outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -935,7 +887,7 @@
   display: grid;
   place-items: center;
   width: var(--hp-size-44);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   margin-right: calc(var(--hp-space-12) * -1);
   padding: 0;
   border: 0;
@@ -985,7 +937,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--hp-space-48);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-size-18);
   border: 0;
   border-radius: var(--hp-space-6);
@@ -1056,7 +1008,7 @@
   }
 
   .search {
-    height: var(--hp-size-52);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-14);
     border-radius: var(--hp-r-control);
     outline: var(--hp-size-1) solid var(--hp-line-strong);
@@ -1139,7 +1091,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--hp-space-6);
-    height: var(--hp-size-44);
+    height: var(--hp-touch-target);
     padding: 0 var(--hp-space-14);
     border: 0;
     border-radius: var(--hp-r-button);
@@ -1164,7 +1116,7 @@
   }
 
   .barActions .sortSelect {
-    height: var(--hp-size-44);
+    height: var(--hp-touch-target);
   }
 
   /* Sort lives in the sticky bar on phones; applied filters stay removable here. */
@@ -1239,7 +1191,7 @@
     display: inline-flex;
     align-items: center;
     gap: var(--hp-space-8);
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
     padding: 0 var(--hp-space-16);
     border-radius: var(--hp-r-button);
     outline: var(--hp-size-1_5) solid var(--hp-ink);
@@ -1257,7 +1209,7 @@
 
   .pagination .outlineButton {
     width: 100%;
-    height: var(--hp-space-48);
+    height: var(--hp-size-44);
   }
 
   .pages {

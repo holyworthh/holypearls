@@ -33,7 +33,7 @@
   align-items: center;
   justify-content: center;
   width: var(--hp-size-44);
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0;
   border: 0;
   border-radius: var(--hp-space-6);
@@ -140,7 +140,7 @@
 .blockChip {
   display: flex;
   align-items: center;
-  height: var(--hp-size-52);
+  height: var(--hp-size-44);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-space-6);
   outline: var(--hp-size-1) dashed var(--hp-line-strong);
@@ -178,7 +178,7 @@
 .inlineInput {
   flex: 1 1 var(--hp-size-220);
   min-width: 0;
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-12);
   border: 0;
   border-radius: var(--hp-space-6);
@@ -197,7 +197,7 @@
 
 .inlineButton,
 .inlineCancel {
-  height: var(--hp-size-44);
+  height: var(--hp-touch-target);
   padding: 0 var(--hp-space-16);
   border: 0;
   border-radius: var(--hp-space-6);

@@ -71,7 +71,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--hp-space-8);
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-24);
   border: var(--hp-border-width) solid transparent;
   border-radius: var(--hp-r-button);
@@ -371,7 +371,7 @@
   display: flex;
   align-items: center;
   gap: var(--hp-space-10);
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-14);
   border-radius: var(--hp-r-card);
   background: var(--hp-paper);
@@ -391,7 +391,7 @@
 
 .heroInput {
   width: 100%;
-  min-height: var(--hp-space-48);
+  min-height: var(--hp-size-44);
   border: 0;
   background: transparent;
   color: var(--hp-ink);
@@ -409,7 +409,7 @@
 }
 
 .searchButton {
-  min-height: var(--hp-space-48);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-20);
   border: 0;
   border-radius: var(--hp-space-8);

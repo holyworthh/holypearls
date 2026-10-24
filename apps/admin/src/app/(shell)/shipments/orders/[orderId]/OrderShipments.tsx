@@ -280,7 +280,7 @@ function ShipmentCard({ shipment, onSaved, onResult }: { shipment: AdminShipment
           <FormField id={`booking-outcome-${shipment.id}`} label="Result confirmed in Shipbubble">
             <Select
               value={outcome}
-              onChange={(event) => setOutcome(event.target.value as typeof outcome)}
+              onValueChange={(next) => setOutcome(next as typeof outcome)}
               options={[
                 { value: "BOOKED", label: "An existing booking was found" },
                 { value: "NOT_BOOKED", label: "Shipbubble confirmed no booking was made" },
@@ -316,7 +316,7 @@ function ShipmentCard({ shipment, onSaved, onResult }: { shipment: AdminShipment
         <>
           <div className={styles.row}>
             <FormField id={`next-${shipment.id}`} label="New status" hint={`Only next statuses allowed from ${shipment.status} are offered.`}>
-              <Select value={next} options={shipment.next.map((status) => ({ value: status, label: status }))} onChange={(event) => setNext(event.target.value as typeof next)} />
+              <Select value={next} options={shipment.next.map((status) => ({ value: status, label: status }))} onValueChange={(chosen) => setNext(chosen as typeof next)} />
             </FormField>
             <FormField id={`tracking-${shipment.id}`} label="Tracking number" optional>
               <TextField value={tracking} maxLength={120} onChange={(event) => setTracking(event.target.value)} />

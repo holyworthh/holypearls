@@ -210,8 +210,13 @@ test("category tabs scroll without a visible scrollbar and the sort caret has ro
     expect(await list.evaluate((element) => getComputedStyle(element).scrollbarWidth)).toBe("none");
   }
   const sort = page.getByRole("combobox", { name: "Sort by" }).locator("visible=true").first();
-  const padding = await sort.evaluate((element) => parseFloat(getComputedStyle(element).paddingRight));
-  expect(padding).toBeGreaterThanOrEqual(32);
+  if (await sort.evaluate((element) => element.tagName === "SELECT")) {
+    expect(await sort.evaluate((element) => parseFloat(getComputedStyle(element).paddingRight))).toBeGreaterThanOrEqual(32);
+  } else {
+    // The chevron sits after the label, never over it.
+    const [label, caret] = await Promise.all([sort.locator("span").first().boundingBox(), sort.locator("svg").boundingBox()]);
+    expect(caret!.x).toBeGreaterThanOrEqual(label!.x + label!.width);
+  }
 });
 
 test("sections reveal as they scroll into view", async ({ page }) => {

@@ -126,7 +126,7 @@ export function FabricManager({ initial }: { initial: Fabric[] }) {
             <FormField id="fabric-status" label="Status">
               <Select
                 value={form.status}
-                onChange={(event) => setForm({ ...form, status: event.target.value as Fabric["status"] })}
+                onValueChange={(next) => setForm({ ...form, status: next as Fabric["status"] })}
                 options={[
                   { value: "ACTIVE", label: "Active" },
                   { value: "ARCHIVED", label: "Archived (history kept)" },

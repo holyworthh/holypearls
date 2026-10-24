@@ -74,7 +74,7 @@ export function NewProductForm({ categories }: { categories: AdminCategory[] }) 
           <Select
             value={form.family}
             placeholder="Choose a family"
-            onChange={(event) => set("family", event.target.value)}
+            onValueChange={(next) => set("family", next)}
             options={Object.entries(FAMILY_LABELS).map(([value, label]) => ({ value, label }))}
           />
         </FormField>
@@ -82,13 +82,13 @@ export function NewProductForm({ categories }: { categories: AdminCategory[] }) 
           <Select
             value={form.categoryId}
             placeholder="Choose a category"
-            onChange={(event) => set("categoryId", event.target.value)}
+            onValueChange={(next) => set("categoryId", next)}
             options={categories.map((category) => ({ value: category.id, label: category.parentName ? `${category.parentName} › ${category.name}` : category.name }))}
           />
         </FormField>
       </div>
       <FormField label="Buying mode" id="new-mode" error={errors.buyingMode}>
-        <Select value={form.buyingMode} onChange={(event) => set("buyingMode", event.target.value)} options={Object.entries(MODE_LABELS).map(([value, label]) => ({ value, label }))} />
+        <Select value={form.buyingMode} onValueChange={(next) => set("buyingMode", next)} options={Object.entries(MODE_LABELS).map(([value, label]) => ({ value, label }))} />
       </FormField>
       <p className={styles.hint}>It starts as a DRAFT. Add images, descriptions and SEO text before publishing.</p>
       <div className={css.rowActions}>

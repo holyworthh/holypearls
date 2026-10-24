@@ -141,7 +141,7 @@ export function ImportView({ organizationId, collectionId, initial }: { organiza
                           </Button>
                         </div>
                       ) : (
-                        <Select aria-label={`What to do with line ${row.line}`} value={row.decision ?? ""} onChange={(event) => fixRow(row.id, { decision: event.target.value })} options={[{ value: "", label: "Choose what to do" }, ...DECISIONS]} />
+                        <Select aria-label={`What to do with line ${row.line}`} value={row.decision ?? ""} onValueChange={(next) => fixRow(row.id, { decision: next })} options={[{ value: "", label: "Choose what to do" }, ...DECISIONS]} />
                       )}
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export function ImportView({ organizationId, collectionId, initial }: { organiza
                   <Select
                     aria-label={`Column for ${IMPORT_FIELD_LABELS[field]}`}
                     value={batch.mapping[field] ?? ""}
-                    onChange={(event) => void call("mapping", () => api(`${base}/${batch.id}/mapping`, { method: "PUT", body: { mapping: { ...batch.mapping, [field]: event.target.value || null }, version: batch.version }, response: importBatchSchema }))}
+                    onValueChange={(next) => void call("mapping", () => api(`${base}/${batch.id}/mapping`, { method: "PUT", body: { mapping: { ...batch.mapping, [field]: next || null }, version: batch.version }, response: importBatchSchema }))}
                     options={[{ value: "", label: "Not in the file" }, ...batch.headers.map((header) => ({ value: header, label: header }))]}
                   />
                 </div>

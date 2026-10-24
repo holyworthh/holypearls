@@ -35,7 +35,7 @@ function Field({ field, value, onChange, path, errors }: { field: PartField; val
     case "select":
       return (
         <FormField label={field.label} id={id} error={error}>
-          <Select value={(value as string) ?? ""} options={[...field.options]} onChange={(event) => onChange(event.target.value)} />
+          <Select value={(value as string) ?? ""} options={[...field.options]} onValueChange={(next) => onChange(next)} />
         </FormField>
       );
     case "strings": {

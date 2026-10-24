@@ -78,7 +78,7 @@ export function ProblemForm({ orderId, items }: { orderId: string; items: Item[]
       ) : null}
       {items.length > 1 ? (
         <FormField id="problem-item" label="Which item?">
-          <Select value={String(position)} options={items.map((item) => ({ value: String(item.position), label: item.label }))} onChange={(event) => setPosition(Number(event.target.value))} />
+          <Select value={String(position)} options={items.map((item) => ({ value: String(item.position), label: item.label }))} onValueChange={(next) => setPosition(Number(next))} />
         </FormField>
       ) : (
         <p className={s.lead}>{items[0]?.label}</p>

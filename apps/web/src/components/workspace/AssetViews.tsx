@@ -126,7 +126,7 @@ export function UploadAssetButton({ organizationId }: { organizationId: string }
             <TextField value={name} onChange={(event) => setName(event.target.value)} />
           </FormField>
           <FormField id="asset-kind" label="Kind">
-            <Select value={kind} onChange={(event) => setKind(event.target.value as BrandAssetKind)} options={BRAND_ASSET_KINDS.map((value) => ({ value, label: BRAND_ASSET_KIND_LABELS[value] }))} />
+            <Select value={kind} onValueChange={(next) => setKind(next as BrandAssetKind)} options={BRAND_ASSET_KINDS.map((value) => ({ value, label: BRAND_ASSET_KIND_LABELS[value] }))} />
           </FormField>
           <FileUpload purpose="BRAND_ASSET" label="Drop the file or browse" onUploaded={setFile} onChange={(next) => setFile(next)} />
           {errors.fileId ? (

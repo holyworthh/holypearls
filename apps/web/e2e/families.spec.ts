@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectNoAxeViolations, expectNoHorizontalScroll } from "./helpers";
+import { expectNoAxeViolations, expectNoHorizontalScroll, pickDate } from "./helpers";
 
 /* T03-08: other product families, timing and destinations, Request Final Quote (COM-FR-045–047, 060–061, 070–072). */
 
@@ -57,6 +57,6 @@ test("a tight deadline suggests rush", async ({ page }) => {
   await page.getByLabel("Or enter a quantity").fill("1");
   await page.getByLabel(/^Lagos/).check();
   const soon = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
-  await page.getByLabel("Needed by").fill(soon);
+  await pickDate(page.getByLabel("Needed by"), soon);
   await expect(page.getByText(/tighter than our usual timing|should arrive by/).first()).toBeVisible({ timeout: 45_000 });
 });

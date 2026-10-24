@@ -19,11 +19,20 @@ export default defineConfig({
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
   // Local runs talk to a hosted database; CI uses a local one.
-  expect: { timeout: 15_000 },
+  expect: { timeout: 15_000, toHaveScreenshot: { maxDiffPixelRatio: 0.01, animations: "disabled", caret: "hide" } },
+  // Screenshots are made and compared on Linux only (CI, or the Playwright image through PW_SERVER);
+  // Mac font rendering differs, so local runs skip them. To refresh baselines from a Mac:
+  //   docker run --rm -d -p 3333:3333 --name pw mcr.microsoft.com/playwright:v1.64.1-noble \
+  //     npx -y playwright@1.64.1 run-server --port 3333 --host 0.0.0.0
+  //   PW_SERVER=ws://localhost:3333/ pnpm --filter @holypearls/web exec playwright test --update-snapshots
+  // (Keep the image version equal to @playwright/test.)
+  ignoreSnapshots: !process.env.CI && !process.env.PW_SERVER,
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}-{projectName}{ext}",
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL: origin,
     launchOptions: { executablePath },
+    connectOptions: process.env.PW_SERVER ? { wsEndpoint: process.env.PW_SERVER, exposeNetwork: "<loopback>" } : undefined,
   },
   projects: [
     { name: "mobile-375", use: { viewport: { width: 375, height: 812 }, hasTouch: true } },

@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--hp-space-8);
-  min-height: var(--hp-size-52);
+  min-height: var(--hp-size-44);
   padding: 0 var(--hp-space-24);
   border-radius: var(--hp-r-button);
   font-size: var(--hp-text-body);
@@ -178,7 +178,7 @@
 .newsletter {
   display: flex;
   align-items: center;
-  min-height: var(--hp-space-48);
+  min-height: var(--hp-size-44);
   margin: 0;
   padding: 0 var(--hp-space-14);
   border: var(--hp-border-width) solid var(--hp-on-deep-line);

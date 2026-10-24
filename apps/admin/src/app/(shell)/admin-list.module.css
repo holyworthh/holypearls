@@ -34,9 +34,7 @@
   gap: var(--hp-space-12);
 }
 
-.search,
-.select select,
-.selectInput {
+.search {
   display: flex;
   align-items: center;
   gap: var(--hp-space-10);
@@ -50,8 +48,7 @@
   font-size: var(--hp-text-label);
 }
 
-.select,
-.select select {
+.select {
   max-width: 100%;
 }
 
@@ -409,14 +406,6 @@
 
 .search:hover {
   color: var(--hp-ink);
-}
-
-.select select {
-  transition: border-color var(--hp-motion-hover) var(--hp-ease-soft);
-}
-
-.select select:hover {
-  border-color: var(--hp-ink);
 }
 
 /* Drawn underline: grows left to right on hover, retracts to the right after. */

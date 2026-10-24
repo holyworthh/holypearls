@@ -372,7 +372,7 @@ function AddressStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
     <form className={styles.form} onSubmit={(event) => void submit(event)} noValidate>
       <Summary errors={errors} prefix="address" />
       <FormField label="Country" id="address-country" error={errors.country}>
-        <Select options={countries} value={form.country} autoComplete="country" onChange={(event) => setForm({ ...form, country: event.target.value, state: "", area: "" })} />
+        <Select searchable options={countries} value={form.country} autoComplete="country" onValueChange={(next) => setForm({ ...form, country: next, state: "", area: "" })} />
       </FormField>
       <div className={styles.row}>
         <FormField label="Full name" id="address-name" error={errors.name}>
@@ -389,11 +389,12 @@ function AddressStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
         {nigeria ? (
           <FormField label="State" id="address-state" error={errors.state}>
             <Select
+              searchable
               placeholder="Choose your state"
               options={NIGERIA_STATES.map((state) => ({ value: state, label: state === "FCT" ? "FCT (Abuja)" : state }))}
               value={form.state}
               autoComplete="shipping address-level1"
-              onChange={(event) => setForm({ ...form, state: event.target.value, area: "" })}
+              onValueChange={(next) => setForm({ ...form, state: next, area: "" })}
             />
           </FormField>
         ) : (
@@ -403,7 +404,7 @@ function AddressStep({ checkout, onSaved }: { checkout: Checkout; onSaved: (next
         )}
         {lgas ? (
           <FormField label="Area / LGA" id="address-area" error={errors.area}>
-            <Select placeholder="Choose your area or LGA" options={lgas.map((lga) => ({ value: lga, label: lga }))} value={form.area} onChange={(event) => setForm({ ...form, area: event.target.value })} />
+            <Select searchable placeholder="Choose your area or LGA" options={lgas.map((lga) => ({ value: lga, label: lga }))} value={form.area} onValueChange={(next) => setForm({ ...form, area: next })} />
           </FormField>
         ) : (
           <FormField label={nigeria ? "Area / LGA" : "City"} id="address-area" error={errors.area}>

@@ -1,7 +1,7 @@
 "use client";
 
 import { type AnswerValue, NOT_SURE, type ProjectQuestion } from "@holypearls/contracts";
-import { Checkbox, FormField, TextArea, TextField } from "@holypearls/ui";
+import { Checkbox, DatePicker, FormField, TextArea, TextField } from "@holypearls/ui";
 import { useEffect, useId, useState } from "react";
 import s from "./builder.module.css";
 
@@ -89,14 +89,11 @@ function WithNotSure({ question, value, onChange, error }: QuestionProps) {
   return (
     <div className={s.question}>
       <FormField id={`${id}-input`} label={question.label} hint={question.hint} error={error}>
-        <TextField
-          className={isNumber ? s.numberInput : undefined}
-          type={isNumber ? "text" : "date"}
-          inputMode={isNumber ? "numeric" : undefined}
-          value={notSure ? "" : text}
-          disabled={notSure}
-          onChange={(event) => commit(event.target.value)}
-        />
+        {isNumber ? (
+          <TextField className={s.numberInput} type="text" inputMode="numeric" value={notSure ? "" : text} disabled={notSure} onChange={(event) => commit(event.target.value)} />
+        ) : (
+          <DatePicker value={notSure ? "" : text} disabled={notSure} onValueChange={commit} />
+        )}
       </FormField>
       <Checkbox id={`${id}-unsure`} label="I'm not sure yet" checked={notSure} onChange={(event) => onChange(event.target.checked ? NOT_SURE : text ? (isNumber ? Number(text) : text) : null)} />
     </div>

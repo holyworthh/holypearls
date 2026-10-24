@@ -127,7 +127,7 @@ export function FreightGroups({ initial }: { initial: DeliveryZone[] }) {
         <FormField id="freight-method" label="Method">
           <Select
             value={form.pricing}
-            onChange={(event) => setForm({ ...form, pricing: event.target.value as Form["pricing"] })}
+            onValueChange={(next) => setForm({ ...form, pricing: next as Form["pricing"] })}
             options={[
               { value: "FIXED", label: "Calculated rate" },
               { value: "QUOTE", label: "Staff will quote" },

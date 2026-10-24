@@ -164,7 +164,7 @@ Motion guidance lists 120–200 ms for utility changes, 250–450 ms for content
 
 Enter easing is `cubic-bezier(.2,.8,1,1)` and exit easing is `cubic-bezier(.4,0,1,1)`. With reduced motion, show media at rest, do not slide toasts or shimmer skeletons, and do not use WebGL or video. Use Lucide icons at 16–24 px. Pair icons with text for consequential actions.
 
-Use 44 px minimum touch targets and 16 px minimum mobile body text. Focus rings are 2 px ink on light surfaces and 2 px paper on dark or red surfaces. Marigold is not text on light surfaces.
+Use 44 px minimum touch targets on touch screens and 16 px minimum mobile body text. With a mouse or trackpad (`pointer: fine`), controls are one step smaller: 40 px standard controls and 15 px button text (owner decision, 24 Oct 2026; `--hp-touch-target` in inferred-tokens.css). Focus rings are 2 px ink on light surfaces and 2 px paper on dark or red surfaces. Marigold is not text on light surfaces.
 
 ## Component and node inventory
 

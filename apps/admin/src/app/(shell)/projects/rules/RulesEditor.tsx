@@ -17,7 +17,7 @@ import {
   type RuleQuantity,
   type SaveRecommendationRules,
 } from "@holypearls/contracts";
-import { Button, Checkbox, FormField, Notice, StatusChip, TextArea, TextField } from "@holypearls/ui";
+import { Button, Checkbox, FormField, Notice, Select, StatusChip, TextArea, TextField } from "@holypearls/ui";
 import { api, errorCode } from "@holypearls/web-kit/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -153,13 +153,7 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
       <div className={styles.filters}>
         <label className={styles.select}>
           <span className="hp-visually-hidden">Project type</span>
-          <select value={type} onChange={(event) => router.push(`/projects/rules?type=${event.target.value}`)}>
-            {PROJECT_TYPES.map((item) => (
-              <option key={item} value={item}>
-                {PROJECT_TYPE_INFO[item].label}
-              </option>
-            ))}
-          </select>
+          <Select value={type} onValueChange={(value) => router.push(`/projects/rules?type=${value}`)} options={PROJECT_TYPES.map((item) => ({ value: item, label: PROJECT_TYPE_INFO[item].label }))} />
         </label>
         <StatusChip tone={active ? "success" : "neutral"}>{active === 1 ? "1 rule active" : `${active} rules active`}</StatusChip>
         <span className={styles.hint}>Customers see these as grouped suggestions with a reason.</span>
@@ -258,30 +252,19 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
                 <TextField value={rule.itemName} maxLength={120} onChange={(event) => update(editing, { itemName: event.target.value })} />
               </FormField>
               <FormField id="rule-product" label="Product" hint="Leave as a described item when it isn't in the catalogue; staff quote it." error={errors[`rules.${editing}.productSlug`]}>
-                <select className={styles.selectInput} value={rule.productSlug ?? ""} onChange={(event) => update(editing, { productSlug: event.target.value || null })}>
-                  <option value="">Described item (no product)</option>
-                  {set.products.map((product) => (
-                    <option key={product.slug} value={product.slug}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={rule.productSlug ?? ""}
+                  onValueChange={(value) => update(editing, { productSlug: value || null })}
+                  options={[{ value: "", label: "Described item (no product)" }, ...set.products.map((product) => ({ value: product.slug, label: product.name }))]}
+                />
               </FormField>
               <FormField id="rule-group" label="Group">
-                <select className={styles.selectInput} value={rule.group} onChange={(event) => update(editing, { group: event.target.value as RecommendationGroup })}>
-                  {GROUPS.map((group) => (
-                    <option key={group} value={group}>
-                      {RECOMMENDATION_GROUP_LABEL[group]}
-                    </option>
-                  ))}
-                </select>
+                <Select value={rule.group} onValueChange={(value) => update(editing, { group: value as RecommendationGroup })} options={GROUPS.map((group) => ({ value: group, label: RECOMMENDATION_GROUP_LABEL[group] }))} />
               </FormField>
               <FormField id="rule-when" label="Show when" error={errors[`rules.${editing}.condition`]}>
-                <select
-                  className={styles.selectInput}
+                <Select
                   value={rule.condition.kind}
-                  onChange={(event) => {
-                    const kind = event.target.value;
+                  onValueChange={(kind) => {
                     const number = numberQuestions[0];
                     const answer = answerQuestions[0];
                     update(editing, {
@@ -293,33 +276,30 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
                             : { kind: "ALWAYS" },
                     });
                   }}
-                >
-                  <option value="ALWAYS">Always</option>
-                  {numberQuestions.length ? <option value="NUMBER">A number answer is…</option> : null}
-                  {answerQuestions.length ? <option value="ANSWER">An answer is chosen…</option> : null}
-                </select>
+                  options={[
+                    { value: "ALWAYS", label: "Always" },
+                    ...(numberQuestions.length ? [{ value: "NUMBER", label: "A number answer is…" }] : []),
+                    ...(answerQuestions.length ? [{ value: "ANSWER", label: "An answer is chosen…" }] : []),
+                  ]}
+                />
               </FormField>
               {rule.condition.kind === "NUMBER" ? (
                 <div className={styles.filters}>
                   <label className={styles.select}>
                     <span className="hp-visually-hidden">Question</span>
-                    <select value={rule.condition.field} onChange={(event) => update(editing, { condition: { ...(rule.condition as Extract<RuleCondition, { kind: "NUMBER" }>), field: event.target.value } })}>
-                      {numberQuestions.map((question) => (
-                        <option key={question.key} value={question.key}>
-                          {question.unit}
-                        </option>
-                      ))}
-                    </select>
+                    <Select
+                      value={rule.condition.field}
+                      onValueChange={(value) => update(editing, { condition: { ...(rule.condition as Extract<RuleCondition, { kind: "NUMBER" }>), field: value } })}
+                      options={numberQuestions.map((question) => ({ value: question.key, label: question.unit }))}
+                    />
                   </label>
                   <label className={styles.select}>
                     <span className="hp-visually-hidden">Comparison</span>
-                    <select value={rule.condition.op} onChange={(event) => update(editing, { condition: { ...(rule.condition as Extract<RuleCondition, { kind: "NUMBER" }>), op: event.target.value as (typeof OPS)[number] } })}>
-                      {OPS.map((op) => (
-                        <option key={op} value={op}>
-                          {op}
-                        </option>
-                      ))}
-                    </select>
+                    <Select
+                      value={rule.condition.op}
+                      onValueChange={(value) => update(editing, { condition: { ...(rule.condition as Extract<RuleCondition, { kind: "NUMBER" }>), op: value as (typeof OPS)[number] } })}
+                      options={OPS.map((op) => ({ value: op, label: op }))}
+                    />
                   </label>
                   <TextField
                     aria-label="Value"
@@ -338,49 +318,37 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
                       <div className={styles.filters}>
                         <label className={styles.select}>
                           <span className="hp-visually-hidden">Question</span>
-                          <select
+                          <Select
                             value={condition.field}
-                            onChange={(event) => {
-                              const next = answerQuestions.find((item) => item.key === event.target.value)!;
+                            onValueChange={(value) => {
+                              const next = answerQuestions.find((item) => item.key === value)!;
                               update(editing, { condition: { kind: "ANSWER", field: next.key, equals: next.kind === "YES_NO" ? "YES" : "options" in next ? (next.options[0]?.value ?? "") : "" } });
                             }}
-                          >
-                            {answerQuestions.map((item) => (
-                              <option key={item.key} value={item.key}>
-                                {item.label}
-                              </option>
-                            ))}
-                          </select>
+                            options={answerQuestions.map((item) => ({ value: item.key, label: item.label }))}
+                          />
                         </label>
                         <label className={styles.select}>
                           <span className="hp-visually-hidden">Answer</span>
-                          <select value={condition.equals} onChange={(event) => update(editing, { condition: { ...condition, equals: event.target.value } })}>
-                            {options.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
+                          <Select value={condition.equals} onValueChange={(value) => update(editing, { condition: { ...condition, equals: value } })} options={options} />
                         </label>
                       </div>
                     );
                   })()
                 : null}
               <FormField id="rule-quantity" label="Quantity" error={errors[`rules.${editing}.quantity`]}>
-                <select
-                  className={styles.selectInput}
+                <Select
                   value={rule.quantity.kind}
-                  onChange={(event) => {
-                    const kind = event.target.value;
+                  onValueChange={(kind) => {
                     update(editing, {
                       quantity: kind === "FIXED" ? { kind: "FIXED", value: 1 } : kind === "PER" && numberQuestions[0] ? { kind: "PER", field: numberQuestions[0].key, factor: 1 } : { kind: "AFTER_REVIEW" },
                     });
                   }}
-                >
-                  <option value="FIXED">A fixed number</option>
-                  {numberQuestions.length ? <option value="PER">Per answer (for example 1 per guest)</option> : null}
-                  <option value="AFTER_REVIEW">Staff confirm after review</option>
-                </select>
+                  options={[
+                    { value: "FIXED", label: "A fixed number" },
+                    ...(numberQuestions.length ? [{ value: "PER", label: "Per answer (for example 1 per guest)" }] : []),
+                    { value: "AFTER_REVIEW", label: "Staff confirm after review" },
+                  ]}
+                />
               </FormField>
               {rule.quantity.kind === "FIXED" ? (
                 <TextField aria-label="Fixed quantity" inputMode="numeric" value={String(rule.quantity.value)} onChange={(event) => update(editing, { quantity: { kind: "FIXED", value: Math.max(1, Number(event.target.value.replace(/\D/g, "")) || 1) } })} />
@@ -389,13 +357,11 @@ export function RulesEditor({ initial }: { initial: RecommendationRuleSet }) {
                 <div className={styles.filters}>
                   <label className={styles.select}>
                     <span className="hp-visually-hidden">Per answer to</span>
-                    <select value={rule.quantity.field} onChange={(event) => update(editing, { quantity: { ...(rule.quantity as Extract<RuleQuantity, { kind: "PER" }>), field: event.target.value } })}>
-                      {numberQuestions.map((question) => (
-                        <option key={question.key} value={question.key}>
-                          per {question.unit.replace(/s$/, "")}
-                        </option>
-                      ))}
-                    </select>
+                    <Select
+                      value={rule.quantity.field}
+                      onValueChange={(value) => update(editing, { quantity: { ...(rule.quantity as Extract<RuleQuantity, { kind: "PER" }>), field: value } })}
+                      options={numberQuestions.map((question) => ({ value: question.key, label: `per ${question.unit.replace(/s$/, "")}` }))}
+                    />
                   </label>
                   <TextField
                     aria-label="Multiply by"
