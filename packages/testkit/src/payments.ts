@@ -18,6 +18,8 @@ export class FakeGateway implements PaymentGateway {
   /** Set to make the next initialize fail as if Paystack refused it. */
   failNextInitialize = false;
   verifyCalls = 0;
+  /** The next this many verify calls time out, as if Paystack did not answer. */
+  verifyFailures = 0;
   /** Refunds Paystack holds, by its refund id, with the transaction they belong to. */
   readonly refunds = new Map<string, RefundResult & { reference: string; input: RefundInput }>();
   /** The next refund request: refused (Paystack says no) or lost (created at Paystack, but no answer reached us). */
@@ -38,6 +40,10 @@ export class FakeGateway implements PaymentGateway {
 
   async verify(reference: string): Promise<VerifyResult> {
     this.verifyCalls += 1;
+    if (this.verifyFailures > 0) {
+      this.verifyFailures -= 1;
+      throw new Error("Paystack timed out");
+    }
     const transaction = this.transactions.get(reference);
     if (!transaction) return { status: "not_found", amountMinor: null, currency: null, channel: null, paidAt: null, gatewayResponse: "Transaction reference not found", providerStatus: null };
     return transaction.result;
@@ -103,8 +109,8 @@ export class FakeGateway implements PaymentGateway {
   }
 
   /** A webhook body and signature as Paystack would send them. */
-  webhook(event: string, reference: string, options: { id?: number; signedWith?: string } = {}) {
-    const body = Buffer.from(JSON.stringify({ event, data: { id: options.id ?? Math.floor(Math.random() * 1e9), reference, status: event === "charge.success" ? "success" : "failed" } }));
+  webhook(event: string, reference: string, options: { id?: number; signedWith?: string; data?: object } = {}) {
+    const body = Buffer.from(JSON.stringify({ event, data: { id: options.id ?? Math.floor(Math.random() * 1e9), reference, status: event === "charge.success" ? "success" : "failed", ...options.data } }));
     return { body, signature: paystackSignature(options.signedWith ?? FAKE_SECRET, body) };
   }
 }
