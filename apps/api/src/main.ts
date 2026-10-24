@@ -1,7 +1,7 @@
 import { refreshSearchIndex } from "./catalogue/search.js";
 import { type AuthOutbox, createBetterAuthIdentity } from "@holypearls/auth";
 import { jobsConnectionString, loadApiEnv } from "@holypearls/config";
-import { createDatabaseClient, runtimePrivilegeProblems } from "@holypearls/db";
+import { createDatabaseClient, missingSchema, runtimePrivilegeProblems } from "@holypearls/db";
 import { Jobs } from "@holypearls/jobs";
 import { createPaymentGateway } from "@holypearls/payments";
 import { createStorage } from "@holypearls/storage";
@@ -26,6 +26,9 @@ if (env.HP_ENV === "production") {
   const problems = await runtimePrivilegeProblems(database.db);
   if (problems.length) throw new Error(`DATABASE_URL must use the app's row-only role: ${problems.join("; ")}.`);
 }
+// Code ahead of the database (migrations not applied) would fail requests one by one; refuse to start instead.
+const missing = await missingSchema(database.db);
+if (missing.length) throw new Error(`The database is missing ${missing.join(", ")}. Run \`pnpm db:migrate\` first.`);
 const jobs = new Jobs({
   connectionString: jobsConnectionString(env),
   role: "sender",
