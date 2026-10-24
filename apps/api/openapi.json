@@ -16303,6 +16303,67 @@
         }
       }
     },
+    "/v1/analytics/events": {
+      "post": {
+        "summary": "Count where a visitor went (PRD-01 §11): the kind of entry and whether it came from a guide; nothing personal; CONFIGURE is counted by the server",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "PRODUCT",
+                      "CATEGORY",
+                      "PROJECT",
+                      "START_PROJECT",
+                      "CONFIGURE",
+                      "CONTACT"
+                    ]
+                  },
+                  "fromGuide": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "fromGuide"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Counted"
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "PUBLIC_READ limit (RATE_LIMITED)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/search/phrases": {
       "get": {
         "summary": "Everyday search phrases and where they lead (CATALOGUE_MANAGE or CONTENT_MANAGE)",
@@ -16687,7 +16748,7 @@
     },
     "/v1/admin/search/report": {
       "get": {
-        "summary": "Last 30 days: searches, searches with no results and the most common of each",
+        "summary": "Last 30 days: searches, the zero-result report, where people went, and phrase coverage (CATALOGUE_MANAGE or CONTENT_MANAGE)",
         "responses": {
           "200": {
             "description": "Report",
@@ -16705,6 +16766,11 @@
                       "maximum": 9007199254740991
                     },
                     "noResults": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "resultClicks": {
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
@@ -16730,7 +16796,7 @@
                         "additionalProperties": false
                       }
                     },
-                    "topNoResults": {
+                    "zeroResults": {
                       "type": "array",
                       "items": {
                         "type": "object",
@@ -16742,22 +16808,141 @@
                             "type": "integer",
                             "minimum": -9007199254740991,
                             "maximum": 9007199254740991
+                          },
+                          "lastSearchedAt": {
+                            "type": "string"
                           }
                         },
                         "required": [
                           "query",
-                          "count"
+                          "count",
+                          "lastSearchedAt"
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "PRODUCT",
+                              "CATEGORY",
+                              "PROJECT",
+                              "START_PROJECT",
+                              "CONFIGURE",
+                              "CONTACT"
+                            ]
+                          },
+                          "total": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "fromGuides": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "total",
+                          "fromGuides"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "phrases": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "leading": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "misses": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "phrase": {
+                                "type": "string"
+                              },
+                              "expected": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string"
+                                  },
+                                  "href": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "label",
+                                  "href"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "shown": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "label": {
+                                        "type": "string"
+                                      },
+                                      "href": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "label",
+                                      "href"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "phrase",
+                              "expected",
+                              "shown"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "total",
+                        "leading",
+                        "misses"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
                     "since",
                     "searches",
                     "noResults",
+                    "resultClicks",
                     "top",
-                    "topNoResults"
+                    "zeroResults",
+                    "entries",
+                    "phrases"
                   ],
                   "additionalProperties": false
                 }

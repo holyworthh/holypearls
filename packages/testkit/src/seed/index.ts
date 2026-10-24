@@ -3,6 +3,7 @@ import { seedCatalogue, seedMerchandising } from "./catalogue.js";
 import { seedContent } from "./content.js";
 import { seedDelivery } from "./delivery.js";
 import { seedHubs } from "./hubs.js";
+import { seedLaunchCatalogue } from "./launch-catalogue.js";
 import { seedCatalogueMedia, type SeedMediaStore } from "./media.js";
 import { seedPricing } from "./pricing.js";
 import { seedOrganizations } from "./organizations.js";
@@ -67,6 +68,9 @@ export const catalogueSeedStep: SeedStep = {
     await seedHubs(tx);
   },
 };
+
+/** All 304 Stage 1.4 products, for search tuning (T14-01b). Not in buildSeedSteps: dev, staging and e2e keep the small catalogue. */
+export const launchCatalogueSeedStep: SeedStep = { name: "catalogue: the full Stage 1.4 launch list", run: seedLaunchCatalogue };
 
 /** Project pages, demo case studies, guides and About (T02-06). */
 export const contentSeedStep: SeedStep = { name: "content: projects, demo case studies, guides and About", run: seedContent };

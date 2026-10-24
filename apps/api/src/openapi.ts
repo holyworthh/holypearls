@@ -134,6 +134,7 @@ import {
   searchPhraseSchema,
   searchTargetOptionsSchema,
   searchReportSchema,
+  siteEventSchema,
   sitemapSchema,
   contentIndexSchema,
   publicContentPageSchema,
@@ -1190,6 +1191,13 @@ export function buildOpenApiDocument() {
           responses: { 204: { description: "Recorded" }, 400: error("Bad input"), 429: error("SEARCH limit (RATE_LIMITED)") },
         },
       },
+      "/v1/analytics/events": {
+        post: {
+          summary: "Count where a visitor went (PRD-01 §11): the kind of entry and whether it came from a guide; nothing personal; CONFIGURE is counted by the server",
+          requestBody: { required: true, content: json(siteEventSchema) },
+          responses: { 204: { description: "Counted" }, 400: error("Bad input"), 429: error("PUBLIC_READ limit (RATE_LIMITED)") },
+        },
+      },
       "/v1/admin/search/phrases": {
         get: { summary: "Everyday search phrases and where they lead (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Phrases", content: json(searchPhraseListSchema) }, ...staffOnly } },
         post: {
@@ -1209,7 +1217,7 @@ export function buildOpenApiDocument() {
         },
       },
       "/v1/admin/search/report": {
-        get: { summary: "Last 30 days: searches, searches with no results and the most common of each", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
+        get: { summary: "Last 30 days: searches, the zero-result report, where people went, and phrase coverage (CATALOGUE_MANAGE or CONTENT_MANAGE)", responses: { 200: { description: "Report", content: json(searchReportSchema) }, ...staffOnly } },
       },
       "/v1/seo/sitemap": {
         get: { summary: "Published, indexable public pages for the XML sitemap (PUB-SEO-009)", responses: { 200: { description: "Pages", content: json(sitemapSchema) } } },

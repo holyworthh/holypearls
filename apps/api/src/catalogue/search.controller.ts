@@ -1,6 +1,6 @@
 import { Public } from "../identity/identified.guard.js";
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from "@nestjs/common";
-import { createSearchPhraseSchema, searchClickSchema, searchQuerySchema, searchTargetQuerySchema } from "@holypearls/contracts";
+import { createSearchPhraseSchema, searchClickSchema, searchQuerySchema, searchTargetQuerySchema, type SiteEvent, siteEventBodySchema } from "@holypearls/contracts";
 import { and, eq, schema, sql } from "@holypearls/db";
 import type { Request, Response } from "express";
 import type { z } from "zod";
@@ -11,7 +11,7 @@ import { RateLimit } from "../platform/rate-limit.js";
 import { FILE_DEPS } from "../tokens.js";
 import { ZodValidationPipe } from "../validation.js";
 import { sitemapContent } from "./content.js";
-import { createSearchPhrase, deleteSearchPhrase, listSearchPhrases, recordSearchClick, search, searchReport, searchTargets } from "./search.js";
+import { createSearchPhrase, deleteSearchPhrase, listSearchPhrases, recordSearchClick, recordSiteEvent, search, searchReport, searchTargets } from "./search.js";
 import { visibleProduct } from "./storefront.js";
 
 /** Search results (Pen 07, 10). Never cached publicly: results pages are private (PUB-SEO-008). */
@@ -34,6 +34,20 @@ export class SearchController {
   @RateLimit("SEARCH")
   async click(@Body(new ZodValidationPipe(searchClickSchema)) body: z.infer<typeof searchClickSchema>) {
     await recordSearchClick(this.deps.db, body);
+  }
+}
+
+/** Where people went (PRD-01 §11). Anonymous; nothing personal is accepted. */
+@Controller("analytics")
+export class AnalyticsController {
+  constructor(@Inject(FILE_DEPS) private readonly deps: FileDeps) {}
+
+  @Post("events")
+  @Public()
+  @HttpCode(204)
+  @RateLimit("PUBLIC_READ")
+  async event(@Body(new ZodValidationPipe(siteEventBodySchema)) body: SiteEvent) {
+    await recordSiteEvent(this.deps.db, body);
   }
 }
 
