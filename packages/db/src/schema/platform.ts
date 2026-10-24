@@ -1,4 +1,5 @@
-import { date, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, date, index, integer, jsonb, pgEnum, pgTable, primaryKey, smallint, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createdAt, idColumn, updatedAt } from "../columns.js";
 import { users } from "./identity.js";
 
@@ -112,4 +113,17 @@ export const exports = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [index("exports_created_idx").on(table.createdAt.desc()), index("exports_expires_idx").on(table.status, table.expiresAt)],
+);
+
+/** Incident switches (TECH-06 §14). Null = off; a time = on since then. One row, upserted. */
+export const incidentSwitches = pgTable(
+  "incident_switches",
+  {
+    id: smallint("id").primaryKey().default(1),
+    readOnlySince: timestamp("read_only_since", { withTimezone: true }),
+    uploadsPausedSince: timestamp("uploads_paused_since", { withTimezone: true }),
+    updatedByUserId: uuid("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    updatedAt: updatedAt(),
+  },
+  (table) => [check("incident_switches_single_row", sql`${table.id} = 1`)],
 );

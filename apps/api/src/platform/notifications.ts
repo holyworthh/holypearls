@@ -218,3 +218,9 @@ export async function resendNotification(deps: NotificationDeps, actor: ActorCon
   });
   return (await findNotification(deps.db, newId))!;
 }
+
+/** How many emails failed for good since `since` (TECH-07 §12 alert A8). */
+export async function failedEmailsSince(db: Database, since: Date): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(schema.notifications).where(and(eq(schema.notifications.status, "FAILED"), sql`${schema.notifications.updatedAt} >= ${since}`));
+  return row!.n;
+}

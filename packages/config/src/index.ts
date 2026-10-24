@@ -35,6 +35,8 @@ const storage = {
   S3_REGION: z.string().optional(),
   S3_BUCKET: z.string().optional(),
   S3_PUBLIC_BUCKET: z.string().optional(),
+  /** Daily copy of private files (TECH-07 §5); optional, a launch checklist item. */
+  S3_BACKUP_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).default("false"),

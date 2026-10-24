@@ -58,6 +58,10 @@ export const QUEUES = {
   "export.generate": { payload: payload({ exportId: z.string().uuid() }), settings: { retryLimit: 2, expireInSeconds: 15 * 60 } },
   /** Housekeeping at 03:00 WAT: unattached uploads, expired links and codes, old keys and counters. */
   "cleanup.daily": { payload: payload({}), settings: {} },
+  /** Every 5 minutes: checks the TECH-07 §12 alert signals that need the database (T15-05). */
+  "ops.monitor": { payload: payload({}), settings: { retryLimit: 1, expireInSeconds: 60 } },
+  /** Daily: copies private files to the backup bucket (T15-05). */
+  "storage.backup": { payload: payload({}), settings: { expireInSeconds: 30 * 60 } },
 } satisfies Record<string, { payload: z.ZodType; settings: Partial<QueueSettings> }>;
 
 export type QueueName = keyof typeof QUEUES;

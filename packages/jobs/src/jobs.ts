@@ -137,3 +137,11 @@ export class Jobs {
     this.started = false;
   }
 }
+
+/** Queues with a job that was due more than `minutes` ago and hasn't started (TECH-07 §12 backlog). */
+export async function stuckQueues(db: Database, minutes: number): Promise<string[]> {
+  const result = await db.execute<{ name: string }>(
+    sql`select distinct name from pgboss.job where state in ('created', 'retry') and start_after < now() - make_interval(mins => ${minutes}::int)`,
+  );
+  return result.rows.map((row) => row.name);
+}

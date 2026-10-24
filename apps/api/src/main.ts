@@ -11,11 +11,12 @@ import { findActiveStaff } from "./identity/actor.js";
 import { accountEvents } from "./identity/account.js";
 import { createLogger } from "./logger.js";
 import { flushMonitoring, initMonitoring } from "./monitoring.js";
+import { raiseAlert, requestAlerts } from "./platform/alerts.js";
 import { queueEmail } from "./platform/notifications.js";
 
 const env = loadApiEnv();
 const logger = createLogger({ environment: env.HP_ENV });
-initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "api" });
+initMonitoring({ dsn: env.SENTRY_DSN, environment: env.HP_ENV, service: "api", release: process.env.RENDER_GIT_COMMIT });
 if (env.HP_ENV === "production" && env.HP_DEMO_SLICE === "on") {
   throw new Error("The demo routes are never on in production.");
 }
@@ -81,6 +82,8 @@ const app = await createApp({
   webOrigin: env.BETTER_AUTH_URL,
 });
 app.enableShutdownHooks();
+// TECH-07 §12 A1 and A2: error rate and response time, from this process's own requests.
+setInterval(() => requestAlerts().forEach((alert) => raiseAlert(logger, alert)), 60_000).unref();
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
     void jobs
