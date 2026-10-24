@@ -322,7 +322,12 @@ export function SuggestInput({
   );
 
   return (
-    <div ref={root} className={variant === "attached" ? styles.attachedRoot : styles.dropdownRoot}>
+    <div
+      ref={root}
+      className={variant === "attached" ? styles.attachedRoot : styles.dropdownRoot}
+      // Tabbing out closes the dropdown, so it never sits over the content focus moves to (2.4.11).
+      onBlur={(event) => variant === "dropdown" && !event.currentTarget.contains(event.relatedTarget as Node | null) && setOpen(false)}
+    >
       {variant === "attached" ? (
         <div className={styles.fieldRow}>
           <Search size={20} aria-hidden="true" className={styles.fieldIcon} />

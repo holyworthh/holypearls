@@ -50,6 +50,11 @@
   font-size: var(--hp-text-label);
 }
 
+.select,
+.select select {
+  max-width: 100%;
+}
+
 .search {
   flex: 1 1 var(--hp-account-nav-width);
   max-width: calc(var(--hp-account-nav-width) + var(--hp-space-96));
@@ -301,6 +306,7 @@
   display: flex;
   gap: var(--hp-space-4);
   padding: var(--hp-space-8);
+  overflow-x: auto;
   background: var(--hp-bone);
 }
 

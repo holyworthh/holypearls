@@ -154,7 +154,7 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
     const following = index + 1;
     setOpen((current) => [...current.filter((item) => item !== index), following]);
     queue({ step: STEPS[following]!.key }, 0);
-    requestAnimationFrame(() => stepRefs.current[following]?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    requestAnimationFrame(() => stepRefs.current[following]?.scrollIntoView({ behavior: document.documentElement.dataset.motion === "on" ? "smooth" : "auto", block: "start" }));
   };
 
   const price = draft?.price ?? null;
@@ -842,7 +842,7 @@ export function GarmentConfigurator({ productSlug, productName, data, images, in
                                   className={s.textButton}
                                   onClick={() => {
                                     setOpen((current) => (current.includes(step) ? current : [...current, step]));
-                                    requestAnimationFrame(() => stepRefs.current[step]?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                                    requestAnimationFrame(() => stepRefs.current[step]?.scrollIntoView({ behavior: document.documentElement.dataset.motion === "on" ? "smooth" : "auto", block: "start" }));
                                   }}
                                 >
                                   Edit<span className="hp-visually-hidden"> {label.toLowerCase()}</span>

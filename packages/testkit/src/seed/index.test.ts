@@ -67,5 +67,12 @@ describe("runSeed", () => {
       roles: "OWNER, ADMIN, BUYER, LOCATION_MANAGER, APPROVER, VIEWER",
       invitations: "PENDING, EXPIRED",
     });
+    // The Event order (balance due ₦340,000, Name Badge proof V1 changes requested and V2 awaiting) and a paid checkout (T14-03), also once.
+    const orders = await database.db.execute<{ orders: string; balance: string; proof: string; versions: string }>(sql`
+      select (select string_agg(number, ', ' order by number) from orders) as orders,
+             (select amount_minor::text from installments where label = 'Balance' and status = 'DUE') as balance,
+             (select status::text from proofs where status <> 'NOT_REQUIRED') as proof,
+             (select string_agg(status::text, ', ' order by number) from proof_versions) as versions`);
+    expect(orders.rows[0]).toEqual({ orders: "HP-TEST-0001, HP-TEST-0002", balance: "34000000", proof: "AWAITING_APPROVAL", versions: "CHANGES_REQUESTED, PUBLISHED" });
   });
 });

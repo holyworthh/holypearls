@@ -127,8 +127,8 @@ export function SettingsForm({ initial, canManage }: { initial: PaymentSettings;
 
         <fieldset className={styles.panel} disabled={disabled}>
           <legend className={styles.panelTitle}>International and currency</legend>
-          <Checkbox label="International cards (Visa, Mastercard, Verve, Amex)" checked={form.internationalCards} onChange={(event) => set("internationalCards", event.target.checked)} hint={errors.internationalCards} />
-          <Checkbox label="USD quotes" checked={form.usdEnabled} onChange={(event) => set("usdEnabled", event.target.checked)} hint={errors.usdEnabled ?? "USD quotes need USD enabled on Paystack and a Zenith Bank USD domiciliary account."} />
+          <Checkbox id="payments-international" label="International cards (Visa, Mastercard, Verve, Amex)" checked={form.internationalCards} onChange={(event) => set("internationalCards", event.target.checked)} error={errors.internationalCards} />
+          <Checkbox id="payments-usd" label="USD quotes" checked={form.usdEnabled} onChange={(event) => set("usdEnabled", event.target.checked)} error={errors.usdEnabled} hint="USD quotes need USD enabled on Paystack and a Zenith Bank USD domiciliary account." />
         </fieldset>
 
         {canManage ? (

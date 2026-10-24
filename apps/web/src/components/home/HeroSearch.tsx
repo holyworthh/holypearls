@@ -13,7 +13,10 @@ export function HeroSearch({ id, inputClassName }: { id: string; inputClassName?
   const [index, setIndex] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setIndex((current) => (current + 1) % EXAMPLES.length), EVERY_MS);
+    // Stops with the page's "Pause motion" button (it clears data-motion).
+    const timer = window.setInterval(() => {
+      if (document.documentElement.dataset.motion === "on") setIndex((current) => (current + 1) % EXAMPLES.length);
+    }, EVERY_MS);
     return () => window.clearInterval(timer);
   }, []);
   return <SuggestInput id={id} className={inputClassName} placeholder={`Try “${EXAMPLES[index]}”`} label="What do you need made?" />;

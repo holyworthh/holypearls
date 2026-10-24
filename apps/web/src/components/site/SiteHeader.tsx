@@ -38,6 +38,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
   const triggers = useRef<(HTMLButtonElement | null)[]>([]);
   const header = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
+  const menu = useRef<HTMLDialogElement>(null);
   const panelId = useId();
 
   // Desktop mega-menus also open on hover, after a short pause so passing the pointer across doesn't flash them.
@@ -92,6 +93,13 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open, close]);
+  // A modal dialog: focus moves in and stays in, and the page behind is inert (2.4.3, 2.4.11).
+  useEffect(() => {
+    if (!mobile) return;
+    menu.current?.showModal();
+    // Once the dialog is gone (the page is no longer inert) focus goes back to the button that opened it.
+    return () => menuButton.current?.focus();
+  }, [mobile]);
   useEffect(() => {
     if (!mobile) return;
     const previous = document.body.style.overflow;
@@ -103,10 +111,8 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Escape") return;
-    if (mobile) {
-      setMobile(false);
-      menuButton.current?.focus();
-    } else close(true);
+    if (mobile) setMobile(false);
+    else close(true);
   };
 
   const current = (href: string) => (href !== "/products" && pathname.startsWith(href.split("?")[0]!) ? "page" : undefined);
@@ -235,7 +241,14 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
       </div>
 
       {mobile ? (
-        <div id={`${panelId}-mobile`} className={styles.mobile} role="dialog" aria-modal="true" aria-label="Menu">
+        <dialog
+          ref={menu}
+          id={`${panelId}-mobile`}
+          className={styles.mobile}
+          aria-label="Menu"
+          // Escape is handled in onKeyDown, which closes it; the native close would otherwise leave the state open.
+          onCancel={(event) => event.preventDefault()}
+        >
           <div className={styles.mobileTop}>
             {drill === null ? (
               <p className={styles.mobileTitle}>Menu</p>
@@ -251,7 +264,6 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
               aria-label="Close menu"
               onClick={() => {
                 setMobile(false);
-                menuButton.current?.focus();
               }}
             >
               <CloseIcon className={styles.icon} />
@@ -322,7 +334,7 @@ export function SiteHeader({ items }: { items: TopItem[] }) {
               </a>
             </div>
           </div>
-        </div>
+        </dialog>
       ) : null}
     </div>
   );

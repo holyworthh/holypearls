@@ -1,6 +1,6 @@
 import { TEST_PEOPLE, totpCode } from "@holypearls/auth";
 import { expect, test, type Page } from "@playwright/test";
-import { expectNoAxeViolations, ADMIN } from "./helpers";
+import { ADMIN, expectNoAxeViolations, signInCustomer } from "./helpers";
 
 /*
  * TECH-03 §3 checks in a real browser: a signed-in server-rendered page, a
@@ -12,14 +12,6 @@ import { expectNoAxeViolations, ADMIN } from "./helpers";
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
-}
-
-async function signInCustomer(page: Page, person: { email: string; password: string }, next = "/account/security") {
-  await page.goto(`/sign-in?next=${encodeURIComponent(next)}`);
-  await page.locator("#sign-in-email").fill(person.email);
-  await page.locator("#sign-in-password").fill(person.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL((url) => url.pathname === next);
 }
 
 async function signInStaff(page: Page, person: { email: string; password: string; totpSecret: string }) {
@@ -188,5 +180,7 @@ test("the admin menu opens at 375 px", async ({ page }, testInfo) => {
   await signInStaff(page, TEST_PEOPLE.adminAda);
   await page.getByRole("button", { name: "Open menu" }).click();
   await expect(page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Operations home" })).toBeVisible();
+  // The page behind the open menu can't take focus (2.4.3, 2.4.11).
+  await expect(page.locator("main#main-content").locator("..")).toHaveAttribute("inert", "");
   await expectNoAxeViolations(page);
 });
